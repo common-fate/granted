@@ -1,0 +1,5 @@
+
+dist/
+.DS_Store
+granted-config
+pkg/api/cert

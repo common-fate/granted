@@ -1,0 +1,63 @@
+#!/bin/bash
+
+#GRANTED_FLAG - what assumego told the shell to do
+#GRANTED_n - the data from assumego
+
+red=$(tput setaf 1)
+normal=$(tput sgr0)
+
+# pass an environment variable to the Go binary if the Granted alias hasn't been configured
+if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+  GRANTED_RETURN_STATUS="true"
+  export GRANTED_ALIAS_CONFIGURED="true"
+fi
+
+GRANTED_OUTPUT=$(assumego "$@")
+GRANTED_STATUS=$?
+read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 <<< $(echo $GRANTED_OUTPUT)
+
+# # unset the exported GRANTED_ALIAS_CONFIGURED flag
+unset GRANTED_ALIAS_CONFIGURED
+
+# remove carraige return
+GRANTED_FLAG=$(echo "$GRANTED_FLAG" | tr -d '\r')
+
+
+if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
+  unset AWS_ACCESS_KEY_ID
+  unset AWS_SECRET_ACCESS_KEY
+  unset AWS_SESSION_TOKEN
+
+  export GRANTED_COMMAND="$@"
+
+  if [ ! "${GRANTED_1}" = "None" ]; then
+    export AWS_ACCESS_KEY_ID=${GRANTED_1}
+  fi
+  if [ ! "${GRANTED_2}" = "None" ]; then
+    export AWS_SECRET_ACCESS_KEY=${GRANTED_2}
+  fi
+  if [ ! "${GRANTED_3}" = "None" ]; then
+    export AWS_SESSION_TOKEN=${GRANTED_3}
+  fi
+
+  for GRANTED_var in "$@"
+  do
+    if [[ "$GRANTED_var" == "-s"* ]]; then
+      if [ ! "${GRANTED_1}" = "None" ]; then
+        echo export AWS_ACCESS_KEY_ID=${GRANTED_1}
+      fi
+      if [ ! "${GRANTED_2}" = "None" ]; then
+        echo export AWS_SECRET_ACCESS_KEY=${GRANTED_2}
+      fi
+      if [ ! "${GRANTED_3}" = "None" ]; then
+        echo export AWS_SESSION_TOKEN=${GRANTED_3}
+      fi
+    fi
+  done
+else
+  echo "$GRANTED_OUTPUT"
+fi
+
+if [ "$GRANTED_RETURN_STATUS" = "true" ]; then
+  return $GRANTED_STATUS
+fi
