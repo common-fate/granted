@@ -12,14 +12,15 @@ import (
 )
 
 func AssumeCommand(c *cli.Context) error {
+
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig()
+	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
 	if err != nil {
 		return err
 	}
 	// Replicate the logic from original assume fn.
 	in := survey.Select{
-		Options: awsProfiles,
+		Options: awsProfiles.ProfileNames(),
 	}
 	var profile string
 	err = testable.AskOne(&in, &profile, withStdio)
