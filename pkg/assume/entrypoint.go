@@ -16,6 +16,7 @@ func GetCliApp() *cli.App {
 	flags := []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
 		&cli.BoolFlag{Name: "extension", Aliases: []string{"e"}, Usage: "Open a web console to the role using the Granted Containers extension"},
+		&cli.BoolFlag{Name: "chrome", Aliases: []string{"cr"}, Usage: "Open a web console to the role using a unique Google Chrome profile"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 	}
 
