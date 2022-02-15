@@ -36,7 +36,7 @@ var CompletionCommand = cli.Command{
 			// Run the native FishCompletion method and generate a string of its outputs
 			// If in dev alias the app to *dgranted
 			if c.String("development") == "true" {
-				fmt.Println("Using dgranted alias for command")
+				fmt.Fprintf(os.Stderr, "Using dgranted alias for command")
 				c.App.Name = "dgranted"
 			}
 			output, _ := c.App.ToFishCompletion()
@@ -51,7 +51,7 @@ var CompletionCommand = cli.Command{
 			f, err := os.Create(executableDir)
 
 			if err != nil {
-				fmt.Println("Something went wrong when saving fish autocompletions" + err.Error())
+				fmt.Fprintln(os.Stderr, "Something went wrong when saving fish autocompletions"+err.Error())
 			}
 
 			// Defer closing the file
@@ -59,19 +59,19 @@ var CompletionCommand = cli.Command{
 			// Write the string to the file
 			_, err = f.WriteString(output)
 			if err != nil {
-				fmt.Println("Something went wrong when writing fish autocompletions to file")
+				fmt.Fprintln(os.Stderr, "Something went wrong when writing fish autocompletions to file")
 			}
 			f.Close()
 
 			green := color.New(color.FgGreen)
 
-			green.Println("[✔] Fish autocompletions generated successfully ")
-			fmt.Println("To use these completions please run the executable:")
-			fmt.Println("source " + executableDir)
+			green.Fprintln(os.Stderr, "[✔] Fish autocompletions generated successfully ")
+			fmt.Fprintln(os.Stderr, "To use these completions please run the executable:")
+			fmt.Fprintln(os.Stderr, "source "+executableDir)
 
 		} else {
-			fmt.Println("To install completions for other shells like zsh, bash, please see our docs:")
-			fmt.Println("https://granted.dev/docs/cli/completion")
+			fmt.Fprintln(os.Stderr, "To install completions for other shells like zsh, bash, please see our docs:")
+			fmt.Fprintln(os.Stderr, "https://granted.dev/docs/cli/completion")
 			/*
 				@TODO: consider adding automatic support for other shells in this same CLI command
 					Can be modelled off these tools
