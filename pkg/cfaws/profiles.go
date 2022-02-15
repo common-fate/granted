@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
 )
 
@@ -128,11 +129,24 @@ func (c CFSharedConfigs) ProfileNames() []string {
 	return names
 }
 
+func (c *CFSharedConfig) AwsConfig(ctx context.Context) (aws.Config, error) {
+	return config.LoadDefaultConfig(ctx,
+		config.WithSharedConfigProfile(c.Name),
+	)
+}
+
+func (c *CFSharedConfig) CallerIdentity(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {
+	cfg, err := c.AwsConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+	client := sts.NewFromConfig(cfg)
+	return client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+}
+
 func (c *CFSharedConfig) Assume(ctx context.Context) (aws.Credentials, error) {
 	if c.ProfileType == ProfileTypeIAM {
-		cfg, err := config.LoadDefaultConfig(ctx,
-			config.WithSharedConfigProfile(c.Name),
-		)
+		cfg, err := c.AwsConfig(ctx)
 		if err != nil {
 			return aws.Credentials{}, err
 		}
