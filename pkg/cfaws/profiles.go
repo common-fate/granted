@@ -139,6 +139,7 @@ func (c *CFSharedConfig) Assume(ctx context.Context) (aws.Credentials, error) {
 		appCreds := aws.NewCredentialsCache(cfg.Credentials)
 		return appCreds.Retrieve(ctx)
 	} else {
+		// @TODO implement fetching sso session
 		return aws.Credentials{}, errors.New("assuming sso profiles is not implemented")
 	}
 
