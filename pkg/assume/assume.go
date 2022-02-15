@@ -5,11 +5,32 @@ import (
 	"os"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
 )
 
 func AssumeCommand(c *cli.Context) error {
-
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig()
+	if err != nil {
+		return err
+	}
+	// Replicate the logic from original assume fn.
+	in := survey.Select{
+		Options: awsProfiles,
+	}
+	var profile string
+	err = testable.AskOne(&in, &profile, withStdio)
+	if err != nil {
+		return err
+	}
+	if profile != "" {
+		// @NOTE: this is just ground work for the parent tickets
+		// Currently we're not using the input, it's just being captured and logged
+		fmt.Fprintf(os.Stderr, "ℹ️  Assume role with %s\n", profile)
+	}
 	role := "rolename goes here"
 	account := "123456789120"
 	accessKeyID := "todo"
