@@ -17,6 +17,7 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	// Replicate the logic from original assume fn.
 	in := survey.Select{
 		Options: awsProfiles.ProfileNames(),
@@ -47,12 +48,19 @@ func AssumeCommand(c *cli.Context) error {
 	role := "todo"
 	account := "todo"
 	labels := RoleLabels{Role: role, Account: account}
-	if c.Bool("console") && profile.ProfileType != cfaws.ProfileTypeIAM {
-		return LaunchConsoleSession(sess, labels, BrowserDefault)
-	} else if c.Bool("extension") && profile.ProfileType != cfaws.ProfileTypeIAM {
-		return LaunchConsoleSession(sess, labels, BrowerFirefox)
-	} else if c.Bool("chrome") && profile.ProfileType != cfaws.ProfileTypeIAM {
-		return LaunchConsoleSession(sess, labels, BrowserChrome)
+
+	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
+	openBrower := c.Bool("console") || c.Bool("extension") || c.Bool("chrome")
+	if openBrower && isIamWithoutAssumedRole {
+		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
+	} else if openBrower {
+		if c.Bool("extension") {
+			return LaunchConsoleSession(sess, labels, BrowerFirefox)
+		} else if c.Bool("chrome") {
+			return LaunchConsoleSession(sess, labels, BrowserChrome)
+		} else {
+			return LaunchConsoleSession(sess, labels, BrowserDefault)
+		}
 	} else {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
