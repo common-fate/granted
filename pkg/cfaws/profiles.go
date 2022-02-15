@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -56,7 +57,7 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 			name := strings.TrimPrefix(section, "profile ")
 			cf, err := config.LoadSharedConfigProfile(ctx, name)
 			if err != nil {
-				fmt.Println(err)
+				fmt.Fprint(os.Stderr, err.Error())
 				continue
 			} else {
 				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{RawConfig: cf, Name: name}}

@@ -43,24 +43,24 @@ func AssumeCommand(c *cli.Context) error {
 
 	sess := Session{SessionID: accessKeyID, SesssionKey: secretAccessKey, SessionToken: sessionToken}
 
-	// you cannot login to the console with iam??
-	if profile.ProfileType != cfaws.ProfileTypeIAM {
-
-		// these are just labels for the tabs so we may need to updates these for the sso role context
-		role := "todo"
-		account := "todo"
-		labels := RoleLabels{Role: role, Account: account}
-		if c.Bool("console") {
-			return LaunchConsoleSession(sess, labels, BrowserDefault)
-		} else if c.Bool("extension") {
-			return LaunchConsoleSession(sess, labels, BrowerFirefox)
-		} else if c.Bool("chrome") {
-			return LaunchConsoleSession(sess, labels, BrowserChrome)
-		}
+	// these are just labels for the tabs so we may need to updates these for the sso role context
+	role := "todo"
+	account := "todo"
+	labels := RoleLabels{Role: role, Account: account}
+	if c.Bool("console") && profile.ProfileType != cfaws.ProfileTypeIAM {
+		return LaunchConsoleSession(sess, labels, BrowserDefault)
+	} else if c.Bool("extension") && profile.ProfileType != cfaws.ProfileTypeIAM {
+		return LaunchConsoleSession(sess, labels, BrowerFirefox)
+	} else if c.Bool("chrome") && profile.ProfileType != cfaws.ProfileTypeIAM {
+		return LaunchConsoleSession(sess, labels, BrowserChrome)
 	} else {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-		fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
+		if creds.CanExpire {
+			fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
+		} else {
+			fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials ready\033[0m\n", profile.Name)
+		}
 	}
 
 	return nil
