@@ -9,7 +9,8 @@ import (
 	"os/exec"
 
 	"github.com/AlecAivazis/survey/v2"
-	teamv1alpha1 "github.com/common-fate/cf-protos/gen/proto/go/team/v1alpha1"
+	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/pkg/browser"
 
@@ -56,54 +57,64 @@ func AssumeCommand(c *cli.Context) error {
 		}
 	}
 
-	role := c.Args().Get(0)
-	accountInput := c.Args().Get(1)
+	// role := c.Args().Get(0)
+	// accountInput := c.Args().Get(1)
 
+	// fetch the parsed config file
+	configPath := config.DefaultSharedConfigFilename()
+	config, err := configparser.NewConfigParserFromFile(configPath)
+	if err != nil {
+		return err
+	}
+
+	var profileMap = make(map[string]string)
+	allProfileOptions := []string{}
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	allRoleOptions := []string{}
+	// .aws/config files are structured as follows,
+	// We want to strip the profile_name i.e. [profile <profile_name>],
+	//
+	// [profile cf-dev]
+	// sso_region=ap-southeast-2
+	// ...
+	// [profile cf-prod]
+	// sso_region=ap-southeast-2
+	// ...
 
-	type RoleOptionValue struct {
-		roleId     *teamv1alpha1.Role
-		providerId string
-		customerId string
+	// Itterate through the config sections
+	for _, section := range config.Sections() {
+
+		// Check if the section is prefixed with 'profile '
+		if section[0:7] == "profile" {
+
+			// Strip 'profile ' from the section name
+			awsProfile := section[8:]
+			ssoID, err := config.Get(section, "sso_account_id")
+			if err != nil {
+				return err
+			}
+
+			value := fmt.Sprintf("%-16s%s:%s", awsProfile, "aws", ssoID)
+
+			profileMap[awsProfile] = value
+			allProfileOptions = append(allProfileOptions, value)
+		}
 	}
 
-	roleOptionMap := make(map[string]RoleOptionValue)
-	// roleMap := make(map[string]*teamv1alpha1.Role)
-
-	// for _, role := range rolesRes.Roles {
-	// 	// PrintF formatting to align to columns
-	// 	for _, account := range role.Account {
-	// 		stringKey := fmt.Sprintf("%-12s%s:%s", role.Id, account.Provider, account.AccountId)
-	// 		allRoleOptions = append(allRoleOptions, stringKey)
-	// 		// append to roleOptionMap
-	// 		roleOptionMap[stringKey] = RoleOptionValue{
-	// 			roleId:     role,
-	// 			providerId: account.Provider,
-	// 			customerId: account.AccountId,
-	// 		}
-	// 	}
-	// 	roleMap[role.Id] = role
-
-	// }
-
-	if role == "" && accountInput == "" {
-		in := survey.Select{
-			Options: allRoleOptions,
-		}
-		var roleacc string
-		err := survey.AskOne(&in, &roleacc, withStdio)
-		if err != nil {
-			return err
-		}
-		accountInput = roleOptionMap[roleacc].customerId
-		role = roleOptionMap[roleacc].roleId.Id
+	// Replicate the logic from original assume fn.
+	in := survey.Select{
+		Options: allProfileOptions,
 	}
-
-	// matchedRole, ok := roleMap[role]
-	// if !ok {
-	// 	return errors.New("this role either doesn't exist, or you don't have access to it")
-	// }
+	var profile string
+	// TODO: see if we can use 'testable' here? Unhandled panic was being thrown
+	err = survey.AskOne(&in, &profile, withStdio)
+	if err != nil {
+		return err
+	}
+	if profile != "" {
+		// @NOTE: this is just ground work for the parent tickets
+		// Currently we're not using the input, it's just being captured and logged
+		fmt.Fprintf(os.Stderr, "ℹ️  Assume role with %s\n", profile)
+	}
 
 	var resbody sig.AssumeRoleResults
 	// err = json.NewDecoder(ahres.Body).Decode(&resbody)
@@ -168,7 +179,7 @@ func AssumeCommand(c *cli.Context) error {
 		var fullyQualifiedAccount string
 
 		if c.Bool("extension") {
-			tabURL := fmt.Sprintf("ext+granted-containers:name=%s:%s (ap-southeast-2)&url=%s", role, fullyQualifiedAccount, url.QueryEscape(u.String()))
+			tabURL := fmt.Sprintf("ext+granted-containers:name=%s:%s (ap-southeast-2)&url=%s", "@TODO: fix to use SSO roles", fullyQualifiedAccount, url.QueryEscape(u.String()))
 			cmd := exec.Command("/Applications/Firefox.app/Contents/MacOS/firefox",
 				"--new-tab",
 				tabURL)
@@ -179,8 +190,8 @@ func AssumeCommand(c *cli.Context) error {
 			return browser.OpenURL(u.String())
 		}
 	} else {
-		fmt.Printf("GrantedAssume %s %s %s", resbody.AccessKeyID, resbody.SecretAccessKey, resbody.SessionToken)
-		fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials will expire %s\033[0m\n", role, resbody.Expiration.Local().String())
+		// fmt.Printf("GrantedAssume %s %s %s", resbody.AccessKeyID, resbody.SecretAccessKey, resbody.SessionToken)
+		// fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials will expire %s\033[0m\n", role, resbody.Expiration.Local().String())
 	}
 
 	return nil
