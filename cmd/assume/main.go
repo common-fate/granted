@@ -189,10 +189,11 @@ func AssumeCommand(c *cli.Context) error {
 		} else {
 			return browser.OpenURL(u.String())
 		}
-	} else {
-		// fmt.Printf("GrantedAssume %s %s %s", resbody.AccessKeyID, resbody.SecretAccessKey, resbody.SessionToken)
-		// fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials will expire %s\033[0m\n", role, resbody.Expiration.Local().String())
 	}
+	// else {
+	// fmt.Printf("GrantedAssume %s %s %s", resbody.AccessKeyID, resbody.SecretAccessKey, resbody.SessionToken)
+	// fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials will expire %s\033[0m\n", role, resbody.Expiration.Local().String())
+	// }
 
 	return nil
 }
