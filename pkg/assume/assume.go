@@ -17,6 +17,7 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	// Replicate the logic from original assume fn.
 	in := survey.Select{
 		Options: awsProfiles.ProfileNames(),
@@ -35,6 +36,7 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	GetSSO(c.Context, profile)
 
 	accessKeyID := creds.AccessKeyID
 	secretAccessKey := creds.SecretAccessKey
