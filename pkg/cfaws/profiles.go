@@ -2,9 +2,11 @@ package cfaws
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
 )
@@ -124,4 +126,20 @@ func (c CFSharedConfigs) ProfileNames() []string {
 		names = append(names, k)
 	}
 	return names
+}
+
+func (c *CFSharedConfig) Assume(ctx context.Context) (aws.Credentials, error) {
+	if c.ProfileType == ProfileTypeIAM {
+		cfg, err := config.LoadDefaultConfig(ctx,
+			config.WithSharedConfigProfile(c.Name),
+		)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+		appCreds := aws.NewCredentialsCache(cfg.Credentials)
+		return appCreds.Retrieve(ctx)
+	} else {
+		return aws.Credentials{}, errors.New("assuming sso profiles is not implemented")
+	}
+
 }

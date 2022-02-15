@@ -3,7 +3,6 @@ package assume
 import (
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -30,16 +29,19 @@ func AssumeCommand(c *cli.Context) error {
 
 	profile := awsProfiles[p]
 
-	// @NOTE: this is just ground work for the parent tickets
-	// Currently we're not using the input, it's just being captured and logged
 	fmt.Fprintf(os.Stderr, "ℹ️  Assume role with %s\n", profile.Name)
+
+	creds, err := profile.Assume(c.Context)
+	if err != nil {
+		return err
+	}
 
 	role := "rolename goes here"
 	account := "123456789120"
-	accessKeyID := "todo"
-	secretAccessKey := "todo"
-	sessionToken := "todo"
-	expiration := time.Now().Add(time.Hour)
+	accessKeyID := creds.AccessKeyID
+	secretAccessKey := creds.SecretAccessKey
+	sessionToken := creds.SessionToken
+	expiration := creds.Expires
 
 	sess := Session{SessionID: accessKeyID, SesssionKey: secretAccessKey, SessionToken: sessionToken}
 	labels := RoleLabels{Role: role, Account: account}
@@ -50,7 +52,7 @@ func AssumeCommand(c *cli.Context) error {
 	} else if c.Bool("chrome") {
 		return LaunchConsoleSession(sess, labels, BrowserChrome)
 	} else {
-		fmt.Printf("GrantedAssume %s %s %s", accessKeyID, secretAccessKey, sessionToken)
+		fmt.Fprintf(os.Stderr, "GrantedAssume %s %s %s", accessKeyID, secretAccessKey, sessionToken)
 		fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials will expire %s\033[0m\n", role, expiration.Local().String())
 	}
 
