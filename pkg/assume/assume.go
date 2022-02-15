@@ -22,16 +22,18 @@ func AssumeCommand(c *cli.Context) error {
 	in := survey.Select{
 		Options: awsProfiles.ProfileNames(),
 	}
-	var profile string
-	err = testable.AskOne(&in, &profile, withStdio)
+	var p string
+	err = testable.AskOne(&in, &p, withStdio)
 	if err != nil {
 		return err
 	}
-	if profile != "" {
-		// @NOTE: this is just ground work for the parent tickets
-		// Currently we're not using the input, it's just being captured and logged
-		fmt.Fprintf(os.Stderr, "ℹ️  Assume role with %s\n", profile)
-	}
+
+	profile := awsProfiles[p]
+
+	// @NOTE: this is just ground work for the parent tickets
+	// Currently we're not using the input, it's just being captured and logged
+	fmt.Fprintf(os.Stderr, "ℹ️  Assume role with %s\n", profile.Name)
+
 	role := "rolename goes here"
 	account := "123456789120"
 	accessKeyID := "todo"
