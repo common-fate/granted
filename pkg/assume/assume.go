@@ -6,7 +6,6 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
@@ -43,21 +42,7 @@ func AssumeCommand(c *cli.Context) error {
 
 	fmt.Fprintf(os.Stderr, "\nℹ️  Assuming profile: %s\n", profile.Name)
 
-	// We want to check the cred store first,
-	// If creds are returned (and valid) we'll assume them instead of requesting via SSO
-	creds, err := cfaws.CheckCredStore(profile.Name)
-
-	// If the creds are nullish, we'll assume via SSO
-	if (creds == aws.Credentials{} || err != nil || creds.Expired()) {
-		creds, err = profile.Assume(c.Context)
-		if err == nil {
-			err = cfaws.WriteSSOCreds(profile.Name, creds)
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error writing sso creds to keyring cache: %s\n", err)
-			}
-		}
-	}
-
+	creds, err := profile.Assume(c.Context)
 	if err != nil {
 		return err
 	}

@@ -32,56 +32,41 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		rootProfile = c.Parents[0]
 		requiresAssuming = true
 	}
+
 	cfg, err := rootProfile.AwsConfig(ctx)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-
-	if err != nil {
-		return aws.Credentials{}, err
+	cachedToken, _ := CheckSSOTokenStore(rootProfile.Name)
+	newToken := false
+	if cachedToken == nil {
+		newToken = true
+		cachedToken, err = SSODeviceCodeFlow(ctx, cfg, rootProfile)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
 	}
-	ssooidcClient := ssooidc.NewFromConfig(cfg)
-	if err != nil {
-		return aws.Credentials{}, err
-	}
-	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
-		ClientName: aws.String("granted-cli-client"),
-		ClientType: aws.String("public"),
-		Scopes:     []string{"sso-portal:*"},
-	})
-	if err != nil {
-		return aws.Credentials{}, err
-	}
-
-	// authorize your device using the client registration response
-	deviceAuth, err := ssooidcClient.StartDeviceAuthorization(ctx, &ssooidc.StartDeviceAuthorizationInput{
-		ClientId:     register.ClientId,
-		ClientSecret: register.ClientSecret,
-		StartUrl:     aws.String(rootProfile.RawConfig.SSOStartURL),
-	})
-	if err != nil {
-		return aws.Credentials{}, err
-	}
-	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
-	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	fmt.Fprintf(os.Stderr, "If browser is not opened automatically, please open link:\n%v\n", url)
-	err = browser.OpenURL(url)
-	if err != nil {
-		return aws.Credentials{}, err
-	}
-
-	fmt.Fprintln(os.Stderr, "\nAwaiting authentication in the browser...")
-	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
-	if err != nil {
-		return aws.Credentials{}, err
+	if newToken {
+		err = WriteSSOToken(rootProfile.Name, *cachedToken)
+		// only write errors for caching if its in debug mode
+		// Don't block assuming
+		if os.Getenv("DEBUG") == "true" && err != nil {
+			fmt.Fprintln(os.Stderr, err.Error())
+		}
 	}
 
 	fmt.Fprintln(os.Stderr, "Successfully authenticated")
 	// create sso client
 	ssoClient := sso.NewFromConfig(cfg)
-	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: token.AccessToken, AccountId: &rootProfile.RawConfig.SSOAccountID, RoleName: &rootProfile.RawConfig.SSORoleName})
+	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.RawConfig.SSOAccountID, RoleName: &rootProfile.RawConfig.SSORoleName})
 	if err != nil {
-		return aws.Credentials{}, err
+		var unauthorised *ssotypes.UnauthorizedException
+		if errors.As(err, &unauthorised) {
+			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
+			_ = ClearSSOToken(rootProfile.Name)
+		} else {
+			return aws.Credentials{}, err
+		}
 	}
 
 	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
@@ -110,6 +95,43 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	}
 	return credProvider.Credentials, nil
 
+}
+func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFSharedConfig) (*SSOToken, error) {
+	ssooidcClient := ssooidc.NewFromConfig(cfg)
+
+	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
+		ClientName: aws.String("granted-cli-client"),
+		ClientType: aws.String("public"),
+		Scopes:     []string{"sso-portal:*"},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// authorize your device using the client registration response
+	deviceAuth, err := ssooidcClient.StartDeviceAuthorization(ctx, &ssooidc.StartDeviceAuthorizationInput{
+		ClientId:     register.ClientId,
+		ClientSecret: register.ClientSecret,
+		StartUrl:     aws.String(rootProfile.RawConfig.SSOStartURL),
+	})
+	if err != nil {
+		return nil, err
+	}
+	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
+	url := aws.ToString(deviceAuth.VerificationUriComplete)
+	fmt.Fprintf(os.Stderr, "If browser is not opened automatically, please open link:\n%v\n", url)
+	err = browser.OpenURL(url)
+	if err != nil {
+		return nil, err
+	}
+
+	fmt.Fprintln(os.Stderr, "\nAwaiting authentication in the browser...")
+	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
+	if err != nil {
+		return nil, err
+	}
+
+	return &SSOToken{AccessToken: *token.AccessToken, Expiry: time.Now().Add(time.Duration(token.ExpiresIn) * time.Second)}, nil
 }
 
 func TypeCredsToAwsCreds(c types.Credentials) aws.Credentials {
