@@ -7,7 +7,6 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -65,11 +64,10 @@ func AssumeCommand(c *cli.Context) error {
 	} else {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-		green := color.New(color.FgGreen)
 		if creds.CanExpire {
-			green.Fprintf(os.Stderr, "\n[%s] session credentials will expire %s\n", profile.Name, expiration.Local().String())
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
 		} else {
-			green.Fprintf(os.Stderr, "\n[%s] session credentials ready\n", profile.Name)
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials ready\033[0m\n", profile.Name)
 		}
 	}
 
