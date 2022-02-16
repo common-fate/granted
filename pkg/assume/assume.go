@@ -2,6 +2,7 @@ package assume
 
 import (
 	"fmt"
+
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -11,26 +12,35 @@ import (
 )
 
 func AssumeCommand(c *cli.Context) error {
-
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
 	if err != nil {
 		return err
 	}
 
-	// Replicate the logic from original assume fn.
-	in := survey.Select{
-		Options: awsProfiles.ProfileNames(),
-	}
-	var p string
-	err = testable.AskOne(&in, &p, withStdio)
-	if err != nil {
-		return err
+	var profile *cfaws.CFSharedConfig
+	inProfile := c.Args().First()
+	if inProfile != "" {
+		profile = awsProfiles[inProfile]
 	}
 
-	profile := awsProfiles[p]
+	if profile == nil {
+		fmt.Fprintln(os.Stderr, "")
+		// Replicate the logic from original assume fn.
+		in := survey.Select{
+			Message: "Please select the profile you would like to assume:",
+			Options: awsProfiles.ProfileNames(),
+		}
+		var p string
+		err = testable.AskOne(&in, &p, withStdio)
+		if err != nil {
+			return err
+		}
 
-	fmt.Fprintf(os.Stderr, "ℹ️  Assume role with %s\n", profile.Name)
+		profile = awsProfiles[p]
+	}
+
+	fmt.Fprintf(os.Stderr, "\nℹ️  Assuming profile: %s\n", profile.Name)
 
 	creds, err := profile.Assume(c.Context)
 	if err != nil {
@@ -65,9 +75,9 @@ func AssumeCommand(c *cli.Context) error {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 		if creds.CanExpire {
-			fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
 		} else {
-			fmt.Fprintf(os.Stderr, "\033[32m[%s] session credentials ready\033[0m\n", profile.Name)
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials ready\033[0m\n", profile.Name)
 		}
 	}
 

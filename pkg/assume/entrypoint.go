@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/common-fate/granted/internal/build"
+	"github.com/common-fate/granted/pkg/alias"
 	"github.com/urfave/cli/v2"
 )
 
@@ -28,6 +29,7 @@ func GetCliApp() *cli.App {
 		HideVersion:          false,
 		Flags:                flags,
 		Action:               AssumeCommand,
+		Commands:             []*cli.Command{&CompletionCommand},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 
@@ -47,8 +49,13 @@ func GetCliApp() *cli.App {
 				return err
 			}
 
+			// Setup the shell alias
+			if os.Getenv("FORCE_NO_ALIAS") != "true" {
+				return alias.MustBeConfigured()
+			}
 			return nil
-		}}
+		},
+	}
 
 	app.EnableBashCompletion = true
 

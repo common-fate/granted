@@ -2,7 +2,6 @@ package cfaws
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -57,7 +56,10 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 			name := strings.TrimPrefix(section, "profile ")
 			cf, err := config.LoadSharedConfigProfile(ctx, name)
 			if err != nil {
-				fmt.Fprint(os.Stderr, err.Error())
+				if os.Getenv("DEBUG") == "true" {
+					fmt.Fprintln(os.Stderr, err.Error())
+				}
+
 				continue
 			} else {
 				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{RawConfig: cf, Name: name}}
@@ -154,8 +156,6 @@ func (c *CFSharedConfig) Assume(ctx context.Context) (aws.Credentials, error) {
 		appCreds := aws.NewCredentialsCache(cfg.Credentials)
 		return appCreds.Retrieve(ctx)
 	} else {
-		// @TODO implement fetching sso session
-		return aws.Credentials{}, errors.New("assuming sso profiles is not implemented")
+		return c.SSOLogin(ctx)
 	}
-
 }
