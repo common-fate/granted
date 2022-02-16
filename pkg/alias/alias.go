@@ -80,7 +80,7 @@ func SetupShellWizard() (*SetupShellResults, error) {
 			return nil, err
 		}
 	} else {
-		return nil, fmt.Errorf("We couldn't detect your shell type (%s). Please follow the steps at https://granted.dev/shell-alias to assume roles with Granted", shellEnv)
+		return nil, fmt.Errorf("we couldn't detect your shell type (%s). Please follow the steps at https://granted.dev/shell-alias to assume roles with Granted", shellEnv)
 	}
 
 	ul := color.New(color.Underline).SprintFunc()
