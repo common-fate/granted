@@ -29,7 +29,26 @@ func GetCliApp() *cli.App {
 		Flags:                flags,
 		Action:               AssumeCommand,
 		EnableBashCompletion: true,
-	}
+		Before: func(c *cli.Context) error {
+
+			hasSetup, err := UserHasDefaultBrowser(c)
+
+			if err != nil {
+				return err
+			}
+			if !hasSetup {
+				err = HandleBrowserWizard(c)
+				if err != nil {
+					return err
+				}
+			}
+
+			if err != nil {
+				return err
+			}
+
+			return nil
+		}}
 
 	app.EnableBashCompletion = true
 
