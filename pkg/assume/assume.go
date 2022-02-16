@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
@@ -32,7 +33,15 @@ func AssumeCommand(c *cli.Context) error {
 
 	fmt.Fprintf(os.Stderr, "ℹ️  Assume role with %s\n", profile.Name)
 
-	creds, err := profile.Assume(c.Context)
+	// We want to check the cred store first,
+	// If creds are returned (and valid) we'll assume them instead of requesting via SSO
+	creds, err := cfaws.CheckCredStore(profile.Name)
+
+	// If the creds are nullish, we'll assume via SSO
+	if (creds == aws.Credentials{} || err != nil) {
+		creds, err = profile.Assume(c.Context)
+	}
+
 	if err != nil {
 		return err
 	}
