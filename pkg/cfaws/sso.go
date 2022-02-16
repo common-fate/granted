@@ -87,9 +87,10 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
 	credProvider := &CredProv{rootCreds}
 	if requiresAssuming {
+
 		toAssume := append([]*CFSharedConfig{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
-		for _, p := range toAssume {
+		for i, p := range toAssume {
 			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: p.RawConfig.Region})
 			stsRes, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
 				RoleArn:         &p.RawConfig.RoleARN,
@@ -98,7 +99,11 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			if err != nil {
 				return aws.Credentials{}, err
 			}
-			fmt.Fprintf(os.Stderr, "\033[32m\nAssumed role for: %s\033[0m\n", p.Name)
+			// only print for sub assumes because the final credentials are printed at the end of the assume command
+			// this is here for visibility in to role traversals when assuming a final profile with sso
+			if i < len(toAssume)-1 {
+				fmt.Fprintf(os.Stderr, "\033[32m\nAssumed parent profile: [%s] session credentials will expire %s\033[0m\n", p.Name, stsRes.Credentials.Expiration.Local().String())
+			}
 			credProvider = &CredProv{TypeCredsToAwsCreds(*stsRes.Credentials)}
 
 		}
