@@ -45,7 +45,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		return aws.Credentials{}, err
 	}
 	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
-		ClientName: aws.String("sample-client-name"),
+		ClientName: aws.String("granted-cli-client"),
 		ClientType: aws.String("public"),
 		Scopes:     []string{"sso-portal:*"},
 	})
