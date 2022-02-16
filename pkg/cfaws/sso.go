@@ -14,6 +14,7 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/fatih/color"
 	"github.com/pkg/browser"
 )
 
@@ -64,17 +65,17 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	}
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	fmt.Fprintf(os.Stdout, "If browser is not opened automatically, please open link:\n%v\n", url)
+	fmt.Fprintf(os.Stderr, "If browser is not opened automatically, please open link:\n%v\n", url)
 	err = browser.OpenURL(url)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	fmt.Fprintln(os.Stdout, "Awaiting authentication in the browser")
+	fmt.Fprintln(os.Stderr, "Awaiting authentication in the browser")
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	fmt.Fprintln(os.Stdout, "Successfully authenticated")
+	fmt.Fprintln(os.Stderr, "Successfully authenticated")
 	// create sso client
 	ssoClient := sso.NewFromConfig(cfg)
 	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: token.AccessToken, AccountId: &rootProfile.RawConfig.SSOAccountID, RoleName: &rootProfile.RawConfig.SSORoleName})
@@ -96,7 +97,8 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			if err != nil {
 				return aws.Credentials{}, err
 			}
-			fmt.Fprintf(os.Stderr, "\n\033[32mAssumed role for : %s\033[0m\n", p.Name)
+			green := color.New(color.FgGreen)
+			green.Fprintf(os.Stderr, "\nAssumed role for: %s\n", p.Name)
 			credProvider = &CredProv{TypeCredsToAwsCreds(*stsRes.Credentials)}
 
 		}
