@@ -14,6 +14,7 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
 )
@@ -65,16 +66,21 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	}
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	fmt.Fprintf(os.Stderr, "If browser is not opened automatically, please open link:\n%v\n", url)
+	fmt.Fprintf(os.Stderr, "If browser is not opened automatically, please open link:\n%v\n\n", url)
 	err = browser.OpenURL(url)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	fmt.Fprintln(os.Stderr, "Awaiting authentication in the browser")
+	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	si.Suffix = " Awaiting authentication in the browser..."
+	si.Writer = os.Stderr
+	si.Start()
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
 		return aws.Credentials{}, err
 	}
+	si.Stop()
+
 	fmt.Fprintln(os.Stderr, "Successfully authenticated")
 	// create sso client
 	ssoClient := sso.NewFromConfig(cfg)

@@ -67,9 +67,9 @@ func AssumeCommand(c *cli.Context) error {
 		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
-			green.Fprintf(os.Stderr, "[%s] session credentials will expire %s\n", profile.Name, expiration.Local().String())
+			green.Fprintf(os.Stderr, "\n[%s] session credentials will expire %s\n", profile.Name, expiration.Local().String())
 		} else {
-			green.Fprintf(os.Stderr, "[%s] session credentials ready\n", profile.Name)
+			green.Fprintf(os.Stderr, "\n[%s] session credentials ready\n", profile.Name)
 		}
 	}
 
