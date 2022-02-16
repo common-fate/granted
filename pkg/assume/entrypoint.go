@@ -28,6 +28,7 @@ func GetCliApp() *cli.App {
 		HideVersion:          false,
 		Flags:                flags,
 		Action:               AssumeCommand,
+		Commands:             []*cli.Command{&CompletionCommand},
 		EnableBashCompletion: true,
 	}
 
