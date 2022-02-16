@@ -36,7 +36,6 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	GetSSO(c.Context, profile)
 
 	accessKeyID := creds.AccessKeyID
 	secretAccessKey := creds.SecretAccessKey

@@ -153,11 +153,6 @@ func (c *CFSharedConfig) Assume(ctx context.Context) (aws.Credentials, error) {
 		appCreds := aws.NewCredentialsCache(cfg.Credentials)
 		return appCreds.Retrieve(ctx)
 	} else {
-		// assume.GetSSO(ctx, c)
-		// @TODO implement fetching sso session
-		// Can comment this out since it is handled outside of profiles pkg Assume in method in assume.go
-		// return aws.Credentials{}, errors.New("assuming sso profiles is not implemented")
-		// return aws.Credentials{}, errors.New("unknown profile type")
-		return aws.Credentials{}, nil
+		return c.SSOLogin(ctx)
 	}
 }
