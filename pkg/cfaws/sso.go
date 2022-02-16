@@ -64,12 +64,12 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	}
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	fmt.Printf("If browser is not opened automatically, please open link:\n%v\n", url)
+	fmt.Fprintf(os.Stdout, "If browser is not opened automatically, please open link:\n%v\n", url)
 	err = browser.OpenURL(url)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	fmt.Println("Press ENTER key once login is done")
+	fmt.Fprintln(os.Stdout, "Press ENTER key once login is done")
 	_ = bufio.NewScanner(os.Stdin).Scan()
 	// generate sso token
 	token, err := ssooidcClient.CreateToken(ctx, &ssooidc.CreateTokenInput{
