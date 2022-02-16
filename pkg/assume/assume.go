@@ -38,8 +38,14 @@ func AssumeCommand(c *cli.Context) error {
 	creds, err := cfaws.CheckCredStore(profile.Name)
 
 	// If the creds are nullish, we'll assume via SSO
-	if (creds == aws.Credentials{} || err != nil) {
+	if (creds == aws.Credentials{} || err != nil || creds.Expired()) {
 		creds, err = profile.Assume(c.Context)
+		if err == nil {
+			err = cfaws.WriteSSOCreds(profile.Name, creds)
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Error writing sso creds to keyring cache: %s\n", err)
+			}
+		}
 	}
 
 	if err != nil {
