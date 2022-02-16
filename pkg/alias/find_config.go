@@ -3,10 +3,27 @@ package alias
 import (
 	"os"
 	"path"
+
+	"github.com/common-fate/granted/internal/build"
 )
 
 const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`
 const defaultAlias = `alias assume="source assume"`
+const devFishAlias = `alias dassume="source /usr/local/bin/dassume.fish"`
+const devDefaultAlias = `alias dassume="source dassume"`
+
+func GetDefaultAlias() string {
+	if build.Version == "dev" {
+		return devDefaultAlias
+	}
+	return defaultAlias
+}
+func GetFishAlias() string {
+	if build.Version == "dev" {
+		return devFishAlias
+	}
+	return fishAlias
+}
 
 type Config struct {
 	// Alias is the text to insert into the File for setting up the sourcing command for Granted
@@ -31,7 +48,7 @@ func getFishConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		Alias: fishAlias,
+		Alias: GetFishAlias(),
 		File:  file,
 	}
 	return cfg, nil
@@ -39,7 +56,7 @@ func getFishConfig() (Config, error) {
 
 func getBashConfig() (Config, error) {
 	cfg := Config{
-		Alias: defaultAlias,
+		Alias: GetDefaultAlias(),
 	}
 
 	bashLoginFiles := []string{
@@ -101,7 +118,7 @@ func getZshConfig() (Config, error) {
 	}
 
 	cfg := Config{
-		Alias: defaultAlias,
+		Alias: GetDefaultAlias(),
 		File:  file,
 	}
 	return cfg, nil
