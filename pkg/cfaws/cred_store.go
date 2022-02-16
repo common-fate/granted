@@ -137,7 +137,7 @@ func StructBytesDecode(encoded []byte) (aws.Credentials, error) {
 	err := dec.Decode(&creds)
 
 	if err != nil {
-		return nil, err
+		return aws.Credentials{}, err
 	}
 
 	return creds, nil
