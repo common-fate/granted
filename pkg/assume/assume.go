@@ -4,31 +4,29 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/cfaws"
-	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
 )
 
 func AssumeCommand(c *cli.Context) error {
 
-	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+	// withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
 	if err != nil {
 		return err
 	}
 
-	// Replicate the logic from original assume fn.
-	in := survey.Select{
-		Options: awsProfiles.ProfileNames(),
-	}
-	var p string
-	err = testable.AskOne(&in, &p, withStdio)
-	if err != nil {
-		return err
-	}
+	// // Replicate the logic from original assume fn.
+	// in := survey.Select{
+	// 	Options: awsProfiles.ProfileNames(),
+	// }
+	// var p string
+	// err = testable.AskOne(&in, &p, withStdio)
+	// if err != nil {
+	// 	return err
+	// }
 
-	profile := awsProfiles[p]
+	profile := awsProfiles["cf-audit-role"]
 
 	fmt.Fprintf(os.Stderr, "ℹ️  Assume role with %s\n", profile.Name)
 
