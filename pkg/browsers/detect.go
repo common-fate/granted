@@ -66,7 +66,7 @@ func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
 		return false, err
 	}
 
-	return conf.DefaultBrowser == "", nil
+	return conf.DefaultBrowser != "", nil
 }
 
 func handleOSXBrowserSearch() (string, error) {
