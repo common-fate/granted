@@ -11,7 +11,7 @@ import (
 )
 
 // To add more commands to the CLI app, add them to pkg/commamds/entrypoint.go in GetCliApp
-// this has been abstracted in rder to make testing and fish autocompletion work
+// this has been abstracted in order to make testing and fish autocompletion work
 func main() {
 	cli.VersionPrinter = func(c *cli.Context) {
 		fmt.Printf("Granted v%s\n", build.Version)
