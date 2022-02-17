@@ -31,6 +31,9 @@ const ChromePathLinux = `/usr/bin/google-chrome`
 // @TODO confirm this works
 const ChromePathWindows = `%ProgramFiles%\Google\Chrome\Application\chrome.exe`
 
+const ChromeKey = "CHROME"
+const FirefoxKey = "FIREFOX"
+
 // Only supports mac
 func OpenWithChromeProfile(url string, labels RoleLabels) error {
 	opSys := runtime.GOOS
@@ -216,6 +219,20 @@ type IntDict struct {
 
 //Checks the config to see if the user has already set up their default browser
 func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
+
+	//just check the config file for the default browser efield
+
+	conf, err := config.Load()
+
+	if err != nil {
+		return false, err
+	}
+
+	if conf.DefaultBrowser == "" {
+		return false, nil
+	}
+
+	//TODO change this to true
 	return false, nil
 }
 
@@ -275,10 +292,9 @@ func handleWindowsBrowserSearch() (string, error) {
 	return "", nil
 }
 
-func handleManualBrowserSelection() (string, error) {
+func HandleManualBrowserSelection() (string, error) {
 	//didn't find it request manual input
 
-	fmt.Fprintf(os.Stderr, "ℹ️  Could not find default browser\n")
 	fmt.Fprintf(os.Stderr, "ℹ️  Select your default browser\n")
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
@@ -300,6 +316,8 @@ func handleManualBrowserSelection() (string, error) {
 
 //finds out which browser the use has as default
 func FindDefaultBrowser() (string, error) {
+
+	outcome := ""
 	// @TODO confirm this works
 	ops := runtime.GOOS
 	switch ops {
@@ -308,61 +326,68 @@ func FindDefaultBrowser() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		return b, nil
+
+		outcome = b
+		//return b, nil
 	case "darwin":
 		b, err := handleOSXBrowserSearch()
 		if err != nil {
 			return "", err
 		}
-		return b, nil
+		outcome = b
 
 	case "linux":
 		b, err := handleLinuxBrowserSearch()
 		if err != nil {
 			return "", err
 		}
-		return b, nil
+		outcome = b
 
 	default:
 		fmt.Printf("%s.\n", ops)
 	}
 
-	return "", nil
+	if outcome == "" {
+		fmt.Fprintf(os.Stderr, "ℹ️  Could not find default browser\n")
+		outcome, err := HandleManualBrowserSelection()
+
+		if err != nil {
+			return "", err
+		}
+		return outcome, nil
+	}
+
+	return outcome, nil
+}
+
+func GetBrowserName(b string) string {
+	if strings.Contains(strings.ToLower(b), "chrome") ||
+		strings.Contains(strings.ToLower(b), "brave") ||
+		strings.Contains(strings.ToLower(b), "edge") {
+		return ChromeKey
+	} else if strings.Contains(strings.ToLower(b), "firefox") || strings.Contains(strings.ToLower(b), "mozilla") {
+		return FirefoxKey
+	}
+	return ""
 }
 
 func HandleBrowserWizard(ctx *cli.Context) error {
 
 	browserName, err := FindDefaultBrowser()
-
 	if err != nil {
 		return err
 	}
+	//browserName = ""
 
 	//if granted wasn't able to find the browser automatically request it from the user
-	if browserName == "" {
-		browserName, err = handleManualBrowserSelection()
-
-		if err != nil {
-			return err
-		}
-	}
 
 	if strings.Contains(strings.ToLower(browserName), "chrome") ||
 		strings.Contains(strings.ToLower(browserName), "brave") ||
 		strings.Contains(strings.ToLower(browserName), "edge") {
 
-		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is a Chromium based browser (Chrome, Brave, Edge)")
+		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is a Chromium based browser (Chrome, Brave, Edge)\n")
 
-		alert := color.New(color.Bold, color.FgGreen).SprintFunc()
-		fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using Chromium profiles."))
-
-		os.Exit(0)
-
-	} else if strings.Contains(strings.ToLower(browserName), "firefox") {
-		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is Mozilla Firefox.\n")
-		fmt.Fprintf(os.Stderr, "ℹ️  You will need to download and install an extension for firefox to use Granted to its full potential\n")
-
-		label := "\nTake me to download extension?\n"
+		label := "Do you want to select a different browser as the default?"
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
@@ -376,43 +401,142 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 		}
 
 		if !confirm {
-			return errors.New("cancelled browser wizard")
+			//save the detected browser as the default
+			conf, err := config.Load()
+			if err != nil {
+				return err
+			}
+
+			if conf.DefaultBrowser != "chromium" {
+				conf = &config.Config{DefaultBrowser: GetBrowserName("chromium")}
+
+				conf.Save()
+			}
+			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
+
+			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using Chromium profiles."))
+		} else {
+			outcome, err := HandleManualBrowserSelection()
+			if err != nil {
+				return err
+			}
+			conf, err := config.Load()
+			if err != nil {
+				return err
+			}
+
+			conf = &config.Config{DefaultBrowser: GetBrowserName(outcome)}
+
+			conf.Save()
+
+			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
+
+			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using ", outcome))
+
 		}
 
-		//TODO: replace this with a real marketplace link?
-		//err = browser.OpenURL("https://drive.google.com/file/d/11zH06W9pzHmOgvdI5OiraMVBcL3AMpM-/view")
-		//This was previously working in the old repo but now isnt?
+		os.Exit(0)
 
-		opSys := runtime.GOOS
-		firefoxPath := ""
-		switch opSys {
-		case "windows":
-			firefoxPath = FirefoxPathWindows
-		case "darwin":
-			firefoxPath = FirefoxPathMac
-		case "linux":
-			firefoxPath = FirefoxPathLinux
-		default:
-			return errors.New("os not supported")
+	} else if strings.Contains(strings.ToLower(browserName), "firefox") {
+		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is Mozilla Firefox.\n")
+
+		label := "Do you want to select a different browser as the default?"
+
+		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+		in := &survey.Confirm{
+			Message: label,
+			Default: true,
 		}
-
-		cmd := exec.Command(firefoxPath,
-			"--new-tab",
-			"https://drive.google.com/file/d/11zH06W9pzHmOgvdI5OiraMVBcL3AMpM-/view")
-		err = cmd.Start()
+		var confirm bool
+		err := testable.AskOne(in, &confirm, withStdio)
 		if err != nil {
 			return err
 		}
 
-		// detach from this new process because it continues to run
-		cmd.Process.Release()
-		if err != nil {
-			return err
-		}
-		time.Sleep(time.Second * 2)
-		alert := color.New(color.Bold, color.FgGreen).SprintFunc()
+		if !confirm {
 
-		fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Firefox set as default browser"))
+			fmt.Fprintf(os.Stderr, "ℹ️  You will need to download and install an extension for firefox to use Granted to its full potential\n")
+
+			label := "\nTake me to download extension?\n"
+
+			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+			in := &survey.Confirm{
+				Message: label,
+				Default: true,
+			}
+			var confirm bool
+			err := testable.AskOne(in, &confirm, withStdio)
+			if err != nil {
+				return err
+			}
+
+			if !confirm {
+				return errors.New("cancelled browser wizard")
+			}
+
+			//TODO: replace this with a real marketplace link?
+			//err = browser.OpenURL("https://drive.google.com/file/d/11zH06W9pzHmOgvdI5OiraMVBcL3AMpM-/view")
+			//This was previously working in the old repo but now isnt?
+
+			opSys := runtime.GOOS
+			firefoxPath := ""
+			switch opSys {
+			case "windows":
+				firefoxPath = FirefoxPathWindows
+			case "darwin":
+				firefoxPath = FirefoxPathMac
+			case "linux":
+				firefoxPath = FirefoxPathLinux
+			default:
+				return errors.New("os not supported")
+			}
+
+			cmd := exec.Command(firefoxPath,
+				"--new-tab",
+				"https://drive.google.com/file/d/11zH06W9pzHmOgvdI5OiraMVBcL3AMpM-/view")
+			err = cmd.Start()
+			if err != nil {
+				return err
+			}
+
+			// detach from this new process because it continues to run
+			cmd.Process.Release()
+			if err != nil {
+				return err
+			}
+			time.Sleep(time.Second * 2)
+			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
+
+			conf, err := config.Load()
+			if err != nil {
+				return err
+			}
+
+			if conf.DefaultBrowser != "firefox" {
+				conf = &config.Config{DefaultBrowser: GetBrowserName("firefox")}
+
+				conf.Save()
+			}
+
+			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Firefox set as default browser"))
+		} else {
+			outcome, err := HandleManualBrowserSelection()
+			if err != nil {
+				return err
+			}
+			conf, err := config.Load()
+			if err != nil {
+				return err
+			}
+
+			conf = &config.Config{DefaultBrowser: GetBrowserName(outcome)}
+
+			conf.Save()
+
+			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
+
+			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using ", outcome))
+		}
 		os.Exit(0)
 	} else {
 		fmt.Fprintf(os.Stderr, "ℹ️  Granted detected that you're using %s as your default browser", browserName)
