@@ -1,4 +1,4 @@
-package assume
+package granted
 
 import (
 	"fmt"
