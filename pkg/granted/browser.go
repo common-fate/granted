@@ -36,7 +36,7 @@ var DefaultBrowserCommand = cli.Command{
 			conf.Save()
 			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
 
-			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Set %s as default browser", outcome))
+			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Default browser set."))
 		}
 		return nil
 	},
