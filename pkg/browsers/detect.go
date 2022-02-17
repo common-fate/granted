@@ -242,7 +242,7 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	if strings.Contains(strings.ToLower(browserName), "chrome") {
 		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is a Chromium based browser: %s\n", GetBrowserName(browserName))
 
-		label := "Do you want to select a different browser as the default?"
+		label := "Do you want to keep this as your default browser?"
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
@@ -270,7 +270,6 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
 
 			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using chrome"))
-			os.Exit(0)
 
 		}
 	}
@@ -278,7 +277,7 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	if strings.Contains(strings.ToLower(browserName), "brave") {
 		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is a Chromium based browser: %s\n", GetBrowserName(browserName))
 
-		label := "Do you want to select a different browser as the default?"
+		label := "Do you want to keep this as your default browser?"
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
@@ -305,8 +304,7 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 			}
 			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
 
-			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using brave"))
-			os.Exit(0)
+			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using brave."))
 
 		}
 	}
@@ -314,7 +312,7 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	if strings.Contains(strings.ToLower(browserName), "edge") {
 		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is a Chromium based browser: %s\n", GetBrowserName(browserName))
 
-		label := "Do you want to select a different browser as the default?"
+		label := "Do you want to keep this as your default browser?"
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
@@ -342,7 +340,6 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
 
 			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using edge"))
-			os.Exit(0)
 
 		}
 	}
@@ -350,7 +347,7 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	if strings.Contains(strings.ToLower(browserName), "firefox") {
 		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is Mozilla Firefox.\n")
 
-		label := "Do you want to select a different browser as the default?"
+		label := "Do you want to keep this as your default browser?"
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
@@ -429,7 +426,6 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 			}
 
 			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using firefox"))
-			os.Exit(0)
 		}
 	}
 
@@ -451,7 +447,16 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 
 	fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using ", outcome))
 
+	return nil
+}
+
+func GrantedIntroduction() {
+	fmt.Fprintf(os.Stderr, "\nTo change default browser in Granted run: `granted browser`\n")
+	fmt.Fprintf(os.Stderr, "\n\nHere's how to use Granted to supercharge your cloud access:\n")
+	fmt.Fprintf(os.Stderr, "\n`assume`                   - search profiles to assume\n")
+	fmt.Fprintf(os.Stderr, "\n`assume <PROFILE_NAME>`    - assume a profile\n")
+	fmt.Fprintf(os.Stderr, "\n`assume -c <PROFILE_NAME>` - open the console for the profile\n")
+
 	os.Exit(0)
 
-	return nil
 }

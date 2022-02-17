@@ -45,6 +45,9 @@ func GetCliApp() *cli.App {
 				if err != nil {
 					return err
 				}
+
+				//run instructions
+				browsers.GrantedIntroduction()
 			}
 
 			if err != nil {
