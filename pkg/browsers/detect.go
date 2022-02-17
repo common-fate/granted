@@ -18,10 +18,13 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-const ChromeKey = "CHROME"
-const FirefoxKey = "FIREFOX"
-const EdgeKey = "EDGE"
-const BraveKey = "BRAVE"
+const (
+	ChromeKey  string = "CHROME"
+	FirefoxKey        = "FIREFOX"
+	EdgeKey           = "EDGE"
+	BraveKey          = "BRAVE"
+	DefaultKey        = "DEFAULT"
+)
 
 type plist struct {
 	//XMLName xml.Name `xml:"plist"`
@@ -167,7 +170,7 @@ func HandleManualBrowserSelection() (string, error) {
 }
 
 //finds out which browser the use has as default
-func Findddddd() (string, error) {
+func Find() (string, error) {
 
 	outcome := ""
 	// @TODO confirm this works
@@ -226,12 +229,12 @@ func GetBrowserName(b string) string {
 	if strings.Contains(strings.ToLower(b), "firefox") || strings.Contains(strings.ToLower(b), "mozilla") {
 		return FirefoxKey
 	}
-	return ""
+	return DefaultKey
 }
 
 func HandleBrowserWizard(ctx *cli.Context) error {
 
-	browserName, err := Findddddd()
+	browserName, err := Find()
 	if err != nil {
 		return err
 	}

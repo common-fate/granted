@@ -61,17 +61,11 @@ func AssumeCommand(c *cli.Context) error {
 	labels := browsers.RoleLabels{Role: role, Account: account}
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
-	openBrower := c.Bool("console") || c.Bool("extension") || c.Bool("chrome")
+	openBrower := c.Bool("console")
 	if openBrower && isIamWithoutAssumedRole {
 		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
 	} else if openBrower {
-		if c.Bool("extension") {
-			return browsers.LaunchConsoleSession(sess, labels, browsers.BrowerFirefox)
-		} else if c.Bool("chrome") {
-			return browsers.LaunchConsoleSession(sess, labels, browsers.BrowserChrome)
-		} else {
-			return browsers.LaunchConsoleSession(sess, labels, browsers.BrowserDefault)
-		}
+		return browsers.LaunchConsoleSession(sess, labels)
 	} else {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
