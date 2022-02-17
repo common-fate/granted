@@ -15,17 +15,33 @@ import (
 	"github.com/pkg/browser"
 )
 
-const ChromePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-const ChromePathLinux = `/usr/bin/google-chrome`
-const ChromePathWindows = `%ProgramFiles%\Google\Chrome\Application\chrome.exe`
-
 // @TODO these file paths need to be verified
 // alternatively, find a better way to get the exec path for a given browser
-const BravePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+// @verified
+const ChromePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+
+// @to-verify
+const ChromePathLinux = `/usr/bin/google-chrome`
+
+// @to-verify
+const ChromePathWindows = `%ProgramFiles%\Google\Chrome\Application\chrome.exe`
+
+// @verified
+const BravePathMac = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
+
+// @to-verify
 const BravePathLinux = `/usr/bin/brave-browser`
+
+// @to-verify
 const BravePathWindows = `%ProgramFiles%\Google\Chrome\Application\brave-browser.exe`
-const EdgePathMac = "/Applications/Edge.app/Contents/MacOS/Edge"
+
+// @verified
+const EdgePathMac = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
+
+// @to-verify
 const EdgePathLinux = `/usr/bin/edge`
+
+// @to-verify
 const EdgePathWindows = `%ProgramFiles%\Microsoft\Edge\Application\msedge.exe`
 
 func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Browser) error {
