@@ -6,6 +6,7 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
@@ -52,25 +53,19 @@ func AssumeCommand(c *cli.Context) error {
 	sessionToken := creds.SessionToken
 	expiration := creds.Expires
 
-	sess := Session{SessionID: accessKeyID, SesssionKey: secretAccessKey, SessionToken: sessionToken}
+	sess := browsers.Session{SessionID: accessKeyID, SesssionKey: secretAccessKey, SessionToken: sessionToken}
 
 	// these are just labels for the tabs so we may need to updates these for the sso role context
 	role := "todo"
 	account := "todo"
-	labels := RoleLabels{Role: role, Account: account}
+	labels := browsers.RoleLabels{Role: role, Account: account}
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
-	openBrower := c.Bool("console") || c.Bool("extension") || c.Bool("chrome")
+	openBrower := c.Bool("console")
 	if openBrower && isIamWithoutAssumedRole {
 		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
 	} else if openBrower {
-		if c.Bool("extension") {
-			return LaunchConsoleSession(sess, labels, BrowerFirefox)
-		} else if c.Bool("chrome") {
-			return LaunchConsoleSession(sess, labels, BrowserChrome)
-		} else {
-			return LaunchConsoleSession(sess, labels, BrowserDefault)
-		}
+		return browsers.LaunchConsoleSession(sess, labels)
 	} else {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)

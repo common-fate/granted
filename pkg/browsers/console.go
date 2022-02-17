@@ -1,4 +1,4 @@
-package assume
+package browsers
 
 import (
 	"encoding/json"
@@ -16,24 +16,55 @@ import (
 )
 
 const ChromePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-
-// @TODO confirm this works
 const ChromePathLinux = `/usr/bin/google-chrome`
-
-// @TODO confirm this works
 const ChromePathWindows = `%ProgramFiles%\Google\Chrome\Application\chrome.exe`
 
-// Only supports mac
-func OpenWithChromeProfile(url string, labels RoleLabels) error {
+// @TODO these file paths need to be verified
+// alternatively, find a better way to get the exec path for a given browser
+const BravePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+const BravePathLinux = `/usr/bin/brave-browser`
+const BravePathWindows = `%ProgramFiles%\Google\Chrome\Application\brave-browser.exe`
+const EdgePathMac = "/Applications/Edge.app/Contents/MacOS/Edge"
+const EdgePathLinux = `/usr/bin/edge`
+const EdgePathWindows = `%ProgramFiles%\Microsoft\Edge\Application\msedge.exe`
+
+func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Browser) error {
 	opSys := runtime.GOOS
 	chromePath := ""
-	switch opSys {
-	case "windows":
-		chromePath = ChromePathWindows
-	case "darwin":
-		chromePath = ChromePathMac
-	case "linux":
-		chromePath = ChromePathLinux
+	switch selectedBrowser {
+	case BrowserChrome:
+		switch opSys {
+		case "windows":
+			chromePath = ChromePathWindows
+		case "darwin":
+			chromePath = ChromePathMac
+		case "linux":
+			chromePath = ChromePathLinux
+		default:
+			return errors.New("os not supported")
+		}
+	case BrowserBrave:
+		switch opSys {
+		case "windows":
+			chromePath = BravePathWindows
+		case "darwin":
+			chromePath = BravePathMac
+		case "linux":
+			chromePath = BravePathLinux
+		default:
+			return errors.New("os not supported")
+		}
+	case BrowserEdge:
+		switch opSys {
+		case "windows":
+			chromePath = EdgePathWindows
+		case "darwin":
+			chromePath = EdgePathMac
+		case "linux":
+			chromePath = EdgePathLinux
+		default:
+			return errors.New("os not supported")
+		}
 	default:
 		return errors.New("os not supported")
 	}
@@ -119,10 +150,12 @@ type Browser int
 const (
 	BrowerFirefox Browser = iota
 	BrowserChrome
+	BrowserBrave
+	BrowserEdge
 	BrowserDefault
 )
 
-func LaunchConsoleSession(sess Session, labels RoleLabels, webBrowser Browser) error {
+func LaunchConsoleSession(sess Session, labels RoleLabels) error {
 	sessJSON, err := json.Marshal(sess)
 	if err != nil {
 		return err
@@ -166,13 +199,23 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, webBrowser Browser) e
 	q.Add("Destination", "https://console.aws.amazon.com/console/home")
 	q.Add("SigninToken", token.SigninToken)
 	u.RawQuery = q.Encode()
-
-	switch webBrowser {
-	case BrowerFirefox:
-		return OpenWithFirefoxContainer(u.String(), labels)
-	case BrowserChrome:
-		return OpenWithChromeProfile(u.String(), labels)
-	default:
+	cfg, _ := config.Load()
+	if cfg == nil {
 		return browser.OpenURL(u.String())
 	}
+	switch cfg.DefaultBrowser {
+	case FirefoxKey:
+		return OpenWithFirefoxContainer(u.String(), labels)
+	case ChromeKey:
+		return OpenWithChromiumProfile(u.String(), labels, BrowserChrome)
+	case BraveKey:
+		// @TODO use brave
+		return OpenWithChromiumProfile(u.String(), labels, BrowserBrave)
+	case EdgeKey:
+		// @TODO use edge
+		return OpenWithChromiumProfile(u.String(), labels, BrowserEdge)
+	default:
+		browser.OpenURL(u.String())
+	}
+	return nil
 }

@@ -1,7 +1,12 @@
+
+go-binary:
+	go build -o ./bin/dgranted cmd/cli/main.go
+
 assume-binary:
 	go build -o ./bin/dassumego cmd/assume/main.go
 
-cli: assume-binary
+cli: go-binary assume-binary
+	mv ./bin/dgranted /usr/local/bin/
 	mv ./bin/dassumego /usr/local/bin/
 	# replace references to "assumego" (the production binary) with "dassumego"
 	cat scripts/assume | sed 's/assumego/dassumego/g' > /usr/local/bin/dassume && chmod +x /usr/local/bin/dassume

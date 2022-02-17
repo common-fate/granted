@@ -6,6 +6,7 @@ import (
 
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
+	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/urfave/cli/v2"
 )
 
@@ -16,8 +17,6 @@ func GetCliApp() *cli.App {
 
 	flags := []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
-		&cli.BoolFlag{Name: "extension", Aliases: []string{"e"}, Usage: "Open a web console to the role using the Granted Containers extension"},
-		&cli.BoolFlag{Name: "chrome", Aliases: []string{"cr"}, Usage: "Open a web console to the role using a unique Google Chrome profile"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 	}
 
@@ -29,9 +28,24 @@ func GetCliApp() *cli.App {
 		HideVersion:          false,
 		Flags:                flags,
 		Action:               AssumeCommand,
-		Commands:             []*cli.Command{&CompletionCommand},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
+
+			hasSetup, err := browsers.UserHasDefaultBrowser(c)
+
+			if err != nil {
+				return err
+			}
+			if !hasSetup {
+				err = browsers.HandleBrowserWizard(c)
+				if err != nil {
+					return err
+				}
+			}
+
+			if err != nil {
+				return err
+			}
 
 			// Setup the shell alias
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
