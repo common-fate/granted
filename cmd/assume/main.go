@@ -8,6 +8,7 @@ import (
 )
 
 func main() {
+
 	app := assume.GetCliApp()
 	err := app.Run(os.Args)
 	if err != nil {

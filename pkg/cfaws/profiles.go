@@ -56,7 +56,10 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 			name := strings.TrimPrefix(section, "profile ")
 			cf, err := config.LoadSharedConfigProfile(ctx, name)
 			if err != nil {
-				fmt.Fprint(os.Stderr, err.Error())
+				if os.Getenv("DEBUG") == "true" {
+					fmt.Fprintln(os.Stderr, err.Error())
+				}
+
 				continue
 			} else {
 				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{RawConfig: cf, Name: name}}

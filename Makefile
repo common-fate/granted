@@ -11,3 +11,6 @@ clean:
 	rm /usr/local/bin/dassumego
 	rm /usr/local/bin/dassume
 	rm /usr/local/bin/dassume.fish
+
+aws-credentials: 
+	echo -e "\nAWS_ACCESS_KEY_ID=\"$$AWS_ACCESS_KEY_ID\"\nAWS_SECRET_ACCESS_KEY=\"$$AWS_SECRET_ACCESS_KEY\"\nAWS_SESSION_TOKEN=\"$$AWS_SESSION_TOKEN\"\nAWS_REGION=\"$$AWS_REGION\""
