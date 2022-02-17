@@ -6,6 +6,7 @@ import (
 
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
+	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/urfave/cli/v2"
 )
@@ -18,6 +19,7 @@ func GetCliApp() *cli.App {
 	flags := []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
+		&cli.BoolFlag{Name: "banner", Aliases: []string{"b"}, Usage: "Print the assume banner"},
 	}
 
 	app := &cli.App{
@@ -30,7 +32,9 @@ func GetCliApp() *cli.App {
 		Action:               AssumeCommand,
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
-
+			if c.Bool("banner") {
+				fmt.Fprintln(os.Stderr, banners.Assume())
+			}
 			hasSetup, err := browsers.UserHasDefaultBrowser(c)
 
 			if err != nil {
