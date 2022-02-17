@@ -3,3 +3,8 @@ dist/
 .DS_Store
 granted-config
 pkg/api/cert
+
+# build scripts
+.goreleaser.yml
+gon.assume.hcl
+gon.granted.hcl
