@@ -56,9 +56,7 @@ func AssumeCommand(c *cli.Context) error {
 	sess := browsers.Session{SessionID: accessKeyID, SesssionKey: secretAccessKey, SessionToken: sessionToken}
 
 	// these are just labels for the tabs so we may need to updates these for the sso role context
-	role := "todo"
-	account := "todo"
-	labels := browsers.RoleLabels{Role: role, Account: account}
+	labels := browsers.RoleLabels{Profile: profile.Name}
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
 	openBrower := c.Bool("console")

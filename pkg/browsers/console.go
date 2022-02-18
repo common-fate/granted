@@ -98,10 +98,10 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 		// unfortunately, the profiles will be created with the name as "Person x"
 		// The only way to programatically rename the profile is to open chrome with a new profile, close chrome then edit the Preferences.json file profile.name property, then reopen chrome
 		// A possible approach would be to open chrome in a headless way first then open it fully after setting the name
-		profile := fmt.Sprintf("%s:=%s", labels.Role, labels.Account)
+
 		userDataPath := path.Join(grantedFolder, "chrome-profiles")
 		cmd := exec.Command(chromePath,
-			fmt.Sprintf("--user-data-dir=%s", userDataPath), "--profile-directory="+profile, "--no-first-run", "--no-default-browser-check", url,
+			fmt.Sprintf("--user-data-dir=%s", userDataPath), "--profile-directory="+labels.Profile, "--no-first-run", "--no-default-browser-check", url,
 		)
 		err = cmd.Start()
 		if err != nil {
@@ -136,7 +136,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		return errors.New("os not supported")
 	}
 
-	tabURL := fmt.Sprintf("ext+granted-containers:name=%s:%s (ap-southeast-2)&url=%s", labels.Role, labels.Account, url.QueryEscape(urlString))
+	tabURL := fmt.Sprintf("ext+granted-containers:name=%s (ap-southeast-2)&url=%s", labels.Profile, url.QueryEscape(urlString))
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		tabURL)
@@ -156,11 +156,8 @@ type Session struct {
 }
 type RoleLabels struct {
 	// the name of the role
-	Role string
-	// a sting which helps to indentify this role to the user
-	Account string
+	Profile string
 }
-
 type Browser int
 
 const (
