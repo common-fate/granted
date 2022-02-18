@@ -150,10 +150,9 @@ func handleWindowsBrowserSearch() (string, error) {
 func HandleManualBrowserSelection() (string, error) {
 	//didn't find it request manual input
 
-	fmt.Fprintf(os.Stderr, "ℹ️  Select your default browser\n")
-
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
+		Message: "ℹ️  Select your default browser\n",
 		Options: []string{"Chrome", "Brave", "Edge", "Firefox"},
 	}
 	var roleacc string
@@ -242,20 +241,18 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	if strings.Contains(strings.ToLower(browserName), "chrome") {
 		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is a Chromium based browser: %s\n", GetBrowserName(browserName))
 
-		label := "Do you want to select a different browser as the default?"
-
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := &survey.Confirm{
-			Message: label,
-			Default: true,
+		in := survey.Select{
+			Message: "Use this browser with Granted?\n",
+			Options: []string{"Yes", "Choose a different browser"},
 		}
-		var confirm bool
-		err := testable.AskOne(in, &confirm, withStdio)
+		var opt string
+		err := testable.AskOne(&in, &opt, withStdio)
 		if err != nil {
 			return err
 		}
 
-		if !confirm {
+		if opt == "Yes" {
 			//save the detected browser as the default
 			conf, err := config.Load()
 			if err != nil {
@@ -270,28 +267,24 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
 
 			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using chrome"))
-			os.Exit(0)
 
 		}
 	}
 
 	if strings.Contains(strings.ToLower(browserName), "brave") {
 		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is a Chromium based browser: %s\n", GetBrowserName(browserName))
-
-		label := "Do you want to select a different browser as the default?"
-
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := &survey.Confirm{
-			Message: label,
-			Default: true,
+		in := survey.Select{
+			Message: "Use this browser with Granted?\n",
+			Options: []string{"Yes", "Choose a different browser"},
 		}
-		var confirm bool
-		err := testable.AskOne(in, &confirm, withStdio)
+		var opt string
+		err := testable.AskOne(&in, &opt, withStdio)
 		if err != nil {
 			return err
 		}
 
-		if !confirm {
+		if opt == "Yes" {
 			//save the detected browser as the default
 			conf, err := config.Load()
 			if err != nil {
@@ -305,8 +298,7 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 			}
 			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
 
-			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using brave"))
-			os.Exit(0)
+			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using brave."))
 
 		}
 	}
@@ -314,20 +306,18 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	if strings.Contains(strings.ToLower(browserName), "edge") {
 		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is a Chromium based browser: %s\n", GetBrowserName(browserName))
 
-		label := "Do you want to select a different browser as the default?"
-
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := &survey.Confirm{
-			Message: label,
-			Default: true,
+		in := survey.Select{
+			Message: "Use this browser with Granted?\n",
+			Options: []string{"Yes", "Choose a different browser"},
 		}
-		var confirm bool
-		err := testable.AskOne(in, &confirm, withStdio)
+		var opt string
+		err := testable.AskOne(&in, &opt, withStdio)
 		if err != nil {
 			return err
 		}
 
-		if !confirm {
+		if opt == "Yes" {
 			//save the detected browser as the default
 			conf, err := config.Load()
 			if err != nil {
@@ -342,7 +332,6 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
 
 			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using edge"))
-			os.Exit(0)
 
 		}
 	}
@@ -350,20 +339,18 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	if strings.Contains(strings.ToLower(browserName), "firefox") {
 		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is Mozilla Firefox.\n")
 
-		label := "Do you want to select a different browser as the default?"
-
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := &survey.Confirm{
-			Message: label,
-			Default: true,
+		in := survey.Select{
+			Message: "Use this browser with Granted?\n",
+			Options: []string{"Yes", "Choose a different browser"},
 		}
-		var confirm bool
-		err := testable.AskOne(in, &confirm, withStdio)
+		var opt string
+		err := testable.AskOne(&in, &opt, withStdio)
 		if err != nil {
 			return err
 		}
 
-		if !confirm {
+		if opt == "Yes" {
 
 			fmt.Fprintf(os.Stderr, "ℹ️  You will need to download and install an extension for firefox to use Granted to its full potential\n")
 
@@ -429,29 +416,42 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 			}
 
 			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using firefox"))
-			os.Exit(0)
 		}
 	}
 
 	//if we dont find any automaticly ask for them to select
-	outcome, err := HandleManualBrowserSelection()
-	if err != nil {
-		return err
-	}
+
 	conf, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	conf.DefaultBrowser = GetBrowserName(outcome)
+	if conf.DefaultBrowser == "" {
+		outcome, err := HandleManualBrowserSelection()
+		if err != nil {
+			return err
+		}
 
-	conf.Save()
+		conf.DefaultBrowser = GetBrowserName(outcome)
 
-	alert := color.New(color.Bold, color.FgGreen).SprintFunc()
+		conf.Save()
 
-	fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using ", outcome))
+		alert := color.New(color.Bold, color.FgGreen).SprintFunc()
+
+		fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using ", outcome))
+
+	}
+
+	return nil
+}
+
+func GrantedIntroduction() {
+	fmt.Fprintf(os.Stderr, "\nTo change default browser in Granted run: `granted browser`\n")
+	fmt.Fprintf(os.Stderr, "\n\nHere's how to use Granted to supercharge your cloud access:\n")
+	fmt.Fprintf(os.Stderr, "\n`assume`                   - search profiles to assume\n")
+	fmt.Fprintf(os.Stderr, "\n`assume <PROFILE_NAME>`    - assume a profile\n")
+	fmt.Fprintf(os.Stderr, "\n`assume -c <PROFILE_NAME>` - open the console for the profile\n")
 
 	os.Exit(0)
 
-	return nil
 }
