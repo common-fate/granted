@@ -99,7 +99,7 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 		// The only way to programatically rename the profile is to open chrome with a new profile, close chrome then edit the Preferences.json file profile.name property, then reopen chrome
 		// A possible approach would be to open chrome in a headless way first then open it fully after setting the name
 
-		userDataPath := path.Join(grantedFolder, "chrome-profiles")
+		userDataPath := path.Join(grantedFolder, "chromium-profiles", fmt.Sprintf("%v", selectedBrowser))
 		cmd := exec.Command(chromePath,
 			fmt.Sprintf("--user-data-dir=%s", userDataPath), "--profile-directory="+labels.Profile, "--no-first-run", "--no-default-browser-check", url,
 		)
