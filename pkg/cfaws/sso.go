@@ -54,8 +54,6 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			fmt.Fprintln(os.Stderr, err.Error())
 		}
 	}
-
-	fmt.Fprintln(os.Stderr, "Successfully authenticated")
 	// create sso client
 	ssoClient := sso.NewFromConfig(cfg)
 	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.RawConfig.SSOAccountID, RoleName: &rootProfile.RawConfig.SSORoleName})
