@@ -41,8 +41,6 @@ func AssumeCommand(c *cli.Context) error {
 		profile = awsProfiles[p]
 	}
 
-	fmt.Fprintf(os.Stderr, "\nℹ️  Assuming profile: %s\n", profile.Name)
-
 	creds, err := profile.Assume(c.Context)
 	if err != nil {
 		return err
