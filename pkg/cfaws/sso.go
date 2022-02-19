@@ -21,10 +21,6 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	if c.ProfileType != ProfileTypeSSO {
 		return aws.Credentials{}, errors.New("cannot ssologin to non sso profile")
 	}
-	// IO = Determine Required Config Values to Establish SSO Session ✅
-	// IO = Establish an SSO Session with config vars ✅
-	// IO = Retreive any relevant Credentials from the SSO Session
-	// IO = Export the credentials to the environment
 
 	rootProfile := c
 	requiresAssuming := false
