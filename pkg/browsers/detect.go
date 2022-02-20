@@ -352,70 +352,10 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 
 		if opt == "Yes" {
 
-			fmt.Fprintf(os.Stderr, "ℹ️  You will need to download and install an extension for firefox to use Granted to its full potential\n")
-
-			label := "\nTake me to download extension?\n"
-
-			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-			in := &survey.Confirm{
-				Message: label,
-				Default: true,
-			}
-			var confirm bool
-			err := testable.AskOne(in, &confirm, withStdio)
+			err = RunFirefoxExtensionPrompts()
 			if err != nil {
 				return err
 			}
-
-			if !confirm {
-				return errors.New("cancelled browser wizard")
-			}
-
-			//TODO: replace this with a real marketplace link?
-			//err = browser.OpenURL("https://drive.google.com/file/d/11zH06W9pzHmOgvdI5OiraMVBcL3AMpM-/view")
-			//This was previously working in the old repo but now isnt?
-
-			opSys := runtime.GOOS
-			firefoxPath := ""
-			switch opSys {
-			case "windows":
-				firefoxPath = FirefoxPathWindows
-			case "darwin":
-				firefoxPath = FirefoxPathMac
-			case "linux":
-				firefoxPath = FirefoxPathLinux
-			default:
-				return errors.New("os not supported")
-			}
-
-			cmd := exec.Command(firefoxPath,
-				"--new-tab",
-				"https://drive.google.com/file/d/11zH06W9pzHmOgvdI5OiraMVBcL3AMpM-/view")
-			err = cmd.Start()
-			if err != nil {
-				return err
-			}
-
-			// detach from this new process because it continues to run
-			cmd.Process.Release()
-			if err != nil {
-				return err
-			}
-			time.Sleep(time.Second * 2)
-			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
-
-			conf, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			if conf.DefaultBrowser != "firefox" {
-				conf = &config.Config{DefaultBrowser: GetBrowserName("firefox")}
-
-				conf.Save()
-			}
-
-			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using firefox"))
 		}
 	}
 
@@ -440,6 +380,14 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 
 		fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using ", outcome))
 
+		if strings.Contains(strings.ToLower(outcome), "firefox") {
+			err = RunFirefoxExtensionPrompts()
+
+			if err != nil {
+				return err
+			}
+		}
+
 	}
 
 	return nil
@@ -454,4 +402,69 @@ func GrantedIntroduction() {
 
 	os.Exit(0)
 
+}
+
+func RunFirefoxExtensionPrompts() error {
+	fmt.Fprintf(os.Stderr, "ℹ️  You will need to download and install an extension for firefox to use Granted to its full potential\n")
+
+	label := "\nTake me to download extension?\n"
+
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+	in := &survey.Confirm{
+		Message: label,
+		Default: true,
+	}
+	var confirm bool
+	err := testable.AskOne(in, &confirm, withStdio)
+	if err != nil {
+		return err
+	}
+
+	if !confirm {
+		return errors.New("cancelled browser wizard")
+	}
+
+	opSys := runtime.GOOS
+	firefoxPath := ""
+	switch opSys {
+	case "windows":
+		firefoxPath = FirefoxPathWindows
+	case "darwin":
+		firefoxPath = FirefoxPathMac
+	case "linux":
+		firefoxPath = FirefoxPathLinux
+	default:
+		return errors.New("os not supported")
+	}
+
+	cmd := exec.Command(firefoxPath,
+		"--new-tab",
+		"https://addons.mozilla.org/en-GB/firefox/addon/granted/")
+	err = cmd.Start()
+	if err != nil {
+		return err
+	}
+
+	// detach from this new process because it continues to run
+	cmd.Process.Release()
+	if err != nil {
+		return err
+	}
+	time.Sleep(time.Second * 2)
+	alert := color.New(color.Bold, color.FgGreen).SprintFunc()
+
+	conf, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	if conf.DefaultBrowser != "firefox" {
+		conf = &config.Config{DefaultBrowser: GetBrowserName("firefox")}
+
+		conf.Save()
+	}
+
+	fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using firefox"))
+
+	return nil
 }
