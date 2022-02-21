@@ -41,7 +41,7 @@ const EdgePathMac = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft E
 // @to-verify
 const EdgePathLinux = `/usr/bin/edge`
 
-// @to-verify
+// @verified
 const EdgePathWindows = `%ProgramFiles (x86)%\Microsoft\Edge\Application\msedge.exe`
 
 func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Browser) error {
