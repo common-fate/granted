@@ -134,7 +134,10 @@ func (c CFSharedConfigs) ProfileNames() []string {
 
 func (c *CFSharedConfig) AwsConfig(ctx context.Context) (aws.Config, error) {
 	return config.LoadDefaultConfig(ctx,
+		// load the config profile
 		config.WithSharedConfigProfile(c.Name),
+		// With region forces this config to use the profile region, ignoring region configured with environment variables
+		config.WithRegion(c.RawConfig.Region),
 	)
 }
 
