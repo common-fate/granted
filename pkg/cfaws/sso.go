@@ -33,6 +33,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	if err != nil {
 		return aws.Credentials{}, err
 	}
+
 	cachedToken, _ := CheckSSOTokenStore(rootProfile.Name)
 	newToken := false
 	if cachedToken == nil {
@@ -58,9 +59,9 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		if errors.As(err, &unauthorised) {
 			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
 			_ = ClearSSOToken(rootProfile.Name)
-		} else {
-			return aws.Credentials{}, err
 		}
+		return aws.Credentials{}, err
+
 	}
 
 	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
