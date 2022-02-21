@@ -6,6 +6,7 @@ import (
 
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/urfave/cli/v2"
 )
 
@@ -14,8 +15,13 @@ func GetCliApp() *cli.App {
 		fmt.Fprintf(os.Stderr, "Granted v%s\n", build.Version)
 	}
 
+	flags := []cli.Flag{
+		&cli.BoolFlag{Name: "banner", Aliases: []string{"b"}, Usage: "Print the granted banner"},
+		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
+	}
+
 	app := &cli.App{
-		Flags:                []cli.Flag{&cli.BoolFlag{Name: "banner", Aliases: []string{"b"}, Usage: "Print the granted banner"}},
+		Flags:                flags,
 		Name:                 "granted",
 		Usage:                "https://granted.dev",
 		UsageText:            "granted [global options] command [command options] [arguments...]",
@@ -24,7 +30,9 @@ func GetCliApp() *cli.App {
 		Commands:             []*cli.Command{&DefaultBrowserCommand, &CompletionCommand},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
-
+			if c.Bool("verbose") {
+				debug.CliVerbosity = debug.VerbosityDebug
+			}
 			if c.Bool("banner") {
 				fmt.Fprintln(os.Stderr, banners.Granted())
 			}

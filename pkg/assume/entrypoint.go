@@ -8,6 +8,7 @@ import (
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browsers"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/updates"
 	"github.com/urfave/cli/v2"
 )
@@ -34,6 +35,10 @@ func GetCliApp() *cli.App {
 		Action:               AssumeCommand,
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
+			if c.Bool("verbose") {
+				debug.CliVerbosity = debug.VerbosityDebug
+			}
+
 			if c.Bool("banner") {
 				fmt.Fprintln(os.Stderr, banners.Assume())
 			}

@@ -2,7 +2,6 @@ package cfaws
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"strings"
 
@@ -10,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/pkg/debug"
+	"github.com/pkg/errors"
 )
 
 type ProfileType int
@@ -56,10 +57,7 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 			name := strings.TrimPrefix(section, "profile ")
 			cf, err := config.LoadSharedConfigProfile(ctx, name)
 			if err != nil {
-				if os.Getenv("DEBUG") == "true" {
-					fmt.Fprintln(os.Stderr, err.Error())
-				}
-
+				debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
 				continue
 			} else {
 				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{RawConfig: cf, Name: name}}
