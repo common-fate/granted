@@ -25,7 +25,7 @@ func AssumeCommand(c *cli.Context) error {
 		wg.Done()
 	}()
 
-	err := updateCheckWrapper(c)
+	err := assumeCommand(c)
 	wg.Wait()
 	if updateAvailable {
 		fmt.Fprintf(os.Stderr, "\n%s\n", msg)
@@ -34,7 +34,7 @@ func AssumeCommand(c *cli.Context) error {
 
 }
 
-func updateCheckWrapper(c *cli.Context) error {
+func assumeCommand(c *cli.Context) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
 	if err != nil {
