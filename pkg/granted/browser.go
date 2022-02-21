@@ -3,6 +3,7 @@ package granted
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/config"
@@ -29,6 +30,14 @@ var DefaultBrowserCommand = cli.Command{
 			}
 
 			conf.DefaultBrowser = browsers.GetBrowserName(outcome)
+
+			if strings.Contains(strings.ToLower(outcome), "firefox") {
+				err = browsers.RunFirefoxExtensionPrompts()
+
+				if err != nil {
+					return err
+				}
+			}
 
 			conf.Save()
 			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
