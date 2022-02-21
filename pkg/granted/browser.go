@@ -13,7 +13,7 @@ import (
 
 var DefaultBrowserCommand = cli.Command{
 	Name:  "browser",
-	Usage: "Update your default browser",
+	Usage: "Change the web browser that Granted uses to open cloud consoles",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "set", Aliases: []string{"s"}, Usage: "Set browser name"},
 	},
@@ -39,10 +39,13 @@ var DefaultBrowserCommand = cli.Command{
 				}
 			}
 
-			conf.Save()
+			err = conf.Save()
+			if err != nil {
+				return err
+			}
 			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
 
-			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Default browser set."))
+			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted web browser set."))
 		}
 		return nil
 	},

@@ -51,7 +51,7 @@ var CompletionCommand = cli.Command{
 			f, err := os.Create(executableDir)
 
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "Something went wrong when saving fish autocompletions"+err.Error())
+				fmt.Fprintln(os.Stderr, "Something went wrong when saving fish autocompletions: "+err.Error())
 			}
 
 			// Defer closing the file
