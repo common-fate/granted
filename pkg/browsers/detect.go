@@ -418,7 +418,7 @@ func GrantedIntroduction() {
 }
 
 func RunFirefoxExtensionPrompts() error {
-	fmt.Fprintf(os.Stderr, "ℹ️  In order to use Granted with Firefox you need to download the Granted Containers Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted.\nThis addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon).\n")
+	fmt.Fprintf(os.Stderr, "ℹ️  In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted.\nThis addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon).\n")
 
 	label := "\nOpen Firefox to download the extension?\n"
 
