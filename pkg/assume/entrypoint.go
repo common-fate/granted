@@ -8,6 +8,7 @@ import (
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browsers"
+	"github.com/common-fate/granted/pkg/updates"
 	"github.com/urfave/cli/v2"
 )
 
@@ -20,12 +21,13 @@ func GetCliApp() *cli.App {
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 		&cli.BoolFlag{Name: "banner", Aliases: []string{"b"}, Usage: "Print the assume banner"},
+		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 	}
 
 	app := &cli.App{
 		Name:                 "assume",
 		Usage:                "https://granted.dev",
-		UsageText:            "assume [role] [account]",
+		UsageText:            "assume [options][Profile]",
 		Version:              build.Version,
 		HideVersion:          false,
 		Flags:                flags,
@@ -35,6 +37,12 @@ func GetCliApp() *cli.App {
 			if c.Bool("banner") {
 				fmt.Fprintln(os.Stderr, banners.Assume())
 			}
+
+			msg, updateAvailable := updates.Check(c)
+			if updateAvailable {
+				fmt.Fprintf(os.Stderr, "\n%s\n", msg)
+			}
+
 			hasSetup, err := browsers.UserHasDefaultBrowser(c)
 
 			if err != nil {

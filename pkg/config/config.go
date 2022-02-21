@@ -8,6 +8,7 @@ package config
 import (
 	"os"
 	"path"
+	"time"
 
 	"github.com/BurntSushi/toml"
 
@@ -15,7 +16,8 @@ import (
 )
 
 type Config struct {
-	DefaultBrowser string
+	DefaultBrowser      string
+	LastCheckForUpdates time.Weekday
 }
 
 func GrantedConfigFolder() (string, error) {
