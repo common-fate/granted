@@ -62,10 +62,6 @@ func GetCliApp() *cli.App {
 				browsers.GrantedIntroduction()
 			}
 
-			if err != nil {
-				return err
-			}
-
 			// Setup the shell alias
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
 				return alias.MustBeConfigured()
