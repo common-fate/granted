@@ -10,7 +10,6 @@ import (
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
-	"github.com/common-fate/granted/pkg/updates"
 	"github.com/urfave/cli/v2"
 )
 
@@ -48,11 +47,6 @@ func GetCliApp() *cli.App {
 				fmt.Fprintln(os.Stderr, banners.Assume())
 			}
 
-			msg, updateAvailable := updates.Check(c)
-			if updateAvailable {
-				fmt.Fprintf(os.Stderr, "\n%s\n", msg)
-			}
-
 			hasSetup, err := browsers.UserHasDefaultBrowser(c)
 
 			if err != nil {
@@ -66,10 +60,6 @@ func GetCliApp() *cli.App {
 
 				//run instructions
 				browsers.GrantedIntroduction()
-			}
-
-			if err != nil {
-				return err
 			}
 
 			// Setup the shell alias
