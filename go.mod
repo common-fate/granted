@@ -11,9 +11,22 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.10.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.14.0
 	github.com/bigkevmcd/go-configparser v0.0.0-20210106142102-909504547ead
+	github.com/common-fate/cf-protos v0.0.0-20220219185127-8c82fd962a2e
 	github.com/fatih/color v1.13.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
+	github.com/pkg/errors v0.9.1
 	github.com/urfave/cli/v2 v2.3.0
+	google.golang.org/grpc v1.44.0
+)
+
+require (
+	github.com/golang/protobuf v1.5.2 // indirect
+	go.uber.org/atomic v1.7.0 // indirect
+	go.uber.org/multierr v1.6.0 // indirect
+	go.uber.org/zap v1.20.0 // indirect
+	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
+	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
+	google.golang.org/protobuf v1.27.1 // indirect
 )
 
 require (
@@ -36,7 +49,6 @@ require (
 	github.com/mattn/go-isatty v0.0.14 // indirect
 	github.com/mgutz/ansi v0.0.0-20170206155736-9520e82c474b // indirect
 	github.com/mtibben/percent v0.2.1 // indirect
-	github.com/pkg/errors v0.9.1
 	github.com/russross/blackfriday/v2 v2.0.1 // indirect
 	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	golang.org/x/crypto v0.0.0-20220131195533-30dcbda58838 // indirect
