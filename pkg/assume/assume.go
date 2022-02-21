@@ -2,6 +2,7 @@ package assume
 
 import (
 	"fmt"
+	"sync"
 
 	"os"
 
@@ -9,10 +10,31 @@ import (
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
+	"github.com/common-fate/granted/pkg/updates"
 	"github.com/urfave/cli/v2"
 )
 
 func AssumeCommand(c *cli.Context) error {
+	var wg sync.WaitGroup
+	wg.Add(1)
+	// run the update check async to avoid blocking the users
+	var updateAvailable bool
+	var msg string
+	go func() {
+		msg, updateAvailable = updates.Check(c)
+		wg.Done()
+	}()
+
+	err := updateCheckWrapper(c)
+	wg.Wait()
+	if updateAvailable {
+		fmt.Fprintf(os.Stderr, "\n%s\n", msg)
+	}
+	return err
+
+}
+
+func updateCheckWrapper(c *cli.Context) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
 	if err != nil {

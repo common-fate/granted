@@ -9,7 +9,6 @@ import (
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/debug"
-	"github.com/common-fate/granted/pkg/updates"
 	"github.com/urfave/cli/v2"
 )
 
@@ -41,11 +40,6 @@ func GetCliApp() *cli.App {
 
 			if c.Bool("banner") {
 				fmt.Fprintln(os.Stderr, banners.Assume())
-			}
-
-			msg, updateAvailable := updates.Check(c)
-			if updateAvailable {
-				fmt.Fprintf(os.Stderr, "\n%s\n", msg)
 			}
 
 			hasSetup, err := browsers.UserHasDefaultBrowser(c)
