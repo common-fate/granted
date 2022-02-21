@@ -7,6 +7,7 @@ import (
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/common-fate/granted/pkg/granted/settings"
 	"github.com/urfave/cli/v2"
 )
 
@@ -18,6 +19,7 @@ func GetCliApp() *cli.App {
 	flags := []cli.Flag{
 		&cli.BoolFlag{Name: "banner", Aliases: []string{"b"}, Usage: "Print the granted banner"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
+		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 	}
 
 	app := &cli.App{
@@ -27,7 +29,7 @@ func GetCliApp() *cli.App {
 		UsageText:            "granted [global options] command [command options] [arguments...]",
 		Version:              build.Version,
 		HideVersion:          false,
-		Commands:             []*cli.Command{&DefaultBrowserCommand, &CompletionCommand},
+		Commands:             []*cli.Command{&DefaultBrowserCommand, &CompletionCommand, &settings.SettingsCommand},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			if c.Bool("verbose") {
