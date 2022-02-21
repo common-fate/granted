@@ -3,8 +3,6 @@ package debug
 import (
 	"fmt"
 	"io"
-
-	_ "github.com/alvaroloes/enumer"
 )
 
 // This package provides a lightweight way to set global debugging verbosity for the cli, if we need structured logging or more features, consider using an existing library
