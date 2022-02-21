@@ -2,7 +2,6 @@ package cfaws
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"time"
@@ -14,7 +13,10 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/common-fate/granted/pkg/credstore"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/pkg/browser"
+	"github.com/pkg/errors"
 )
 
 func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) {
@@ -29,11 +31,12 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		requiresAssuming = true
 	}
 
+	ssoTokenKey := rootProfile.RawConfig.SSOStartURL
 	cfg, err := rootProfile.AwsConfig(ctx)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	cachedToken, _ := CheckSSOTokenStore(rootProfile.Name)
+	cachedToken := GetValidCachedToken(ssoTokenKey)
 	newToken := false
 	if cachedToken == nil {
 		newToken = true
@@ -43,12 +46,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		}
 	}
 	if newToken {
-		err = WriteSSOToken(rootProfile.Name, *cachedToken)
-		// only write errors for caching if its in debug mode
-		// Don't block assuming
-		if os.Getenv("DEBUG") == "true" && err != nil {
-			fmt.Fprintln(os.Stderr, err.Error())
-		}
+		StoreSSOToken(ssoTokenKey, *cachedToken)
 	}
 	// create sso client
 	ssoClient := sso.NewFromConfig(cfg)
@@ -57,10 +55,10 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		var unauthorised *ssotypes.UnauthorizedException
 		if errors.As(err, &unauthorised) {
 			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
-			_ = ClearSSOToken(rootProfile.Name)
-		} else {
-			return aws.Credentials{}, err
+			ClearSSOToken(ssoTokenKey)
 		}
+		return aws.Credentials{}, err
+
 	}
 
 	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
@@ -174,36 +172,34 @@ func PollToken(ctx context.Context, c *ssooidc.Client, clientSecret string, clie
 	}
 }
 
-// // This may be unnecessary, but it reveals the full list of accounts per ssoClient
-// fmt.Println("Fetching list of all accounts for user")
-// accountPaginator := sso.NewListAccountsPaginator(ssoClient, &sso.ListAccountsInput{
-// 	AccessToken: token.AccessToken,
-// })
-// for accountPaginator.HasMorePages() {
-// 	x, err := accountPaginator.NextPage(ctx)
-// 	if err != nil {
-// 		return err
-// 	}
-// 	for _, y := range x.AccountList {
-// 		fmt.Println("-------------------------------------------------------")
-// 		fmt.Printf("\nAccount ID: %v\nName: %v\nEmail: %v\n", aws.ToString(y.AccountId), aws.ToString(y.AccountName), aws.ToString(y.EmailAddress))
+type SSOToken struct {
+	AccessToken string
+	Expiry      time.Time
+}
 
-// 		// list roles for a given account [ONLY provided for better example coverage]
-// 		fmt.Printf("\n\nFetching roles of account %v for user\n", aws.ToString(y.AccountId))
-// 		rolePaginator := sso.NewListAccountRolesPaginator(ssoClient, &sso.ListAccountRolesInput{
-// 			AccessToken: token.AccessToken,
-// 			AccountId:   y.AccountId,
-// 		})
-// 		for rolePaginator.HasMorePages() {
-// 			z, err := rolePaginator.NextPage(ctx)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			for _, p := range z.RoleList {
-// 				fmt.Printf("Account ID: %v Role Name: %v\n", aws.ToString(p.AccountId), aws.ToString(p.RoleName))
-// 			}
-// 		}
+// GetValidCachedToken returns nil if no token was found, or if it is expired
+func GetValidCachedToken(profileKey string) *SSOToken {
+	var t SSOToken
+	credstore.Retrieve(profileKey, &t)
+	if t.Expiry.Before(time.Now()) {
+		return nil
+	}
+	return &t
+}
 
-// 	}
-// }
-// fmt.Println("-------------------------------------------------------")
+// Attempts to store the token, any errors will be logged to debug logging
+func StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
+	err := credstore.Store(profileKey, ssoTokenValue)
+	if err != nil {
+		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "writing sso token to credentials cache").Error())
+	}
+
+}
+
+// Attempts to clear the token, any errors will be logged to debug logging
+func ClearSSOToken(profileKey string) {
+	err := credstore.Clear(profileKey)
+	if err != nil {
+		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "clearing sso token from the credentials cache").Error())
+	}
+}
