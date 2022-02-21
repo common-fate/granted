@@ -12,8 +12,10 @@
     <a href="https://docs.commonfate.io/granted/getting-started">🚀 Get Started</a>
 </p>
 
-<a href="https://granted.dev" alt="visit the Granted website">
-<img src="./docs/demo.gif">
-</a>
+<p align="center">
+    <a href="https://granted.dev" alt="visit the Granted website">
+        <img src="./docs/demo.gif">
+    </a>
+</p>
 
 <br/>
