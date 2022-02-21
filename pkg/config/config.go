@@ -20,12 +20,25 @@ type Config struct {
 	LastCheckForUpdates time.Weekday
 }
 
+// checks and or creates the config folder on startup
+func SetupConfigFolder() error {
+	grantedFolder, err := GrantedConfigFolder()
+	if err != nil {
+		return err
+	}
+	if _, err := os.Stat(grantedFolder); os.IsNotExist(err) {
+		err := os.Mkdir(grantedFolder, 0700)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
 func GrantedConfigFolder() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-
 	// check if the .granted folder already exists
 	return path.Join(home, build.ConfigFolderName), nil
 }

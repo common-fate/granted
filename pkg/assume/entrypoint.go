@@ -8,6 +8,7 @@ import (
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browsers"
+	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/urfave/cli/v2"
 )
@@ -36,6 +37,10 @@ func GetCliApp() *cli.App {
 		Before: func(c *cli.Context) error {
 			if c.Bool("verbose") {
 				debug.CliVerbosity = debug.VerbosityDebug
+			}
+
+			if err := config.SetupConfigFolder(); err != nil {
+				return err
 			}
 
 			if c.Bool("banner") {

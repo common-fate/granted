@@ -24,7 +24,7 @@ const ChromePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chr
 const ChromePathLinux = `/usr/bin/google-chrome`
 
 // @to-verify
-const ChromePathWindows = `%Program Files%\Google\Chrome\Application\chrome.exe`
+const ChromePathWindows = `\Program Files\Google\Chrome\Application\chrome.exe`
 
 // @verified
 const BravePathMac = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
@@ -33,7 +33,7 @@ const BravePathMac = "/Applications/Brave Browser.app/Contents/MacOS/Brave Brows
 const BravePathLinux = `/usr/bin/brave-browser`
 
 // @verified
-const BravePathWindows = `%Program Files%\BraveSoftware\Brave-Browser\Application\brave.exe`
+const BravePathWindows = `\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe`
 
 // @verified
 const EdgePathMac = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
@@ -42,7 +42,7 @@ const EdgePathMac = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft E
 const EdgePathLinux = `/usr/bin/edge`
 
 // @verified
-const EdgePathWindows = `%Program Files (x86)%\Microsoft\Edge\Application\msedge.exe`
+const EdgePathWindows = `\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`
 
 func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Browser) error {
 	opSys := runtime.GOOS
@@ -119,8 +119,7 @@ const FirefoxPathMac = "/Applications/Firefox.app/Contents/MacOS/firefox"
 // @TODO confirm this works
 const FirefoxPathLinux = `/usr/bin/firefox`
 
-// @TODO confirm this works
-const FirefoxPathWindows = `%ProgramFiles%\Mozilla Firefox\firefox.exe`
+const FirefoxPathWindows = `\Program Files\Mozilla Firefox\firefox.exe`
 
 func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 	opSys := runtime.GOOS
