@@ -25,9 +25,16 @@ func GrantedConfigFolder() (string, error) {
 	if err != nil {
 		return "", err
 	}
+	grantedFolder := path.Join(home, build.ConfigFolderName)
+	if _, err := os.Stat(grantedFolder); os.IsNotExist(err) {
+		err := os.Mkdir(grantedFolder, 0700)
+		if err != nil {
+			return "", err
+		}
+	}
 
 	// check if the .granted folder already exists
-	return path.Join(home, build.ConfigFolderName), nil
+	return grantedFolder, nil
 }
 
 func Load() (*Config, error) {
