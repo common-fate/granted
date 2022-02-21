@@ -22,11 +22,8 @@ var CliVerbosity Verbosity = VerbosityInfo
 
 // Will print this log with a verbosity prefix prefix using fmt.Fprintf if the specified verbosity matches the current setting
 func Fprintf(verbosityLevel Verbosity, w io.Writer, format string, a ...interface{}) (int, error) {
-	switch CliVerbosity {
-	case VerbosityDebug:
-		return fmt.Fprintf(w, "DEBUG: "+format, a...)
-	case VerbosityInfo:
-		return fmt.Fprintf(w, "INFO: "+format, a...)
+	if verbosityLevel == CliVerbosity {
+		return fmt.Fprintf(w, CliVerbosity.String()+": "+format, a...)
 	}
 	return 0, nil
 }
