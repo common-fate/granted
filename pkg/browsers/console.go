@@ -135,7 +135,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		return errors.New("os not supported")
 	}
 
-	tabURL := fmt.Sprintf("ext+granted-containers:name=%s (ap-southeast-2)&url=%s", labels.Profile, url.QueryEscape(urlString))
+	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.Profile, url.QueryEscape(urlString))
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		tabURL)
