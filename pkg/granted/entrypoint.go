@@ -6,6 +6,7 @@ import (
 
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
+	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/granted/settings"
 	"github.com/urfave/cli/v2"
@@ -35,6 +36,10 @@ func GetCliApp() *cli.App {
 			if c.Bool("verbose") {
 				debug.CliVerbosity = debug.VerbosityDebug
 			}
+			if err := config.SetupConfigFolder(); err != nil {
+				return err
+			}
+
 			if c.Bool("banner") {
 				fmt.Fprintln(os.Stderr, banners.Granted())
 			}
