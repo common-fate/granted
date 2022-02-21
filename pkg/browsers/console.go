@@ -119,8 +119,7 @@ const FirefoxPathMac = "/Applications/Firefox.app/Contents/MacOS/firefox"
 // @TODO confirm this works
 const FirefoxPathLinux = `/usr/bin/firefox`
 
-// @TODO confirm this works
-const FirefoxPathWindows = `%ProgramFiles%\Mozilla Firefox\firefox.exe`
+const FirefoxPathWindows = `\Program Files\Mozilla Firefox\firefox.exe`
 
 func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 	opSys := runtime.GOOS
