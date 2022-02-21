@@ -1,4 +1,4 @@
-<p align="center"><img src="./docs/logo.png" height="80" /></p>
+<p align="center"><img src="./docs/logo.svg" height="80" /></p>
 
 <h1 align="center">Granted</h1>
 <p align="center">The easiest way to access your cloud.</p>
