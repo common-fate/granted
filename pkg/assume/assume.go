@@ -35,6 +35,8 @@ func AssumeCommand(c *cli.Context) error {
 }
 
 func assumeCommand(c *cli.Context) error {
+	var wg sync.WaitGroup
+
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
 	if err != nil {
@@ -49,7 +51,11 @@ func assumeCommand(c *cli.Context) error {
 			fmt.Fprintf(os.Stderr, "%s does not match any profiles in your aws config\n", inProfile)
 		} else {
 			// background task to update the frecency cache
-			go cfaws.UpdateFrecencyCache(inProfile)
+			wg.Add(1)
+			go func() {
+				cfaws.UpdateFrecencyCache(inProfile)
+				wg.Done()
+			}()
 		}
 	}
 
@@ -70,8 +76,14 @@ func assumeCommand(c *cli.Context) error {
 
 		profile = awsProfiles[p]
 		// background task to update the frecency cache
-		go fr.Update(p)
+		wg.Add(1)
+		go func() {
+			fr.Update(p)
+			wg.Done()
+		}()
 	}
+	// ensure that frecency has finished updating before returning from this function
+	defer wg.Wait()
 
 	creds, err := profile.Assume(c.Context)
 	if err != nil {
