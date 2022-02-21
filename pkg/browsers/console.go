@@ -32,8 +32,8 @@ const BravePathMac = "/Applications/Brave Browser.app/Contents/MacOS/Brave Brows
 // @to-verify
 const BravePathLinux = `/usr/bin/brave-browser`
 
-// @to-verify
-const BravePathWindows = `%ProgramFiles%\Google\Chrome\Application\brave-browser.exe`
+// @verified
+const BravePathWindows = `%ProgramFiles%\BraveSoftware\Brave-Browser\Application\brave.exe`
 
 // @verified
 const EdgePathMac = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
@@ -42,7 +42,7 @@ const EdgePathMac = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft E
 const EdgePathLinux = `/usr/bin/edge`
 
 // @to-verify
-const EdgePathWindows = `%ProgramFiles%\Microsoft\Edge\Application\msedge.exe`
+const EdgePathWindows = `%ProgramFiles (x86)%\Microsoft\Edge\Application\msedge.exe`
 
 func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Browser) error {
 	opSys := runtime.GOOS
