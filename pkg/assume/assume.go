@@ -48,7 +48,7 @@ func assumeCommand(c *cli.Context) error {
 	if inProfile != "" {
 		var ok bool
 		if profile, ok = awsProfiles[inProfile]; !ok {
-			fmt.Fprintf(os.Stderr, "%s does not match any profiles in your aws config\n", inProfile)
+			fmt.Fprintf(os.Stderr, "%s does not match any profiles in your AWS config\n", inProfile)
 		} else {
 			// background task to update the frecency cache
 			wg.Add(1)
@@ -105,6 +105,7 @@ func assumeCommand(c *cli.Context) error {
 	if openBrower && isIamWithoutAssumedRole {
 		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
 	} else if openBrower {
+		fmt.Fprintf(os.Stderr, "Opening a console for %s in your browser...", profile.Name)
 		return browsers.LaunchConsoleSession(sess, labels)
 	} else {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
