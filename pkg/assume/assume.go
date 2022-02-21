@@ -22,15 +22,23 @@ func AssumeCommand(c *cli.Context) error {
 	var profile *cfaws.CFSharedConfig
 	inProfile := c.Args().First()
 	if inProfile != "" {
-		profile = awsProfiles[inProfile]
+		var ok bool
+		if profile, ok = awsProfiles[inProfile]; !ok {
+			fmt.Fprintf(os.Stderr, "%s does not match any profiles in your aws config\n", inProfile)
+		} else {
+			// background task to update the frecency cache
+			go cfaws.UpdateFrecencyCache(inProfile)
+		}
 	}
 
 	if profile == nil {
+
+		fr, profiles := awsProfiles.GetFrecentProfiles()
 		fmt.Fprintln(os.Stderr, "")
 		// Replicate the logic from original assume fn.
 		in := survey.Select{
 			Message: "Please select the profile you would like to assume:",
-			Options: awsProfiles.ProfileNames(),
+			Options: profiles,
 		}
 		var p string
 		err = testable.AskOne(&in, &p, withStdio)
@@ -39,6 +47,8 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		profile = awsProfiles[p]
+		// background task to update the frecency cache
+		go fr.Update(p)
 	}
 
 	creds, err := profile.Assume(c.Context)
