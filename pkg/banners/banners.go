@@ -1,5 +1,11 @@
 package banners
 
+import (
+	"fmt"
+
+	"github.com/common-fate/granted/internal/build"
+)
+
 func Granted() string {
 	return `
   /$$$$$$                                 /$$                     /$$
@@ -9,9 +15,7 @@ func Granted() string {
 | $$|_  $$| $$  \__/ /$$$$$$$| $$  \ $$  | $$    | $$$$$$$$| $$  | $$
 | $$  \ $$| $$      /$$__  $$| $$  | $$  | $$ /$$| $$_____/| $$  | $$
 |  $$$$$$/| $$     |  $$$$$$$| $$  | $$  |  $$$$/|  $$$$$$$|  $$$$$$$
- \______/ |__/      \_______/|__/  |__/   \___/   \_______/ \_______/
-																	
-																	
+ \______/ |__/      \_______/|__/  |__/   \___/   \_______/ \_______/															
 `
 }
 
@@ -24,14 +28,10 @@ func Assume() string {
 | $$__  $$|  $$$$$$|  $$$$$$ | $$  | $$| $$ \ $$ \ $$| $$$$$$$$
 | $$  | $$ \____  $$\____  $$| $$  | $$| $$ | $$ | $$| $$_____/
 | $$  | $$ /$$$$$$$//$$$$$$$/|  $$$$$$/| $$ | $$ | $$|  $$$$$$$
-|__/  |__/|_______/|_______/  \______/ |__/ |__/ |__/ \_______/
-																  
-																  
+|__/  |__/|_______/|_______/  \______/ |__/ |__/ |__/ \_______/													  
 `
 }
 
-// cyan := color.New(color.FgHiCyan)
-// cyan.Fprintf(os.Stderr, "\n%s\n", banners.Granted())
-
-// magenta := color.New(color.FgHiMagenta)
-// magenta.Fprintf(os.Stderr, "\n%s\n", banners.Assume())
+func WithVersion(in string) string {
+	return fmt.Sprintf("%s\nVersion: %s\n", in, build.Version)
+}

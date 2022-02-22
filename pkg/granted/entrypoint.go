@@ -14,11 +14,10 @@ import (
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Fprintf(os.Stderr, "Granted v%s\n", build.Version)
+		fmt.Fprintln(os.Stderr, banners.WithVersion(banners.Granted()))
 	}
 
 	flags := []cli.Flag{
-		&cli.BoolFlag{Name: "banner", Aliases: []string{"b"}, Usage: "Print the granted banner"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 	}
@@ -38,10 +37,6 @@ func GetCliApp() *cli.App {
 			}
 			if err := config.SetupConfigFolder(); err != nil {
 				return err
-			}
-
-			if c.Bool("banner") {
-				fmt.Fprintln(os.Stderr, banners.Granted())
 			}
 			return nil
 		},

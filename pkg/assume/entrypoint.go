@@ -16,13 +16,12 @@ import (
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Fprintf(os.Stderr, "Granted v%s\n", build.Version)
+		fmt.Fprintln(os.Stderr, banners.WithVersion(banners.Assume()))
 	}
 
 	flags := []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
-		&cli.BoolFlag{Name: "banner", Aliases: []string{"b"}, Usage: "Print the assume banner"},
 		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 	}
 
@@ -44,12 +43,7 @@ func GetCliApp() *cli.App {
 				return err
 			}
 
-			if c.Bool("banner") {
-				fmt.Fprintln(os.Stderr, banners.Assume())
-			}
-
 			hasSetup, err := browsers.UserHasDefaultBrowser(c)
-
 			if err != nil {
 				return err
 			}
@@ -59,7 +53,8 @@ func GetCliApp() *cli.App {
 					return err
 				}
 
-				//run instructions
+				// run instructions
+				// terminates the command with os.exit(0)
 				browsers.GrantedIntroduction()
 			}
 
