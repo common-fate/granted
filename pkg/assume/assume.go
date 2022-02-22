@@ -59,7 +59,7 @@ func assumeCommand(c *cli.Context) error {
 		}
 	}
 	//set the sesh creds using the active role if we have one and the flag is set
-	if c.Bool("active-role") && os.Getenv("AWS_ROLE_PROFILE") != "" {
+	if c.Bool("active-role") && os.Getenv("GRANTED_AWS_ROLE_PROFILE") != "" {
 		//try opening using the active role
 		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
 
