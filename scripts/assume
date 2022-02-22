@@ -41,7 +41,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
     export AWS_SESSION_TOKEN=${GRANTED_3}
   fi
   if [ ! "${GRANTED_4}" = "None" ]; then
-    export AWS_ROLE_PROFILE=${GRANTED_4}
+    export GRANTED_AWS_ROLE_PROFILE=${GRANTED_4}
   fi
 
   for GRANTED_var in "$@"
