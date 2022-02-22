@@ -276,6 +276,7 @@ func makeDestinationURL(service string, region string) (string, error) {
 
 	dest := prefix + serv + "/home"
 
+	//NOTE here: excluding iam here and possibly others as the region isnt in the uri of the webpage on the console
 	if region != "" || serv != "iam" {
 		dest = dest + "?region=" + region
 	}
