@@ -11,6 +11,21 @@
       "mode": "auto",
       "program": "cmd/assume/main.go",
       "env": { "FORCE_NO_ALIAS": true }
+    },
+    {
+      "name": "Run command assume active role",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/assume/main.go",
+      "args": ["-console", "-active-role"],
+      "env": {
+        "FORCE_NO_ALIAS": true,
+        //will need to manually set these
+        "AWS_ACCESS_KEY_ID": "key",
+        "AWS_SECRET_ACCESS_KEY": "secret",
+        "AWS_SESSION_TOKEN": "session token"
+      }
     }
   ]
 }

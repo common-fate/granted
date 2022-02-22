@@ -3,10 +3,13 @@ package assume
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
@@ -59,7 +62,7 @@ func assumeCommand(c *cli.Context) error {
 		}
 	}
 
-	if profile == nil {
+	if profile == nil && !c.Bool("active-role") {
 
 		fr, profiles := awsProfiles.GetFrecentProfiles()
 		fmt.Fprintln(os.Stderr, "")
@@ -85,15 +88,48 @@ func assumeCommand(c *cli.Context) error {
 	// ensure that frecency has finished updating before returning from this function
 	defer wg.Wait()
 
-	creds, err := profile.Assume(c.Context)
-	if err != nil {
-		return err
+	accessKeyID := ""
+	secretAccessKey := ""
+	sessionToken := ""
+	expiration := time.Time{}
+
+	creds := aws.Credentials{}
+
+	//set the sesh creds using the active role if we have one and the flag is set
+	if c.Bool("active-role") && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		//try opening using the active role
+		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
+
+		accessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
+		secretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
+		sessionToken = os.Getenv("AWS_SESSION_TOKEN")
+
+		//check that the role is valid
+		client := sts.NewFromConfig(cfg)
+		return client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+		//find the profile
+		for pr, conf := range awsProfiles {
+
+			if conf.RawConfig.Credentials.SessionToken == sessionToken {
+				profile = awsProfiles[pr]
+			}
+		}
+
+	} else {
+		creds, err = profile.Assume(c.Context)
+		if err != nil {
+			return err
+		}
+
+		accessKeyID = creds.AccessKeyID
+		secretAccessKey = creds.SecretAccessKey
+		sessionToken = creds.SessionToken
+		expiration = creds.Expires
 	}
 
-	accessKeyID := creds.AccessKeyID
-	secretAccessKey := creds.SecretAccessKey
-	sessionToken := creds.SessionToken
-	expiration := creds.Expires
+	if profile == nil {
+		return fmt.Errorf("no role active, try running 'assume'")
+	}
 
 	sess := browsers.Session{SessionID: accessKeyID, SesssionKey: secretAccessKey, SessionToken: sessionToken}
 
