@@ -3,13 +3,10 @@ package assume
 import (
 	"fmt"
 	"sync"
-	"time"
 
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
@@ -88,44 +85,25 @@ func assumeCommand(c *cli.Context) error {
 	// ensure that frecency has finished updating before returning from this function
 	defer wg.Wait()
 
-	accessKeyID := ""
-	secretAccessKey := ""
-	sessionToken := ""
-	expiration := time.Time{}
-
-	creds := aws.Credentials{}
-
 	//set the sesh creds using the active role if we have one and the flag is set
 	if c.Bool("active-role") && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
 		//try opening using the active role
 		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
 
-		accessKeyID = os.Getenv("AWS_ACCESS_KEY_ID")
-		secretAccessKey = os.Getenv("AWS_SECRET_ACCESS_KEY")
-		sessionToken = os.Getenv("AWS_SESSION_TOKEN")
+		profileName := os.Getenv("AWS_ROLE_PROFILE")
 
-		//check that the role is valid
-		client := sts.NewFromConfig(cfg)
-		return client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
-		//find the profile
-		for pr, conf := range awsProfiles {
+		profile = awsProfiles[profileName]
 
-			if conf.RawConfig.Credentials.SessionToken == sessionToken {
-				profile = awsProfiles[pr]
-			}
-		}
-
-	} else {
-		creds, err = profile.Assume(c.Context)
-		if err != nil {
-			return err
-		}
-
-		accessKeyID = creds.AccessKeyID
-		secretAccessKey = creds.SecretAccessKey
-		sessionToken = creds.SessionToken
-		expiration = creds.Expires
 	}
+	creds, err := profile.Assume(c.Context)
+	if err != nil {
+		return err
+	}
+
+	accessKeyID := creds.AccessKeyID
+	secretAccessKey := creds.SecretAccessKey
+	sessionToken := creds.SessionToken
+	expiration := creds.Expires
 
 	if profile == nil {
 		return fmt.Errorf("no role active, try running 'assume'")
@@ -137,7 +115,7 @@ func assumeCommand(c *cli.Context) error {
 	labels := browsers.RoleLabels{Profile: profile.Name}
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
-	openBrower := c.Bool("console")
+	openBrower := c.Bool("console") || c.Bool("active-role")
 	if openBrower && isIamWithoutAssumedRole {
 		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
 	} else if openBrower {
@@ -147,7 +125,7 @@ func assumeCommand(c *cli.Context) error {
 		return browsers.LaunchConsoleSession(sess, labels, service, region)
 	} else {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
-		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+		fmt.Printf("GrantedAssume %s %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name)
 		if creds.CanExpire {
 			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
 		} else {

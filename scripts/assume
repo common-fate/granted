@@ -14,7 +14,7 @@ fi
 
 GRANTED_OUTPUT=$(assumego "$@")
 GRANTED_STATUS=$?
-read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 <<< $(echo $GRANTED_OUTPUT)
+read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 <<< $(echo $GRANTED_OUTPUT)
 
 # # unset the exported GRANTED_ALIAS_CONFIGURED flag
 unset GRANTED_ALIAS_CONFIGURED
@@ -27,6 +27,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   unset AWS_ACCESS_KEY_ID
   unset AWS_SECRET_ACCESS_KEY
   unset AWS_SESSION_TOKEN
+  unset AWS_ROLE_PROFILE
 
   export GRANTED_COMMAND="$@"
 
@@ -38,6 +39,9 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   fi
   if [ ! "${GRANTED_3}" = "None" ]; then
     export AWS_SESSION_TOKEN=${GRANTED_3}
+  fi
+  if [ ! "${GRANTED_4}" = "None" ]; then
+    export AWS_ROLE_PROFILE=${GRANTED_4}
   fi
 
   for GRANTED_var in "$@"
@@ -51,6 +55,9 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
       fi
       if [ ! "${GRANTED_3}" = "None" ]; then
         echo export AWS_SESSION_TOKEN=${GRANTED_3}
+      fi
+      if [ ! "${GRANTED_4}" = "None" ]; then
+        echo export AWS_ROLE_PROFILE=${GRANTED_4}
       fi
     fi
   done
