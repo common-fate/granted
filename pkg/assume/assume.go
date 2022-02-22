@@ -58,6 +58,16 @@ func assumeCommand(c *cli.Context) error {
 			}()
 		}
 	}
+	//set the sesh creds using the active role if we have one and the flag is set
+	if c.Bool("active-role") && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
+		//try opening using the active role
+		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
+
+		profileName := os.Getenv("AWS_ROLE_PROFILE")
+
+		profile = awsProfiles[profileName]
+
+	}
 
 	if profile == nil && !c.Bool("active-role") {
 
@@ -85,16 +95,6 @@ func assumeCommand(c *cli.Context) error {
 	// ensure that frecency has finished updating before returning from this function
 	defer wg.Wait()
 
-	//set the sesh creds using the active role if we have one and the flag is set
-	if c.Bool("active-role") && os.Getenv("AWS_ACCESS_KEY_ID") != "" {
-		//try opening using the active role
-		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
-
-		profileName := os.Getenv("AWS_ROLE_PROFILE")
-
-		profile = awsProfiles[profileName]
-
-	}
 	creds, err := profile.Assume(c.Context)
 	if err != nil {
 		return err
@@ -104,10 +104,6 @@ func assumeCommand(c *cli.Context) error {
 	secretAccessKey := creds.SecretAccessKey
 	sessionToken := creds.SessionToken
 	expiration := creds.Expires
-
-	if profile == nil {
-		return fmt.Errorf("no role active, try running 'assume'")
-	}
 
 	sess := browsers.Session{SessionID: accessKeyID, SesssionKey: secretAccessKey, SessionToken: sessionToken}
 
