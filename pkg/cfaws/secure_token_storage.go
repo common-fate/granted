@@ -17,7 +17,10 @@ type SSOToken struct {
 // GetValidCachedToken returns nil if no token was found, or if it is expired
 func GetValidCachedToken(profileKey string) *SSOToken {
 	var t SSOToken
-	credstore.Retrieve(profileKey, &t)
+	err := credstore.Retrieve(profileKey, &t)
+	if err != nil {
+		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "GetValidCachedToken").Error())
+	}
 	if t.Expiry.Before(time.Now()) {
 		return nil
 	}
