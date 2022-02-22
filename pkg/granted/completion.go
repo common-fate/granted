@@ -17,12 +17,6 @@ var flags = []cli.Flag{
 		Usage:    "Shell type to generate completion for (fish)",
 		Required: true,
 	},
-	&cli.StringFlag{
-		Name:    "development",
-		Value:   "false",
-		Aliases: []string{"d"},
-		Usage:   "When passed this will compile the autocompletions for dev (dgranted alias)",
-	},
 }
 
 var CompletionCommand = cli.Command{
@@ -34,11 +28,6 @@ var CompletionCommand = cli.Command{
 		if c.String("shell") == "fish" {
 
 			// Run the native FishCompletion method and generate a string of its outputs
-			// If in dev alias the app to *dgranted
-			if c.String("development") == "true" {
-				fmt.Fprintf(os.Stderr, "Using dgranted alias for command")
-				c.App.Name = "dgranted"
-			}
 			output, _ := c.App.ToFishCompletion()
 			c.App.Name = "granted"
 
