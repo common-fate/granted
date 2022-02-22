@@ -18,6 +18,9 @@ import (
 // the last day checked is stored in the local config cache
 // this function will fail silently
 func Check(c *cli.Context) (string, bool) {
+	if os.Getenv("GRANTED_DISABLE_UPDATE_CHECK") == "true" {
+		return "", false
+	}
 	updateCheckerApiUrl := c.String("update-checker-api-url")
 	if updateCheckerApiUrl != "" {
 		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "starting update check\n")
@@ -25,7 +28,7 @@ func Check(c *cli.Context) (string, bool) {
 		if err != nil {
 			return "", false
 		}
-		if true { //cfg.LastCheckForUpdates != time.Now().Weekday() {
+		if cfg.LastCheckForUpdates != time.Now().Weekday() {
 			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "connecting to update checker\n")
 			cc, err := api.NewClientConn(c.Context, updateCheckerApiUrl)
 			if err != nil {
