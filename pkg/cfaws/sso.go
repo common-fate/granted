@@ -13,11 +13,23 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/sts/types"
-	"github.com/common-fate/granted/pkg/credstore"
-	"github.com/common-fate/granted/pkg/debug"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 )
+
+func TypeCredsToAwsCreds(c types.Credentials) aws.Credentials {
+	return aws.Credentials{AccessKeyID: *c.AccessKeyId, SecretAccessKey: *c.SecretAccessKey, SessionToken: *c.SessionToken, CanExpire: true, Expires: *c.Expiration}
+}
+func TypeRoleCredsToAwsCreds(c ssotypes.RoleCredentials) aws.Credentials {
+	return aws.Credentials{AccessKeyID: *c.AccessKeyId, SecretAccessKey: *c.SecretAccessKey, SessionToken: *c.SessionToken, CanExpire: true, Expires: time.UnixMilli(c.Expiration)}
+}
+
+// CredProv implements the aws.CredentialProvider interface
+type CredProv struct{ aws.Credentials }
+
+func (c *CredProv) Retrieve(ctx context.Context) (aws.Credentials, error) {
+	return c.Credentials, nil
+}
 
 func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) {
 	if c.ProfileType != ProfileTypeSSO {
@@ -88,6 +100,8 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	return credProvider.Credentials, nil
 
 }
+
+// SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token
 func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFSharedConfig) (*SSOToken, error) {
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
@@ -127,19 +141,6 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 
 }
 
-func TypeCredsToAwsCreds(c types.Credentials) aws.Credentials {
-	return aws.Credentials{AccessKeyID: *c.AccessKeyId, SecretAccessKey: *c.SecretAccessKey, SessionToken: *c.SessionToken, CanExpire: true, Expires: *c.Expiration}
-}
-func TypeRoleCredsToAwsCreds(c ssotypes.RoleCredentials) aws.Credentials {
-	return aws.Credentials{AccessKeyID: *c.AccessKeyId, SecretAccessKey: *c.SecretAccessKey, SessionToken: *c.SessionToken, CanExpire: true, Expires: time.UnixMilli(c.Expiration)}
-}
-
-type CredProv struct{ aws.Credentials }
-
-func (c *CredProv) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	return c.Credentials, nil
-}
-
 var ErrTimeout error = errors.New("polling for device authorization token timed out")
 
 type PollingConfig struct {
@@ -169,37 +170,5 @@ func PollToken(ctx context.Context, c *ssooidc.Client, clientSecret string, clie
 		if time.Now().After(start.Add(cfg.TimeoutAfter)) {
 			return nil, ErrTimeout
 		}
-	}
-}
-
-type SSOToken struct {
-	AccessToken string
-	Expiry      time.Time
-}
-
-// GetValidCachedToken returns nil if no token was found, or if it is expired
-func GetValidCachedToken(profileKey string) *SSOToken {
-	var t SSOToken
-	credstore.Retrieve(profileKey, &t)
-	if t.Expiry.Before(time.Now()) {
-		return nil
-	}
-	return &t
-}
-
-// Attempts to store the token, any errors will be logged to debug logging
-func StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
-	err := credstore.Store(profileKey, ssoTokenValue)
-	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "writing sso token to credentials cache").Error())
-	}
-
-}
-
-// Attempts to clear the token, any errors will be logged to debug logging
-func ClearSSOToken(profileKey string) {
-	err := credstore.Clear(profileKey)
-	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "clearing sso token from the credentials cache").Error())
 	}
 }
