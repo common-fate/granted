@@ -10,6 +10,7 @@ import (
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/common-fate/granted/pkg/updates"
 	"github.com/urfave/cli/v2"
 )
 
@@ -32,7 +33,7 @@ func GetCliApp() *cli.App {
 		Version:              build.Version,
 		HideVersion:          false,
 		Flags:                flags,
-		Action:               AssumeCommand,
+		Action:               updates.WithUpdateCheck(AssumeCommand),
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			if c.Bool("verbose") {

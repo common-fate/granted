@@ -10,31 +10,10 @@ import (
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
-	"github.com/common-fate/granted/pkg/updates"
 	"github.com/urfave/cli/v2"
 )
 
 func AssumeCommand(c *cli.Context) error {
-	var wg sync.WaitGroup
-	wg.Add(1)
-	// run the update check async to avoid blocking the users
-	var updateAvailable bool
-	var msg string
-	go func() {
-		msg, updateAvailable = updates.Check(c)
-		wg.Done()
-	}()
-
-	err := assumeCommand(c)
-	wg.Wait()
-	if updateAvailable {
-		fmt.Fprintf(os.Stderr, "\n%s\n", msg)
-	}
-	return err
-
-}
-
-func assumeCommand(c *cli.Context) error {
 	var wg sync.WaitGroup
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)

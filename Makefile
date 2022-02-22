@@ -1,6 +1,6 @@
 
 go-binary:
-	go build -o ./bin/dgranted cmd/cli/main.go
+	go build -o ./bin/dgranted cmd/granted/main.go
 
 assume-binary:
 	go build -o ./bin/dassumego cmd/assume/main.go
