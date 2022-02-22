@@ -63,7 +63,7 @@ func assumeCommand(c *cli.Context) error {
 		//try opening using the active role
 		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
 
-		profileName := os.Getenv("AWS_ROLE_PROFILE")
+		profileName := os.Getenv("GRANTED_AWS_ROLE_PROFILE")
 
 		profile = awsProfiles[profileName]
 
