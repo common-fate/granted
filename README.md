@@ -19,3 +19,25 @@
 </p>
 
 <br/>
+
+## What is Granted?
+
+Granted is a command line interface (CLI) application which simplifies access to cloud roles and allows multiple cloud accounts to be opened in your web browser simultaneously. The goals of Granted are:
+
+- Provide a fast experience around finding and assuming roles
+
+- Leverage native browser functionality to allow multiple accounts to be accessed at once
+
+- Encrypt cached credentials to avoid plaintext SSO tokens being saved on disk
+
+## Documentation
+
+Get started by [reading our documentation](https://docs.commonfate.io/granted/getting-started).
+
+## Contributing
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md) for information on how to contribute. We welcome all contributors - [join our Slack](https://join.slack.com/t/commonfatecommunity/shared_invite/zt-q4m96ypu-_gYlRWD3k5rIsaSsqP7QMg) to discuss the project!
+
+## Security
+
+See [SECURITY.md](./SECURITY.md) for security information. You can view our full security documentation on the [Granted website](https://docs.commonfate.io/granted/security).
