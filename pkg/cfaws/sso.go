@@ -44,7 +44,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	}
 
 	ssoTokenKey := rootProfile.RawConfig.SSOStartURL
-	cfg, err := rootProfile.AwsConfig(ctx)
+	cfg, err := rootProfile.AwsConfig(ctx, true)
 	if err != nil {
 		return aws.Credentials{}, err
 	}

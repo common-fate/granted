@@ -130,7 +130,15 @@ func (c CFSharedConfigs) ProfileNames() []string {
 	return names
 }
 
-func (c *CFSharedConfig) AwsConfig(ctx context.Context) (aws.Config, error) {
+func (c *CFSharedConfig) AwsConfig(ctx context.Context, useSSORegion bool) (aws.Config, error) {
+	if useSSORegion {
+		return config.LoadDefaultConfig(ctx,
+			// load the config profile
+			config.WithSharedConfigProfile(c.Name),
+			// With region forces this config to use the profile region, ignoring region configured with environment variables
+			config.WithRegion(c.RawConfig.SSORegion),
+		)
+	}
 	return config.LoadDefaultConfig(ctx,
 		// load the config profile
 		config.WithSharedConfigProfile(c.Name),
@@ -140,7 +148,7 @@ func (c *CFSharedConfig) AwsConfig(ctx context.Context) (aws.Config, error) {
 }
 
 func (c *CFSharedConfig) CallerIdentity(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {
-	cfg, err := c.AwsConfig(ctx)
+	cfg, err := c.AwsConfig(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +158,7 @@ func (c *CFSharedConfig) CallerIdentity(ctx context.Context) (*sts.GetCallerIden
 
 func (c *CFSharedConfig) Assume(ctx context.Context) (aws.Credentials, error) {
 	if c.ProfileType == ProfileTypeIAM {
-		cfg, err := c.AwsConfig(ctx)
+		cfg, err := c.AwsConfig(ctx, false)
 		if err != nil {
 			return aws.Credentials{}, err
 		}

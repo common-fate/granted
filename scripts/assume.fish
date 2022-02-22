@@ -34,6 +34,9 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   if test "$GRANTED_4" != "None"
     set -gx GRANTED_AWS_ROLE_PROFILE $GRANTED_4
   end
+  if test "$GRANTED_5" != "None"
+    set -gx AWS_REGION $GRANTED_5
+  end
 
   if contains -- -s $argv
     if test "$GRANTED_1" != "None"
@@ -47,6 +50,9 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
     end
     if test "$GRANTED_4" != "None"
       echo set -gx GRANTED_AWS_ROLE_PROFILE $GRANTED_4
+    end
+    if test "$GRANTED_5" != "None"
+      echo set -gx AWS_REGION $GRANTED_5
     end
   end
 end
