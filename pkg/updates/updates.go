@@ -1,7 +1,9 @@
 package updates
 
 import (
+	"fmt"
 	"os"
+	"sync"
 	"time"
 
 	updatev1alpha1 "github.com/common-fate/cf-protos/gen/proto/go/update/v1alpha1"
@@ -43,4 +45,29 @@ func Check(c *cli.Context) (string, bool) {
 		}
 	}
 	return "", false
+}
+
+// WithUpdateCheck takes a urfave/cli actionFunc
+// and wraps it in "middleware"
+// checking for updates in the background if required
+func WithUpdateCheck(action cli.ActionFunc) cli.ActionFunc {
+	return func(c *cli.Context) error {
+
+		var wg sync.WaitGroup
+		wg.Add(1)
+		// run the update check async to avoid blocking the users
+		var updateAvailable bool
+		var msg string
+		go func() {
+			msg, updateAvailable = Check(c)
+			wg.Done()
+		}()
+
+		err := action(c)
+		wg.Wait()
+		if updateAvailable {
+			fmt.Fprintf(os.Stderr, "\n%s\n", msg)
+		}
+		return err
+	}
 }
