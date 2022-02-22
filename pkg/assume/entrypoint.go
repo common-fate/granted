@@ -21,6 +21,9 @@ func GetCliApp() *cli.App {
 
 	flags := []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
+		&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Specify a service to open the console into"},
+		&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "Specify a region to open the console into"},
+		&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 	}

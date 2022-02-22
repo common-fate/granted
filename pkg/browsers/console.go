@@ -15,6 +15,30 @@ import (
 	"github.com/pkg/browser"
 )
 
+//service mapping
+var ServiceMap = map[string]string{
+	"":               "console",
+	"ec2":            "ec2/v2",
+	"sso":            "singlesignon",
+	"ecs":            "ecs",
+	"eks":            "eks",
+	"athena":         "athena",
+	"cloudmap":       "cloudmap",
+	"c9":             "cloud9",
+	"cloudform":      "cloudformation",
+	"cf":             "cloudfront",
+	"ct":             "cloudtrail",
+	"ddb":            "dynamodbv2",
+	"ebs":            "elasticbeanstalk",
+	"ecr":            "ecr",
+	"grafana":        "grafana",
+	"lambda":         "lambda",
+	"route53":        "route53/v2",
+	"s3":             "s3",
+	"secretsmanager": "secretsmanager",
+	"iam":            "iamv2",
+}
+
 // @TODO these file paths need to be verified
 // alternatively, find a better way to get the exec path for a given browser
 // @verified
@@ -167,7 +191,7 @@ const (
 	BrowserDefault
 )
 
-func LaunchConsoleSession(sess Session, labels RoleLabels) error {
+func LaunchConsoleSession(sess Session, labels RoleLabels, service string, region string) error {
 	sessJSON, err := json.Marshal(sess)
 	if err != nil {
 		return err
@@ -205,10 +229,16 @@ func LaunchConsoleSession(sess Session, labels RoleLabels) error {
 		Host:   "signin.aws.amazon.com",
 		Path:   "/federation",
 	}
+
+	dest, err := makeDestinationURL(service, region)
+
+	if err != nil {
+		return err
+	}
 	q = u.Query()
 	q.Add("Action", "login")
 	q.Add("Issuer", "")
-	q.Add("Destination", "https://console.aws.amazon.com/console/home")
+	q.Add("Destination", dest)
 	q.Add("SigninToken", token.SigninToken)
 	u.RawQuery = q.Encode()
 	cfg, _ := config.Load()
@@ -230,4 +260,26 @@ func LaunchConsoleSession(sess Session, labels RoleLabels) error {
 		browser.OpenURL(u.String())
 	}
 	return nil
+}
+
+func makeDestinationURL(service string, region string) (string, error) {
+
+	if region == "" {
+		region = "us-east-1"
+	}
+	prefix := "https://console.aws.amazon.com/"
+
+	serv := ServiceMap[service]
+	if serv == "" {
+		return "", fmt.Errorf("\nservice not found, please enter a valid service")
+	}
+
+	dest := prefix + serv + "/home"
+
+	//NOTE here: excluding iam here and possibly others as the region isnt in the uri of the webpage on the console
+	if region != "" || serv != "iam" {
+		dest = dest + "?region=" + region
+	}
+
+	return dest, nil
 }

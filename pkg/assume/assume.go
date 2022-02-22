@@ -37,8 +37,18 @@ func AssumeCommand(c *cli.Context) error {
 			}()
 		}
 	}
+	//set the sesh creds using the active role if we have one and the flag is set
+	if c.Bool("active-role") && os.Getenv("GRANTED_AWS_ROLE_PROFILE") != "" {
+		//try opening using the active role
+		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
 
-	if profile == nil {
+		profileName := os.Getenv("GRANTED_AWS_ROLE_PROFILE")
+
+		profile = awsProfiles[profileName]
+
+	}
+
+	if profile == nil && !c.Bool("active-role") {
 
 		fr, profiles := awsProfiles.GetFrecentProfiles()
 		fmt.Fprintln(os.Stderr, "")
@@ -80,15 +90,17 @@ func AssumeCommand(c *cli.Context) error {
 	labels := browsers.RoleLabels{Profile: profile.Name}
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
-	openBrower := c.Bool("console")
+	openBrower := c.Bool("console") || c.Bool("active-role")
 	if openBrower && isIamWithoutAssumedRole {
 		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
 	} else if openBrower {
+		service := c.String("service")
+		region := c.String("region")
 		fmt.Fprintf(os.Stderr, "Opening a console for %s in your browser...", profile.Name)
-		return browsers.LaunchConsoleSession(sess, labels)
+		return browsers.LaunchConsoleSession(sess, labels, service, region)
 	} else {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
-		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
+		fmt.Printf("GrantedAssume %s %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name)
 		if creds.CanExpire {
 			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
 		} else {
