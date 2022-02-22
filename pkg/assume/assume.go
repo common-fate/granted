@@ -106,8 +106,9 @@ func assumeCommand(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
 	} else if openBrower {
 		service := c.String("service")
+		region := c.String("region")
 		fmt.Fprintf(os.Stderr, "Opening a console for %s in your browser...", profile.Name)
-		return browsers.LaunchConsoleSession(sess, labels, service)
+		return browsers.LaunchConsoleSession(sess, labels, service, region)
 	} else {
 		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		fmt.Printf("GrantedAssume %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)

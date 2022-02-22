@@ -191,7 +191,7 @@ const (
 	BrowserDefault
 )
 
-func LaunchConsoleSession(sess Session, labels RoleLabels, service string) error {
+func LaunchConsoleSession(sess Session, labels RoleLabels, service string, region string) error {
 	sessJSON, err := json.Marshal(sess)
 	if err != nil {
 		return err
@@ -230,7 +230,7 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string) error
 		Path:   "/federation",
 	}
 
-	dest, err := makeDestinationURL(service)
+	dest, err := makeDestinationURL(service, region)
 
 	if err != nil {
 		return err
@@ -262,15 +262,23 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string) error
 	return nil
 }
 
-func makeDestinationURL(service string) (string, error) {
+func makeDestinationURL(service string, region string) (string, error) {
+
+	if region == "" {
+		region = "us-east-1"
+	}
 	prefix := "https://console.aws.amazon.com/"
 
 	serv := ServiceMap[service]
 	if serv == "" {
-		return "", fmt.Errorf("\nservice not found")
+		return "", fmt.Errorf("\nservice not found, please enter a valid service")
 	}
 
 	dest := prefix + serv + "/home"
+
+	if region != "" || serv != "iam" {
+		dest = dest + "?region=" + region
+	}
 
 	return dest, nil
 }
