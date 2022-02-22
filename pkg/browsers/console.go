@@ -257,9 +257,8 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string, regio
 		// @TODO use edge
 		return OpenWithChromiumProfile(u.String(), labels, BrowserEdge)
 	default:
-		browser.OpenURL(u.String())
+		return browser.OpenURL(u.String())
 	}
-	return nil
 }
 
 func makeDestinationURL(service string, region string) (string, error) {
