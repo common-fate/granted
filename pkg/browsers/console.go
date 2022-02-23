@@ -126,6 +126,7 @@ type RoleLabels struct {
 	// the name of the role
 	Profile string
 	Region  string
+	Service string
 }
 
 func (r *RoleLabels) MakeExternalFirefoxTitle() string {
@@ -250,4 +251,25 @@ func makeDestinationURL(service string, region string) (string, error) {
 	}
 
 	return dest, nil
+}
+
+func PromoteUseFlags(labels RoleLabels) {
+
+	promotionMsg := ""
+
+	if labels.Region == "" {
+		promotionMsg = promotionMsg + " use -r to open a specific region"
+	}
+
+	if labels.Service == "" {
+		if labels.Region == "" {
+			promotionMsg = promotionMsg + " or "
+		}
+		promotionMsg = promotionMsg + "use -s to open a specific service"
+	}
+
+	if labels.Region == "" || labels.Service == "" {
+		fmt.Fprintf(os.Stderr, "\nℹ️ %s (https://docs.commonfate.io/granted/usage/console)\n", promotionMsg)
+
+	}
 }
