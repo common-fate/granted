@@ -35,20 +35,17 @@ func HandleManualBrowserSelection() (string, error) {
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
-		Message: "ℹ️  Select your default browser\n",
+		Message: "Select your default browser",
 		Options: []string{"Chrome", "Brave", "Edge", "Firefox"},
 	}
 	var selection string
+	fmt.Fprintln(os.Stderr)
 	err := testable.AskOne(&in, &selection, withStdio)
 	if err != nil {
 		return "", err
 	}
 
-	if selection != "" {
-		fmt.Fprintf(os.Stderr, "%s\n", selection)
-		return selection, nil
-	}
-	return "", nil
+	return selection, nil
 }
 
 //finds out which browser the user has as default
@@ -78,7 +75,7 @@ func Find() (string, error) {
 	}
 
 	if outcome == "" {
-		fmt.Fprintf(os.Stderr, "ℹ️  Could not find default browser\n")
+		fmt.Fprintf(os.Stderr, "\nℹ️  Could not find default browser\n")
 		return HandleManualBrowserSelection()
 	}
 
@@ -102,22 +99,45 @@ func GetBrowserName(b string) string {
 	return DefaultKey
 }
 
+// DetectInstallation checks if the default filepath exists for the browser executables on the current os
+func DetectInstallation(browserKey string) bool {
+	bPath := ""
+	switch browserKey {
+	case ChromeKey:
+		bPath, _ = ChromePath()
+	case BraveKey:
+		bPath, _ = BravePath()
+	case EdgeKey:
+		bPath, _ = EdgePath()
+	case FirefoxKey:
+		bPath, _ = FirefoxPath()
+	default:
+		return false
+	}
+	if bPath == "" {
+		return false
+	}
+	_, err := os.Stat(bPath)
+	return err == nil
+}
+
 func HandleBrowserWizard(ctx *cli.Context) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	fmt.Fprintf(os.Stderr, "Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers).\n\n")
+	fmt.Fprintf(os.Stderr, "\nGranted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers).\n")
 
 	browserName, err := Find()
 	if err != nil {
 		return err
 	}
 	browserTitle := strings.Title(strings.ToLower(GetBrowserName(browserName)))
-	fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is %s.\n", browserTitle)
+	fmt.Fprintf(os.Stderr, "\nℹ️  Granted has detected that your default browser is %s.\n", browserTitle)
 
 	in := survey.Select{
-		Message: "Use this browser with Granted?\n",
+		Message: "Use this browser with Granted?",
 		Options: []string{"Yes", "Choose a different browser"},
 	}
 	var opt string
+	fmt.Fprintln(os.Stderr)
 	err = testable.AskOne(&in, &opt, withStdio)
 	if err != nil {
 		return err
@@ -127,11 +147,51 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		browserTitle = strings.Title(strings.ToLower(GetBrowserName(browserName)))
+	}
+
+	return ConfigureBrowserSelection(browserName)
+}
+
+//ConfigureBrowserSelection will verify the existance of the browser executable and promot for a path if it cannot be found
+func ConfigureBrowserSelection(browserName string) error {
+	browserTitle := strings.Title(strings.ToLower(GetBrowserName(browserName)))
+	// We allow users to configure a custom install path is we cannot detect the installation
+	customBrowserPath := ""
+	// detect installation
+	if !DetectInstallation(GetBrowserName(browserName)) {
+		fmt.Fprintf(os.Stderr, "Granted could not detect an existing installation of %s at known installation paths for your system, if you have already installed this browser, you can specify the path to the executable manually", browserTitle)
+
+		validPath := false
+
+		for !validPath {
+			// prompt for custom path
+
+			bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s", browserTitle)}
+			fmt.Fprintln(os.Stderr)
+			err := testable.AskOne(&bpIn, &customBrowserPath)
+			if err != nil {
+				return err
+			}
+			if _, err := os.Stat(customBrowserPath); err == nil {
+				validPath = true
+			} else {
+				fmt.Fprintln(os.Stderr, "The path you entered is not valid")
+			}
+		}
+
 	}
 
 	if GetBrowserName(browserName) == FirefoxKey {
-		err = RunFirefoxExtensionPrompts()
+		fp := customBrowserPath
+		if customBrowserPath == "" {
+			firefoxPath, err := FirefoxPath()
+			if err != nil {
+				return err
+			}
+			fp = firefoxPath
+		}
+
+		err := RunFirefoxExtensionPrompts(fp)
 		if err != nil {
 			return err
 		}
@@ -143,14 +203,13 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 		return err
 	}
 
-	if conf.DefaultBrowser != browserName {
-		conf = &config.Config{DefaultBrowser: GetBrowserName(browserName)}
-
-		err = conf.Save()
-		if err != nil {
-			return err
-		}
+	conf.DefaultBrowser = GetBrowserName(browserName)
+	conf.CustomBrowserPath = customBrowserPath
+	err = conf.Save()
+	if err != nil {
+		return err
 	}
+
 	alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
 
 	fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using %s.", browserTitle))
@@ -159,7 +218,7 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 }
 
 func GrantedIntroduction() {
-	fmt.Fprintf(os.Stderr, "\nTo change the web browser that Granted uses run: `granted browser`\n")
+	fmt.Fprintf(os.Stderr, "\nTo change the web browser that Granted uses run: `granted browser -set`\n")
 	fmt.Fprintf(os.Stderr, "\n\nHere's how to use Granted to supercharge your cloud access:\n")
 	fmt.Fprintf(os.Stderr, "\n`assume`                   - search profiles to assume\n")
 	fmt.Fprintf(os.Stderr, "\n`assume <PROFILE_NAME>`    - assume a profile\n")
@@ -169,10 +228,10 @@ func GrantedIntroduction() {
 
 }
 
-func RunFirefoxExtensionPrompts() error {
-	fmt.Fprintf(os.Stderr, "ℹ️  In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted.\nThis addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon).\n")
+func RunFirefoxExtensionPrompts(firefoxPath string) error {
+	fmt.Fprintf(os.Stderr, "\nℹ️  In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted.\nThis addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon).\n")
 
-	label := "\nOpen Firefox to download the extension?\n"
+	label := "Open Firefox to download the extension?"
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := &survey.Select{
@@ -180,6 +239,7 @@ func RunFirefoxExtensionPrompts() error {
 		Options: []string{"Yes", "Already installed", "No"},
 	}
 	var out string
+	fmt.Fprintln(os.Stderr)
 	err := testable.AskOne(in, &out, withStdio)
 	if err != nil {
 		return err
@@ -193,10 +253,6 @@ func RunFirefoxExtensionPrompts() error {
 		return nil
 	}
 
-	firefoxPath, err := FirefoxPath()
-	if err != nil {
-		return err
-	}
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		"https://addons.mozilla.org/en-GB/firefox/addon/granted/")
@@ -216,6 +272,7 @@ func RunFirefoxExtensionPrompts() error {
 		Default: true,
 	}
 	var confirm bool
+	fmt.Fprintln(os.Stderr)
 	err = testable.AskOne(confIn, &confirm, withStdio)
 	if err != nil {
 		return err
