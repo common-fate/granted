@@ -124,6 +124,13 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 		// A possible approach would be to open chrome in a headless way first then open it fully after setting the name
 
 		userDataPath := path.Join(grantedFolder, "chromium-profiles", fmt.Sprintf("%v", selectedBrowser))
+
+		//check the file path
+		_, err = os.Stat(chromePath + "/" + labels.MakeExternalProfileTitle())
+		if err != nil {
+			return err
+		}
+
 		cmd := exec.Command(chromePath,
 			fmt.Sprintf("--user-data-dir=%s", userDataPath), "--profile-directory="+labels.MakeExternalProfileTitle(), "--no-first-run", "--no-default-browser-check", url,
 		)
