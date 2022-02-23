@@ -5,6 +5,8 @@ import (
 	"os"
 	"os/user"
 
+	"github.com/common-fate/granted/internal/build"
+	"github.com/common-fate/granted/pkg/assume"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
@@ -27,9 +29,21 @@ var CompletionCommand = cli.Command{
 		// check shell type from flag
 		if c.String("shell") == "fish" {
 
+			assumeApp := assume.GetCliApp()
+
 			// Run the native FishCompletion method and generate a string of its outputs
-			output, _ := c.App.ToFishCompletion()
-			c.App.Name = "granted"
+			if build.Version == "dev" {
+				fmt.Printf("⚙️  Generating commands for dgranted/dassume\n")
+				c.App.Name = "dgranted"
+				assumeApp.Name = "dassume"
+			} else {
+				c.App.Name = "granted"
+				assumeApp.Name = "assume"
+			}
+
+			grantedAppOutput, _ := c.App.ToFishCompletion()
+			assumeAppOutput, _ := assumeApp.ToFishCompletion()
+			combinedOutput := fmt.Sprintf("%s\n%s", grantedAppOutput, assumeAppOutput)
 
 			// try fetch user home dir
 			user, _ := user.Current()
@@ -37,20 +51,10 @@ var CompletionCommand = cli.Command{
 			executableDir := user.HomeDir + "/.config/fish/completions/granted_completer_fish.fish"
 
 			// Try create a file
-			f, err := os.Create(executableDir)
-
+			err := os.WriteFile(executableDir, []byte(combinedOutput), 0600)
 			if err != nil {
 				fmt.Fprintln(os.Stderr, "Something went wrong when saving fish autocompletions: "+err.Error())
 			}
-
-			// Defer closing the file
-			defer f.Close()
-			// Write the string to the file
-			_, err = f.WriteString(output)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Something went wrong when writing fish autocompletions to file")
-			}
-			f.Close()
 
 			green := color.New(color.FgGreen)
 
@@ -71,4 +75,5 @@ var CompletionCommand = cli.Command{
 
 		return nil
 	},
+	Description: "To install completions for other shells like zsh, bash, please see our docs:\nhttps://granted.dev/docs/cli/completion\n",
 }
