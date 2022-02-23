@@ -51,25 +51,10 @@ var CompletionCommand = cli.Command{
 			executableDir := user.HomeDir + "/.config/fish/completions/granted_completer_fish.fish"
 
 			// Try create a file
-			f, err := os.Create(executableDir)
-
-			// If that fails, try to open an existing file
+			err := os.WriteFile(executableDir, []byte(combinedOutput), 0600)
 			if err != nil {
-
-				f, err = os.Open(executableDir)
-				if err != nil {
-					fmt.Fprintln(os.Stderr, "Something went wrong when saving fish autocompletions: "+err.Error())
-				}
+				fmt.Fprintln(os.Stderr, "Something went wrong when saving fish autocompletions: "+err.Error())
 			}
-
-			// Defer closing the file
-			defer f.Close()
-			// Write the string to the file
-			_, err = f.WriteString(combinedOutput)
-			if err != nil {
-				fmt.Fprintln(os.Stderr, "Something went wrong when writing fish autocompletions to file")
-			}
-			f.Close()
 
 			green := color.New(color.FgGreen)
 
