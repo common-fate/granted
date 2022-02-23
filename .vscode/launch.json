@@ -21,7 +21,7 @@
       "args": ["-console", "-active-role"],
       "env": {
         "FORCE_NO_ALIAS": true,
-        "AWS_ROLE_PROFILE": "cf-dev"
+        "GRANTED_AWS_ROLE_PROFILE": "cf-dev"
       }
     }
   ]
