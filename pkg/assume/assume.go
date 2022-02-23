@@ -99,8 +99,13 @@ func AssumeCommand(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "Opening a console for %s in your browser...", profile.Name)
 		return browsers.LaunchConsoleSession(sess, labels, service, region)
 	} else {
-		// DO NOT MODIFY, this like interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
-		fmt.Printf("GrantedAssume %s %s %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, profile.RawConfig.Region)
+		region, _, err := profile.Region(c.Context)
+		if err != nil {
+			region = "None"
+		}
+		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
+		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this printf
+		fmt.Printf("GrantedAssume %s %s %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region)
 		if creds.CanExpire {
 			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
 		} else {

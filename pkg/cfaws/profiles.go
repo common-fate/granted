@@ -2,6 +2,7 @@ package cfaws
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -100,6 +101,23 @@ func (c *uninitCFSharedConfig) init(profiles map[string]*uninitCFSharedConfig) {
 		}
 		c.initialised = true
 	}
+}
+
+// Region will attempt to load the reason on this profile, if it is not set, attempts to load the default config
+// returns a region, and bool = true if the default region was used
+func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
+	defaultCfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return "", false, err
+	}
+	region := defaultCfg.Region
+	if c.RawConfig.Region != "" {
+		return c.RawConfig.Region, false, nil
+	}
+	if region == "" {
+		return "", false, fmt.Errorf("region not set on profile %s, could not load a default AWS_REGION. Either set a default region 'aws configure set default.region us-west-2' or add a region to your profile", c.Name)
+	}
+	return region, true, nil
 }
 
 func (c CFSharedConfigs) SSOProfileNames() []string {
