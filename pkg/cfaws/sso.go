@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	ssotypes "github.com/aws/aws-sdk-go-v2/service/sso/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
@@ -75,12 +76,23 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 
 	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
 	credProvider := &CredProv{rootCreds}
+
+	defaultCfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
 	if requiresAssuming {
 
 		toAssume := append([]*CFSharedConfig{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
 		for i, p := range toAssume {
-			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: p.RawConfig.Region})
+
+			// in order to support profiles which do not specify a region, we use the default region when assuming the role
+			region := defaultCfg.Region
+			if p.RawConfig.Region != "" {
+				region = p.RawConfig.Region
+			}
+			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: region})
 			stsRes, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
 				RoleArn:         &p.RawConfig.RoleARN,
 				RoleSessionName: &p.Name,

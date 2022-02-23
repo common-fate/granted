@@ -131,19 +131,23 @@ func (c CFSharedConfigs) ProfileNames() []string {
 }
 
 func (c *CFSharedConfig) AwsConfig(ctx context.Context, useSSORegion bool) (aws.Config, error) {
-	if useSSORegion {
-		return config.LoadDefaultConfig(ctx,
-			// load the config profile
-			config.WithSharedConfigProfile(c.Name),
-			// With region forces this config to use the profile region, ignoring region configured with environment variables
-			config.WithRegion(c.RawConfig.SSORegion),
-		)
-	}
-	return config.LoadDefaultConfig(ctx,
+
+	opts := []func(*config.LoadOptions) error{
 		// load the config profile
 		config.WithSharedConfigProfile(c.Name),
+	}
+
+	if useSSORegion {
 		// With region forces this config to use the profile region, ignoring region configured with environment variables
-		config.WithRegion(c.RawConfig.Region),
+		opts = append(opts, config.WithRegion(c.RawConfig.SSORegion))
+	} else if c.RawConfig.Region != "" {
+		// With region forces this config to use the profile region, ignoring region configured with environment variables
+		// if region is not configured for this profile, use the aws_default_region
+		opts = append(opts, config.WithRegion(c.RawConfig.Region))
+	}
+
+	return config.LoadDefaultConfig(ctx,
+		opts...,
 	)
 }
 
