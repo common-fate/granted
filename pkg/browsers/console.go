@@ -126,7 +126,7 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 		userDataPath := path.Join(grantedFolder, "chromium-profiles", fmt.Sprintf("%v", selectedBrowser))
 
 		//check the file path
-		_, err = os.Stat(chromePath + "/" + labels.MakeExternalProfileTitle())
+		_, err = os.Stat(path.Join(userDataPath, labels.MakeExternalProfileTitle()))
 		if err != nil {
 			return err
 		}
