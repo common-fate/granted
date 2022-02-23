@@ -159,14 +159,14 @@ func ConfigureBrowserSelection(browserName string) error {
 	customBrowserPath := ""
 	// detect installation
 	if !DetectInstallation(GetBrowserName(browserName)) {
-		fmt.Fprintf(os.Stderr, "Granted could not detect an existing installation of %s at known installation paths for your system, if you have already installed this browser, you can specify the path to the executable manually", browserTitle)
+		fmt.Fprintf(os.Stderr, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
 
 		validPath := false
 
 		for !validPath {
 			// prompt for custom path
 
-			bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s", browserTitle)}
+			bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
 			fmt.Fprintln(os.Stderr)
 			err := testable.AskOne(&bpIn, &customBrowserPath)
 			if err != nil {
@@ -175,7 +175,7 @@ func ConfigureBrowserSelection(browserName string) error {
 			if _, err := os.Stat(customBrowserPath); err == nil {
 				validPath = true
 			} else {
-				fmt.Fprintln(os.Stderr, "The path you entered is not valid")
+				fmt.Fprintf(os.Stderr, "\n❌ The path you entered is not valid\n")
 			}
 		}
 

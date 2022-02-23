@@ -13,7 +13,7 @@ const (
 	DefaultKey string = "DEFAULT"
 )
 
-const ChromePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+const ChromePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome1"
 const ChromePathLinux = `/usr/bin/google-chrome`
 const ChromePathWindows = `\Program Files\Google\Chrome\Application\chrome.exe`
 const BravePathMac = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
