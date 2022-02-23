@@ -2,7 +2,6 @@ package assume
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"os"
@@ -58,15 +57,15 @@ func AssumeCommand(c *cli.Context) error {
 			Message: "Please select the profile you would like to assume:",
 			Options: profiles,
 		}
+		if len(profiles) == 0 {
+			fmt.Fprintln(os.Stderr, "ℹ️ Granted couldn't find any aws roles")
+			fmt.Fprintln(os.Stderr, "You can add roles to your aws config by following our guide: ")
+			fmt.Fprintln(os.Stderr, "https://granted.dev/awsconfig")
+			return nil
+		}
 		var p string
 		err = testable.AskOne(&in, &p, withStdio)
 		if err != nil {
-			if strings.Contains(err.Error(), "please provide options") {
-				fmt.Fprintln(os.Stderr, "ℹ️ Granted couldn't find any aws roles")
-				fmt.Fprintln(os.Stderr, "You can add roles to your aws config by following our guide: ")
-				fmt.Fprintln(os.Stderr, "https://granted.dev/awsconfig")
-				return nil
-			}
 			return err
 		}
 
