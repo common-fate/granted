@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"hash/fnv"
 	"net/http"
 	"net/url"
 	"os"
@@ -125,12 +126,6 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 
 		userDataPath := path.Join(grantedFolder, "chromium-profiles", fmt.Sprintf("%v", selectedBrowser))
 
-		//check the file path
-		_, err = os.Stat(path.Join(userDataPath, labels.MakeExternalProfileTitle()))
-		if err != nil {
-			return err
-		}
-
 		cmd := exec.Command(chromePath,
 			fmt.Sprintf("--user-data-dir=%s", userDataPath), "--profile-directory="+labels.MakeExternalProfileTitle(), "--no-first-run", "--no-default-browser-check", url,
 		)
@@ -166,7 +161,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		return errors.New("os not supported")
 	}
 
-	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.MakeExternalProfileTitle(), url.QueryEscape(urlString))
+	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.MakeExternalFirefoxTitle(), url.QueryEscape(urlString))
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		tabURL)
@@ -190,13 +185,28 @@ type RoleLabels struct {
 	Region  string
 }
 
-func (r *RoleLabels) MakeExternalProfileTitle() string {
+func (r *RoleLabels) MakeExternalFirefoxTitle() string {
 
 	if r.Region != "" {
 		return r.Profile + "(" + r.Region + ")"
 
 	}
 	return r.Profile
+}
+
+func (r *RoleLabels) MakeExternalProfileTitle() string {
+	n := r.Profile
+	if r.Region != "" {
+		n = r.Profile + "(" + r.Region + ")"
+
+	}
+
+	h := fnv.New32a()
+	h.Write([]byte(n))
+
+	hash := fmt.Sprint(h.Sum32())
+	return hash
+
 }
 
 type Browser int
