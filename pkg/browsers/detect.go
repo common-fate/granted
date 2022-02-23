@@ -10,19 +10,10 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/common-fate/granted/pkg/browsers/detect"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
-)
-
-const (
-	ChromeKey  string = "CHROME"
-	FirefoxKey string = "FIREFOX"
-	EdgeKey    string = "EDGE"
-	BraveKey   string = "BRAVE"
-	DefaultKey string = "DEFAULT"
 )
 
 //Checks the config to see if the user has already set up their default browser
@@ -69,14 +60,14 @@ func Find() (string, error) {
 		// @TODO implement default browser search for windows
 		outcome = ""
 	case "darwin":
-		b, err := detect.HandleOSXBrowserSearch()
+		b, err := HandleOSXBrowserSearch()
 		if err != nil {
 			return "", err
 		}
 		outcome = b
 
 	case "linux":
-		b, err := detect.HandleLinuxBrowserSearch()
+		b, err := HandleLinuxBrowserSearch()
 		if err != nil {
 			return "", err
 		}
@@ -202,19 +193,10 @@ func RunFirefoxExtensionPrompts() error {
 		return nil
 	}
 
-	opSys := runtime.GOOS
-	firefoxPath := ""
-	switch opSys {
-	case "windows":
-		firefoxPath = FirefoxPathWindows
-	case "darwin":
-		firefoxPath = FirefoxPathMac
-	case "linux":
-		firefoxPath = FirefoxPathLinux
-	default:
-		return errors.New("os not supported")
+	firefoxPath, err := FirefoxPath()
+	if err != nil {
+		return err
 	}
-
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		"https://addons.mozilla.org/en-GB/firefox/addon/granted/")

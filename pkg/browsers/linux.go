@@ -1,4 +1,4 @@
-package detect
+package browsers
 
 import "os/exec"
 

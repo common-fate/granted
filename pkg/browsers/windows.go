@@ -1,4 +1,4 @@
-package detect
+package browsers
 
 type plist struct {
 	//XMLName xml.Name `xml:"plist"`
