@@ -1,10 +1,8 @@
 package browsers
 
 import (
-	"encoding/xml"
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"runtime"
@@ -12,6 +10,7 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/granted/pkg/browsers/detect"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/fatih/color"
@@ -25,35 +24,6 @@ const (
 	BraveKey   string = "BRAVE"
 	DefaultKey string = "DEFAULT"
 )
-
-type plist struct {
-	//XMLName xml.Name `xml:"plist"`
-	Pdict Pdict `xml:"dict"`
-}
-
-type Pdict struct {
-	//XMLName xml.Name `xml:"dict"`
-	Key   string `xml:"key"`
-	Array Array  `xml:"array"`
-}
-
-type Array struct {
-	//XMLName xml.Name `xml:"array"`
-	Dict Dict `xml:"dict"`
-}
-
-type Dict struct {
-	//XMLName xml.Name `xml:"dict"`
-	Key     []string `xml:"key"`
-	Dict    IntDict  `xml:"dict"`
-	Strings []string `xml:"string"`
-}
-
-type IntDict struct {
-	//XMLName xml.Name `xml:"dict"`
-	Key     string `xml:"key"`
-	Strings string `xml:"string"`
-}
 
 //Checks the config to see if the user has already set up their default browser
 func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
@@ -69,87 +39,6 @@ func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
 	return conf.DefaultBrowser != "", nil
 }
 
-func handleOSXBrowserSearch() (string, error) {
-	//get home dir
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	path := home + "/Library/Preferences/com.apple.LaunchServices/com.apple.launchservices.secure.plist"
-
-	//convert plist to xml using putil
-	//plutil -convert xml1
-	args := []string{"-convert", "xml1", path}
-	cmd := exec.Command("plutil", args...)
-	err = cmd.Run()
-	if err != nil {
-		return "", err
-	}
-
-	//read plist file
-	data, err := ioutil.ReadFile(path)
-
-	if err != nil {
-		return "", err
-	}
-	plist := &plist{}
-
-	// fmt.Fprintf(os.Stderr, "\n%s\n", data)
-	//unmarshal the xml into the structs
-	err = xml.Unmarshal([]byte(data), &plist)
-	if err != nil {
-		return "", err
-	}
-
-	//get out the default browser
-
-	for i, s := range plist.Pdict.Array.Dict.Strings {
-		if s == "http" {
-			return plist.Pdict.Array.Dict.Strings[i-1], nil
-		}
-	}
-	return "", nil
-}
-
-func handleLinuxBrowserSearch() (string, error) {
-	out, err := exec.Command("xdg-settings", "get", "default-web-browser").Output()
-
-	if err != nil {
-		return "", err
-	}
-
-	return string(out), nil
-}
-
-func handleWindowsBrowserSearch() (string, error) {
-	//TODO: automatic detection for windows
-	outcome, err := HandleManualBrowserSelection()
-
-	if err != nil {
-		return "", err
-	}
-
-	if outcome != "" {
-
-		conf, err := config.Load()
-		if err != nil {
-			return "", err
-		}
-
-		conf.DefaultBrowser = GetBrowserName(outcome)
-
-		err = conf.Save()
-		if err != nil {
-			return "", err
-		}
-		alert := color.New(color.Bold, color.FgGreen).SprintFunc()
-
-		fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Default browser set."))
-	}
-
-	return "", nil
-}
-
 func HandleManualBrowserSelection() (string, error) {
 	//didn't find it request manual input
 
@@ -158,15 +47,15 @@ func HandleManualBrowserSelection() (string, error) {
 		Message: "ℹ️  Select your default browser\n",
 		Options: []string{"Chrome", "Brave", "Edge", "Firefox"},
 	}
-	var roleacc string
-	err := testable.AskOne(&in, &roleacc, withStdio)
+	var selection string
+	err := testable.AskOne(&in, &selection, withStdio)
 	if err != nil {
 		return "", err
 	}
 
-	if roleacc != "" {
-		fmt.Fprintf(os.Stderr, "%s\n", roleacc)
-		return roleacc, nil
+	if selection != "" {
+		fmt.Fprintf(os.Stderr, "%s\n", selection)
+		return selection, nil
 	}
 	return "", nil
 }
@@ -177,38 +66,29 @@ func Find() (string, error) {
 	ops := runtime.GOOS
 	switch ops {
 	case "windows":
-		b, err := handleWindowsBrowserSearch()
-		if err != nil {
-			return "", err
-		}
-
-		outcome = b
+		// @TODO implement default browser search for windows
+		outcome = ""
 	case "darwin":
-		b, err := handleOSXBrowserSearch()
+		b, err := detect.HandleOSXBrowserSearch()
 		if err != nil {
 			return "", err
 		}
 		outcome = b
 
 	case "linux":
-		b, err := handleLinuxBrowserSearch()
+		b, err := detect.HandleLinuxBrowserSearch()
 		if err != nil {
 			return "", err
 		}
 		outcome = b
 
 	default:
-		fmt.Printf("%s.\n", ops)
+		fmt.Printf("%s os not supported.\n", ops)
 	}
 
 	if outcome == "" {
 		fmt.Fprintf(os.Stderr, "ℹ️  Could not find default browser\n")
-		outcome, err := HandleManualBrowserSelection()
-
-		if err != nil {
-			return "", err
-		}
-		return outcome, nil
+		return HandleManualBrowserSelection()
 	}
 
 	return outcome, nil
@@ -232,176 +112,57 @@ func GetBrowserName(b string) string {
 }
 
 func HandleBrowserWizard(ctx *cli.Context) error {
-
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	fmt.Fprintf(os.Stderr, "Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers).\n\n")
 
 	browserName, err := Find()
 	if err != nil {
 		return err
 	}
+	browserTitle := strings.Title(strings.ToLower(GetBrowserName(browserName)))
+	fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is %s.\n", browserTitle)
 
-	if strings.Contains(strings.ToLower(browserName), "chrome") {
-		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is Chrome.\n")
-
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := survey.Select{
-			Message: "Use this browser with Granted?\n",
-			Options: []string{"Yes", "Choose a different browser"},
-		}
-		var opt string
-		err := testable.AskOne(&in, &opt, withStdio)
+	in := survey.Select{
+		Message: "Use this browser with Granted?\n",
+		Options: []string{"Yes", "Choose a different browser"},
+	}
+	var opt string
+	err = testable.AskOne(&in, &opt, withStdio)
+	if err != nil {
+		return err
+	}
+	if opt != "Yes" {
+		browserName, err = HandleManualBrowserSelection()
 		if err != nil {
 			return err
 		}
-
-		if opt == "Yes" {
-			//save the detected browser as the default
-			conf, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			if conf.DefaultBrowser != browserName {
-				conf = &config.Config{DefaultBrowser: GetBrowserName(browserName)}
-
-				err = conf.Save()
-				if err != nil {
-					return err
-				}
-			}
-			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
-
-			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using Chrome."))
-
-		}
+		browserTitle = strings.Title(strings.ToLower(GetBrowserName(browserName)))
 	}
 
-	if strings.Contains(strings.ToLower(browserName), "brave") {
-		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is Brave.\n")
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := survey.Select{
-			Message: "Use this browser with Granted?\n",
-			Options: []string{"Yes", "Choose a different browser"},
-		}
-		var opt string
-		err := testable.AskOne(&in, &opt, withStdio)
+	if GetBrowserName(browserName) == FirefoxKey {
+		err = RunFirefoxExtensionPrompts()
 		if err != nil {
 			return err
 		}
-
-		if opt == "Yes" {
-			//save the detected browser as the default
-			conf, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			if conf.DefaultBrowser != browserName {
-				conf = &config.Config{DefaultBrowser: GetBrowserName(browserName)}
-
-				err = conf.Save()
-				if err != nil {
-					return err
-				}
-			}
-			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
-
-			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using Brave."))
-
-		}
 	}
 
-	if strings.Contains(strings.ToLower(browserName), "edge") {
-		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is Edge.\n")
-
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := survey.Select{
-			Message: "Use this browser with Granted?\n",
-			Options: []string{"Yes", "Choose a different browser"},
-		}
-		var opt string
-		err := testable.AskOne(&in, &opt, withStdio)
-		if err != nil {
-			return err
-		}
-
-		if opt == "Yes" {
-			//save the detected browser as the default
-			conf, err := config.Load()
-			if err != nil {
-				return err
-			}
-
-			if conf.DefaultBrowser != browserName {
-				conf = &config.Config{DefaultBrowser: GetBrowserName(browserName)}
-
-				err = conf.Save()
-				if err != nil {
-					return err
-				}
-			}
-			alert := color.New(color.Bold, color.FgGreen).SprintFunc()
-
-			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using Edge."))
-
-		}
-	}
-
-	if strings.Contains(strings.ToLower(browserName), "firefox") {
-		fmt.Fprintf(os.Stderr, "ℹ️  Granted has detected that your default browser is Mozilla Firefox.\n")
-
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := survey.Select{
-			Message: "Use this browser with Granted?\n",
-			Options: []string{"Yes", "Choose a different browser"},
-		}
-		var opt string
-		err := testable.AskOne(&in, &opt, withStdio)
-		if err != nil {
-			return err
-		}
-
-		if opt == "Yes" {
-
-			err = RunFirefoxExtensionPrompts()
-			if err != nil {
-				return err
-			}
-		}
-	}
-
-	//if we don't find any automatically, ask for them to select
+	//save the detected browser as the default
 	conf, err := config.Load()
 	if err != nil {
 		return err
 	}
 
-	if conf.DefaultBrowser == "" {
-		outcome, err := HandleManualBrowserSelection()
-		if err != nil {
-			return err
-		}
-
-		conf.DefaultBrowser = GetBrowserName(outcome)
+	if conf.DefaultBrowser != browserName {
+		conf = &config.Config{DefaultBrowser: GetBrowserName(browserName)}
 
 		err = conf.Save()
 		if err != nil {
 			return err
 		}
-
-		alert := color.New(color.Bold, color.FgGreen).SprintFunc()
-
-		if strings.Contains(strings.ToLower(outcome), "firefox") {
-			err = RunFirefoxExtensionPrompts()
-
-			if err != nil {
-				return err
-			}
-		} else {
-			fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using ", outcome))
-		}
-
 	}
+	alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
+
+	fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using %s.", browserTitle))
 
 	return nil
 }
@@ -423,18 +184,22 @@ func RunFirefoxExtensionPrompts() error {
 	label := "\nOpen Firefox to download the extension?\n"
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	in := &survey.Confirm{
+	in := &survey.Select{
 		Message: label,
-		Default: true,
+		Options: []string{"Yes", "Already installed", "No"},
 	}
-	var confirm bool
-	err := testable.AskOne(in, &confirm, withStdio)
+	var out string
+	err := testable.AskOne(in, &out, withStdio)
 	if err != nil {
 		return err
 	}
 
-	if !confirm {
+	if out == "No" {
 		return errors.New("cancelled browser setup")
+	}
+	// Allow the user to bypass this step if they have been testing different browsers
+	if out == "Already installed" {
+		return nil
 	}
 
 	opSys := runtime.GOOS
@@ -464,14 +229,12 @@ func RunFirefoxExtensionPrompts() error {
 		return err
 	}
 	time.Sleep(time.Second * 2)
-	alert := color.New(color.Bold, color.FgGreen).SprintFunc()
-
-	in = &survey.Confirm{
+	confIn := &survey.Confirm{
 		Message: "Type Y to continue once you have installed the extension",
 		Default: true,
 	}
-
-	err = testable.AskOne(in, &confirm, withStdio)
+	var confirm bool
+	err = testable.AskOne(confIn, &confirm, withStdio)
 	if err != nil {
 		return err
 	}
@@ -479,22 +242,5 @@ func RunFirefoxExtensionPrompts() error {
 	if !confirm {
 		return errors.New("cancelled browser setup")
 	}
-
-	conf, err := config.Load()
-	if err != nil {
-		return err
-	}
-
-	if conf.DefaultBrowser != "firefox" {
-		conf = &config.Config{DefaultBrowser: GetBrowserName("firefox")}
-
-		err = conf.Save()
-		if err != nil {
-			return err
-		}
-	}
-
-	fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using Firefox."))
-
 	return nil
 }
