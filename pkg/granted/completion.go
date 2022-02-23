@@ -64,7 +64,7 @@ var CompletionCommand = cli.Command{
 
 		} else {
 			fmt.Fprintln(os.Stderr, "To install completions for other shells like zsh, bash, please see our docs:")
-			fmt.Fprintln(os.Stderr, "https://granted.dev/docs/cli/completion")
+			fmt.Fprintln(os.Stderr, "https://granted.dev/autocompletion")
 			/*
 				@TODO: consider adding automatic support for other shells in this same CLI command
 					Can be modelled off these tools
@@ -75,5 +75,7 @@ var CompletionCommand = cli.Command{
 
 		return nil
 	},
-	Description: "To install completions for other shells like zsh, bash, please see our docs:\nhttps://granted.dev/docs/cli/completion\n",
+
+	Description: "To install completions for other shells like zsh, bash, please see our docs:\nhttps://granted.dev/autocompletion\n",
+
 }
