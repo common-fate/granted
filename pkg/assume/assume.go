@@ -92,11 +92,12 @@ func AssumeCommand(c *cli.Context) error {
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
 	openBrower := c.Bool("console") || c.Bool("active-role")
 	if openBrower && isIamWithoutAssumedRole {
-		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
+		// @TODO check if we can launch the console as an IAM user
+		fmt.Fprintf(os.Stderr, "\nCannot open a browser session for profile: %s because it does not assume a role\n", profile.Name)
 	} else if openBrower {
 		service := c.String("service")
 		region := c.String("region")
-		fmt.Fprintf(os.Stderr, "Opening a console for %s in your browser...", profile.Name)
+		fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
 		return browsers.LaunchConsoleSession(sess, labels, service, region)
 	} else {
 		region, _, err := profile.Region(c.Context)
