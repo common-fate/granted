@@ -20,6 +20,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_SECRET_ACCESS_KEY
   set -e AWS_SESSION_TOKEN
   set -e GRANTED_AWS_ROLE_PROFILE
+  set -e AWS_REGION
 
   set -gx GRANTED_COMMAND $argv
   if test "$GRANTED_1" != "None"
