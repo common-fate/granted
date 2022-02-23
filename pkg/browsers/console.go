@@ -269,7 +269,7 @@ func PromoteUseFlags(labels RoleLabels) {
 	}
 
 	if labels.Region == "" || labels.Service == "" {
-		fmt.Fprintf(os.Stderr, "\nℹ️ %s (https://granted.dev/regions)\n", promotionMsg)
+		fmt.Fprintf(os.Stderr, "\nℹ️ %s (https://docs.commonfate.io/granted/usage/console)\n", promotionMsg)
 
 	}
 }
