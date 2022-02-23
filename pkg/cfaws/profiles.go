@@ -2,6 +2,7 @@ package cfaws
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"strings"
 
@@ -102,6 +103,23 @@ func (c *uninitCFSharedConfig) init(profiles map[string]*uninitCFSharedConfig) {
 	}
 }
 
+// Region will attempt to load the reason on this profile, if it is not set, attempts to load the default config
+// returns a region, and bool = true if the default region was used
+func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
+	defaultCfg, err := config.LoadDefaultConfig(ctx)
+	if err != nil {
+		return "", false, err
+	}
+	region := defaultCfg.Region
+	if c.RawConfig.Region != "" {
+		return c.RawConfig.Region, false, nil
+	}
+	if region == "" {
+		return "", false, fmt.Errorf("region not set on profile %s, could not load a default AWS_REGION. Either set a default region 'aws configure set default.region us-west-2' or add a region to your profile", c.Name)
+	}
+	return region, true, nil
+}
+
 func (c CFSharedConfigs) SSOProfileNames() []string {
 	names := []string{}
 	for k, v := range c {
@@ -130,17 +148,29 @@ func (c CFSharedConfigs) ProfileNames() []string {
 	return names
 }
 
-func (c *CFSharedConfig) AwsConfig(ctx context.Context) (aws.Config, error) {
-	return config.LoadDefaultConfig(ctx,
+func (c *CFSharedConfig) AwsConfig(ctx context.Context, useSSORegion bool) (aws.Config, error) {
+
+	opts := []func(*config.LoadOptions) error{
 		// load the config profile
 		config.WithSharedConfigProfile(c.Name),
+	}
+
+	if useSSORegion {
 		// With region forces this config to use the profile region, ignoring region configured with environment variables
-		config.WithRegion(c.RawConfig.Region),
+		opts = append(opts, config.WithRegion(c.RawConfig.SSORegion))
+	} else if c.RawConfig.Region != "" {
+		// With region forces this config to use the profile region, ignoring region configured with environment variables
+		// if region is not configured for this profile, use the aws_default_region
+		opts = append(opts, config.WithRegion(c.RawConfig.Region))
+	}
+
+	return config.LoadDefaultConfig(ctx,
+		opts...,
 	)
 }
 
 func (c *CFSharedConfig) CallerIdentity(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {
-	cfg, err := c.AwsConfig(ctx)
+	cfg, err := c.AwsConfig(ctx, false)
 	if err != nil {
 		return nil, err
 	}
@@ -150,7 +180,7 @@ func (c *CFSharedConfig) CallerIdentity(ctx context.Context) (*sts.GetCallerIden
 
 func (c *CFSharedConfig) Assume(ctx context.Context) (aws.Credentials, error) {
 	if c.ProfileType == ProfileTypeIAM {
-		cfg, err := c.AwsConfig(ctx)
+		cfg, err := c.AwsConfig(ctx, false)
 		if err != nil {
 			return aws.Credentials{}, err
 		}

@@ -44,7 +44,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	}
 
 	ssoTokenKey := rootProfile.RawConfig.SSOStartURL
-	cfg, err := rootProfile.AwsConfig(ctx)
+	cfg, err := rootProfile.AwsConfig(ctx, true)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
@@ -75,12 +75,19 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 
 	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
 	credProvider := &CredProv{rootCreds}
+
 	if requiresAssuming {
 
 		toAssume := append([]*CFSharedConfig{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
 		for i, p := range toAssume {
-			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: p.RawConfig.Region})
+			region, _, err := c.Region(ctx)
+			if err != nil {
+				return aws.Credentials{}, err
+			}
+			// in order to support profiles which do not specify a region, we use the default region when assuming the role
+
+			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: region})
 			stsRes, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
 				RoleArn:         &p.RawConfig.RoleARN,
 				RoleSessionName: &p.Name,
@@ -91,7 +98,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			// only print for sub assumes because the final credentials are printed at the end of the assume command
 			// this is here for visibility in to role traversals when assuming a final profile with sso
 			if i < len(toAssume)-1 {
-				fmt.Fprintf(os.Stderr, "\033[32m\nAssumed parent profile: [%s] session credentials will expire %s\033[0m\n", p.Name, stsRes.Credentials.Expiration.Local().String())
+				fmt.Fprintf(os.Stderr, "\033[32m\nAssumed parent profile: [%s](%s) session credentials will expire %s\033[0m\n", p.Name, region, stsRes.Credentials.Expiration.Local().String())
 			}
 			credProvider = &CredProv{TypeCredsToAwsCreds(*stsRes.Credentials)}
 
