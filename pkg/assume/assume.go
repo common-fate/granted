@@ -97,7 +97,9 @@ func AssumeCommand(c *cli.Context) error {
 	} else if openBrower {
 		service := c.String("service")
 		region := c.String("region")
-		fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
+		
+		labels.Region = region
+    fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
 		return browsers.LaunchConsoleSession(sess, labels, service, region)
 	} else {
 		region, _, err := profile.Region(c.Context)
