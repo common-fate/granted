@@ -92,13 +92,14 @@ func AssumeCommand(c *cli.Context) error {
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
 	openBrower := c.Bool("console") || c.Bool("active-role")
 	if openBrower && isIamWithoutAssumedRole {
-		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
+		// @TODO check if we can launch the console as an IAM user
+		fmt.Fprintf(os.Stderr, "\nCannot open a browser session for profile: %s because it does not assume a role\n", profile.Name)
 	} else if openBrower {
 		service := c.String("service")
 		region := c.String("region")
-
+		
 		labels.Region = region
-		fmt.Fprintf(os.Stderr, "Opening a console for %s in your browser...", profile.Name)
+    fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
 		return browsers.LaunchConsoleSession(sess, labels, service, region)
 	} else {
 		region, _, err := profile.Region(c.Context)
@@ -109,9 +110,9 @@ func AssumeCommand(c *cli.Context) error {
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this printf
 		fmt.Printf("GrantedAssume %s %s %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region)
 		if creds.CanExpire {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, expiration.Local().String())
 		} else {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials ready\033[0m\n", profile.Name)
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials ready\033[0m\n", profile.Name, region)
 		}
 	}
 
