@@ -5,6 +5,7 @@ import (
 	"os"
 	"os/user"
 
+	"github.com/common-fate/granted/internal/build"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
@@ -28,8 +29,14 @@ var CompletionCommand = cli.Command{
 		if c.String("shell") == "fish" {
 
 			// Run the native FishCompletion method and generate a string of its outputs
+			if build.Version == "dev" {
+				fmt.Printf("⚙️  Generating commands for dgranted cli\n")
+				c.App.Name = "dgranted"
+			} else {
+				c.App.Name = "granted"
+			}
+
 			output, _ := c.App.ToFishCompletion()
-			c.App.Name = "granted"
 
 			// try fetch user home dir
 			user, _ := user.Current()
@@ -39,8 +46,13 @@ var CompletionCommand = cli.Command{
 			// Try create a file
 			f, err := os.Create(executableDir)
 
+			// If that fails, try to open an existing file
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "Something went wrong when saving fish autocompletions: "+err.Error())
+
+				f, err = os.Open(executableDir)
+				if err != nil {
+					fmt.Fprintln(os.Stderr, "Something went wrong when saving fish autocompletions: "+err.Error())
+				}
 			}
 
 			// Defer closing the file
@@ -71,4 +83,5 @@ var CompletionCommand = cli.Command{
 
 		return nil
 	},
+	Description: "To install completions for other shells like zsh, bash, please see our docs:\nhttps://granted.dev/docs/cli/completion\n",
 }

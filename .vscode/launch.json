@@ -13,6 +13,15 @@
       "env": { "FORCE_NO_ALIAS": true }
     },
     {
+      "name": "Run command granted",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/granted/main.go",
+      "args": ["completion"],
+      "env": { "FORCE_NO_ALIAS": true }
+    },
+    {
       "name": "Run command assume active role",
       "type": "go",
       "request": "launch",
