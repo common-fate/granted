@@ -10,6 +10,7 @@
       "request": "launch",
       "mode": "auto",
       "program": "cmd/assume/main.go",
+      "args": ["-c", "cf-dev", "-r=hello"],
       "env": { "FORCE_NO_ALIAS": true }
     },
     {

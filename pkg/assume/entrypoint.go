@@ -14,18 +14,19 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var GlobalFlags = []cli.Flag{
+	&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
+	&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Specify a service to open the console into"},
+	&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "Specify a region to open the console into"},
+	&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
+	&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
+	&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
+	&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"GRANTED_AWS_ROLE_PROFILE"}, Hidden: true},
+}
+
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
 		fmt.Fprintln(os.Stderr, banners.WithVersion(banners.Assume()))
-	}
-
-	flags := []cli.Flag{
-		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
-		&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Specify a service to open the console into"},
-		&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "Specify a region to open the console into"},
-		&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
-		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
-		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 	}
 
 	app := &cli.App{
@@ -34,8 +35,8 @@ func GetCliApp() *cli.App {
 		UsageText:            "assume [options][Profile]",
 		Version:              build.Version,
 		HideVersion:          false,
-		Flags:                flags,
-		Action:               updates.WithUpdateCheck(AssumeCommand),
+		Flags:                GlobalFlags,
+		Action:               updates.WithUpdateCheck(func(c *cli.Context) error { return AssumeCommand(c) }),
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			if c.Bool("verbose") {
