@@ -19,7 +19,7 @@
       "request": "launch",
       "mode": "auto",
       "program": "cmd/assume/main.go",
-      "args": ["-console", "-active-role"],
+      "args": ["test-role", "-c", "-s iam", "-r region-name"],
       "env": {
         "FORCE_NO_ALIAS": true,
         "GRANTED_AWS_ROLE_PROFILE": "cf-dev"

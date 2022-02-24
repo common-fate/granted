@@ -31,11 +31,11 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	ag := []string{}
 	ag = append(ag, os.Args[1:len(os.Args)-len(ca)]...)
 	ag = append(ag, ca[1:]...)
-	err := normalizeFlags(flags, set)
-	if err != nil {
-		return nil, err
-	}
-	err = set.Parse(ag)
+	//err := normalizeFlags(flags, set)
+	// if err != nil {
+	// 	return nil, err
+	// }
+	err := set.Parse(ag)
 	wow := os.Args
 	_ = wow
 	if err != nil {
