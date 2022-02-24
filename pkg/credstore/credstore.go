@@ -58,7 +58,7 @@ func openKeyring() (keyring.Keyring, error) {
 	// check if the cred-store file exists in the folder
 	credStorePath := path.Join(grantedFolder, "cred-store")
 
-	ring, err := keyring.Open(keyring.Config{
+	return keyring.Open(keyring.Config{
 		FileDir: credStorePath,
 		FilePasswordFunc: func(s string) (string, error) {
 			in := survey.Password{Message: s}
@@ -69,12 +69,4 @@ func openKeyring() (keyring.Keyring, error) {
 		},
 		ServiceName: "granted",
 	})
-	if err != nil {
-		return nil, err
-	}
-	// Ensure this keyring is correctly opened, there have been some issues with ring being nil with no error
-	if ring == nil {
-		return nil, ErrCouldNotOpenKeyring
-	}
-	return ring, err
 }
