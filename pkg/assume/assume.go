@@ -9,6 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/urfave/cli/v2"
@@ -44,18 +45,22 @@ func AssumeCommand(c *cli.Context) error {
 			}()
 		}
 	}
+
+	activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
 	//set the sesh creds using the active role if we have one and the flag is set
-	if assumeFlags.Bool("active-role") && os.Getenv("GRANTED_AWS_ROLE_PROFILE") != "" {
+	if assumeFlags.Bool("active-role") && activeRoleProfile != "" {
 		//try opening using the active role
 		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
-
-		profileName := os.Getenv("GRANTED_AWS_ROLE_PROFILE")
-
-		profile = awsProfiles[profileName]
+		profile = awsProfiles[activeRoleProfile]
+		if profile == nil {
+			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed to find a profile matching GRANTED_AWS_ROLE_PROFILE=%s when using the active-profile flag", activeRoleProfile)
+		}
 
 	}
 
-	if profile == nil && !assumeFlags.Bool("active-role") {
+	// if profile is still nil here, then prompt to select a profile
+
+	if profile == nil {
 
 		fr, profiles := awsProfiles.GetFrecentProfiles()
 		fmt.Fprintln(os.Stderr, "")
@@ -63,6 +68,12 @@ func AssumeCommand(c *cli.Context) error {
 		in := survey.Select{
 			Message: "Please select the profile you would like to assume:",
 			Options: profiles,
+		}
+		if len(profiles) == 0 {
+			fmt.Fprintln(os.Stderr, "ℹ️ Granted couldn't find any aws roles")
+			fmt.Fprintln(os.Stderr, "You can add roles to your aws config by following our guide: ")
+			fmt.Fprintln(os.Stderr, "https://granted.dev/awsconfig")
+			return nil
 		}
 		var p string
 		err = testable.AskOne(&in, &p, withStdio)
@@ -95,20 +106,26 @@ func AssumeCommand(c *cli.Context) error {
 
 	// these are just labels for the tabs so we may need to updates these for the sso role context
 	labels := browsers.RoleLabels{Profile: profile.Name}
+	region, _, err := profile.Region(c.Context)
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
 	if openBrower && isIamWithoutAssumedRole {
-		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
+		// @TODO check if we can launch the console as an IAM user
+		fmt.Fprintf(os.Stderr, "\nCannot open a browser session for profile: %s because it does not assume a role\n", profile.Name)
 	} else if openBrower {
 		service := assumeFlags.String("service")
-		region := assumeFlags.String("region")
+		if assumeFlags.String("region") != "" {
+			region = assumeFlags.String("region")
+		}
 
 		labels.Region = region
-		fmt.Fprintf(os.Stderr, "Opening a console for %s in your browser...", profile.Name)
+		labels.Service = service
+		browsers.PromoteUseFlags(labels)
+		fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
 		return browsers.LaunchConsoleSession(sess, labels, service, region)
 	} else {
-		region, _, err := profile.Region(c.Context)
+
 		if err != nil {
 			region = "None"
 		}
@@ -116,9 +133,9 @@ func AssumeCommand(c *cli.Context) error {
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this printf
 		fmt.Printf("GrantedAssume %s %s %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region)
 		if creds.CanExpire {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials will expire %s\033[0m\n", profile.Name, expiration.Local().String())
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, expiration.Local().String())
 		} else {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s] session credentials ready\033[0m\n", profile.Name)
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials ready\033[0m\n", profile.Name, region)
 		}
 	}
 

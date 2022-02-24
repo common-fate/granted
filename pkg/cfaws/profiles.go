@@ -115,7 +115,7 @@ func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
 		return c.RawConfig.Region, false, nil
 	}
 	if region == "" {
-		return "", false, fmt.Errorf("region not set on profile %s, could not load a default AWS_REGION. Either set a default region 'aws configure set default.region us-west-2' or add a region to your profile", c.Name)
+		return "", false, fmt.Errorf("region not set on profile %s, could not load a default AWS_REGION. Either set a default region `aws configure set default.region us-west-2` or add a region to your profile", c.Name)
 	}
 	return region, true, nil
 }

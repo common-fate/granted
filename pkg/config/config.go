@@ -16,7 +16,9 @@ import (
 )
 
 type Config struct {
-	DefaultBrowser      string
+	DefaultBrowser string
+	// used to override the builtin filepaths for custom installation locations
+	CustomBrowserPath   string
 	LastCheckForUpdates time.Weekday
 }
 
@@ -73,6 +75,7 @@ func (store *Config) Save() error {
 		return err
 	}
 	configFilePath := path.Join(grantedFolder, "config")
+
 	file, err := os.OpenFile(configFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err

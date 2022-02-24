@@ -10,13 +10,15 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"runtime"
+	"sort"
+	"strings"
 
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/pkg/browser"
 )
 
-//service mapping
+// ServiceMap maps CLI flags to AWS console URL paths.
+// e.g. passing in `-r ec2` will open the console at the ec2/v2 URL.
 var ServiceMap = map[string]string{
 	"":               "console",
 	"ec2":            "ec2/v2",
@@ -26,7 +28,12 @@ var ServiceMap = map[string]string{
 	"athena":         "athena",
 	"cloudmap":       "cloudmap",
 	"c9":             "cloud9",
-	"cloudform":      "cloudformation",
+	"cfn":            "cloudformation",
+	"cloudformation": "cloudformation",
+	"cloudwatch":     "cloudwatch",
+	"gd":             "guardduty",
+	"l":              "lambda",
+	"cw":             "cloudwatch",
 	"cf":             "cloudfront",
 	"ct":             "cloudtrail",
 	"ddb":            "dynamodbv2",
@@ -35,83 +42,36 @@ var ServiceMap = map[string]string{
 	"grafana":        "grafana",
 	"lambda":         "lambda",
 	"route53":        "route53/v2",
+	"r53":            "route53/v2",
 	"s3":             "s3",
 	"secretsmanager": "secretsmanager",
 	"iam":            "iamv2",
 }
 
-// @TODO these file paths need to be verified
-// alternatively, find a better way to get the exec path for a given browser
-// @verified
-const ChromePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-
-// @to-verify
-const ChromePathLinux = `/usr/bin/google-chrome`
-
-// @to-verify
-const ChromePathWindows = `\Program Files\Google\Chrome\Application\chrome.exe`
-
-// @verified
-const BravePathMac = "/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"
-
-// @to-verify
-const BravePathLinux = `/usr/bin/brave-browser`
-
-// @verified
-const BravePathWindows = `\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe`
-
-// @verified
-const EdgePathMac = "/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"
-
-// @to-verify
-const EdgePathLinux = `/usr/bin/edge`
-
-// @verified
-const EdgePathWindows = `\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`
-
 func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Browser) error {
-	opSys := runtime.GOOS
-	chromePath := ""
-	switch selectedBrowser {
-	case BrowserChrome:
-		switch opSys {
-		case "windows":
-			chromePath = ChromePathWindows
-		case "darwin":
-			chromePath = ChromePathMac
-		case "linux":
-			chromePath = ChromePathLinux
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	chromePath := cfg.CustomBrowserPath
+	if chromePath == "" {
+		switch selectedBrowser {
+		case BrowserChrome:
+			chromePath, err = ChromePath()
+		case BrowserBrave:
+			chromePath, err = BravePath()
+		case BrowserEdge:
+			chromePath, err = EdgePath()
 		default:
 			return errors.New("os not supported")
 		}
-	case BrowserBrave:
-		switch opSys {
-		case "windows":
-			chromePath = BravePathWindows
-		case "darwin":
-			chromePath = BravePathMac
-		case "linux":
-			chromePath = BravePathLinux
-		default:
-			return errors.New("os not supported")
+		if err != nil {
+			return err
 		}
-	case BrowserEdge:
-		switch opSys {
-		case "windows":
-			chromePath = EdgePathWindows
-		case "darwin":
-			chromePath = EdgePathMac
-		case "linux":
-			chromePath = EdgePathLinux
-		default:
-			return errors.New("os not supported")
-		}
-	default:
-		return errors.New("os not supported")
 	}
 
 	// check if the default chrome location is accessible
-	_, err := os.Stat(chromePath)
+	_, err = os.Stat(chromePath)
 	if err == nil {
 
 		grantedFolder, err := config.GrantedConfigFolder()
@@ -140,32 +100,24 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 
 }
 
-const FirefoxPathMac = "/Applications/Firefox.app/Contents/MacOS/firefox"
-
-// @TODO confirm this works
-const FirefoxPathLinux = `/usr/bin/firefox`
-
-const FirefoxPathWindows = `\Program Files\Mozilla Firefox\firefox.exe`
-
 func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
-	opSys := runtime.GOOS
-	firefoxPath := ""
-	switch opSys {
-	case "windows":
-		firefoxPath = FirefoxPathWindows
-	case "darwin":
-		firefoxPath = FirefoxPathMac
-	case "linux":
-		firefoxPath = FirefoxPathLinux
-	default:
-		return errors.New("os not supported")
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	firefoxPath := cfg.CustomBrowserPath
+	if firefoxPath == "" {
+		firefoxPath, err = FirefoxPath()
+		if err != nil {
+			return err
+		}
 	}
 
 	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.MakeExternalFirefoxTitle(), url.QueryEscape(urlString))
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		tabURL)
-	err := cmd.Start()
+	err = cmd.Start()
 	if err != nil {
 		return err
 	}
@@ -183,6 +135,7 @@ type RoleLabels struct {
 	// the name of the role
 	Profile string
 	Region  string
+	Service string
 }
 
 func (r *RoleLabels) MakeExternalFirefoxTitle() string {
@@ -279,10 +232,8 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string, regio
 	case ChromeKey:
 		return OpenWithChromiumProfile(u.String(), labels, BrowserChrome)
 	case BraveKey:
-		// @TODO use brave
 		return OpenWithChromiumProfile(u.String(), labels, BrowserBrave)
 	case EdgeKey:
-		// @TODO use edge
 		return OpenWithChromiumProfile(u.String(), labels, BrowserEdge)
 	default:
 		return browser.OpenURL(u.String())
@@ -298,7 +249,17 @@ func makeDestinationURL(service string, region string) (string, error) {
 
 	serv := ServiceMap[service]
 	if serv == "" {
-		return "", fmt.Errorf("\nservice not found, please enter a valid service")
+		var validServices []string
+		for s := range ServiceMap {
+			validServices = append(validServices, s)
+		}
+		// present the strings in alphabetical order.
+		// Yes, this is a bit of computation - but our arrays are quite small
+		// and this avoids the need to keep the ServiceMap alphabetically sorted when developing Granted.
+		sort.Strings(validServices)
+
+		return "", fmt.Errorf("\nservice %s not found, please enter a valid service shortcut.\nValid service shortcuts: [%s]\n", service, strings.Join(validServices, ", "))
+
 	}
 
 	dest := prefix + serv + "/home"
@@ -309,4 +270,25 @@ func makeDestinationURL(service string, region string) (string, error) {
 	}
 
 	return dest, nil
+}
+
+func PromoteUseFlags(labels RoleLabels) {
+
+	promotionMsg := ""
+
+	if labels.Region == "" {
+		promotionMsg = promotionMsg + " use -r to open a specific region"
+	}
+
+	if labels.Service == "" {
+		if labels.Region == "" {
+			promotionMsg = promotionMsg + " or "
+		}
+		promotionMsg = promotionMsg + "use -s to open a specific service"
+	}
+
+	if labels.Region == "" || labels.Service == "" {
+		fmt.Fprintf(os.Stderr, "\nℹ️ %s (https://docs.commonfate.io/granted/usage/console)\n", promotionMsg)
+
+	}
 }

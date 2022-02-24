@@ -7,4 +7,6 @@ pkg/api/cert
 # build scripts
 .goreleaser.yml
 gon.assume.hcl
+gon.assume.arm.hcl
 gon.granted.hcl
+gon.granted.arm.hcl

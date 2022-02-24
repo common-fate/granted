@@ -30,6 +30,12 @@ Granted is a command line interface (CLI) application which simplifies access to
 
 - Encrypt cached credentials to avoid plaintext SSO tokens being saved on disk
 
+## What does Granted work with?
+
+Granted supports MacOS, Linux, and Windows. Our Windows support is less extensively tested than other platforms so if you run into any problems please [let us know](https://join.slack.com/t/commonfatecommunity/shared_invite/zt-q4m96ypu-_gYlRWD3k5rIsaSsqP7QMg).
+
+Currently Granted supports accessing roles in AWS. If you'd like to see support for another cloud provider please [open an issue](https://github.com/common-fate/granted/issues/new)!
+
 ## Documentation
 
 Get started by [reading our documentation](https://docs.commonfate.io/granted/getting-started).
