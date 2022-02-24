@@ -121,3 +121,31 @@ func (set *Flags) Bool(name string) bool {
 	}
 	return false
 }
+
+func (set *Flags) Int(name string) int {
+	names := set.searchFS(name)
+	for _, n := range names {
+		f := set.Lookup(n)
+		if f != nil {
+			parsed, err := strconv.ParseInt(f.Value.String(), 0, 64)
+			if err != nil {
+				return int(parsed)
+			}
+		}
+	}
+	return 0
+}
+
+func (set *Flags) Int64(name string) int64 {
+	names := set.searchFS(name)
+	for _, n := range names {
+		f := set.Lookup(n)
+		if f != nil {
+			parsed, err := strconv.ParseInt(f.Value.String(), 0, 64)
+			if err != nil {
+				return parsed
+			}
+		}
+	}
+	return 0
+}
