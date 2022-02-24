@@ -11,10 +11,17 @@ import (
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
+	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/urfave/cli/v2"
 )
 
 func AssumeCommand(c *cli.Context) error {
+	// this custom behavious allows flags to be passed on either side of the role arg
+	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
+	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags, c)
+	if err != nil {
+		return err
+	}
 	var wg sync.WaitGroup
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
@@ -39,9 +46,9 @@ func AssumeCommand(c *cli.Context) error {
 		}
 	}
 
-	activeRoleProfile := c.String("granted-active-aws-role-profile")
+	activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
 	//set the sesh creds using the active role if we have one and the flag is set
-	if c.Bool("active-role") && activeRoleProfile != "" {
+	if assumeFlags.Bool("active-role") && activeRoleProfile != "" {
 		//try opening using the active role
 		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
 		profile = awsProfiles[activeRoleProfile]
@@ -102,14 +109,14 @@ func AssumeCommand(c *cli.Context) error {
 	region, _, err := profile.Region(c.Context)
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
-	openBrower := c.Bool("console") || c.Bool("active-role")
+	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
 	if openBrower && isIamWithoutAssumedRole {
 		// @TODO check if we can launch the console as an IAM user
 		fmt.Fprintf(os.Stderr, "\nCannot open a browser session for profile: %s because it does not assume a role\n", profile.Name)
 	} else if openBrower {
-		service := c.String("service")
-		if c.String("region") != "" {
-			region = c.String("region")
+		service := assumeFlags.String("service")
+		if assumeFlags.String("region") != "" {
+			region = assumeFlags.String("region")
 		}
 
 		labels.Region = region
