@@ -154,6 +154,7 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 
 //ConfigureBrowserSelection will verify the existance of the browser executable and promot for a path if it cannot be found
 func ConfigureBrowserSelection(browserName string) error {
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	browserTitle := strings.Title(strings.ToLower(GetBrowserName(browserName)))
 	// We allow users to configure a custom install path is we cannot detect the installation
 	customBrowserPath := ""
@@ -168,7 +169,7 @@ func ConfigureBrowserSelection(browserName string) error {
 
 			bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
 			fmt.Fprintln(os.Stderr)
-			err := testable.AskOne(&bpIn, &customBrowserPath)
+			err := testable.AskOne(&bpIn, &customBrowserPath, withStdio)
 			if err != nil {
 				return err
 			}
