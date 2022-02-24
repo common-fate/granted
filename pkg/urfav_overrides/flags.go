@@ -31,25 +31,17 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	ag := []string{}
 	ag = append(ag, os.Args[1:len(os.Args)-len(ca)]...)
 	ag = append(ag, ca[1:]...)
-	//err := normalizeFlags(flags, set)
-	// if err != nil {
-	// 	return nil, err
-	// }
-	err := set.Parse(ag)
+	err := normalizeFlags(flags, set)
+	if err != nil {
+		return nil, err
+	}
+	err = set.Parse(ag)
 	wow := os.Args
 	_ = wow
 	if err != nil {
 		return nil, err
 	}
 	return &Flags{FlagSet: set, urFavFlags: flags}, nil
-}
-func copyFlag(name string, ff *flag.Flag, set *flag.FlagSet) {
-	switch ff.Value.(type) {
-	case cli.Serializer:
-		_ = set.Set(name, ff.Value.(cli.Serializer).Serialize())
-	default:
-		_ = set.Set(name, ff.Value.String())
-	}
 }
 
 func normalizeFlags(flags []cli.Flag, set *flag.FlagSet) error {
