@@ -26,6 +26,7 @@ func GetCliApp() *cli.App {
 		&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
+		&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"GRANTED_AWS_ROLE_PROFILE"}, Hidden: true},
 	}
 
 	app := &cli.App{
