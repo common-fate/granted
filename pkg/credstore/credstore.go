@@ -59,8 +59,7 @@ func openKeyring() (keyring.Keyring, error) {
 	credStorePath := path.Join(grantedFolder, "cred-store")
 
 	ring, err := keyring.Open(keyring.Config{
-		AllowedBackends: []keyring.BackendType{keyring.FileBackend},
-		FileDir:         credStorePath,
+		FileDir: credStorePath,
 		FilePasswordFunc: func(s string) (string, error) {
 			in := survey.Password{Message: s}
 			var out string
