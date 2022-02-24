@@ -94,6 +94,7 @@ func AssumeCommand(c *cli.Context) error {
 
 	// these are just labels for the tabs so we may need to updates these for the sso role context
 	labels := browsers.RoleLabels{Profile: profile.Name}
+	region, _, err := profile.Region(c.Context)
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
 	openBrower := c.Bool("console") || c.Bool("active-role")
@@ -102,7 +103,9 @@ func AssumeCommand(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "\nCannot open a browser session for profile: %s because it does not assume a role\n", profile.Name)
 	} else if openBrower {
 		service := c.String("service")
-		region := c.String("region")
+		if c.String("region") != "" {
+			region = c.String("region")
+		}
 
 		labels.Region = region
 		labels.Service = service
@@ -110,7 +113,7 @@ func AssumeCommand(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
 		return browsers.LaunchConsoleSession(sess, labels, service, region)
 	} else {
-		region, _, err := profile.Region(c.Context)
+
 		if err != nil {
 			region = "None"
 		}
