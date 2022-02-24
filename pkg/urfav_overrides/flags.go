@@ -16,6 +16,16 @@ type Flags struct {
 	urFavFlags []cli.Flag
 }
 
+// The purpose of this package is to allow the assume cli command to accept flags on either side of the "role" arg
+// for example, `assume -c my-role -region=us-east-1` by default, urfav-cli, the cli framework that we are using does not
+// support this usage pattern.
+//
+// We have extracted some methods from the original urfav-cli library to mimic the original behaviour but processing all the flags.
+// to use this in a command,
+// This package interacts with os.Args directly
+//
+// allFlags := cfflags.New("name",GlobalFlagsList, c)
+// allFlags.String("region")
 func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	set := flag.NewFlagSet(name, flag.ContinueOnError)
 	for _, f := range flags {
@@ -36,8 +46,6 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 		return nil, err
 	}
 	err = set.Parse(ag)
-	wow := os.Args
-	_ = wow
 	if err != nil {
 		return nil, err
 	}

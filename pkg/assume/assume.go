@@ -15,6 +15,8 @@ import (
 )
 
 func AssumeCommand(c *cli.Context) error {
+	// this custom behavious allows flags to be passed on either side of the role arg
+	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
 	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags, c)
 	if err != nil {
 		return err
@@ -28,8 +30,6 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	var profile *cfaws.CFSharedConfig
-	ca := c.Args().Slice()
-	_ = ca
 	inProfile := c.Args().First()
 	if inProfile != "" {
 		var ok bool
