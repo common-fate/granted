@@ -43,6 +43,14 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	}
 	return &Flags{FlagSet: set, urFavFlags: flags}, nil
 }
+func copyFlag(name string, ff *flag.Flag, set *flag.FlagSet) {
+	switch ff.Value.(type) {
+	case cli.Serializer:
+		_ = set.Set(name, ff.Value.(cli.Serializer).Serialize())
+	default:
+		_ = set.Set(name, ff.Value.String())
+	}
+}
 
 func normalizeFlags(flags []cli.Flag, set *flag.FlagSet) error {
 	visited := make(map[string]bool)
