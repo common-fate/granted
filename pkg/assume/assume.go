@@ -1,11 +1,7 @@
 package assume
 
 import (
-	"errors"
-	"flag"
 	"fmt"
-	"io/ioutil"
-	"strings"
 	"sync"
 
 	"os"
@@ -14,154 +10,15 @@ import (
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
+	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/urfave/cli/v2"
 )
 
-func flagSet(name string, flags []cli.Flag) (*flag.FlagSet, error) {
-	set := flag.NewFlagSet(name, flag.ContinueOnError)
-
-	for _, f := range flags {
-		if err := f.Apply(set); err != nil {
-			return nil, err
-		}
-	}
-	set.SetOutput(ioutil.Discard)
-	return set, nil
-}
-func copyFlag(name string, ff *flag.Flag, set *flag.FlagSet) {
-	switch ff.Value.(type) {
-	case cli.Serializer:
-		_ = set.Set(name, ff.Value.(cli.Serializer).Serialize())
-	default:
-		_ = set.Set(name, ff.Value.String())
-	}
-}
-
-func normalizeFlags(flags []cli.Flag, set *flag.FlagSet) error {
-	visited := make(map[string]bool)
-	set.Visit(func(f *flag.Flag) {
-		visited[f.Name] = true
-	})
-	for _, f := range flags {
-		parts := f.Names()
-		if len(parts) == 1 {
-			continue
-		}
-		var ff *flag.Flag
-		for _, name := range parts {
-			name = strings.Trim(name, " ")
-			if visited[name] {
-				if ff != nil {
-					return errors.New("Cannot use two forms of the same flag: " + name + " " + ff.Name)
-				}
-				ff = set.Lookup(name)
-			}
-		}
-		if ff == nil {
-			continue
-		}
-		for _, name := range parts {
-			name = strings.Trim(name, " ")
-			if !visited[name] {
-				copyFlag(name, ff, set)
-			}
-		}
-	}
-	return nil
-}
-func searchFS(name string, fs *flag.FlagSet) []string {
-	for _, f := range GlobalFlags {
-		for _, n := range f.Names() {
-			if n == name {
-				return f.Names()
-			}
-		}
-	}
-	return nil
-}
-func FSString(name string, set *flag.FlagSet) string {
-	names := searchFS(name, set)
-	for _, n := range names {
-		f := set.Lookup(n)
-		if f != nil {
-			parsed, err := f.Value.String(), error(nil)
-			if err != nil {
-				return ""
-			}
-			if parsed != "" {
-				return parsed
-			}
-
-		}
-	}
-
-	return ""
-}
-
-// func FSBool(name string, set *flag.FlagSet) bool {
-// 	f := set.Lookup(name)
-// 	if f != nil {
-// 		parsed, err := strconv.ParseBool(f.Value.String()), error(nil)
-// 		if err != nil {
-// 			return false
-// 		}
-// 		return parsed
-// 	}
-// 	return false
-// }
-
 func AssumeCommand(c *cli.Context) error {
-	// cfFlags := NewCfFlagset(c)
-	// CFFlags.String("region")
-
-	// af := &AssumeFlags{}
-	fs, err := flagSet("flags", GlobalFlags)
+	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags, c)
 	if err != nil {
 		return err
 	}
-	o := os.Args
-	ca := c.Args().Slice()
-	_ = ca
-	_ = o
-
-	// context.Args() for this command will ONLY contain the role and any flags provided after the role
-	// this slice of os.Args will only contain flags and not the role if it was provided
-	ag := os.Args[1 : len(os.Args)-len(ca)]
-	ag = append(ag, ca[1:]...)
-	err = normalizeFlags(GlobalFlags, fs)
-	if err != nil {
-		return err
-	}
-	err = fs.Parse(ag)
-	if err != nil {
-		return err
-	}
-	region := FSString("region", fs)
-	fmt.Printf("region: %v\n", region)
-	// // register CLI flags for other components
-	// // fs.StringVar(&af.region, "region", "", "the log level (must match go.uber.org/zap log levels)")
-	// fs.StringVar(&af.region, "r", "", "the log level (must match go.uber.org/zap log levels)")
-	// fs.BoolVar(&af.console, "c", false, "the log level (must match go.uber.org/zap log levels)")
-
-	// err := fs.Parse(os.Args[4:])
-	// if err != nil {
-	// 	return err
-	// }
-
-	// var test *cli.Context
-	// app := &cli.App{Flags: GlobalFlags, Action: func(c *cli.Context) error {
-	// 	test = c
-	// 	fmt.Fprintf(os.Stderr, "test.String(\"region\"): %v\n", test.String("region"))
-	// 	return nil
-	// }}
-	// a := c.Args().Slice()
-	// err := app.Run(a)
-	// if err != nil {
-	// 	return err
-	// }
-	// fmt.Fprintf(os.Stderr, "test.String(\"region\"): %v\n", test.String("region"))
-	r := c.String("region")
-	fmt.Printf("r: %v\n", r)
 	var wg sync.WaitGroup
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
@@ -171,6 +28,8 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	var profile *cfaws.CFSharedConfig
+	ca := c.Args().Slice()
+	_ = ca
 	inProfile := c.Args().First()
 	if inProfile != "" {
 		var ok bool
@@ -186,7 +45,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 	}
 	//set the sesh creds using the active role if we have one and the flag is set
-	if c.Bool("active-role") && os.Getenv("GRANTED_AWS_ROLE_PROFILE") != "" {
+	if assumeFlags.Bool("active-role") && os.Getenv("GRANTED_AWS_ROLE_PROFILE") != "" {
 		//try opening using the active role
 		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
 
@@ -196,7 +55,7 @@ func AssumeCommand(c *cli.Context) error {
 
 	}
 
-	if profile == nil && !c.Bool("active-role") {
+	if profile == nil && !assumeFlags.Bool("active-role") {
 
 		fr, profiles := awsProfiles.GetFrecentProfiles()
 		fmt.Fprintln(os.Stderr, "")
@@ -238,12 +97,12 @@ func AssumeCommand(c *cli.Context) error {
 	labels := browsers.RoleLabels{Profile: profile.Name}
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
-	openBrower := c.Bool("console") || c.Bool("active-role")
+	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
 	if openBrower && isIamWithoutAssumedRole {
 		fmt.Fprintf(os.Stderr, "Cannot open a browser session for profile: %s because it does not assume a role", profile.Name)
 	} else if openBrower {
-		service := c.String("service")
-		region := c.String("region")
+		service := assumeFlags.String("service")
+		region := assumeFlags.String("region")
 
 		labels.Region = region
 		fmt.Fprintf(os.Stderr, "Opening a console for %s in your browser...", profile.Name)
