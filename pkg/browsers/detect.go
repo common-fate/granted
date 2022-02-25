@@ -54,7 +54,6 @@ func Find() (string, error) {
 	ops := runtime.GOOS
 	switch ops {
 	case "windows":
-		// @TODO implement default browser search for windows
 		b, err := HandleWindowsBrowserSearch()
 		if err != nil {
 			return "", err
