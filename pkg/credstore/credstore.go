@@ -2,13 +2,17 @@ package credstore
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path"
 
 	"github.com/99designs/keyring"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
+	"github.com/common-fate/granted/pkg/testable"
 )
+
+var ErrCouldNotOpenKeyring error = errors.New("keyring not opened successfully")
 
 // returns ring.ErrKeyNotFound if not found
 func Retrieve(key string, target interface{}) error {
@@ -26,7 +30,7 @@ func Retrieve(key string, target interface{}) error {
 func Store(key string, payload interface{}) error {
 	ring, err := openKeyring()
 	if err != nil {
-		return nil
+		return err
 	}
 	b, err := json.Marshal(payload)
 	if err != nil {
@@ -41,7 +45,7 @@ func Store(key string, payload interface{}) error {
 func Clear(key string) error {
 	ring, err := openKeyring()
 	if err != nil {
-		return nil
+		return err
 	}
 	return ring.Remove(key)
 }
@@ -51,24 +55,18 @@ func openKeyring() (keyring.Keyring, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	// check if the cred-store file exists in the folder
 	credStorePath := path.Join(grantedFolder, "cred-store")
-	_, err = os.Stat(credStorePath)
-	fileExists := err == nil
 
-	if !fileExists {
-		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "ℹ️  A cred-store file was not found\n")
-		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "Creating cred-store file at %s\n", credStorePath)
-		_, err = os.Create(credStorePath)
-		if err != nil {
-			return nil, err
-		}
-
-	}
 	return keyring.Open(keyring.Config{
-		FileDir:     path.Join(grantedFolder, "cred-store"),
+		FileDir: credStorePath,
+		FilePasswordFunc: func(s string) (string, error) {
+			in := survey.Password{Message: s}
+			var out string
+			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+			err := testable.AskOne(&in, &out, withStdio)
+			return out, err
+		},
 		ServiceName: "granted",
 	})
-
 }
