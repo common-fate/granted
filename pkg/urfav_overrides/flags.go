@@ -12,7 +12,7 @@ import (
 )
 
 type Flags struct {
-	*flag.FlagSet
+	FlagSet    *flag.FlagSet
 	urFavFlags []cli.Flag
 }
 
@@ -112,7 +112,7 @@ func (set *Flags) searchFS(name string) []string {
 func (set *Flags) String(name string) string {
 	names := set.searchFS(name)
 	for _, n := range names {
-		f := set.Lookup(n)
+		f := set.FlagSet.Lookup(n)
 		if f != nil {
 			parsed := f.Value.String()
 			if parsed != "" {
@@ -126,7 +126,7 @@ func (set *Flags) String(name string) string {
 func (set *Flags) Bool(name string) bool {
 	names := set.searchFS(name)
 	for _, n := range names {
-		f := set.Lookup(n)
+		f := set.FlagSet.Lookup(n)
 		if f != nil {
 			parsed, _ := strconv.ParseBool(f.Value.String())
 			if parsed {
@@ -140,7 +140,7 @@ func (set *Flags) Bool(name string) bool {
 func (set *Flags) Int(name string) int {
 	names := set.searchFS(name)
 	for _, n := range names {
-		f := set.Lookup(n)
+		f := set.FlagSet.Lookup(n)
 		if f != nil {
 			parsed, err := strconv.ParseInt(f.Value.String(), 0, 64)
 			if err != nil {
@@ -154,7 +154,7 @@ func (set *Flags) Int(name string) int {
 func (set *Flags) Int64(name string) int64 {
 	names := set.searchFS(name)
 	for _, n := range names {
-		f := set.Lookup(n)
+		f := set.FlagSet.Lookup(n)
 		if f != nil {
 			parsed, err := strconv.ParseInt(f.Value.String(), 0, 64)
 			if err != nil {

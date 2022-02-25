@@ -22,6 +22,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 	&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 	&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"GRANTED_AWS_ROLE_PROFILE"}, Hidden: true},
+	&cli.BoolFlag{Name: "console-with-env-credentials", Aliases: []string{"cenv"}, Usage: "Launch a console session with credentials from your environment"},
 }
 
 func GetCliApp() *cli.App {
