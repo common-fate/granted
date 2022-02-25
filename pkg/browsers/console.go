@@ -273,21 +273,18 @@ func makeDestinationURL(service string, region string) (string, error) {
 }
 
 func PromoteUseFlags(labels RoleLabels) {
-	var m string
+	var m []string
 
 	if labels.Region == "" {
-		m = " use -r to open a specific region"
+		m = append(m, "use -r to open a specific region")
 	}
 
 	if labels.Service == "" {
-		if labels.Region == "" {
-			m = m + " or "
-		}
-		m = m + " use -s to open a specific service"
+		m = append(m, "use -s to open a specific service")
 	}
 
 	if labels.Region == "" || labels.Service == "" {
-		fmt.Fprintf(os.Stderr, "\nℹ️ %s (https://docs.commonfate.io/granted/usage/console)\n", m)
+		fmt.Fprintf(os.Stderr, "\nℹ️  %s (https://docs.commonfate.io/granted/usage/console)\n", strings.Join(m, " or "))
 
 	}
 }
