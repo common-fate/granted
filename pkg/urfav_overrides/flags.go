@@ -45,7 +45,28 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = set.Parse(ag)
+	//strip any args that aren't in the form of flags
+	//removes any extra commands that arent flags
+	validate := []string{}
+	for _, g := range ag {
+		if strings.HasPrefix(g, "-") {
+			for _, f := range flags {
+				test := f.Names()
+				_ = test
+				if strings.Contains(f.Names()[0], g) {
+					validate = append(validate, g)
+
+				}
+				if len(test) > 1 && strings.Contains(f.Names()[1], g[1:]) {
+					validate = append(validate, g)
+
+				}
+
+			}
+		}
+	}
+	err = set.Parse(validate)
+
 	if err != nil {
 		return nil, err
 	}
