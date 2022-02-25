@@ -36,6 +36,11 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	set.SetOutput(ioutil.Discard)
 	ca := []string{}
 	ca = append(ca, c.Args().Slice()...)
+
+	if len(ca) == 0 {
+		return &Flags{FlagSet: set, urFavFlags: flags}, nil
+
+	}
 	// context.Args() for this command will ONLY contain the role and any flags provided after the role
 	// this slice of os.Args will only contain flags and not the role if it was provided
 	ag := []string{}
