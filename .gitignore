@@ -1,5 +1,6 @@
 
 dist/
+bin/
 .DS_Store
 granted-config
 pkg/api/cert
