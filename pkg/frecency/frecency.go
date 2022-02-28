@@ -97,7 +97,7 @@ func (store *FrecencyStore) Delete(toRemove interface{}) error {
 	for i, r := range store.Entries {
 		if toRemove == r.Entry {
 			index = i
-			continue
+			break
 		}
 	}
 	if index != -1 {
@@ -115,7 +115,7 @@ func (store *FrecencyStore) DeleteAll(toRemove []interface{}) error {
 		for _, match := range toRemove {
 			if match == r {
 				remove = true
-				continue
+				break
 			}
 		}
 		if !remove {

@@ -99,7 +99,7 @@ func (c *uninitCFSharedConfig) init(profiles map[string]*uninitCFSharedConfig, d
 				for _, a := range as {
 					if a.ProfileMatchesType(c.RawConfig, c.AWSConfig) {
 						c.ProfileType = a.Type()
-						continue
+						break
 					}
 				}
 			} else {

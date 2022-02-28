@@ -21,7 +21,7 @@ type Assumer interface {
 
 // List of assumers should be ordered by how they match type
 // specific types should be first, generic types like IAM should be last / the (default)
-var assumers []Assumer = []Assumer{&AwsSsoAssumer{}, &AwsIamAssumer{}}
+var assumers []Assumer = []Assumer{&AwsGoogleAuthAssumer{}, &AwsSsoAssumer{}, &AwsIamAssumer{}}
 
 func AssumerFromType(t string) Assumer {
 	for _, a := range assumers {
