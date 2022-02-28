@@ -3,6 +3,7 @@ package cfaws
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -19,6 +20,10 @@ type AwsGoogleAuthAssumer struct {
 // then fetch them from the environment for use
 func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
 	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", c.Name))
+
+	cmd.Stdout = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return aws.Credentials{}, err

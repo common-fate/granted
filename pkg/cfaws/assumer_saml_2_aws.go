@@ -2,6 +2,7 @@ package cfaws
 
 import (
 	"context"
+	"os"
 	"os/exec"
 	"strings"
 
@@ -28,6 +29,9 @@ func (s2a *Saml2AwsAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfi
 	// https://github.com/Versent/saml2aws#using-saml2aws-as-credential-process
 	// attempt to run the credential process for this profile
 	cmd := exec.Command("saml2aws", args...)
+	cmd.Stdout = os.Stderr
+	cmd.Stdin = os.Stdin
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return aws.Credentials{}, err
