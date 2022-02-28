@@ -33,7 +33,7 @@ func (s2a *Saml2AwsAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfi
 		return aws.Credentials{}, err
 	}
 
-	// expoect that this process has written the credentials to a profile in the ~/.aws/credentials file
+	// expect that this process has written the credentials to a profile in the ~/.aws/credentials file
 	// we can now use the standard AWS sdk to get credentials for the profile
 	cfg, err := c.AwsConfig(ctx, false)
 	if err != nil {
