@@ -14,18 +14,13 @@ import (
 	"github.com/pkg/errors"
 )
 
-type ProfileType int
-
-const (
-	ProfileTypeSSO ProfileType = iota
-	ProfileTypeIAM
-)
-
 type CFSharedConfig struct {
 	// the original config, some values may be empty strings depending on the type or profile
-	RawConfig   config.SharedConfig
+	AWSConfig config.SharedConfig
+	// allows access to the raw values from the file
+	RawConfig   configparser.Dict
 	Name        string
-	ProfileType ProfileType
+	ProfileType string
 	// ordered from root to direct parent profile
 	Parents []*CFSharedConfig
 }
@@ -33,6 +28,10 @@ type CFSharedConfigs map[string]*CFSharedConfig
 
 // GetProfilesFromDefaultSharedConfig returns initialised profiles
 // these profiles state their type and parents
+// The main reason we need to use a config parsing library here is to list the names of all the profiles.
+// The aws SDK does not provide a method to list all profiles
+//
+// Secondary requirement is to identify profiles which use a specific credential process like saml2aws
 func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, error) {
 	// fetch the parsed config file
 	configPath := config.DefaultSharedConfigFilename()
@@ -53,6 +52,11 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 
 	// Itterate through the config sections
 	for _, section := range configFile.Sections() {
+		rawConfig, err := configFile.Items(section)
+		if err != nil {
+			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
+			continue
+		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
 		if strings.HasPrefix(section, "profile ") && len(section) > 8 {
 			name := strings.TrimPrefix(section, "profile ")
@@ -61,14 +65,14 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 				debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
 				continue
 			} else {
-				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{RawConfig: cf, Name: name}}
+				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
 			}
 		}
 	}
 
 	// build parent trees and assert types
 	for _, profile := range profiles {
-		profile.init(profiles)
+		profile.init(profiles, 0)
 	}
 
 	initialisedProfiles := make(map[string]*CFSharedConfig)
@@ -84,20 +88,28 @@ type uninitCFSharedConfig struct {
 	initialised bool
 }
 
-func (c *uninitCFSharedConfig) init(profiles map[string]*uninitCFSharedConfig) {
+func (c *uninitCFSharedConfig) init(profiles map[string]*uninitCFSharedConfig, depth int) {
 	if !c.initialised {
-		if c.RawConfig.SourceProfileName == "" {
-			// this profile is a source for credentials
-			if c.RawConfig.SSOAccountID != "" {
-				c.ProfileType = ProfileTypeSSO
+		// Ensures this recursive call does not exceed a maximum depth
+		// potentially triggered by bad config files with cycles in source_profile
+		// In simple cases this seems to be picked up by the AWS sdk before the profiles are initialised which would log a debug message instead
+		if depth < 10 {
+			if c.AWSConfig.SourceProfileName == "" {
+				as := assumers
+				for _, a := range as {
+					if a.ProfileMatchesType(c.RawConfig, c.AWSConfig) {
+						c.ProfileType = a.Type()
+						continue
+					}
+				}
 			} else {
-				c.ProfileType = ProfileTypeIAM
+				sourceProfile := profiles[c.AWSConfig.SourceProfileName]
+				sourceProfile.init(profiles, depth+1)
+				c.ProfileType = sourceProfile.ProfileType
+				c.Parents = append(sourceProfile.Parents, sourceProfile.CFSharedConfig)
 			}
 		} else {
-			sourceProfile := profiles[c.RawConfig.SourceProfileName]
-			sourceProfile.init(profiles)
-			c.ProfileType = sourceProfile.ProfileType
-			c.Parents = append(sourceProfile.Parents, sourceProfile.CFSharedConfig)
+			fmt.Fprintf(os.Stderr, "maximum source profile depth exceeded for profile %s\nthis indicates that you have a cyclic reference in your aws profiles.[profile dev]\nregion = ap-southeast-2\nsource_profile = prod\n\n[profile prod]\nregion = ap-southeast-2\nsource_profile = dev", c.Name)
 		}
 		c.initialised = true
 	}
@@ -111,8 +123,8 @@ func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
 		return "", false, err
 	}
 	region := defaultCfg.Region
-	if c.RawConfig.Region != "" {
-		return c.RawConfig.Region, false, nil
+	if c.AWSConfig.Region != "" {
+		return c.AWSConfig.Region, false, nil
 	}
 	if region == "" {
 		return "", false, fmt.Errorf("region not set on profile %s, could not load a default AWS_REGION. Either set a default region `aws configure set default.region us-west-2` or add a region to your profile", c.Name)
@@ -120,25 +132,25 @@ func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
 	return region, true, nil
 }
 
-func (c CFSharedConfigs) SSOProfileNames() []string {
-	names := []string{}
-	for k, v := range c {
-		if v.ProfileType == ProfileTypeSSO {
-			names = append(names, k)
-		}
-	}
-	return names
-}
+// func (c CFSharedConfigs) SSOProfileNames() []string {
+// 	names := []string{}
+// 	for k, v := range c {
+// 		if v.ProfileType == ProfileTypeSSO {
+// 			names = append(names, k)
+// 		}
+// 	}
+// 	return names
+// }
 
-func (c CFSharedConfigs) IAMProfileNames() []string {
-	names := []string{}
-	for k, v := range c {
-		if v.ProfileType == ProfileTypeIAM {
-			names = append(names, k)
-		}
-	}
-	return names
-}
+// func (c CFSharedConfigs) IAMProfileNames() []string {
+// 	names := []string{}
+// 	for k, v := range c {
+// 		if v.ProfileType == ProfileTypeIAM {
+// 			names = append(names, k)
+// 		}
+// 	}
+// 	return names
+// }
 
 func (c CFSharedConfigs) ProfileNames() []string {
 	names := []string{}
@@ -157,11 +169,11 @@ func (c *CFSharedConfig) AwsConfig(ctx context.Context, useSSORegion bool) (aws.
 
 	if useSSORegion {
 		// With region forces this config to use the profile region, ignoring region configured with environment variables
-		opts = append(opts, config.WithRegion(c.RawConfig.SSORegion))
-	} else if c.RawConfig.Region != "" {
+		opts = append(opts, config.WithRegion(c.AWSConfig.SSORegion))
+	} else if c.AWSConfig.Region != "" {
 		// With region forces this config to use the profile region, ignoring region configured with environment variables
 		// if region is not configured for this profile, use the aws_default_region
-		opts = append(opts, config.WithRegion(c.RawConfig.Region))
+		opts = append(opts, config.WithRegion(c.AWSConfig.Region))
 	}
 
 	return config.LoadDefaultConfig(ctx,
@@ -178,35 +190,10 @@ func (c *CFSharedConfig) CallerIdentity(ctx context.Context) (*sts.GetCallerIden
 	return client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 }
 
-func (c *CFSharedConfig) Assume(ctx context.Context) (aws.Credentials, error) {
-	if c.ProfileType == ProfileTypeIAM {
-		cfg, err := c.AwsConfig(ctx, false)
-		if err != nil {
-			return aws.Credentials{}, err
-		}
-
-		// Default behaviour is to use the sdk to retrieve the credentials from the file
-		// For launching the console there is an extra step GetFederationToken that happens after this to get a session token
-		appCreds := aws.NewCredentialsCache(cfg.Credentials)
-		return appCreds.Retrieve(ctx)
-	} else {
-		return c.SSOLogin(ctx)
-	}
+func (c *CFSharedConfig) AssumeConsole(ctx context.Context) (aws.Credentials, error) {
+	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c)
 }
 
-// GetFederationToken is used when launching a console session with longlived IAM credentials profiles
-func (c *CFSharedConfig) GetFederationToken(ctx context.Context) (aws.Credentials, error) {
-	if c.ProfileType == ProfileTypeIAM {
-		cfg, err := c.AwsConfig(ctx, false)
-		if err != nil {
-			return aws.Credentials{}, err
-		}
-		client := sts.NewFromConfig(cfg)
-		out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.Name)})
-		if err != nil {
-			return aws.Credentials{}, err
-		}
-		return TypeCredsToAwsCreds(*out.Credentials), err
-	}
-	return aws.Credentials{}, fmt.Errorf("%s is not an IAM profile", c.Name)
+func (c *CFSharedConfig) AssumeTerminal(ctx context.Context) (aws.Credentials, error) {
+	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c)
 }
