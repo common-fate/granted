@@ -17,17 +17,17 @@ type Saml2AwsAssumer struct {
 // launch the saml2aws utility to generate the credentials
 // then fetch them from the environment for use
 func (s2a *Saml2AwsAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
-	command := ""
+	var args []string
 	for k, v := range c.RawConfig {
 		if k == "credential_process" && strings.HasPrefix(v, "saml2aws") {
-			command = v
+			args = strings.Split(strings.TrimPrefix(v, "saml2aws"), " ")
 			break
 		}
 	}
 
 	// https://github.com/Versent/saml2aws#using-saml2aws-as-credential-process
 	// attempt to run the credential process for this profile
-	cmd := exec.Command(command)
+	cmd := exec.Command("saml2aws", args...)
 	err := cmd.Run()
 	if err != nil {
 		return aws.Credentials{}, err
