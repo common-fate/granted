@@ -13,6 +13,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/pkg/browser"
 )
@@ -131,6 +132,11 @@ type Session struct {
 	SesssionKey  string `json:"sessionKey"`
 	SessionToken string `json:"sessionToken"`
 }
+
+func SessionFromCredentials(creds aws.Credentials) Session {
+	return Session{SessionID: creds.AccessKeyID, SesssionKey: creds.SecretAccessKey, SessionToken: creds.SessionToken}
+}
+
 type RoleLabels struct {
 	// the name of the role
 	Profile string

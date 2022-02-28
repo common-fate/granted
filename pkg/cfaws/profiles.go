@@ -184,9 +184,29 @@ func (c *CFSharedConfig) Assume(ctx context.Context) (aws.Credentials, error) {
 		if err != nil {
 			return aws.Credentials{}, err
 		}
+
+		// Default behaviour is to use the sdk to retrieve the credentials from the file
+		// For launching the console there is an extra step GetFederationToken that happens after this to get a session token
 		appCreds := aws.NewCredentialsCache(cfg.Credentials)
 		return appCreds.Retrieve(ctx)
 	} else {
 		return c.SSOLogin(ctx)
 	}
+}
+
+// GetFederationToken is used when launching a console session with longlived IAM credentials profiles
+func (c *CFSharedConfig) GetFederationToken(ctx context.Context) (aws.Credentials, error) {
+	if c.ProfileType == ProfileTypeIAM {
+		cfg, err := c.AwsConfig(ctx, false)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+		client := sts.NewFromConfig(cfg)
+		out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.Name)})
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+		return TypeCredsToAwsCreds(*out.Credentials), err
+	}
+	return aws.Credentials{}, fmt.Errorf("%s is not an IAM profile", c.Name)
 }
