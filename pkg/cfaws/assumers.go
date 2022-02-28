@@ -21,7 +21,20 @@ type Assumer interface {
 
 // List of assumers should be ordered by how they match type
 // specific types should be first, generic types like IAM should be last / the (default)
-var assumers []Assumer = []Assumer{&AwsGoogleAuthAssumer{}, &AwsSsoAssumer{}, &AwsIamAssumer{}}
+var assumers []Assumer = []Assumer{&AwsGoogleAuthAssumer{}, &Saml2AwsAssumer{}, &AwsSsoAssumer{}, &AwsIamAssumer{}}
+
+// RegisterAssumer allows assumers to be registered when using this library as a package in other projects
+// position = -1 will append the assumer
+// position to insert assumer
+func RegisterAssumer(a Assumer, position int) {
+	if position < 0 || position > len(assumers)-1 {
+		assumers = append(assumers, a)
+	} else {
+		newAssumers := append([]Assumer{}, assumers[:position]...)
+		newAssumers = append(newAssumers, a)
+		assumers = append(newAssumers, assumers[position:]...)
+	}
+}
 
 func AssumerFromType(t string) Assumer {
 	for _, a := range assumers {
