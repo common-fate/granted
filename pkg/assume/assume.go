@@ -114,23 +114,20 @@ func AssumeCommand(c *cli.Context) error {
 		}
 	}
 
-	accessKeyID := creds.AccessKeyID
-	secretAccessKey := creds.SecretAccessKey
-	sessionToken := creds.SessionToken
-	expiration := creds.Expires
-
-	sess := browsers.Session{SessionID: accessKeyID, SesssionKey: secretAccessKey, SessionToken: sessionToken}
-
 	// these are just labels for the tabs so we may need to updates these for the sso role context
 	labels := browsers.RoleLabels{Profile: profile.Name}
 	region, _, err := profile.Region(c.Context)
 
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || useEnvCredsFlag
-	if openBrower && isIamWithoutAssumedRole {
-		// @TODO check if we can launch the console as an IAM user
-		fmt.Fprintf(os.Stderr, "\nCannot open a browser session for profile: %s because it does not assume a role\n", profile.Name)
-	} else if openBrower {
+	if openBrower {
+		if isIamWithoutAssumedRole {
+			creds, err = profile.GetFederationToken(c.Context)
+			if err != nil {
+				return err
+			}
+		}
+
 		service := assumeFlags.String("service")
 		if assumeFlags.String("region") != "" {
 			region = assumeFlags.String("region")
@@ -140,7 +137,7 @@ func AssumeCommand(c *cli.Context) error {
 		labels.Service = service
 		browsers.PromoteUseFlags(labels)
 		fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
-		return browsers.LaunchConsoleSession(sess, labels, service, region)
+		return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
 	} else {
 
 		if err != nil {
@@ -150,7 +147,7 @@ func AssumeCommand(c *cli.Context) error {
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this printf
 		fmt.Printf("GrantedAssume %s %s %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region)
 		if creds.CanExpire {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, expiration.Local().String())
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, creds.Expires.Local().String())
 		} else {
 			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials ready\033[0m\n", profile.Name, region)
 		}
