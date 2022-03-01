@@ -127,8 +127,10 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
-		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this printf
-		fmt.Printf("GrantedAssume %s %s %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region)
+		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
+		// the shell script treats "None" as an emprty string and will not set a value for that positional output
+		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region})
+		fmt.Printf("GrantedAssume %s %s %s %s %s", output...)
 		if creds.CanExpire {
 			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, creds.Expires.Local().String())
 		} else {
@@ -137,4 +139,19 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+// PrepareCredentialsForShellScript will set empty values to "None", this is required by the shell script to identify which variables to unset
+// it is also required to ensure that the return values are correctly split, e.g if sessionToken is "" then profile name will be used to set the session token environment variable
+func PrepareStringsForShellScript(in []string) []interface{} {
+	out := []interface{}{}
+	for _, s := range in {
+		if s == "" {
+			out = append(out, "None")
+		} else {
+			out = append(out, s)
+		}
+
+	}
+	return out
 }
