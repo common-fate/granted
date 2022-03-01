@@ -21,7 +21,8 @@ type Assumer interface {
 
 // List of assumers should be ordered by how they match type
 // specific types should be first, generic types like IAM should be last / the (default)
-var assumers []Assumer = []Assumer{&AwsGoogleAuthAssumer{}, &Saml2AwsAssumer{}, &AwsSsoAssumer{}, &AwsIamAssumer{}}
+// for sso profiles, the internal implementation takes precedence over credential processes
+var assumers []Assumer = []Assumer{&AwsGoogleAuthAssumer{}, &AwsSsoAssumer{}, &CredentialProcessAssumer{}, &AwsIamAssumer{}}
 
 // RegisterAssumer allows assumers to be registered when using this library as a package in other projects
 // position = -1 will append the assumer
