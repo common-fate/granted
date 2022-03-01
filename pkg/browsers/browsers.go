@@ -38,7 +38,12 @@ func ChromePath() (string, error) {
 	case "darwin":
 		return ChromePathMac, nil
 	case "linux":
-		return ChromePathLinux, nil
+		//check linuxpath for binary install
+		path, err := exec.LookPath("chrome")
+		if err != nil {
+			return ChromePathLinux, err
+		}
+		return path, nil
 	default:
 		return "", errors.New("os not supported")
 	}
@@ -50,7 +55,12 @@ func BravePath() (string, error) {
 	case "darwin":
 		return BravePathMac, nil
 	case "linux":
-		return BravePathLinux, nil
+		//check linuxpath for binary install
+		path, err := exec.LookPath("brave")
+		if err != nil {
+			return BravePathLinux, err
+		}
+		return path, nil
 	default:
 		return "", errors.New("os not supported")
 	}
@@ -62,7 +72,12 @@ func EdgePath() (string, error) {
 	case "darwin":
 		return EdgePathMac, nil
 	case "linux":
-		return EdgePathLinux, nil
+		//check linuxpath for binary install
+		path, err := exec.LookPath("edge")
+		if err != nil {
+			return EdgePathLinux, err
+		}
+		return path, nil
 	default:
 		return "", errors.New("os not supported")
 	}
@@ -74,7 +89,12 @@ func FirefoxPath() (string, error) {
 	case "darwin":
 		return FirefoxPathMac, nil
 	case "linux":
-		return FirefoxPathLinux, nil
+		//check linuxpath for binary install
+		path, err := exec.LookPath("firefox")
+		if err != nil {
+			return FirefoxPathLinux, err
+		}
+		return path, nil
 	default:
 		return "", errors.New("os not supported")
 	}
@@ -87,9 +107,10 @@ func ChromiumPath() (string, error) {
 	case "darwin":
 		return ChromiumPathMac, nil
 	case "linux":
+		//check linuxpath for binary install
 		path, err := exec.LookPath("chromium")
 		if err != nil {
-			return "", err
+			return ChromiumPathLinux, err
 		}
 		return path, nil
 	default:
