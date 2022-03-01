@@ -101,7 +101,7 @@ func (cpa *CredentialProcessAssumer) Type() string {
 
 // inspect for any credential processes with the saml2aws tool
 func (cpa *CredentialProcessAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
-	for k, _ := range rawProfile {
+	for k := range rawProfile {
 		if k == "credential_process" {
 			return true
 		}
