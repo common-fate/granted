@@ -38,3 +38,30 @@ When opening a bug report we ask that you please include the following informati
 - If applicable and relevant your .aws config file, found at `~/.aws/config`
 - Details surrouding the bug and steps to replicate
 - If possible an example of the bug 
+
+Some things to try before opening a new issue:
+- Make sure you're running the latest version of Granted 
+- Check if there is already an open issue surrounding your bug and add to that open issue
+
+
+**Example:**
+> Short and descriptive example bug report title
+> 
+> Description of the bug
+>
+> Granted Version: v0.1.5
+>
+> Your config
+> ```
+> [profile PROFNAME]
+> sso_start_url=URL 
+> sso_region=ap-southeast-2 
+> sso_account_id=ACC_ID 
+> sso_role_name=ROLE_NAME 
+> region=ap-southeast-2 
+> credential_process=aws-sso-credential-process --profile PROFNAME 
+>```
+> Any other information you want to share that is relevant to the issue being
+> reported. This might include the lines of code that you have identified as
+> causing the bug, and potential solutions (and your opinions on their
+> merits).
