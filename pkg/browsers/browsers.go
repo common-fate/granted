@@ -32,87 +32,91 @@ const ChromiumPathLinux = `/usr/bin/chromium`
 const ChromiumPathWindows = `\Program Files\Chromium\chromium.exe`
 
 func ChromePath() (string, error) {
+	//check linuxpath for binary install
+	path, err := exec.LookPath("chrome")
+	if err == nil {
+		return path, err
+	}
 	switch runtime.GOOS {
 	case "windows":
 		return ChromePathWindows, nil
 	case "darwin":
 		return ChromePathMac, nil
 	case "linux":
-		//check linuxpath for binary install
-		path, err := exec.LookPath("chrome")
-		if err != nil {
-			return ChromePathLinux, err
-		}
-		return path, nil
+		return ChromePathLinux, nil
 	default:
 		return "", errors.New("os not supported")
 	}
 }
 func BravePath() (string, error) {
+	//check linuxpath for binary install
+	path, err := exec.LookPath("brave")
+	if err == nil {
+		return path, err
+	}
 	switch runtime.GOOS {
 	case "windows":
 		return BravePathWindows, nil
 	case "darwin":
 		return BravePathMac, nil
 	case "linux":
-		//check linuxpath for binary install
-		path, err := exec.LookPath("brave")
-		if err != nil {
-			return BravePathLinux, err
-		}
-		return path, nil
+
+		return BravePathLinux, nil
 	default:
 		return "", errors.New("os not supported")
 	}
 }
 func EdgePath() (string, error) {
+	//check linuxpath for binary install
+	path, err := exec.LookPath("edge")
+	if err == nil {
+		return path, err
+	}
 	switch runtime.GOOS {
 	case "windows":
 		return EdgePathWindows, nil
 	case "darwin":
 		return EdgePathMac, nil
 	case "linux":
-		//check linuxpath for binary install
-		path, err := exec.LookPath("edge")
-		if err != nil {
-			return EdgePathLinux, err
-		}
-		return path, nil
+
+		return EdgePathLinux, nil
 	default:
 		return "", errors.New("os not supported")
 	}
 }
 func FirefoxPath() (string, error) {
+	//check linuxpath for binary install
+	path, err := exec.LookPath("firefox")
+	if err == nil {
+		return path, err
+	}
 	switch runtime.GOOS {
 	case "windows":
 		return FirefoxPathWindows, nil
 	case "darwin":
 		return FirefoxPathMac, nil
 	case "linux":
-		//check linuxpath for binary install
-		path, err := exec.LookPath("firefox")
-		if err != nil {
-			return FirefoxPathLinux, err
-		}
-		return path, nil
+
+		return FirefoxPathLinux, nil
 	default:
 		return "", errors.New("os not supported")
 	}
 }
 
 func ChromiumPath() (string, error) {
+	//check linuxpath for binary install
+	path, err := exec.LookPath("chromium")
+	if err == nil {
+		return path, err
+	}
 	switch runtime.GOOS {
 	case "windows":
 		return ChromiumPathWindows, nil
 	case "darwin":
 		return ChromiumPathMac, nil
 	case "linux":
-		//check linuxpath for binary install
-		path, err := exec.LookPath("chromium")
-		if err != nil {
-			return ChromiumPathLinux, err
-		}
-		return path, nil
+
+		return ChromiumPathLinux, nil
 	default:
 		return "", errors.New("os not supported")
 	}
