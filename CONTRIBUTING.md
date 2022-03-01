@@ -56,7 +56,7 @@ Some things to try before opening a new issue:
 > [profile PROFNAME]
 > sso_start_url=URL 
 > sso_region=ap-southeast-2 
-> sso_account_id=ACC_ID 
+> sso_account_id=***
 > sso_role_name=ROLE_NAME 
 > region=ap-southeast-2 
 > credential_process=aws-sso-credential-process --profile PROFNAME 
