@@ -28,7 +28,7 @@ const FirefoxPathLinux = `/usr/bin/firefox`
 const FirefoxPathWindows = `\Program Files\Mozilla Firefox\firefox.exe`
 const ChromiumPathMac = "/Applications/Chromium.app/Contents/MacOS/Chromium"
 const ChromiumPathLinux = `/usr/bin/chromium`
-const ChromiumPathWindows = ``
+const ChromiumPathWindows = `\Program Files\Chromium\chromium.exe`
 
 func ChromePath() (string, error) {
 	switch runtime.GOOS {
