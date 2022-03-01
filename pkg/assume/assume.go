@@ -26,12 +26,6 @@ func AssumeCommand(c *cli.Context) error {
 	var wg sync.WaitGroup
 	activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
-	useEnvCredsFlag := assumeFlags.Bool("console-with-env-credentials")
-
-	// return invalid useage error
-	if useEnvCredsFlag && activeRoleFlag {
-		return fmt.Errorf("-console-with-env-credentials (-cenv) cannot be used with -activeRoleProfile (-ar)")
-	}
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
@@ -105,22 +99,16 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || useEnvCredsFlag
+	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 		labels := browsers.RoleLabels{Profile: profile.Name}
 
 		var creds aws.Credentials
 
-		// use env creds allows a user to launch a browser session with credentials obtained through a source or tool other than Granted
-		if useEnvCredsFlag {
-			creds = cfaws.GetEnvCredentials(c.Context)
-			fmt.Fprintf(os.Stderr, "%s, %s, %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-		} else {
-			creds, err = profile.AssumeConsole(c.Context)
-			if err != nil {
-				return err
-			}
+		creds, err = profile.AssumeConsole(c.Context)
+		if err != nil {
+			return err
 		}
 
 		service := assumeFlags.String("service")
