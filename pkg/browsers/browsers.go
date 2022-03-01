@@ -2,6 +2,7 @@ package browsers
 
 import (
 	"errors"
+	"os/exec"
 	"runtime"
 )
 
@@ -86,7 +87,11 @@ func ChromiumPath() (string, error) {
 	case "darwin":
 		return ChromiumPathMac, nil
 	case "linux":
-		return ChromiumPathLinux, nil
+		path, err := exec.LookPath("chromium")
+		if err != nil {
+			return "", err
+		}
+		return path, nil
 	default:
 		return "", errors.New("os not supported")
 	}
