@@ -117,7 +117,9 @@ func AssumeCommand(c *cli.Context) error {
 	// these are just labels for the tabs so we may need to updates these for the sso role context
 	labels := browsers.RoleLabels{Profile: profile.Name}
 	region, _, err := profile.Region(c.Context)
-
+	if err != nil {
+		return err
+	}
 	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || useEnvCredsFlag
 	if openBrower {
@@ -140,12 +142,11 @@ func AssumeCommand(c *cli.Context) error {
 		return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
 	} else {
 
-		if err != nil {
-			region = "None"
-		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
-		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this printf
-		fmt.Printf("GrantedAssume %s %s %s %s %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region)
+		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
+		// the shell script treats "None" as an emprty string and will not set a value for that positional output
+		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region})
+		fmt.Printf("GrantedAssume %s %s %s %s %s", output...)
 		if creds.CanExpire {
 			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, creds.Expires.Local().String())
 		} else {
@@ -154,4 +155,19 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	return nil
+}
+
+// PrepareCredentialsForShellScript will set empty values to "None", this is required by the shell script to identify which variables to unset
+// it is also required to ensure that the return values are correctly split, e.g if sessionToken is "" then profile name will be used to set the session token environment variable
+func PrepareStringsForShellScript(in []string) []interface{} {
+	out := []interface{}{}
+	for _, s := range in {
+		if s == "" {
+			out = append(out, "None")
+		} else {
+			out = append(out, s)
+		}
+
+	}
+	return out
 }
