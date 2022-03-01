@@ -63,6 +63,8 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 			chromePath, err = BravePath()
 		case BrowserEdge:
 			chromePath, err = EdgePath()
+		case BrowserChromium:
+			chromePath, err = ChromiumPath()
 		default:
 			return errors.New("os not supported")
 		}
@@ -175,6 +177,7 @@ const (
 	BrowserChrome
 	BrowserBrave
 	BrowserEdge
+	BrowserChromium
 	BrowserDefault
 )
 
@@ -241,6 +244,8 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string, regio
 		return OpenWithChromiumProfile(u.String(), labels, BrowserBrave)
 	case EdgeKey:
 		return OpenWithChromiumProfile(u.String(), labels, BrowserEdge)
+	case ChromiumKey:
+		return OpenWithChromiumProfile(u.String(), labels, BrowserChromium)
 	default:
 		return browser.OpenURL(u.String())
 	}

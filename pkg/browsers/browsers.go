@@ -6,11 +6,12 @@ import (
 )
 
 const (
-	ChromeKey  string = "CHROME"
-	FirefoxKey string = "FIREFOX"
-	EdgeKey    string = "EDGE"
-	BraveKey   string = "BRAVE"
-	DefaultKey string = "DEFAULT"
+	ChromeKey   string = "CHROME"
+	FirefoxKey  string = "FIREFOX"
+	EdgeKey     string = "EDGE"
+	BraveKey    string = "BRAVE"
+	DefaultKey  string = "DEFAULT"
+	ChromiumKey string = "CHROMIUM"
 )
 
 const ChromePathMac = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
@@ -25,6 +26,9 @@ const EdgePathWindows = `\Program Files (x86)\Microsoft\Edge\Application\msedge.
 const FirefoxPathMac = "/Applications/Firefox.app/Contents/MacOS/firefox"
 const FirefoxPathLinux = `/usr/bin/firefox`
 const FirefoxPathWindows = `\Program Files\Mozilla Firefox\firefox.exe`
+const ChromiumPathMac = "/Applications/Chromium.app/Contents/MacOS/Chromium"
+const ChromiumPathLinux = `/usr/bin/chromium`
+const ChromiumPathWindows = ``
 
 func ChromePath() (string, error) {
 	switch runtime.GOOS {
@@ -70,6 +74,19 @@ func FirefoxPath() (string, error) {
 		return FirefoxPathMac, nil
 	case "linux":
 		return FirefoxPathLinux, nil
+	default:
+		return "", errors.New("os not supported")
+	}
+}
+
+func ChromiumPath() (string, error) {
+	switch runtime.GOOS {
+	case "windows":
+		return ChromiumPathWindows, nil
+	case "darwin":
+		return ChromiumPathMac, nil
+	case "linux":
+		return ChromiumPathLinux, nil
 	default:
 		return "", errors.New("os not supported")
 	}
