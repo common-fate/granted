@@ -54,7 +54,7 @@ Some things to try before opening a new issue:
 > Your config
 > ```
 > [profile PROFNAME]
-> sso_start_url=URL 
+> sso_start_url=*** 
 > sso_region=ap-southeast-2 
 > sso_account_id=***
 > sso_role_name=ROLE_NAME 
