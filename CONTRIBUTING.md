@@ -35,7 +35,7 @@ Receiving bug reports is great, its helps us the identify and patch issues in th
 
 When opening a bug report we ask that you please include the following information:
 - Your Granted version `granted -v` 
-- If applicable and relevant your .aws config file, found at `~/.aws/config`
+- If applicable and relevant your .aws config file, found at `~/.aws/config` **(excluding any account IDs or SSO start URLs)**
 - Details surrouding the bug and steps to replicate
 - If possible an example of the bug 
 
