@@ -1,8 +1,6 @@
 package testable
 
 import (
-	"fmt"
-	"io"
 	"testing"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -11,7 +9,7 @@ import (
 
 var isTesting = false
 var nextSurveyInput func() StringOrBool = func() StringOrBool { panic("not implemented") }
-var validateNextOutput func(format string, a ...interface{}) = func(format string, a ...interface{}) { panic("not implemented") }
+var validateOutput func(key string, value string) = func(key, value string) {}
 
 // use this type for survey inputs
 type StringOrBool interface{}
@@ -29,9 +27,14 @@ func EndTesting() {
 	isTesting = false
 }
 
-// Configure this with a function that retruns the next input required for a cli test
+// Configure this with a function that returns the next input required for a cli test
 func WithNextSurveyInputFunc(next func() StringOrBool) {
 	nextSurveyInput = next
+}
+
+// Configure this with a function that validates a keyvalue pair
+func WithValidateOutputFunc(fn func(key string, value string)) {
+	validateOutput = fn
 }
 
 // A helper which produces a next function that will call t.Fatal if all the inputs are exhausted
@@ -57,14 +60,32 @@ func AskOne(in survey.Prompt, out interface{}, opts ...survey.AskOpt) error {
 	return survey.AskOne(in, out, opts...)
 }
 
-func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err error) {
+// use this hook to output key value pairs which can be validated in a test
+func Output(key string, value string) {
 	if isTesting {
-		validateNextOutput(format, a...)
-		return len([]byte(fmt.Sprintf(format, a...))), nil
+		validateOutput(key, value)
 	}
-	n, err = fmt.Fprintf(w, format, a...)
-	return
 }
+
+// use this hook to output key value pairs which can be validated in a test
+// expects the sequence to be key values pairs
+func Outputs(kvs ...string) {
+	if isTesting {
+		for i := 0; i < len(kvs); i += 2 {
+			validateOutput(kvs[i], kvs[i+1])
+		}
+
+	}
+}
+
+// func Fprintf(w io.Writer, key string, format string, a ...interface{}) (n int, err error) {
+// 	if isTesting {
+// 		validateNextOutput(format, a...)
+// 		return len([]byte(fmt.Sprintf(format, a...))), nil
+// 	}
+// 	n, err = fmt.Fprintf(w, format, a...)
+// 	return
+// }
 
 // func Fprintln(w io.Writer, a ...interface{}) (n int, err error) {
 // 	if isTesting {

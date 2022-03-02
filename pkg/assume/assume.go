@@ -136,6 +136,8 @@ func AssumeCommand(c *cli.Context) error {
 		} else {
 			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials ready\033[0m\n", profile.Name, region)
 		}
+		testable.Outputs("AccessKeyID", creds.AccessKeyID, "SecretAccessKey", creds.SecretAccessKey, "SessionToken", creds.SessionToken)
+
 	}
 
 	return nil

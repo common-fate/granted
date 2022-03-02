@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/bmizerany/assert"
 	"github.com/common-fate/granted/pkg/assume"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/testable"
@@ -37,13 +38,23 @@ func Test_OssGranted(t *testing.T) {
 	position := 0
 	testable.BeginTesting()
 	testable.WithNextSurveyInputFunc(testable.NextFuncFromSlice(t, inputStrings, &position))
+
 	os.Setenv("FORCE_NO_ALIAS", "true")
 	os.Setenv("GRANTED_DISABLE_UPDATE_CHECK", "true")
 	os.Args = []string{"assume"}
-
+	creds := aws.Credentials{AccessKeyID: "1234", SecretAccessKey: "abcd", SessionToken: "efgh"}
+	testable.WithValidateOutputFunc(func(key, value string) {
+		m := make(map[string]string)
+		m["AccessKeyID"] = creds.AccessKeyID
+		m["SecretAccessKey"] = creds.SecretAccessKey
+		m["SessionToken"] = creds.SessionToken
+		if v, ok := m[key]; ok {
+			assert.Equal(t, v, value)
+		}
+	})
 	// register mock assume which takes precedence over the existing ones
 	// all profiles will register as this
-	cfaws.RegisterAssumer(&mockAssumer{credentials: aws.Credentials{AccessKeyID: "1234", SecretAccessKey: "abcd", SessionToken: "efgh"}}, 0)
+	cfaws.RegisterAssumer(&mockAssumer{credentials: creds}, 0)
 	err := app.Run(os.Args)
 	if err != nil {
 		t.Fatal(err)
