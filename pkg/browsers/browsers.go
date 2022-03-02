@@ -33,7 +33,13 @@ const ChromiumPathWindows = `\Program Files\Chromium\chromium.exe`
 
 func ChromePath() (string, error) {
 	//check linuxpath for binary install
-	path, err := exec.LookPath("chrome")
+	path, err := exec.LookPath("google-chrome-stable")
+	if err != nil {
+		path, err = exec.LookPath("google-chrome")
+		if err == nil {
+			return path, err
+		}
+	}
 	if err == nil {
 		return path, err
 	}
