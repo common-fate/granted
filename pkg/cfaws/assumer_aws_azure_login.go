@@ -44,7 +44,7 @@ func (aal *AwsAzureLoginAssumer) Type() string {
 	return "AWS_AZURE_LOGIN"
 }
 
-// inspect for any items on the profile prefixed with "google_config."
+// inspect for any items on the profile prefixed with "AZURE_"
 func (aal *AwsAzureLoginAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
 	for k := range rawProfile {
 		if strings.HasPrefix(k, "azure_") {
