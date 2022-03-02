@@ -16,6 +16,8 @@ import (
 type AwsAzureLoginAssumer struct {
 }
 
+//https://github.com/sportradar/aws-azure-login
+
 // launch the aws-google-auth utility to generate the credentials
 // then fetch them from the environment for use
 func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
