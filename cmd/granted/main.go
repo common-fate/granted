@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// To add more commands to the CLI app, add them to pkg/commamds/entrypoint.go in GetCliApp
+// To add more commands to the CLI app, add them to pkg/commands/entrypoint.go in GetCliApp
 // this has been abstracted in order to make testing and fish autocompletion work
 func main() {
 	cli.VersionPrinter = func(c *cli.Context) {
