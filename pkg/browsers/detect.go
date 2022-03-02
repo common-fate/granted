@@ -36,7 +36,7 @@ func HandleManualBrowserSelection() (string, error) {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
 		Message: "Select your default browser",
-		Options: []string{"Chrome", "Brave", "Edge", "Firefox"},
+		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Chromium"},
 	}
 	var selection string
 	fmt.Fprintln(os.Stderr)
@@ -90,6 +90,10 @@ func GetBrowserName(b string) string {
 	if strings.Contains(strings.ToLower(b), "chrome") {
 		return ChromeKey
 	}
+
+	if strings.Contains(strings.ToLower(b), "chromium") {
+		return ChromiumKey
+	}
 	if strings.Contains(strings.ToLower(b), "brave") {
 		return BraveKey
 	}
@@ -114,6 +118,8 @@ func DetectInstallation(browserKey string) bool {
 		bPath, _ = EdgePath()
 	case FirefoxKey:
 		bPath, _ = FirefoxPath()
+	case ChromiumKey:
+		bPath, _ = ChromiumPath()
 	default:
 		return false
 	}
