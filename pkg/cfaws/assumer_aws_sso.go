@@ -7,34 +7,39 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	ssotypes "github.com/aws/aws-sdk-go-v2/service/sso/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/bigkevmcd/go-configparser"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 )
 
-func TypeCredsToAwsCreds(c types.Credentials) aws.Credentials {
-	return aws.Credentials{AccessKeyID: *c.AccessKeyId, SecretAccessKey: *c.SecretAccessKey, SessionToken: *c.SessionToken, CanExpire: true, Expires: *c.Expiration}
-}
-func TypeRoleCredsToAwsCreds(c ssotypes.RoleCredentials) aws.Credentials {
-	return aws.Credentials{AccessKeyID: *c.AccessKeyId, SecretAccessKey: *c.SecretAccessKey, SessionToken: *c.SessionToken, CanExpire: true, Expires: time.UnixMilli(c.Expiration)}
+// Implements Assumer
+type AwsSsoAssumer struct {
 }
 
-// CredProv implements the aws.CredentialProvider interface
-type CredProv struct{ aws.Credentials }
+func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+	return c.SSOLogin(ctx)
+}
 
-func (c *CredProv) Retrieve(ctx context.Context) (aws.Credentials, error) {
-	return c.Credentials, nil
+func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+	return c.SSOLogin(ctx)
+}
+
+func (asa *AwsSsoAssumer) Type() string {
+	return "AWS_SSO"
+}
+
+// Matches the profile type on whether it is an sso profile by checking for ssoaccountid.
+func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
+	return parsedProfile.SSOAccountID != ""
 }
 
 func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) {
-	if c.ProfileType != ProfileTypeSSO {
-		return aws.Credentials{}, errors.New("cannot ssologin to non sso profile")
-	}
 
 	rootProfile := c
 	requiresAssuming := false
@@ -43,7 +48,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		requiresAssuming = true
 	}
 
-	ssoTokenKey := rootProfile.RawConfig.SSOStartURL
+	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
 	cfg, err := rootProfile.AwsConfig(ctx, true)
 	if err != nil {
 		return aws.Credentials{}, err
@@ -62,7 +67,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	}
 	// create sso client
 	ssoClient := sso.NewFromConfig(cfg)
-	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.RawConfig.SSOAccountID, RoleName: &rootProfile.RawConfig.SSORoleName})
+	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
 	if err != nil {
 		var unauthorised *ssotypes.UnauthorizedException
 		if errors.As(err, &unauthorised) {
@@ -89,7 +94,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 
 			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: region})
 			stsRes, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
-				RoleArn:         &p.RawConfig.RoleARN,
+				RoleArn:         &p.AWSConfig.RoleARN,
 				RoleSessionName: &p.Name,
 			})
 			if err != nil {
@@ -125,7 +130,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 	deviceAuth, err := ssooidcClient.StartDeviceAuthorization(ctx, &ssooidc.StartDeviceAuthorizationInput{
 		ClientId:     register.ClientId,
 		ClientSecret: register.ClientSecret,
-		StartUrl:     aws.String(rootProfile.RawConfig.SSOStartURL),
+		StartUrl:     aws.String(rootProfile.AWSConfig.SSOStartURL),
 	})
 	if err != nil {
 		return nil, err

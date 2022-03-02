@@ -26,12 +26,6 @@ func AssumeCommand(c *cli.Context) error {
 	var wg sync.WaitGroup
 	activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
-	useEnvCredsFlag := assumeFlags.Bool("console-with-env-credentials")
-
-	// return invalid useage error
-	if useEnvCredsFlag && activeRoleFlag {
-		return fmt.Errorf("-console-with-env-credentials (-cenv) cannot be used with -activeRoleProfile (-ar)")
-	}
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
@@ -101,33 +95,20 @@ func AssumeCommand(c *cli.Context) error {
 	// ensure that frecency has finished updating before returning from this function
 	defer wg.Wait()
 
-	var creds aws.Credentials
-
-	// use env creds allows a user to launch a browser session with credentials obtained through a source or tool other than Granted
-	if useEnvCredsFlag {
-		creds = cfaws.GetEnvCredentials(c.Context)
-		fmt.Fprintf(os.Stderr, "%s, %s, %s", creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)
-	} else {
-		creds, err = profile.Assume(c.Context)
-		if err != nil {
-			return err
-		}
-	}
-
-	// these are just labels for the tabs so we may need to updates these for the sso role context
-	labels := browsers.RoleLabels{Profile: profile.Name}
 	region, _, err := profile.Region(c.Context)
 	if err != nil {
 		return err
 	}
-	isIamWithoutAssumedRole := profile.ProfileType == cfaws.ProfileTypeIAM && profile.RawConfig.RoleARN == ""
-	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || useEnvCredsFlag
+	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
 	if openBrower {
-		if isIamWithoutAssumedRole {
-			creds, err = profile.GetFederationToken(c.Context)
-			if err != nil {
-				return err
-			}
+		// these are just labels for the tabs so we may need to updates these for the sso role context
+		labels := browsers.RoleLabels{Profile: profile.Name}
+
+		var creds aws.Credentials
+
+		creds, err = profile.AssumeConsole(c.Context)
+		if err != nil {
+			return err
 		}
 
 		service := assumeFlags.String("service")
@@ -141,7 +122,10 @@ func AssumeCommand(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
 		return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
 	} else {
-
+		creds, err := profile.AssumeTerminal(c.Context)
+		if err != nil {
+			return err
+		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
 		// the shell script treats "None" as an emprty string and will not set a value for that positional output
