@@ -109,8 +109,25 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 
 func ManuallyOpenURL(url string) {
 	alert := color.New(color.Bold, color.FgYellow).SprintFunc()
-	fmt.Fprintf(os.Stderr, "\nOpen session manaually using the following url:\n")
-	fmt.Fprintf(os.Stderr, "\n%s\n", alert("", url))
+	fmt.Fprintf(os.Stdout, "\nOpen session manaually using the following url:\n")
+	fmt.Fprintf(os.Stdout, "\n%s\n", alert("", url))
+}
+
+func MakeFirefoxContainerURL(urlString string, labels RoleLabels) (error, string) {
+	cfg, err := config.Load()
+	if err != nil {
+		return err, ""
+	}
+	firefoxPath := cfg.CustomBrowserPath
+	if firefoxPath == "" {
+		firefoxPath, err = FirefoxPath()
+		if err != nil {
+			return err, ""
+		}
+	}
+
+	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.Profile+labels.MakeExternalProfileTitle(), url.QueryEscape(urlString))
+	return nil, tabURL
 }
 
 func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
@@ -126,7 +143,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		}
 	}
 
-	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.MakeExternalFirefoxTitle(), url.QueryEscape(urlString))
+	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.Profile+labels.MakeExternalProfileTitle(), url.QueryEscape(urlString))
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		tabURL)

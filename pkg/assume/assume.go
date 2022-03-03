@@ -10,9 +10,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
+	"github.com/pkg/browser"
 	"github.com/urfave/cli/v2"
 )
 
@@ -123,7 +125,22 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 
-		browsers.ManuallyOpenURL(url)
+		cfg, _ := config.Load()
+		if cfg == nil {
+			return browser.OpenURL(url)
+		}
+		if cfg.DefaultBrowser == browsers.FirefoxKey {
+			err, url = browsers.MakeFirefoxContainerURL(url, labels)
+			if err != nil {
+				return err
+			}
+			browsers.ManuallyOpenURL(url)
+
+		} else {
+			browsers.ManuallyOpenURL(url)
+
+		}
+
 		return nil
 	}
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
