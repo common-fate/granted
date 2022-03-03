@@ -130,7 +130,7 @@ func AssumeCommand(c *cli.Context) error {
 			return browser.OpenURL(url)
 		}
 		if cfg.DefaultBrowser == browsers.FirefoxKey {
-			err, url = browsers.MakeFirefoxContainerURL(url, labels)
+			url = browsers.MakeFirefoxContainerURL(url, labels)
 			if err != nil {
 				return err
 			}

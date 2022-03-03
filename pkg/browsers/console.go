@@ -113,14 +113,10 @@ func ManuallyOpenURL(url string) {
 	fmt.Fprintf(os.Stdout, "\n%s\n", alert("", url))
 }
 
-func MakeFirefoxContainerURL(urlString string, labels RoleLabels) (string, error) {
-	cfg, err := config.Load()
-	if err != nil {
-		return "", err
-	}
+func MakeFirefoxContainerURL(urlString string, labels RoleLabels) string {
 
 	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.Profile+labels.MakeExternalProfileTitle(), url.QueryEscape(urlString))
-	return tabURL, err
+	return tabURL
 }
 
 func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
