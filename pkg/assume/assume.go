@@ -99,6 +99,33 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
+	if assumeFlags.Bool("url") {
+		//dont want to open the browser just return the link
+		labels := browsers.RoleLabels{Profile: profile.Name}
+
+		var creds aws.Credentials
+
+		creds, err = profile.AssumeConsole(c.Context)
+		if err != nil {
+			return err
+		}
+
+		service := assumeFlags.String("service")
+		if assumeFlags.String("region") != "" {
+			region = assumeFlags.String("region")
+		}
+
+		labels.Region = region
+		labels.Service = service
+		err, url := browsers.MakeUrl(browsers.SessionFromCredentials(creds), labels, service, region)
+		if err != nil {
+			return err
+		}
+
+		browsers.ManuallyOpenURL(url)
+		return nil
+	}
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
