@@ -134,10 +134,10 @@ func AssumeCommand(c *cli.Context) error {
 			if err != nil {
 				return err
 			}
-			browsers.ManuallyOpenURL(url)
+			fmt.Print(url)
 
 		} else {
-			browsers.ManuallyOpenURL(url)
+			fmt.Print(url)
 
 		}
 
