@@ -29,7 +29,10 @@ var commands = []*cli.Command{
 		Name:  "revoke",
 		Usage: "Revokes access by unsetting environment variables",
 		Action: func(c *cli.Context) error {
+			//interacts with scripts to unset all the aws environment variables
 			fmt.Printf("GrantedDesume")
+
+			fmt.Fprintf(os.Stderr, "\033[32m\nsession credentials revoked \033[0m\n")
 
 			return nil
 		},
