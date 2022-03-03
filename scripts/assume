@@ -75,7 +75,8 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
       fi
     fi
   done
-else
+fi
+if [ !"$GRANTED_FLAG" = "GrantedDesume" ];then
   echo "$GRANTED_OUTPUT"
 fi
 

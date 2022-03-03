@@ -6,7 +6,7 @@ set -gx GRANTED_ALIAS_CONFIGURED "true"
 #GRANTED_n - the data from granted
 set GRANTED_OUTPUT (assumego $argv)
 set GRANTED_STATUS $status
-echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4
+echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5
 
 
 # remove carriage return
@@ -20,8 +20,6 @@ else if test "$GRANTED_FLAG" = "GrantedDesume"
   set -e AWS_SESSION_TOKEN
   set -e GRANTED_AWS_ROLE_PROFILE
   set -e AWS_REGION
-end
-
 else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_ACCESS_KEY_ID
   set -e AWS_SECRET_ACCESS_KEY
