@@ -26,7 +26,7 @@ if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
   unset AWS_ACCESS_KEY_ID
   unset AWS_SECRET_ACCESS_KEY
   unset AWS_SESSION_TOKEN
-  unset GRANTED_AWS_ROLE_PROFILE
+  unset AWS_PROFILE
   unset AWS_REGION
 fi
 
@@ -34,7 +34,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   unset AWS_ACCESS_KEY_ID
   unset AWS_SECRET_ACCESS_KEY
   unset AWS_SESSION_TOKEN
-  unset GRANTED_AWS_ROLE_PROFILE
+  unset AWS_PROFILE
   unset AWS_REGION
 
   export GRANTED_COMMAND="$@"
@@ -49,7 +49,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
     export AWS_SESSION_TOKEN=${GRANTED_3}
   fi
   if [ ! "${GRANTED_4}" = "None" ]; then
-    export GRANTED_AWS_ROLE_PROFILE=${GRANTED_4}
+    export AWS_PROFILE=${GRANTED_4}
   fi
   if [ ! "${GRANTED_5}" = "None" ]; then
     export AWS_REGION=${GRANTED_5}
@@ -68,7 +68,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
         echo export AWS_SESSION_TOKEN=${GRANTED_3}
       fi
       if [ ! "${GRANTED_4}" = "None" ]; then
-        echo export GRANTED_AWS_ROLE_PROFILE=${GRANTED_4}
+        echo export AWS_PROFILE=${GRANTED_4}
       fi
       if [ ! "${GRANTED_5}" = "None" ]; then
         echo export AWS_REGION=${GRANTED_5}

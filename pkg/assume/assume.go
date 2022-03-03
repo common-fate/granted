@@ -56,7 +56,7 @@ func AssumeCommand(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
 		profile = awsProfiles[activeRoleProfile]
 		if profile == nil {
-			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed to find a profile matching GRANTED_AWS_ROLE_PROFILE=%s when using the active-profile flag", activeRoleProfile)
+			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed to find a profile matching AWS_PROFILE=%s when using the active-profile flag", activeRoleProfile)
 		}
 
 	}
