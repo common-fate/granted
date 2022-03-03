@@ -132,7 +132,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		}
 	}
 
-	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.Profile+labels.MakeExternalProfileTitle(), url.QueryEscape(urlString))
+	tabURL := MakeFirefoxContainerURL(ursString, labels)
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		tabURL)
