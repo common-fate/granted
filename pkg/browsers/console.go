@@ -201,10 +201,10 @@ const (
 	BrowserDefault
 )
 
-func MakeUrl(sess Session, labels RoleLabels, service string, region string) (error, string) {
+func MakeUrl(sess Session, labels RoleLabels, service string, region string) (string, error) {
 	sessJSON, err := json.Marshal(sess)
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 
 	u := url.URL{
@@ -219,10 +219,10 @@ func MakeUrl(sess Session, labels RoleLabels, service string, region string) (er
 
 	res, err := http.Get(u.String())
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("opening console failed with code %v", res.StatusCode), ""
+		return "", fmt.Errorf("opening console failed with code %v", res.StatusCode)
 	}
 
 	token := struct {
@@ -231,7 +231,7 @@ func MakeUrl(sess Session, labels RoleLabels, service string, region string) (er
 
 	err = json.NewDecoder(res.Body).Decode(&token)
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 
 	u = url.URL{
@@ -243,7 +243,7 @@ func MakeUrl(sess Session, labels RoleLabels, service string, region string) (er
 	dest, err := makeDestinationURL(service, region)
 
 	if err != nil {
-		return err, ""
+		return "", err
 	}
 	q = u.Query()
 	q.Add("Action", "login")
@@ -251,12 +251,11 @@ func MakeUrl(sess Session, labels RoleLabels, service string, region string) (er
 	q.Add("Destination", dest)
 	q.Add("SigninToken", token.SigninToken)
 	u.RawQuery = q.Encode()
-	return nil, u.String()
+	return u.String(), nil
 }
 
 func LaunchConsoleSession(sess Session, labels RoleLabels, service string, region string) error {
-	err, url := MakeUrl(sess, labels, service, region)
-
+	url, err := MakeUrl(sess, labels, service, region)
 	if err != nil {
 		return err
 	}

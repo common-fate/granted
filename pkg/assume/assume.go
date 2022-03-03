@@ -120,7 +120,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		labels.Region = region
 		labels.Service = service
-		err, url := browsers.MakeUrl(browsers.SessionFromCredentials(creds), labels, service, region)
+		url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), labels, service, region)
 		if err != nil {
 			return err
 		}
