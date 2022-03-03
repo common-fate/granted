@@ -115,7 +115,7 @@ func ManuallyOpenURL(url string) {
 
 func MakeFirefoxContainerURL(urlString string, labels RoleLabels) string {
 
-	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.Profile+labels.MakeExternalProfileTitle(), url.QueryEscape(urlString))
+	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.MakeExternalFirefoxTitle(), url.QueryEscape(urlString))
 	return tabURL
 }
 
@@ -167,8 +167,9 @@ type RoleLabels struct {
 
 func (r *RoleLabels) MakeExternalFirefoxTitle() string {
 
+	hash := r.MakeExternalProfileTitle()
 	if r.Region != "" {
-		return r.Profile + "(" + r.Region + ")"
+		return r.Profile + hash
 
 	}
 	return r.Profile
