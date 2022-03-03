@@ -132,7 +132,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		}
 	}
 
-	tabURL := MakeFirefoxContainerURL(ursString, labels)
+	tabURL := MakeFirefoxContainerURL(urlString, labels)
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		tabURL)
