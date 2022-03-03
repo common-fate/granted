@@ -13,6 +13,7 @@ import (
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,7 +24,9 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+
 	var wg sync.WaitGroup
+
 	activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
 
@@ -32,96 +35,130 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	multiple := assumeFlags.Bool("multiple")
+	var profiles []*cfaws.CFSharedConfig
+	if !multiple {
 
-	var profile *cfaws.CFSharedConfig
-	inProfile := c.Args().First()
+		inProfile := c.Args().First()
 
-	if inProfile != "" {
-		var ok bool
-		if profile, ok = awsProfiles[inProfile]; !ok {
-			fmt.Fprintf(os.Stderr, "%s does not match any profiles in your AWS config\n", inProfile)
-		} else {
-			// background task to update the frecency cache
-			wg.Add(1)
-			go func() {
-				cfaws.UpdateFrecencyCache(inProfile)
-				wg.Done()
-			}()
-		}
-	}
-
-	//set the sesh creds using the active role if we have one and the flag is set
-	if activeRoleFlag && activeRoleProfile != "" {
-		//try opening using the active role
-		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
-		profile = awsProfiles[activeRoleProfile]
-		if profile == nil {
-			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed to find a profile matching GRANTED_AWS_ROLE_PROFILE=%s when using the active-profile flag", activeRoleProfile)
+		if inProfile != "" {
+			if profile, ok := awsProfiles[inProfile]; !ok {
+				fmt.Fprintf(os.Stderr, "%s does not match any profiles in your AWS config\n", inProfile)
+			} else {
+				profiles = append(profiles, profile)
+				// background task to update the frecency cache
+				wg.Add(1)
+				go func() {
+					cfaws.UpdateFrecencyCache(inProfile)
+					wg.Done()
+				}()
+			}
 		}
 
-	}
+		//set the sesh creds using the active role if we have one and the flag is set
+		if activeRoleFlag && activeRoleProfile != "" {
+			//try opening using the active role
+			fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
+			profile := awsProfiles[activeRoleProfile]
+			if profile == nil {
+				debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed to find a profile matching GRANTED_AWS_ROLE_PROFILE=%s when using the active-profile flag", activeRoleProfile)
+			} else {
+				profiles = append(profiles, profile)
+			}
 
+		}
+	}
 	// if profile is still nil here, then prompt to select a profile
+	if len(profiles) == 0 {
 
-	if profile == nil {
-
-		fr, profiles := awsProfiles.GetFrecentProfiles()
+		fr, frProfiles := awsProfiles.GetFrecentProfiles()
 		fmt.Fprintln(os.Stderr, "")
 		// Replicate the logic from original assume fn.
-		in := survey.Select{
-			Message: "Please select the profile you would like to assume:",
-			Options: profiles,
-		}
-		if len(profiles) == 0 {
+
+		if len(frProfiles) == 0 {
 			fmt.Fprintln(os.Stderr, "ℹ️ Granted couldn't find any aws roles")
 			fmt.Fprintln(os.Stderr, "You can add roles to your aws config by following our guide: ")
 			fmt.Fprintln(os.Stderr, "https://granted.dev/awsconfig")
 			return nil
 		}
-		var p string
-		err = testable.AskOne(&in, &p, withStdio)
-		if err != nil {
-			return err
+		selectedProfiles := []string{}
+		if multiple {
+			in := survey.MultiSelect{
+				Message: "Please select the profiles you would like to open:",
+				Options: frProfiles,
+			}
+
+			err = testable.AskOne(&in, &selectedProfiles, withStdio)
+			if err != nil {
+				return err
+			}
+		} else {
+			in := survey.Select{
+				Message: "Please select the profile you would like to assume:",
+				Options: frProfiles,
+			}
+			var p string
+			err = testable.AskOne(&in, &p, withStdio)
+			if err != nil {
+				return err
+			}
+			selectedProfiles = append(selectedProfiles, p)
+		}
+		for _, p := range selectedProfiles {
+			profiles = append(profiles, awsProfiles[p])
+			// background task to update the frecency cache
+			wg.Add(1)
+			go func() {
+				fr.Update(p)
+				wg.Done()
+			}()
 		}
 
-		profile = awsProfiles[p]
-		// background task to update the frecency cache
-		wg.Add(1)
-		go func() {
-			fr.Update(p)
-			wg.Done()
-		}()
 	}
 	// ensure that frecency has finished updating before returning from this function
 	defer wg.Wait()
-
-	region, _, err := profile.Region(c.Context)
-	if err != nil {
-		return err
-	}
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
-	if openBrower {
-		// these are just labels for the tabs so we may need to updates these for the sso role context
-		labels := browsers.RoleLabels{Profile: profile.Name}
+	if openBrower || multiple {
+		for _, profile := range profiles {
+			err := func() error {
+				region, _, err := profile.Region(c.Context)
+				if err != nil {
+					return err
+				}
 
-		var creds aws.Credentials
+				// these are just labels for the tabs so we may need to updates these for the sso role context
+				labels := browsers.RoleLabels{Profile: profile.Name}
 
-		creds, err = profile.AssumeConsole(c.Context)
+				var creds aws.Credentials
+
+				creds, err = profile.AssumeConsole(c.Context)
+				if err != nil {
+					return err
+				}
+
+				service := assumeFlags.String("service")
+				if assumeFlags.String("region") != "" {
+					region = assumeFlags.String("region")
+				}
+
+				labels.Region = region
+				labels.Service = service
+				browsers.PromoteUseFlags(labels)
+				fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
+				return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
+
+			}()
+			if err != nil {
+				fmt.Fprint(os.Stderr, errors.Wrap(err, fmt.Sprintf("encountered error while launching console for profile: %s", profile.Name)))
+			}
+
+		}
+	} else {
+		profile := profiles[0]
+		region, _, err := profile.Region(c.Context)
 		if err != nil {
 			return err
 		}
-
-		service := assumeFlags.String("service")
-		if assumeFlags.String("region") != "" {
-			region = assumeFlags.String("region")
-		}
-
-		labels.Region = region
-		labels.Service = service
-		browsers.PromoteUseFlags(labels)
-		fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
-		return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
-	} else {
 		creds, err := profile.AssumeTerminal(c.Context)
 		if err != nil {
 			return err
