@@ -10,9 +10,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
+	"github.com/pkg/browser"
 	"github.com/urfave/cli/v2"
 )
 
@@ -98,6 +100,48 @@ func AssumeCommand(c *cli.Context) error {
 	region, _, err := profile.Region(c.Context)
 	if err != nil {
 		return err
+	}
+
+	if assumeFlags.Bool("url") {
+		//dont want to open the browser just return the link
+		labels := browsers.RoleLabels{Profile: profile.Name}
+
+		var creds aws.Credentials
+
+		creds, err = profile.AssumeConsole(c.Context)
+		if err != nil {
+			return err
+		}
+
+		service := assumeFlags.String("service")
+		if assumeFlags.String("region") != "" {
+			region = assumeFlags.String("region")
+		}
+
+		labels.Region = region
+		labels.Service = service
+		url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), labels, service, region)
+		if err != nil {
+			return err
+		}
+
+		cfg, _ := config.Load()
+		if cfg == nil {
+			return browser.OpenURL(url)
+		}
+		if cfg.DefaultBrowser == browsers.FirefoxKey {
+			url = browsers.MakeFirefoxContainerURL(url, labels)
+			if err != nil {
+				return err
+			}
+			fmt.Print(url)
+
+		} else {
+			fmt.Print(url)
+
+		}
+
+		return nil
 	}
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
 	if openBrower {
