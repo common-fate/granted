@@ -14,6 +14,13 @@ set -gx GRANTED_FLAG (echo $GRANTED_FLAG | tr -d '\r')
 
 if test "$GRANTED_FLAG" = "NAME:"
   assumego $argv
+else if test "$GRANTED_FLAG" = "GrantedDesume"
+  set -e AWS_ACCESS_KEY_ID
+  set -e AWS_SECRET_ACCESS_KEY
+  set -e AWS_SESSION_TOKEN
+  set -e GRANTED_AWS_ROLE_PROFILE
+  set -e AWS_REGION
+end
 
 else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_ACCESS_KEY_ID

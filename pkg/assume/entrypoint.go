@@ -24,6 +24,19 @@ var GlobalFlags = []cli.Flag{
 	&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"GRANTED_AWS_ROLE_PROFILE"}, Hidden: true},
 }
 
+var commands = []*cli.Command{
+	{
+		Name:  "not",
+		Usage: "Revokes access by unsetting environment variables",
+		Action: func(c *cli.Context) error {
+			fmt.Printf("GrantedDesume")
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, creds.Expires.Local().String())
+
+			return nil
+		},
+	},
+}
+
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
 		fmt.Fprintln(os.Stderr, banners.WithVersion(banners.Assume()))
@@ -38,6 +51,7 @@ func GetCliApp() *cli.App {
 		Flags:                GlobalFlags,
 		Action:               updates.WithUpdateCheck(func(c *cli.Context) error { return AssumeCommand(c) }),
 		EnableBashCompletion: true,
+		Commands:             commands,
 		Before: func(c *cli.Context) error {
 			if c.Bool("verbose") {
 				debug.CliVerbosity = debug.VerbosityDebug
