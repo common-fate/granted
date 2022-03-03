@@ -16,27 +16,13 @@ import (
 
 var GlobalFlags = []cli.Flag{
 	&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
+	&cli.BoolFlag{Name: "unset", Aliases: []string{"u"}, Usage: "Unset all environment variables configured by Assume"},
 	&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Specify a service to open the console into"},
 	&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "Specify a region to open the console into"},
 	&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 	&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 	&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 	&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"GRANTED_AWS_ROLE_PROFILE"}, Hidden: true},
-}
-
-var commands = []*cli.Command{
-	{
-		Name:  "revoke",
-		Usage: "Revokes access by unsetting environment variables",
-		Action: func(c *cli.Context) error {
-			//interacts with scripts to unset all the aws environment variables
-			fmt.Printf("GrantedDesume")
-
-			fmt.Fprintf(os.Stderr, "\033[32m\nsession credentials revoked \033[0m\n")
-
-			return nil
-		},
-	},
 }
 
 func GetCliApp() *cli.App {
@@ -53,8 +39,15 @@ func GetCliApp() *cli.App {
 		Flags:                GlobalFlags,
 		Action:               updates.WithUpdateCheck(func(c *cli.Context) error { return AssumeCommand(c) }),
 		EnableBashCompletion: true,
-		Commands:             commands,
 		Before: func(c *cli.Context) error {
+			// unsets the exported env vars
+			if c.Bool("unset") {
+				err := UnsetAction(c)
+				if err != nil {
+					return err
+				}
+				os.Exit(0)
+			}
 			if c.Bool("verbose") {
 				debug.CliVerbosity = debug.VerbosityDebug
 			}
