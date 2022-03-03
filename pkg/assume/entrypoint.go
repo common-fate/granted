@@ -26,11 +26,10 @@ var GlobalFlags = []cli.Flag{
 
 var commands = []*cli.Command{
 	{
-		Name:  "not",
+		Name:  "revoke",
 		Usage: "Revokes access by unsetting environment variables",
 		Action: func(c *cli.Context) error {
 			fmt.Printf("GrantedDesume")
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, creds.Expires.Local().String())
 
 			return nil
 		},
