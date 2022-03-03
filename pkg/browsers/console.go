@@ -149,7 +149,10 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		tabURL)
 	err = cmd.Start()
 	if err != nil {
-		return err
+		fmt.Fprintf(os.Stderr, "\nGranted was unable to open a browser session automatically")
+		//allow them to try open the url manually
+		ManuallyOpenURL(tabURL)
+		return nil
 	}
 	// detach from this new process because it continues to run
 	return cmd.Process.Release()
