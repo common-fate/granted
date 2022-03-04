@@ -18,19 +18,16 @@ type AwsAzureLoginAssumer struct {
 
 //https://github.com/sportradar/aws-azure-login
 
-// launch the aws-google-auth utility to generate the credentials
 // then fetch them from the environment for use
 func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	cfg, err := c.AwsConfig(ctx, false)
-	if err != nil {
-		return aws.Credentials{}, err
-	}
-	creds, _ := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	//check to see if the creds are already exported
+	creds, err := GetCredentialsCreds(ctx, c)
 
-	if creds.HasKeys() && !creds.Expired() {
+	if err == nil {
 		return creds, nil
 	}
 
+	//request for the creds if they are invalid
 	a := []string{fmt.Sprintf("--profile=%s", c.Name)}
 	a = append(a, args...)
 
@@ -43,7 +40,7 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	cfg, err = c.AwsConfig(ctx, false)
+	cfg, err := c.AwsConfig(ctx, false)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
