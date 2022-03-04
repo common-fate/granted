@@ -22,11 +22,11 @@ import (
 type AwsSsoAssumer struct {
 }
 
-func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
 	return c.SSOLogin(ctx)
 }
 
-func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
 	return c.SSOLogin(ctx)
 }
 
