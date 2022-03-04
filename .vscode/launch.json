@@ -30,7 +30,19 @@
       "args": ["test-role", "-c", "-s iam", "-r region-name"],
       "env": {
         "FORCE_NO_ALIAS": true,
-        "GRANTED_AWS_ROLE_PROFILE": "cf-dev"
+        "AWS_PROFILE": "cf-dev"
+      }
+    },
+    {
+      "name": "Run command url",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/assume/main.go",
+      "args": ["cf-testing", "-u"],
+      "env": {
+        "FORCE_NO_ALIAS": true,
+        "AWS_PROFILE": "cf-testing"
       }
     }
   ]

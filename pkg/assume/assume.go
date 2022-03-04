@@ -14,7 +14,6 @@ import (
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
-	"github.com/pkg/browser"
 	"github.com/urfave/cli/v2"
 )
 
@@ -58,7 +57,7 @@ func AssumeCommand(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
 		profile = awsProfiles[activeRoleProfile]
 		if profile == nil {
-			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed to find a profile matching GRANTED_AWS_ROLE_PROFILE=%s when using the active-profile flag", activeRoleProfile)
+			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed to find a profile matching AWS_PROFILE=%s when using the active-profile flag", activeRoleProfile)
 		}
 
 	}
@@ -126,9 +125,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		cfg, _ := config.Load()
-		if cfg == nil {
-			return browser.OpenURL(url)
-		}
+
 		if cfg.DefaultBrowser == browsers.FirefoxKey {
 			url = browsers.MakeFirefoxContainerURL(url, labels)
 			if err != nil {

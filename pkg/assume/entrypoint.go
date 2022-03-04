@@ -16,13 +16,14 @@ import (
 
 var GlobalFlags = []cli.Flag{
 	&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
+	&cli.BoolFlag{Name: "unset", Aliases: []string{"un"}, Usage: "Unset all environment variables configured by Assume"},
 	&cli.BoolFlag{Name: "url", Aliases: []string{"u"}, Usage: "Get an active console session url"},
 	&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Specify a service to open the console into"},
 	&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "Specify a region to open the console into"},
 	&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 	&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 	&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
-	&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"GRANTED_AWS_ROLE_PROFILE"}, Hidden: true},
+	&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"AWS_PROFILE"}, Hidden: true},
 }
 
 func GetCliApp() *cli.App {
@@ -40,6 +41,14 @@ func GetCliApp() *cli.App {
 		Action:               updates.WithUpdateCheck(func(c *cli.Context) error { return AssumeCommand(c) }),
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
+			// unsets the exported env vars
+			if c.Bool("unset") {
+				err := UnsetAction(c)
+				if err != nil {
+					return err
+				}
+				os.Exit(0)
+			}
 			if c.Bool("verbose") {
 				debug.CliVerbosity = debug.VerbosityDebug
 			}
