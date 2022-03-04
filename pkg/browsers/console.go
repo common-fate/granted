@@ -15,6 +15,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/fatih/color"
 	"github.com/pkg/browser"
 )
 
@@ -94,13 +95,28 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 		)
 		err = cmd.Start()
 		if err != nil {
-			return err
+			fmt.Fprintf(os.Stderr, "\nGranted was unable to open a browser session automatically")
+			//allow them to try open the url manually
+			ManuallyOpenURL(url)
+			return nil
 		}
 		// detach from this new process because it continues to run
 		return cmd.Process.Release()
 	}
 	return errors.New("could not locate a Chrome installation")
 
+}
+
+func ManuallyOpenURL(url string) {
+	alert := color.New(color.Bold, color.FgYellow).SprintFunc()
+	fmt.Fprintf(os.Stdout, "\nOpen session manaually using the following url:\n")
+	fmt.Fprintf(os.Stdout, "\n%s\n", alert("", url))
+}
+
+func MakeFirefoxContainerURL(urlString string, labels RoleLabels) string {
+
+	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.MakeExternalFirefoxTitle(), url.QueryEscape(urlString))
+	return tabURL
 }
 
 func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
@@ -116,13 +132,16 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		}
 	}
 
-	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.MakeExternalFirefoxTitle(), url.QueryEscape(urlString))
+	tabURL := MakeFirefoxContainerURL(urlString, labels)
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		tabURL)
 	err = cmd.Start()
 	if err != nil {
-		return err
+		fmt.Fprintf(os.Stderr, "\nGranted was unable to open a browser session automatically")
+		//allow them to try open the url manually
+		ManuallyOpenURL(tabURL)
+		return nil
 	}
 	// detach from this new process because it continues to run
 	return cmd.Process.Release()
@@ -148,8 +167,9 @@ type RoleLabels struct {
 
 func (r *RoleLabels) MakeExternalFirefoxTitle() string {
 
+	hash := r.MakeExternalProfileTitle()
 	if r.Region != "" {
-		return r.Profile + "(" + r.Region + ")"
+		return r.Profile + hash
 
 	}
 	return r.Profile
@@ -181,10 +201,10 @@ const (
 	BrowserDefault
 )
 
-func LaunchConsoleSession(sess Session, labels RoleLabels, service string, region string) error {
+func MakeUrl(sess Session, labels RoleLabels, service string, region string) (string, error) {
 	sessJSON, err := json.Marshal(sess)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	u := url.URL{
@@ -199,10 +219,10 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string, regio
 
 	res, err := http.Get(u.String())
 	if err != nil {
-		return err
+		return "", err
 	}
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("opening console failed with code %v", res.StatusCode)
+		return "", fmt.Errorf("opening console failed with code %v", res.StatusCode)
 	}
 
 	token := struct {
@@ -211,7 +231,7 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string, regio
 
 	err = json.NewDecoder(res.Body).Decode(&token)
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	u = url.URL{
@@ -223,7 +243,7 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string, regio
 	dest, err := makeDestinationURL(service, region)
 
 	if err != nil {
-		return err
+		return "", err
 	}
 	q = u.Query()
 	q.Add("Action", "login")
@@ -231,23 +251,32 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string, regio
 	q.Add("Destination", dest)
 	q.Add("SigninToken", token.SigninToken)
 	u.RawQuery = q.Encode()
+	return u.String(), nil
+}
+
+func LaunchConsoleSession(sess Session, labels RoleLabels, service string, region string) error {
+	url, err := MakeUrl(sess, labels, service, region)
+	if err != nil {
+		return err
+	}
+
 	cfg, _ := config.Load()
 	if cfg == nil {
-		return browser.OpenURL(u.String())
+		return browser.OpenURL(url)
 	}
 	switch cfg.DefaultBrowser {
 	case FirefoxKey:
-		return OpenWithFirefoxContainer(u.String(), labels)
+		return OpenWithFirefoxContainer(url, labels)
 	case ChromeKey:
-		return OpenWithChromiumProfile(u.String(), labels, BrowserChrome)
+		return OpenWithChromiumProfile(url, labels, BrowserChrome)
 	case BraveKey:
-		return OpenWithChromiumProfile(u.String(), labels, BrowserBrave)
+		return OpenWithChromiumProfile(url, labels, BrowserBrave)
 	case EdgeKey:
-		return OpenWithChromiumProfile(u.String(), labels, BrowserEdge)
+		return OpenWithChromiumProfile(url, labels, BrowserEdge)
 	case ChromiumKey:
-		return OpenWithChromiumProfile(u.String(), labels, BrowserChromium)
+		return OpenWithChromiumProfile(url, labels, BrowserChromium)
 	default:
-		return browser.OpenURL(u.String())
+		return browser.OpenURL(url)
 	}
 }
 

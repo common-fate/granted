@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+
+	"github.com/common-fate/granted/pkg/debug"
 )
 
 type plist struct {
@@ -50,14 +52,14 @@ func HandleOSXBrowserSearch() (string, error) {
 	cmd := exec.Command("plutil", args...)
 	err = cmd.Run()
 	if err != nil {
-		return "", err
+		debug.Fprintf(debug.VerbosityDebug, os.Stderr, err.Error())
 	}
 
 	//read plist file
 	data, err := ioutil.ReadFile(path)
 
 	if err != nil {
-		return "", err
+		debug.Fprintf(debug.VerbosityDebug, os.Stderr, err.Error())
 	}
 	plist := &plist{}
 
@@ -65,7 +67,7 @@ func HandleOSXBrowserSearch() (string, error) {
 	//unmarshal the xml into the structs
 	err = xml.Unmarshal([]byte(data), &plist)
 	if err != nil {
-		return "", err
+		debug.Fprintf(debug.VerbosityDebug, os.Stderr, err.Error())
 	}
 
 	//get out the default browser
