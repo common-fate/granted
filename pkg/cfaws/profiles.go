@@ -190,10 +190,10 @@ func (c *CFSharedConfig) CallerIdentity(ctx context.Context) (*sts.GetCallerIden
 	return client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 }
 
-func (c *CFSharedConfig) AssumeConsole(ctx context.Context) (aws.Credentials, error) {
-	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c)
+func (c *CFSharedConfig) AssumeConsole(ctx context.Context, args []string) (aws.Credentials, error) {
+	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, args)
 }
 
-func (c *CFSharedConfig) AssumeTerminal(ctx context.Context) (aws.Credentials, error) {
-	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c)
+func (c *CFSharedConfig) AssumeTerminal(ctx context.Context, args []string) (aws.Credentials, error) {
+	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c, args)
 }

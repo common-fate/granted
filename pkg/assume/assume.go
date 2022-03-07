@@ -107,7 +107,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		var creds aws.Credentials
 
-		creds, err = profile.AssumeConsole(c.Context)
+		creds, err = profile.AssumeConsole(c.Context, assumeFlags.StringSlice("pass-through"))
 		if err != nil {
 			return err
 		}
@@ -147,7 +147,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		var creds aws.Credentials
 
-		creds, err = profile.AssumeConsole(c.Context)
+		creds, err = profile.AssumeConsole(c.Context, assumeFlags.StringSlice("pass-through"))
 		if err != nil {
 			return err
 		}
@@ -163,7 +163,7 @@ func AssumeCommand(c *cli.Context) error {
 		fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
 		return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
 	} else {
-		creds, err := profile.AssumeTerminal(c.Context)
+		creds, err := profile.AssumeTerminal(c.Context, assumeFlags.StringSlice("pass-through"))
 		if err != nil {
 			return err
 		}

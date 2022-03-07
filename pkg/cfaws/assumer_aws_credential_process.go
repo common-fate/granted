@@ -63,7 +63,7 @@ type Writer interface {
 	Write(p []byte) (n int, err error)
 }
 
-func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args2 []string) (aws.Credentials, error) {
 	var args []string
 	var command string
 	for k, v := range c.RawConfig {
@@ -90,8 +90,8 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 	return capture.Creds()
 }
 
-func (cpa *CredentialProcessAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
-	return cpa.AssumeTerminal(ctx, c)
+func (cpa *CredentialProcessAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
+	return cpa.AssumeTerminal(ctx, c, args)
 }
 
 // A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH

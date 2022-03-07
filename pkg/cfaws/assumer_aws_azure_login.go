@@ -18,27 +18,41 @@ type AwsAzureLoginAssumer struct {
 
 //https://github.com/sportradar/aws-azure-login
 
-// launch the aws-google-auth utility to generate the credentials
 // then fetch them from the environment for use
-func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
-	cmd := exec.Command("aws-azure-login", fmt.Sprintf("--profile=%s", c.Name))
+func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
+	//check to see if the creds are already exported
+	creds, err := GetCredentialsCreds(ctx, c)
+
+	if err == nil {
+		return creds, nil
+	}
+
+	//request for the creds if they are invalid
+	a := []string{fmt.Sprintf("--profile=%s", c.Name)}
+	a = append(a, args...)
+
+	cmd := exec.Command("aws-azure-login", a...)
 
 	cmd.Stdout = os.Stderr
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	creds := GetEnvCredentials(ctx)
-	if !creds.HasKeys() {
-		return aws.Credentials{}, fmt.Errorf("no credentials exported to terminal when using %s to assume profile: %s", aal.Type(), c.Name)
+	cfg, err := c.AwsConfig(ctx, false)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+	creds, err = aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	if err != nil {
+		return aws.Credentials{}, err
 	}
 	return creds, nil
 }
 
-func (aal *AwsAzureLoginAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
-	return aal.AssumeTerminal(ctx, c)
+func (aal *AwsAzureLoginAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
+	return aal.AssumeTerminal(ctx, c, args)
 }
 
 // A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH

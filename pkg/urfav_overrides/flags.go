@@ -123,6 +123,18 @@ func (set *Flags) String(name string) string {
 	return ""
 }
 
+func (set *Flags) StringSlice(name string) []string {
+	names := set.searchFS(name)
+	for _, n := range names {
+		f := set.FlagSet.Lookup(n)
+		if f != nil {
+			parsed := f.Value.(*cli.StringSlice)
+			return parsed.Value()
+		}
+	}
+	return nil
+}
+
 func (set *Flags) Bool(name string) bool {
 	names := set.searchFS(name)
 	for _, n := range names {

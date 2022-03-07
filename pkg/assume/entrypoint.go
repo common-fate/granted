@@ -20,6 +20,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.BoolFlag{Name: "url", Aliases: []string{"u"}, Usage: "Get an active console session url"},
 	&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Specify a service to open the console into"},
 	&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "Specify a region to open the console into"},
+	&cli.StringSliceFlag{Name: "pass-through", Aliases: []string{"pt"}, Usage: "Pass args to proxy assumer"},
 	&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 	&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 	&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
@@ -33,6 +34,7 @@ func GetCliApp() *cli.App {
 
 	app := &cli.App{
 		Name:                 "assume",
+		Writer:               os.Stderr,
 		Usage:                "https://granted.dev",
 		UsageText:            "assume [options][Profile]",
 		Version:              build.Version,

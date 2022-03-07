@@ -15,7 +15,7 @@ type AwsIamAssumer struct {
 
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
-func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
 	cfg, err := c.AwsConfig(ctx, false)
 	if err != nil {
 		return aws.Credentials{}, err
@@ -29,12 +29,12 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig)
 
 // if required will get a FederationToken to be used to launch the console
 // This is required is the iam profile does not assume a role using sts.AssumeRole
-func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
 	if c.AWSConfig.RoleARN == "" {
 		return getFederationToken(ctx, c)
 	} else {
 		// profile assume a role
-		return aia.AssumeTerminal(ctx, c)
+		return aia.AssumeTerminal(ctx, c, args)
 	}
 }
 
