@@ -4,7 +4,7 @@ set -gx GRANTED_ALIAS_CONFIGURED "true"
 
 #GRANTED_FLAG - what granted told the shell to do
 #GRANTED_n - the data from granted
-set GRANTED_OUTPUT (assumego $argv)
+set GRANTED_OUTPUT (SHELL=$SHELL assumego $argv)
 set GRANTED_STATUS $status
 echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5
 
