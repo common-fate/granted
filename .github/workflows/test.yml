@@ -54,6 +54,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
+      - name: log shell
+        run: echo $SHELL
       - name: Setup Go
         uses: actions/setup-go@v2
         with:
@@ -68,4 +70,4 @@ jobs:
         shell: bash
       - name: bash
         run: dassume -auto-configure-shell
-        shell: bash
+        # shell: bash
