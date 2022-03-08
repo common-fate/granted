@@ -50,7 +50,7 @@ jobs:
   #         args: --timeout 2m
 
   linux-installs:
-    name: assume installs and runs on linuxs
+    name: assume installs and runs on linux
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
@@ -60,6 +60,12 @@ jobs:
           go-version: "1.17.3"
       - name: install granted
         run: make cli
+      - name: build test browser
+        run: make test-browser-binary
+      - name: set default browser
+        # configures granted to use the test browser binary
+        run: dgranted browser set -b chrome -p ./bin/tbrowser
+        shell: bash
       - name: bash
         run: dassume -auto-configure-shell
         shell: bash

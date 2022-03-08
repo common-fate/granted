@@ -1,7 +1,6 @@
 package browsers
 
 import (
-	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -13,6 +12,7 @@ import (
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/fatih/color"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -85,8 +85,7 @@ func Find() (string, error) {
 	return outcome, nil
 }
 
-func GetBrowserName(b string) string {
-
+func GetBrowserKey(b string) string {
 	if strings.Contains(strings.ToLower(b), "chrome") {
 		return ChromeKey
 	}
@@ -138,7 +137,7 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	browserTitle := strings.Title(strings.ToLower(GetBrowserName(browserName)))
+	browserTitle := strings.Title(strings.ToLower(GetBrowserKey(browserName)))
 	fmt.Fprintf(os.Stderr, "\nℹ️  Granted has detected that your default browser is %s.\n", browserTitle)
 
 	in := survey.Select{
@@ -158,17 +157,22 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 		}
 	}
 
-	return ConfigureBrowserSelection(browserName)
+	return ConfigureBrowserSelection(browserName, "")
 }
 
 //ConfigureBrowserSelection will verify the existance of the browser executable and promot for a path if it cannot be found
-func ConfigureBrowserSelection(browserName string) error {
+func ConfigureBrowserSelection(browserName string, path string) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	browserTitle := strings.Title(strings.ToLower(GetBrowserName(browserName)))
+	browserTitle := strings.Title(strings.ToLower(GetBrowserKey(browserName)))
 	// We allow users to configure a custom install path is we cannot detect the installation
-	customBrowserPath := ""
+	customBrowserPath := path
 	// detect installation
-	if !DetectInstallation(GetBrowserName(browserName)) {
+	if customBrowserPath != "" {
+		_, err := os.Stat(customBrowserPath)
+		if err != nil {
+			return errors.Wrap(err, "provided path is invalid")
+		}
+	} else if !DetectInstallation(GetBrowserKey(browserName)) {
 		fmt.Fprintf(os.Stderr, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
 
 		validPath := false
@@ -191,7 +195,7 @@ func ConfigureBrowserSelection(browserName string) error {
 
 	}
 
-	if GetBrowserName(browserName) == FirefoxKey {
+	if GetBrowserKey(browserName) == FirefoxKey {
 		fp := customBrowserPath
 		if customBrowserPath == "" {
 			firefoxPath, err := FirefoxPath()
@@ -213,7 +217,7 @@ func ConfigureBrowserSelection(browserName string) error {
 		return err
 	}
 
-	conf.DefaultBrowser = GetBrowserName(browserName)
+	conf.DefaultBrowser = GetBrowserKey(browserName)
 	conf.CustomBrowserPath = customBrowserPath
 	err = conf.Save()
 	if err != nil {

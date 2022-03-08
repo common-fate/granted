@@ -19,3 +19,6 @@ clean:
 
 aws-credentials: 
 	echo -e "\nAWS_ACCESS_KEY_ID=\"$$AWS_ACCESS_KEY_ID\"\nAWS_SECRET_ACCESS_KEY=\"$$AWS_SECRET_ACCESS_KEY\"\nAWS_SESSION_TOKEN=\"$$AWS_SESSION_TOKEN\"\nAWS_REGION=\"$$AWS_REGION\""
+
+test-browser-binary:
+	go build -o ./bin/tbrowser cmd/test_browser/main.go
