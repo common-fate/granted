@@ -1,5 +1,6 @@
 @echo off
 set SHELL=cmd
+set NO_COLOR=true
 set GRANTED_ALIAS_CONFIGURED=true
 assumego %* 1> %TEMP%\temp-assume.txt
 set ASSUME_STATUS=%ERRORLEVEL%
