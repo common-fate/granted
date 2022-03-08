@@ -83,9 +83,11 @@ jobs:
       - name: bash
         run: dassume -auto-configure-shell
         shell: bash
+      - name: Install zsh
+        run: sudo apt-get update; sudo apt-get install zsh
       - name: zsh
         run: dassume -auto-configure-shell
-        shell: zsh
+        shell: zsh {0}
       # - name: fish
       #   run: dassume -auto-configure-shell
       #   shell: zsh
