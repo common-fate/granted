@@ -104,7 +104,7 @@ jobs:
       - name: bash assume
         run: SHELL=/bin/bash dassume test
       - name: Env
-        run: env | grep AWS
+        run: make aws-credentials
         shell: bash
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
@@ -115,7 +115,7 @@ jobs:
         run: SHELL=/bin/zsh dassume test
         shell: zsh {0}
       - name: Env
-        run: env | grep AWS
+        run: make aws-credentials
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
       - name: fish
@@ -125,4 +125,4 @@ jobs:
         run: SHELL=fish dassume test
         shell: fish {0}
       - name: Env
-        run: env | grep AWS
+        run: make aws-credentials
