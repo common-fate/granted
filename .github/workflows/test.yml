@@ -80,14 +80,15 @@ jobs:
       - name: set default browser
         # configures granted to use the test browser binary
         run: dgranted browser set -b chrome -p ./bin/tbrowser
-
+      - name: setup aws config files
+        run: mkdir ~/.aws; touch ~/.aws/config; touch ~/.aws/credentials;
       - name: setup fake aws profile
-        run: touch ~/.aws/config; cat << EOF > ~/.aws/config
+        run: cat << EOF > ~/.aws/config
           [profile test]
           region = ap-southeast-2
           EOF
       - name: setup fake aws profile credentials
-        run: touch ~/.aws/credentials; cat << EOF > ~/.aws/credentials
+        run: cat << EOF > ~/.aws/credentials
           [test]
           aws_access_key_id=1234578910abcdefghij
           aws_secret_access_key=1234578910abcdefghijklmnopqrstuvwxyz1234
