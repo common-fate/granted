@@ -1,13 +1,17 @@
 package main
 
 import (
-	"fmt"
+	"os"
 
-	"github.com/fatih/color"
-	"github.com/mattn/go-colorable"
+	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/granted/pkg/testable"
 )
 
 func main() {
-	green := color.New(color.FgGreen)
-	fmt.Fprint(colorable.NewColorableStderr(), green.Sprint("hello"))
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+	in := survey.Input{
+		Message: "Please select the profile you would like to assume:",
+	}
+	var p string
+	testable.AskOne(&in, &p, withStdio)
 }
