@@ -99,9 +99,11 @@ jobs:
         run: SHELL=/bin/bash dassume -auto-configure-shell
       - name: bash
         run: cat ~/.bash_profile
+      - name: exec bash
+        run: exec bash
       - name: assume bash
         run: |
-          exec bash dassume test
+          dassume test
           ./bin/tcreds
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
