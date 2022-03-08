@@ -67,7 +67,6 @@ jobs:
       - name: set default browser
         # configures granted to use the test browser binary
         run: dgranted browser set -b chrome -p ./bin/tbrowser
-        shell: bash
       - name: bash
         run: dassume -auto-configure-shell
         # shell: bash
