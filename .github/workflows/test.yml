@@ -64,9 +64,11 @@ jobs:
         run: make cli
       - name: build test browser
         run: make test-browser-binary
-      - name: set default browser
-        # configures granted to use the test browser binary
-        run: dgranted browser set -b chrome -p ./bin/tbrowser
-      - name: bash
-        run: dassume -auto-configure-shell
-        # shell: bash
+      - name: test
+        run: ./bin/tbrowser
+      # - name: set default browser
+      #   # configures granted to use the test browser binary
+      #   run: dgranted browser set -b chrome -p ./bin/tbrowser
+      # - name: bash
+      #   run: dassume -auto-configure-shell
+      #   # shell: bash
