@@ -179,7 +179,7 @@ jobs:
         run: |
           SHELL=/bin/bash dassume test
           ./bin/tcreds
-        shell: bash {0}
+        shell: bash -l {0}
       - name: zsh
         run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
