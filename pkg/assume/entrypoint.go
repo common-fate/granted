@@ -25,6 +25,7 @@ var GlobalFlags = []cli.Flag{
 	&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 	&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 	&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"AWS_PROFILE"}, Hidden: true},
+	&cli.BoolFlag{Name: "auto-configure-shell", Usage: "Configure shell alias without prompts"},
 }
 
 func GetCliApp() *cli.App {
@@ -76,7 +77,7 @@ func GetCliApp() *cli.App {
 
 			// Setup the shell alias
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
-				return alias.MustBeConfigured()
+				return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
 			}
 			return nil
 		},

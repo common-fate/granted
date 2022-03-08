@@ -35,9 +35,9 @@ func IsConfigured() bool {
 
 // MustBeConfigured displays a helpful error message and exits the CLI
 // if the alias is detected as not being configured properly.
-func MustBeConfigured() error {
+func MustBeConfigured(autoConfigure bool) error {
 	if !IsConfigured() {
-		_, err := SetupShellWizard()
+		_, err := SetupShellWizard(autoConfigure)
 		if err != nil {
 			return err
 		}
@@ -55,7 +55,7 @@ type SetupShellResults struct {
 	ConfigFile string
 }
 
-func SetupShellWizard() (*SetupShellResults, error) {
+func SetupShellWizard(autoConfigure bool) (*SetupShellResults, error) {
 	// SHELL is set by the wrapper script
 	shellEnv := os.Getenv("SHELL")
 	var cfg Config
@@ -83,27 +83,30 @@ func SetupShellWizard() (*SetupShellResults, error) {
 		return nil, fmt.Errorf("we couldn't detect your shell type (%s). Please follow the steps at https://granted.dev/shell-alias to assume roles with Granted", shellEnv)
 	}
 
-	ul := color.New(color.Underline).SprintFunc()
+	// skip prompt if autoConfigure is set to true
+	if !autoConfigure {
+		ul := color.New(color.Underline).SprintFunc()
 
-	fmt.Fprintf(os.Stderr, "ℹ️  To assume roles with Granted, we need to add an alias to your shell profile (%s).\n", ul("https://granted.dev/shell-alias"))
+		fmt.Fprintf(os.Stderr, "ℹ️  To assume roles with Granted, we need to add an alias to your shell profile (%s).\n", ul("https://granted.dev/shell-alias"))
 
-	label := fmt.Sprintf("Install %s alias at %s", shell, cfg.File)
-	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	in := &survey.Confirm{
-		Message: label,
-		Default: true,
+		label := fmt.Sprintf("Install %s alias at %s", shell, cfg.File)
+		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+		in := &survey.Confirm{
+			Message: label,
+			Default: true,
+		}
+		var confirm bool
+		err = survey.AskOne(in, &confirm, withStdio)
+		if err != nil {
+			return nil, err
+		}
+
+		if !confirm {
+			return nil, errors.New("cancelled alias installation")
+		}
+
+		fmt.Fprintln(os.Stderr, "")
 	}
-	var confirm bool
-	err = survey.AskOne(in, &confirm, withStdio)
-	if err != nil {
-		return nil, err
-	}
-
-	if !confirm {
-		return nil, errors.New("cancelled alias installation")
-	}
-
-	fmt.Fprintln(os.Stderr, "")
 
 	err = install(cfg)
 	if err != nil {
