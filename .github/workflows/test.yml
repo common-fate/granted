@@ -103,7 +103,7 @@ jobs:
         run: exec bash
       - name: assume bash
         run: |
-          dassume test
+          SHELL=/bin/bash dassume test
           ./bin/tcreds
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
