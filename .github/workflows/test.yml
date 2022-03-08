@@ -103,7 +103,7 @@ jobs:
   #     #   run: |
   #     #     source ~/.bash_profile
   #     #     SHELL=/bin/bash bash dassume test
-  #     #     ./bin/tcreds
+  #     #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
   #     #   shell: bash
   #     - name: Install zsh
   #       run: sudo apt-get update; sudo apt-get install zsh
@@ -113,7 +113,7 @@ jobs:
   #     - name: assume zsh
   #       run: |
   #         SHELL=/bin/zsh dassume test
-  #         ./bin/tcreds
+  #         ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
   #       shell: zsh {0}
   #     - name: install fish
   #       run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
@@ -123,12 +123,16 @@ jobs:
   #     - name: assume zsh
   #       run: |
   #         SHELL=fish dassume test
-  #         ./bin/tcreds
+  #         ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
   #       shell: fish {0}
 
   osx-installs:
     name: assume installs and runs on mac
     runs-on: macos-11
+    env:
+      - TEST_ACCESS_KEY_ID=1234578910abcdefghij
+      - TEST_ACCESS_KEY=1234578910abcdefghijklmnopqrstuvwxyz1234
+      - TEST_REGION=ap-southeast-2
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -163,14 +167,14 @@ jobs:
         run: |
           cat << EOF >> ~/.aws/config
           [profile test]
-          region = ap-southeast-2
+          region = ${TEST_REGION}
           EOF
       - name: setup fake aws profile credentials
         run: |
           cat << EOF >> ~/.aws/credentials
           [test]
-          aws_access_key_id=1234578910abcdefghij
-          aws_secret_access_key=1234578910abcdefghijklmnopqrstuvwxyz1234
+          aws_access_key_id=${TEST_ACCESS_KEY_ID}
+          aws_secret_access_key=${TEST_ACCESS_KEY}
           EOF
       - name: bash
         run: SHELL=/bin/bash dassume -auto-configure-shell
@@ -178,7 +182,7 @@ jobs:
       - name: assume bash
         run: |
           SHELL=/bin/bash dassume test
-          ./bin/tcreds
+          ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: bash -l {0}
       - name: zsh
         run: SHELL=/bin/zsh dassume -auto-configure-shell
@@ -186,7 +190,7 @@ jobs:
       - name: assume zsh
         run: |
           SHELL=/bin/zsh dassume test
-          ./bin/tcreds
+          ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: zsh {0}
       - name: install fish
         run: brew install fish
@@ -196,5 +200,5 @@ jobs:
       - name: assume fish
         run: |
           SHELL=fish dassume test
-          ./bin/tcreds
+          ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: fish {0}
