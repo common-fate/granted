@@ -179,11 +179,12 @@ jobs:
       - name: bash
         run: SHELL=/bin/bash dassume -auto-configure-shell
         shell: bash {0}
-      - name: assume bash
-        run: |
-          SHELL=/bin/bash dassume test
-          ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
-        shell: bash -l {0}
+      # bash doesn't work in github actions
+      # - name: assume bash
+      #   run: |
+      #     SHELL=/bin/bash dassume test
+      #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+      #   shell: bash -l {0}
       - name: zsh
         run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
