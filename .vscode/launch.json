@@ -13,6 +13,14 @@
       "env": { "FORCE_NO_ALIAS": true }
     },
     {
+      "name": "Run uninstall",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/granted/main.go",
+      "args": ["uninstall"]
+    },
+    {
       "name": "Run command granted",
       "type": "go",
       "request": "launch",

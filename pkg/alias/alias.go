@@ -58,6 +58,8 @@ type SetupShellResults struct {
 func SetupShellWizard(autoConfigure bool) (*SetupShellResults, error) {
 	// SHELL is set by the wrapper script
 	shellEnv := os.Getenv("SHELL")
+	fmt.Fprintf(os.Stderr, "shellEnv: %v\n", shellEnv)
+	fmt.Fprintf(os.Stderr, "autoConfigure: %v\n", autoConfigure)
 	var cfg Config
 	var shell string
 	var err error

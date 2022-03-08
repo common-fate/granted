@@ -81,16 +81,16 @@ jobs:
         # configures granted to use the test browser binary
         run: dgranted browser set -b chrome -p ./bin/tbrowser
       - name: bash
-        run: dassume -auto-configure-shell
+        run: SHELL=/bin/bash dassume -auto-configure-shell
         shell: bash
       # zsh not supported natively on ubuntu and does not work correctly
-      # - name: Install zsh
-      #   run: sudo apt-get update; sudo apt-get install zsh
-      # - name: zsh
-      #   run: dassume -auto-configure-shell
-      #   shell: zsh {0}
+      - name: Install zsh
+        run: sudo apt-get update; sudo apt-get install zsh
+      - name: zsh
+        run: SHELL=/bin/zsh dassume -auto-configure-shell
+        shell: zsh {0}
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
       - name: fish
-        run: dassume -auto-configure-shell
+        run: SHELL=fish dassume -auto-configure-shell
         shell: fish {0}
