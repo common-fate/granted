@@ -66,6 +66,7 @@ jobs:
         run: make test-browser-binary
       - name: test
         run: ./scripts/test
+        shell: bash
       # - name: set default browser
       #   # configures granted to use the test browser binary
       #   run: dgranted browser set -b chrome -p ./bin/tbrowser
