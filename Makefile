@@ -23,3 +23,4 @@ aws-credentials:
 test-browser-binary:
 	go build -o ./bin/tbrowser cmd/test_browser/main.go
 	chmod +x ./bin/tbrowser
+	chmod +x ./scripts/test
