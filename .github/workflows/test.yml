@@ -99,7 +99,7 @@ jobs:
         run: SHELL=/bin/bash dassume -auto-configure-shell; source ~/.bash_profile
         shell: bash
       - name: bash assume
-        run: SHELL=/bin/bash dassume test
+        run: SHELL=/bin/bash dassume -s test
         shell: bash
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
@@ -107,7 +107,7 @@ jobs:
         run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
       - name: zsh assume
-        run: SHELL=/bin/zsh dassume test
+        run: SHELL=/bin/zsh dassume -s test
         shell: zsh {0}
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
@@ -115,5 +115,5 @@ jobs:
         run: SHELL=fish dassume -auto-configure-shell
         shell: fish {0}
       - name: fish assume
-        run: SHELL=fish dassume test
+        run: SHELL=fish dassume -s test
         shell: fish {0}
