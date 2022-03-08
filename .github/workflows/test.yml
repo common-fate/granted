@@ -130,9 +130,9 @@ jobs:
     name: assume installs and runs on mac
     runs-on: macos-11
     env:
-      - TEST_ACCESS_KEY_ID=1234578910abcdefghij
-      - TEST_ACCESS_KEY=1234578910abcdefghijklmnopqrstuvwxyz1234
-      - TEST_REGION=ap-southeast-2
+      TEST_ACCESS_KEY_ID: 1234578910abcdefghij
+      TEST_ACCESS_KEY: 1234578910abcdefghijklmnopqrstuvwxyz1234
+      TEST_REGION: ap-southeast-2
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
