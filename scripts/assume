@@ -12,6 +12,8 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
   export GRANTED_ALIAS_CONFIGURED="true"
 fi
 
+# in some cases such as github actions, the SHELL env var is not available to the program
+# so here we set it explicitly 
 GRANTED_OUTPUT=$(SHELL=$SHELL assumego "$@")
 GRANTED_STATUS=$?
 read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 <<< $(echo $GRANTED_OUTPUT)
