@@ -61,5 +61,5 @@ jobs:
       - name: install granted
         run: make cli
       - name: bash
-        run: assume -auto-configure-shell
+        run: dassume -auto-configure-shell
         shell: bash
