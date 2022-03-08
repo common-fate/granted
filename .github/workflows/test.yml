@@ -96,7 +96,7 @@ jobs:
           aws_secret_access_key=1234578910abcdefghijklmnopqrstuvwxyz1234
           EOF
       - name: bash
-        run: SHELL=/bin/bash dassume -auto-configure-shell
+        run: SHELL=/bin/bash dassume -auto-configure-shell; source ~/.bash_profile
         shell: bash
       - name: bash assume
         run: SHELL=/bin/bash dassume test
