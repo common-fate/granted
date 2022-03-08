@@ -45,6 +45,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	requiresAssuming := false
 	if len(c.Parents) > 0 {
 		rootProfile = c.Parents[0]
+
 		requiresAssuming = true
 	}
 
@@ -93,10 +94,13 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			// in order to support profiles which do not specify a region, we use the default region when assuming the role
 
 			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: region})
+
+			durationSeconds := int32(*p.AWSConfig.RoleDurationSeconds)
 			stsRes, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
 				RoleArn:         &p.AWSConfig.RoleARN,
 				RoleSessionName: &p.Name,
 				TokenCode:       &p.AWSConfig.MFASerial,
+				DurationSeconds: &durationSeconds,
 			})
 			if err != nil {
 				return aws.Credentials{}, err

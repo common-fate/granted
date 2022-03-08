@@ -3,6 +3,7 @@ package assume
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"os"
 
@@ -139,6 +140,16 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		return nil
+	}
+
+	//update role duration if the duration flag is set
+	if assumeFlags.String("duration") != "" {
+		dur, err := time.ParseDuration(assumeFlags.String("duration"))
+
+		if err != nil {
+			return err
+		}
+		profile.AWSConfig.RoleDurationSeconds = &dur
 	}
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
 	if openBrower {
