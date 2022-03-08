@@ -80,17 +80,37 @@ jobs:
       - name: set default browser
         # configures granted to use the test browser binary
         run: dgranted browser set -b chrome -p ./bin/tbrowser
+
+      - name: setup fake aws profile
+        run: cat << EOF > ~/.aws/config
+          [profile test]
+          region = ap-southeast-2
+          EOF
+      - name: setup fake aws profile credentials
+        run: cat << EOF > ~/.aws/credentials
+          [test]
+          aws_access_key_id=1234578910abcdefghij
+          aws_secret_access_key=1234578910abcdefghijklmnopqrstuvwxyz1234
+          EOF
       - name: bash
         run: SHELL=/bin/bash dassume -auto-configure-shell
         shell: bash
-      # zsh not supported natively on ubuntu and does not work correctly
+      - name: bash assume
+        run: SHELL=/bin/bash dassume test
+        shell: bash
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
       - name: zsh
         run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
+      - name: zsh assume
+        run: SHELL=/bin/zsh dassume test
+        shell: zsh {0}
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
       - name: fish
         run: SHELL=fish dassume -auto-configure-shell
+        shell: fish {0}
+      - name: fish assume
+        run: SHELL=fish dassume test
         shell: fish {0}
