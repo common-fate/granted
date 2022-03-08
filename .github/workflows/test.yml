@@ -49,9 +49,86 @@ jobs:
   #         version: v1.39
   #         args: --timeout 2m
 
-  linux-installs:
-    name: assume installs and runs on linux
-    runs-on: ubuntu-latest
+  # linux-installs:
+  #   name: assume installs and runs on linux
+  #   runs-on: ubuntu-latest
+  #   steps:
+  #     - uses: actions/checkout@v2
+  #     - uses: actions/cache@v2
+  #       with:
+  #         # In order:
+  #         # * Module download cache
+  #         # * Build cache (Linux)
+  #         # * Build cache (Mac)
+  #         # * Build cache (Windows)
+  #         path: |
+  #           ~/go/pkg/mod
+  #           ~/.cache/go-build
+  #           ~/Library/Caches/go-build
+  #           %LocalAppData%\go-build
+  #         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+  #         restore-keys: |
+  #           ${{ runner.os }}-go-
+  #     - name: Setup Go
+  #       uses: actions/setup-go@v2
+  #       with:
+  #         go-version: "1.17.3"
+  #     - name: install granted
+  #       run: make cli
+  #     - name: build test browser
+  #       run: make test-binaries
+  #     - name: set default browser
+  #       # configures granted to use the test browser binary
+  #       run: dgranted browser set -b chrome -p ./bin/tbrowser
+  #     - name: setup aws config files
+  #       run: mkdir ~/.aws; touch ~/.aws/config; touch ~/.aws/credentials;
+  #     - name: setup fake aws profile
+  #       run: |
+  #         cat << EOF >> ~/.aws/config
+  #         [profile test]
+  #         region = ap-southeast-2
+  #         EOF
+  #     - name: setup fake aws profile credentials
+  #       run: |
+  #         cat << EOF >> ~/.aws/credentials
+  #         [test]
+  #         aws_access_key_id=1234578910abcdefghij
+  #         aws_secret_access_key=1234578910abcdefghijklmnopqrstuvwxyz1234
+  #         EOF
+  #     - name: bash
+  #       run: SHELL=/bin/bash dassume -auto-configure-shell
+  #     # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
+  #     # the below does not work
+  #     # - name: assume bash
+  #     #   run: |
+  #     #     source ~/.bash_profile
+  #     #     SHELL=/bin/bash bash dassume test
+  #     #     ./bin/tcreds
+  #     #   shell: bash
+  #     - name: Install zsh
+  #       run: sudo apt-get update; sudo apt-get install zsh
+  #     - name: zsh
+  #       run: SHELL=/bin/zsh dassume -auto-configure-shell
+  #       shell: zsh {0}
+  #     - name: assume zsh
+  #       run: |
+  #         SHELL=/bin/zsh dassume test
+  #         ./bin/tcreds
+  #       shell: zsh {0}
+  #     - name: install fish
+  #       run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
+  #     - name: fish
+  #       run: SHELL=fish dassume -auto-configure-shell
+  #       shell: fish {0}
+  #     - name: assume zsh
+  #       run: |
+  #         SHELL=fish dassume test
+  #         ./bin/tcreds
+  #       shell: fish {0}
+
+  osx-installs:
+    name: assume installs and runs on mac
+    runs-on: macos-11
     steps:
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
@@ -97,16 +174,12 @@ jobs:
           EOF
       - name: bash
         run: SHELL=/bin/bash dassume -auto-configure-shell
-      # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
-      # the below does not work
-      # - name: assume bash
-      #   run: |
-      #     source ~/.bash_profile
-      #     SHELL=/bin/bash bash dassume test
-      #     ./bin/tcreds
-      #   shell: bash
-      - name: Install zsh
-        run: sudo apt-get update; sudo apt-get install zsh
+        shell: bash {0}
+      - name: assume bash
+        run: |
+          SHELL=/bin/bash bash dassume test
+          ./bin/tcreds
+        shell: bash {0}
       - name: zsh
         run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
@@ -116,88 +189,11 @@ jobs:
           ./bin/tcreds
         shell: zsh {0}
       - name: install fish
-        run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
+        run: brew install fish
       - name: fish
         run: SHELL=fish dassume -auto-configure-shell
         shell: fish {0}
-      - name: assume zsh
-        run: |
-          SHELL=fish dassume test
-          ./bin/tcreds
-        shell: fish {0}
-
-  osx-installs:
-    name: assume installs and runs on linux
-    runs-on: macos-11
-    steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
-        with:
-          # In order:
-          # * Module download cache
-          # * Build cache (Linux)
-          # * Build cache (Mac)
-          # * Build cache (Windows)
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            ~/Library/Caches/go-build
-            %LocalAppData%\go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-      - name: Setup Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: "1.17.3"
-      - name: install granted
-        run: make cli
-      - name: build test browser
-        run: make test-binaries
-      - name: set default browser
-        # configures granted to use the test browser binary
-        run: dgranted browser set -b chrome -p ./bin/tbrowser
-      - name: setup aws config files
-        run: mkdir ~/.aws; touch ~/.aws/config; touch ~/.aws/credentials;
-      - name: setup fake aws profile
-        run: |
-          cat << EOF >> ~/.aws/config
-          [profile test]
-          region = ap-southeast-2
-          EOF
-      - name: setup fake aws profile credentials
-        run: |
-          cat << EOF >> ~/.aws/credentials
-          [test]
-          aws_access_key_id=1234578910abcdefghij
-          aws_secret_access_key=1234578910abcdefghijklmnopqrstuvwxyz1234
-          EOF
-      # - name: bash
-      #   run: SHELL=/bin/bash dassume -auto-configure-shell
-      # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
-      # the below does not work
-      # - name: assume bash
-      #   run: |
-      #     source ~/.bash_profile
-      #     SHELL=/bin/bash bash dassume test
-      #     ./bin/tcreds
-      #   shell: bash
-      # - name: Install zsh
-      #   run: sudo apt-get update; sudo apt-get install zsh
-      - name: zsh
-        run: SHELL=/bin/zsh dassume -auto-configure-shell
-        shell: zsh {0}
-      - name: assume zsh
-        run: |
-          SHELL=/bin/zsh dassume test
-          ./bin/tcreds
-        shell: zsh {0}
-      - name: install fish
-        run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
-      - name: fish
-        run: SHELL=fish dassume -auto-configure-shell
-        shell: fish {0}
-      - name: assume zsh
+      - name: assume fish
         run: |
           SHELL=fish dassume test
           ./bin/tcreds
