@@ -106,27 +106,33 @@ func GetBrowserKey(b string) string {
 }
 
 // DetectInstallation checks if the default filepath exists for the browser executables on the current os
-func DetectInstallation(browserKey string) bool {
-	bPath := ""
+// returns the detected path
+func DetectInstallation(browserKey string) (string, bool) {
+	bPath := []string{}
 	switch browserKey {
 	case ChromeKey:
-		bPath, _ = ChromePath()
+		bPath, _ = ChromePathDefaults()
 	case BraveKey:
-		bPath, _ = BravePath()
+		bPath, _ = BravePathDefaults()
 	case EdgeKey:
-		bPath, _ = EdgePath()
+		bPath, _ = EdgePathDefaults()
 	case FirefoxKey:
-		bPath, _ = FirefoxPath()
+		bPath, _ = FirefoxPathDefaults()
 	case ChromiumKey:
-		bPath, _ = ChromiumPath()
+		bPath, _ = ChromiumPathDefaults()
 	default:
-		return false
+		return "", false
 	}
-	if bPath == "" {
-		return false
+	if len(bPath) == 0 {
+		return "", false
 	}
-	_, err := os.Stat(bPath)
-	return err == nil
+	for _, p := range bPath {
+		_, err := os.Stat(p)
+		if err == nil {
+			return p, true
+		}
+	}
+	return "", false
 }
 
 func HandleBrowserWizard(ctx *cli.Context) error {
@@ -162,8 +168,9 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 
 //ConfigureBrowserSelection will verify the existance of the browser executable and promot for a path if it cannot be found
 func ConfigureBrowserSelection(browserName string, path string) error {
+	browserKey := GetBrowserKey(browserName)
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	browserTitle := strings.Title(strings.ToLower(GetBrowserKey(browserName)))
+	browserTitle := strings.Title(strings.ToLower(browserKey))
 	// We allow users to configure a custom install path is we cannot detect the installation
 	customBrowserPath := path
 	// detect installation
@@ -172,40 +179,30 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 		if err != nil {
 			return errors.Wrap(err, "provided path is invalid")
 		}
-	} else if !DetectInstallation(GetBrowserKey(browserName)) {
-		fmt.Fprintf(os.Stderr, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
-
-		validPath := false
-
-		for !validPath {
-			// prompt for custom path
-
-			bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
-			fmt.Fprintln(os.Stderr)
-			err := testable.AskOne(&bpIn, &customBrowserPath, withStdio)
-			if err != nil {
-				return err
-			}
-			if _, err := os.Stat(customBrowserPath); err == nil {
-				validPath = true
-			} else {
-				fmt.Fprintf(os.Stderr, "\n❌ The path you entered is not valid\n")
+	} else {
+		customBrowserPath, detected := DetectInstallation(browserKey)
+		if !detected {
+			fmt.Fprintf(os.Stderr, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
+			validPath := false
+			for !validPath {
+				// prompt for custom path
+				bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
+				fmt.Fprintln(os.Stderr)
+				err := testable.AskOne(&bpIn, &customBrowserPath, withStdio)
+				if err != nil {
+					return err
+				}
+				if _, err := os.Stat(customBrowserPath); err == nil {
+					validPath = true
+				} else {
+					fmt.Fprintf(os.Stderr, "\n❌ The path you entered is not valid\n")
+				}
 			}
 		}
-
 	}
 
-	if GetBrowserKey(browserName) == FirefoxKey {
-		fp := customBrowserPath
-		if customBrowserPath == "" {
-			firefoxPath, err := FirefoxPath()
-			if err != nil {
-				return err
-			}
-			fp = firefoxPath
-		}
-
-		err := RunFirefoxExtensionPrompts(fp)
+	if browserKey == FirefoxKey {
+		err := RunFirefoxExtensionPrompts(customBrowserPath)
 		if err != nil {
 			return err
 		}
@@ -217,7 +214,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 		return err
 	}
 
-	conf.DefaultBrowser = GetBrowserKey(browserName)
+	conf.DefaultBrowser = browserKey
 	conf.CustomBrowserPath = customBrowserPath
 	err = conf.Save()
 	if err != nil {
