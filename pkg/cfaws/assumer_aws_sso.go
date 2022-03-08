@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/fatih/color"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	ssotypes "github.com/aws/aws-sdk-go-v2/service/sso/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
@@ -103,7 +104,9 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			// only print for sub assumes because the final credentials are printed at the end of the assume command
 			// this is here for visibility in to role traversals when assuming a final profile with sso
 			if i < len(toAssume)-1 {
-				fmt.Fprintf(os.Stderr, "\033[32m\nAssumed parent profile: [%s](%s) session credentials will expire %s\033[0m\n", p.Name, region, stsRes.Credentials.Expiration.Local().String())
+				green := color.New(color.FgGreen)
+
+				green.Fprintf(os.Stderr, "\nAssumed parent profile: [%s](%s) session credentials will expire %s\n", p.Name, region, stsRes.Credentials.Expiration.Local().String())
 			}
 			credProvider = &CredProv{TypeCredsToAwsCreds(*stsRes.Credentials)}
 

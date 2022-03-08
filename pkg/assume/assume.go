@@ -12,6 +12,7 @@ import (
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/fatih/color"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/urfave/cli/v2"
@@ -172,10 +173,11 @@ func AssumeCommand(c *cli.Context) error {
 		// the shell script treats "None" as an emprty string and will not set a value for that positional output
 		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region})
 		fmt.Printf("GrantedAssume %s %s %s %s %s", output...)
+		green := color.New(color.FgGreen)
 		if creds.CanExpire {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, creds.Expires.Local().String())
+			green.Fprintf(os.Stderr, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
 		} else {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials ready\033[0m\n", profile.Name, region)
+			green.Fprintf(os.Stderr, "\n[%s](%s) session credentials ready\n", profile.Name, region)
 		}
 	}
 
