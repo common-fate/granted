@@ -53,7 +53,6 @@ jobs:
     name: assume installs and runs on linux
     runs-on: ubuntu-latest
     steps:
-      - shell: bash
       - uses: actions/checkout@v2
       - uses: actions/cache@v2
         with:
@@ -80,7 +79,7 @@ jobs:
         run: make cli
       - name: build test browser
         run: make test-browser-binary
-      - name: test
+      - shell: bash
         run: ./scripts/test.sh
 
       # - name: set default browser
