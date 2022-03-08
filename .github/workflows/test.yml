@@ -174,12 +174,12 @@ jobs:
           EOF
       - name: bash
         run: SHELL=/bin/bash dassume -auto-configure-shell
-        shell: bash {0}
+        shell: bash
       - name: assume bash
         run: |
-          SHELL=/bin/bash bash dassume test
+          SHELL=/bin/bash dassume test
           ./bin/tcreds
-        shell: bash {0}
+        shell: bash
       - name: zsh
         run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}

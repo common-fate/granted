@@ -5,7 +5,8 @@
 
 red=$(tput setaf 1)
 normal=$(tput sgr0)
-
+echo bs ${BASH_SOURCE[0]}
+echo $0
 # pass an environment variable to the Go binary if the Granted alias hasn't been configured
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
   GRANTED_RETURN_STATUS="true"
