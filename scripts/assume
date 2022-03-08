@@ -12,6 +12,7 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
   export GRANTED_ALIAS_CONFIGURED="true"
 fi
 
+export SHELL=$SHELL
 GRANTED_OUTPUT=$(assumego "$@")
 GRANTED_STATUS=$?
 read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 <<< $(echo $GRANTED_OUTPUT)
