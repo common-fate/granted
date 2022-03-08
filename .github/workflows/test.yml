@@ -76,7 +76,7 @@ jobs:
       - name: install granted
         run: make cli
       - name: build test browser
-        run: make test-browser-binary
+        run: make test-binaries
       - name: set default browser
         # configures granted to use the test browser binary
         run: dgranted browser set -b chrome -p ./bin/tbrowser
@@ -97,11 +97,13 @@ jobs:
           EOF
       - name: bash
         run: SHELL=/bin/bash dassume -auto-configure-shell
+      - name: bash
+        run: cat ~/.bash_profile
       - name: assume bash
         run: |
           source ~/.bash_profile
           SHELL=/bin/bash dassume test
-          make aws-credentials
+          ./bin/tcreds
         shell: bash
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
@@ -111,7 +113,7 @@ jobs:
       - name: assume zsh
         run: |
           SHELL=/bin/zsh dassume test
-          make aws-credentials
+          ./bin/tcreds
         shell: zsh {0}
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
@@ -121,5 +123,5 @@ jobs:
       - name: assume zsh
         run: |
           SHELL=fish dassume test
-          make aws-credentials
+          ./bin/tcreds
         shell: fish {0}
