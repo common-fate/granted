@@ -82,12 +82,12 @@ jobs:
         run: dgranted browser set -b chrome -p ./bin/tbrowser
 
       - name: setup fake aws profile
-        run: cat << EOF > ~/.aws/config
+        run: touch ~/.aws/config; cat << EOF > ~/.aws/config
           [profile test]
           region = ap-southeast-2
           EOF
       - name: setup fake aws profile credentials
-        run: cat << EOF > ~/.aws/credentials
+        run: touch ~/.aws/credentials; cat << EOF > ~/.aws/credentials
           [test]
           aws_access_key_id=1234578910abcdefghij
           aws_secret_access_key=1234578910abcdefghijklmnopqrstuvwxyz1234
