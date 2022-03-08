@@ -96,6 +96,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			stsRes, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
 				RoleArn:         &p.AWSConfig.RoleARN,
 				RoleSessionName: &p.Name,
+				TokenCode:       &p.AWSConfig.MFASerial,
 			})
 			if err != nil {
 				return aws.Credentials{}, err
