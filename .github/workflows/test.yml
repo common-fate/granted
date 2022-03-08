@@ -97,32 +97,29 @@ jobs:
           EOF
       - name: bash
         run: SHELL=/bin/bash dassume -auto-configure-shell
-        shell: bash
-      - name: bash
-        run: source ~/.bash_profile
-        shell: bash
-      - name: bash assume
-        run: SHELL=/bin/bash dassume test
-      - name: Env
-        run: make aws-credentials
+      - name: assume bash
+        run: |
+          source ~/.bash_profile
+          SHELL=/bin/bash dassume test
+          make aws-credentials
         shell: bash
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
       - name: zsh
         run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
-      - name: zsh assume
-        run: SHELL=/bin/zsh dassume test
+      - name: assume zsh
+        run: |
+          SHELL=/bin/zsh dassume test
+          make aws-credentials
         shell: zsh {0}
-      - name: Env
-        run: make aws-credentials
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
       - name: fish
         run: SHELL=fish dassume -auto-configure-shell
         shell: fish {0}
-      - name: fish assume
-        run: SHELL=fish dassume test
+      - name: assume zsh
+        run: |
+          SHELL=fish dassume test
+          make aws-credentials
         shell: fish {0}
-      - name: Env
-        run: make aws-credentials
