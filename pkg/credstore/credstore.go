@@ -67,23 +67,6 @@ func Clear(key string) error {
 	return ring.Remove(key)
 }
 
-func ClearWithProfileName(key string) error {
-	ring, err := openKeyring()
-	if err != nil {
-		return err
-	}
-	tokens, err := List()
-	if err != nil {
-		return err
-	}
-	for _, t := range tokens {
-		if t.Description == key {
-			return ring.Remove(t.Key)
-		}
-	}
-	return ring.Remove(key)
-}
-
 func ClearAll() error {
 
 	ring, err := openKeyring()

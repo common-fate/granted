@@ -87,7 +87,7 @@ var ClearTokensCommand = cli.Command{
 		}
 		selection = strings.Split(selection, "---")[0]
 
-		err = credstore.ClearWithProfileName(selection)
+		err = credstore.Clear(selection)
 		if err != nil {
 			return err
 		}
