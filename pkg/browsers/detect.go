@@ -109,7 +109,7 @@ func GetBrowserKey(b string) string {
 // DetectInstallation checks if the default filepath exists for the browser executables on the current os
 // returns the detected path
 func DetectInstallation(browserKey string) (string, bool) {
-	bPath := []string{}
+	var bPath []string
 	switch browserKey {
 	case ChromeKey:
 		bPath, _ = ChromePathDefaults()
