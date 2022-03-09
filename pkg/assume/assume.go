@@ -12,9 +12,9 @@ import (
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
-	"github.com/fatih/color"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -175,9 +175,9 @@ func AssumeCommand(c *cli.Context) error {
 		fmt.Printf("GrantedAssume %s %s %s %s %s", output...)
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
-			green.Fprintf(os.Stderr, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
+			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
 		} else {
-			green.Fprintf(os.Stderr, "\n[%s](%s) session credentials ready\n", profile.Name, region)
+			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
 		}
 	}
 
