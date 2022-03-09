@@ -27,7 +27,7 @@ func Retrieve(key string, target interface{}) error {
 	return json.Unmarshal(keyringItem.Data, &target)
 }
 
-func Store(key string, payload interface{}) error {
+func Store(key string, payload interface{}, profile string) error {
 	ring, err := openKeyring()
 	if err != nil {
 		return err
@@ -37,8 +37,9 @@ func Store(key string, payload interface{}) error {
 		return err
 	}
 	return ring.Set(keyring.Item{
-		Key:  key, // store with the corresponding key
-		Data: b,   // store the bytes
+		Key:         key,     // store with the corresponding key
+		Data:        b,       // store the bytes
+		Description: profile, //save the name for readability
 	})
 }
 
@@ -88,8 +89,8 @@ func openKeyring() (keyring.Keyring, error) {
 	})
 }
 
-func List() ([]string, error) {
-	//tokenList := []keyring.Item{}
+func List() ([]keyring.Item, error) {
+	tokenList := []keyring.Item{}
 	ring, err := openKeyring()
 	if err != nil {
 		return nil, err
@@ -98,13 +99,13 @@ func List() ([]string, error) {
 	if err != nil {
 		return nil, err
 	}
-	// for _, k := range keys {
-	// 	// item, err := ring.Get(k)
-	// 	// if err != nil {
-	// 	// 	return nil, err
-	// 	// }
-	// 	tokenList = append(tokenList, item)
+	for _, k := range keys {
+		item, err := ring.Get(k)
+		if err != nil {
+			return nil, err
+		}
+		tokenList = append(tokenList, item)
 
-	// }
-	return keys, nil
+	}
+	return tokenList, nil
 }

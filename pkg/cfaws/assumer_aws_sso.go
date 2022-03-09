@@ -63,7 +63,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		}
 	}
 	if newToken {
-		StoreSSOToken(ssoTokenKey, *cachedToken)
+		StoreSSOToken(ssoTokenKey, *cachedToken, rootProfile.Name)
 	}
 	// create sso client
 	ssoClient := sso.NewFromConfig(cfg)
