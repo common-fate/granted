@@ -39,7 +39,11 @@
       "request": "launch",
       "mode": "auto",
       "program": "cmd/granted/main.go",
-      "args": ["token", "remove", "cf-dev"],
+      "args": [
+        "token",
+        "remove",
+        "https://d-976708da7d.awsapps.com/start---(test)"
+      ],
       "env": {
         "FORCE_NO_ALIAS": true
       }

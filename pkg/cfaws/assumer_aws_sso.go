@@ -54,17 +54,17 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		return aws.Credentials{}, err
 	}
 	cachedToken := GetValidCachedToken(ssoTokenKey)
-	newToken := false
+	// newToken := false
 	if cachedToken == nil {
-		newToken = true
+		// newToken = true
 		cachedToken, err = SSODeviceCodeFlow(ctx, cfg, rootProfile)
 		if err != nil {
 			return aws.Credentials{}, err
 		}
 	}
-	if newToken {
-		StoreSSOToken(ssoTokenKey, *cachedToken, rootProfile.Name)
-	}
+	// if newToken {
+	StoreSSOToken(ssoTokenKey, *cachedToken, rootProfile.Name)
+	// }
 	// create sso client
 	ssoClient := sso.NewFromConfig(cfg)
 	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})

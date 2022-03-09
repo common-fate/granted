@@ -5,10 +5,12 @@ import (
 	"errors"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/99designs/keyring"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 )
 
@@ -36,10 +38,24 @@ func Store(key string, payload interface{}, profile string) error {
 	if err != nil {
 		return err
 	}
+	//look up the keyring to see if we already have a corresponding key
+	//if theres a url already set then update the description for another profile
+	var desc string
+	keyringItem, err := ring.Get(key)
+	if err != nil {
+		desc = profile
+		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "key not found")
+	} else {
+		if !strings.Contains(keyringItem.Description, profile) {
+			desc = keyringItem.Description + ", " + profile
+
+		}
+	}
+
 	return ring.Set(keyring.Item{
-		Key:         key,     // store with the corresponding key
-		Data:        b,       // store the bytes
-		Description: profile, //save the name for readability
+		Key:         key,  // store with the corresponding key
+		Data:        b,    // store the bytes
+		Description: desc, //save the name for readability
 	})
 }
 

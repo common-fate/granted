@@ -3,6 +3,7 @@ package granted
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/config"
@@ -36,7 +37,7 @@ var TokenListCommand = cli.Command{
 			return err
 		}
 		for i, token := range tokens {
-			fmt.Fprintf(os.Stderr, "%d. %s\n", i+1, token.Description)
+			fmt.Fprintf(os.Stderr, "%d. %s---(%s)\n", i+1, token.Key, token.Description)
 		}
 		return nil
 	},
@@ -71,7 +72,7 @@ var ClearTokensCommand = cli.Command{
 		if selection == "" {
 			tokenList := []string{}
 			for _, t := range keys {
-				tokenList = append(tokenList, t.Description)
+				tokenList = append(tokenList, t.Key+"---"+t.Description+")")
 			}
 			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 			in := survey.Select{
@@ -84,6 +85,7 @@ var ClearTokensCommand = cli.Command{
 				return err
 			}
 		}
+		selection = strings.Split(selection, "---")[0]
 
 		err = credstore.ClearWithProfileName(selection)
 		if err != nil {
