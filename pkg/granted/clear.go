@@ -28,7 +28,10 @@ var DefaultClearCommand = cli.Command{
 		}
 		if confirm {
 
-			credstore.ClearAll()
+			err := credstore.ClearAll()
+			if err != nil {
+				return err
+			}
 			grantedFolder, err := config.GrantedConfigFolder()
 			if err != nil {
 				return err

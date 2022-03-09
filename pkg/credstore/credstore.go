@@ -79,7 +79,10 @@ func ClearAll() error {
 		return err
 	}
 	for _, k := range keys {
-		ring.Remove(k)
+		err := ring.Remove(k)
+		if err != nil {
+			return err
+		}
 
 	}
 	return nil
