@@ -39,10 +39,10 @@
       "request": "launch",
       "mode": "auto",
       "program": "cmd/assume/main.go",
-      "args": ["cf-dev", "-d", "12h"],
+      "args": ["demo-sandbox1", "-d", "12h"],
       "env": {
         "FORCE_NO_ALIAS": true,
-        "AWS_PROFILE": "cf-dev"
+        "AWS_PROFILE": "demo-sandbox1"
       }
     }
   ]

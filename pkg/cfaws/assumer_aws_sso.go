@@ -66,6 +66,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	if newToken {
 		StoreSSOToken(ssoTokenKey, *cachedToken)
 	}
+
 	// create sso client
 	ssoClient := sso.NewFromConfig(cfg)
 	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})

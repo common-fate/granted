@@ -184,7 +184,8 @@ func AssumeCommand(c *cli.Context) error {
 		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region})
 		fmt.Printf("GrantedAssume %s %s %s %s %s", output...)
 		if creds.CanExpire {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, creds.Expires.Local().String())
+			duration := profile.AWSConfig.RoleDurationSeconds.Hours()
+			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s (%fh)\033[0m\n", profile.Name, region, creds.Expires.Local().String(), duration)
 		} else {
 			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials ready\033[0m\n", profile.Name, region)
 		}
