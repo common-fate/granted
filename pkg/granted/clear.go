@@ -10,7 +10,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var DefaultClearCommand = cli.Command{
+var ClearCommand = cli.Command{
 	Name:        "reset",
 	Usage:       "Factory reset of granted config",
 	Subcommands: []*cli.Command{},

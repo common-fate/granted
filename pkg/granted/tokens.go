@@ -11,9 +11,9 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-var DefaultTokenCommand = cli.Command{
+var TokenCommand = cli.Command{
 	Name:        "token",
-	Usage:       "Functionality to make ",
+	Usage:       "Manage aws access tokens",
 	Subcommands: []*cli.Command{&TokenListCommand, &ClearTokensCommand, &ClearAllTokensCommand},
 	Action: func(c *cli.Context) error {
 		//return the default browser that is set
@@ -29,7 +29,7 @@ var DefaultTokenCommand = cli.Command{
 
 var TokenListCommand = cli.Command{
 	Name:  "list",
-	Usage: "Remove all saved tokens from keyring and delete all granted configuration",
+	Usage: "Lists all access tokens saved in the keyring",
 	Action: func(ctx *cli.Context) error {
 		tokens, err := credstore.List()
 		if err != nil {
@@ -56,7 +56,7 @@ var ClearAllTokensCommand = cli.Command{
 
 var ClearTokensCommand = cli.Command{
 	Name:  "remove",
-	Usage: "Remove a selected token from the keychain",
+	Usage: "Remove a selected token from the keyring",
 	Action: func(c *cli.Context) error {
 		var selection string
 
@@ -75,7 +75,7 @@ var ClearTokensCommand = cli.Command{
 			}
 			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 			in := survey.Select{
-				Message: "Select a token to remove from keychain",
+				Message: "Select a token to remove from keyring",
 				Options: tokenList,
 			}
 			fmt.Fprintln(os.Stderr)
