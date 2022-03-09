@@ -58,27 +58,34 @@ var ClearTokensCommand = cli.Command{
 	Name:  "remove",
 	Usage: "Remove a selected token from the keychain",
 	Action: func(c *cli.Context) error {
+		var selection string
+
+		if c.Args().First() != "" {
+			selection = c.Args().First()
+		}
+
 		keys, err := credstore.List()
 		if err != nil {
 			return err
 		}
-		tokenList := []string{}
-		for _, t := range keys {
-			tokenList = append(tokenList, t.Description)
-		}
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := survey.Select{
-			Message: "Select a token to remove from keychain",
-			Options: tokenList,
-		}
-		var selection string
-		fmt.Fprintln(os.Stderr)
-		err = testable.AskOne(&in, &selection, withStdio)
-		if err != nil {
-			return err
+		if selection == "" {
+			tokenList := []string{}
+			for _, t := range keys {
+				tokenList = append(tokenList, t.Description)
+			}
+			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+			in := survey.Select{
+				Message: "Select a token to remove from keychain",
+				Options: tokenList,
+			}
+			fmt.Fprintln(os.Stderr)
+			err = testable.AskOne(&in, &selection, withStdio)
+			if err != nil {
+				return err
+			}
 		}
 
-		err = credstore.Clear(selection)
+		err = credstore.ClearWithProfileName(selection)
 		if err != nil {
 			return err
 		}
