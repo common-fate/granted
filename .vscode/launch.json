@@ -39,10 +39,10 @@
       "request": "launch",
       "mode": "auto",
       "program": "cmd/assume/main.go",
-      "args": ["test-ad", "-pass-through", "a b"],
+      "args": ["cf-dev"],
       "env": {
         "FORCE_NO_ALIAS": true,
-        "AWS_PROFILE": "cf-testing"
+        "AWS_PROFILE": "cf-dev"
       }
     }
   ]

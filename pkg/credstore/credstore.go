@@ -50,6 +50,23 @@ func Clear(key string) error {
 	return ring.Remove(key)
 }
 
+func ClearAll() error {
+
+	ring, err := openKeyring()
+	if err != nil {
+		return err
+	}
+	keys, err := ring.Keys()
+	if err != nil {
+		return err
+	}
+	for _, k := range keys {
+		ring.Remove(k)
+
+	}
+	return nil
+}
+
 func openKeyring() (keyring.Keyring, error) {
 	grantedFolder, err := config.GrantedConfigFolder()
 	if err != nil {
@@ -69,4 +86,25 @@ func openKeyring() (keyring.Keyring, error) {
 		},
 		ServiceName: "granted",
 	})
+}
+
+func List() ([]string, error) {
+	//tokenList := []keyring.Item{}
+	ring, err := openKeyring()
+	if err != nil {
+		return nil, err
+	}
+	keys, err := ring.Keys()
+	if err != nil {
+		return nil, err
+	}
+	// for _, k := range keys {
+	// 	// item, err := ring.Get(k)
+	// 	// if err != nil {
+	// 	// 	return nil, err
+	// 	// }
+	// 	tokenList = append(tokenList, item)
+
+	// }
+	return keys, nil
 }
