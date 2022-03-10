@@ -77,7 +77,7 @@ func SetupShellWizard(autoConfigure bool) (*SetupShellResults, error) {
 	if !autoConfigure {
 		ul := color.New(color.Underline).SprintFunc()
 
-		fmt.Fprintf(os.Stderr, "ℹ️  To assume roles with Granted, we need to add an alias to your shell profile (%s).\n", ul("https://granted.dev/shell-alias"))
+		fmt.Fprintf(color.Error, "ℹ️  To assume roles with Granted, we need to add an alias to your shell profile (%s).\n", ul("https://granted.dev/shell-alias"))
 
 		label := fmt.Sprintf("Install %s alias at %s", shell, cfg.File)
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
@@ -95,7 +95,7 @@ func SetupShellWizard(autoConfigure bool) (*SetupShellResults, error) {
 			return nil, errors.New("cancelled alias installation")
 		}
 
-		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(color.Error, "")
 	}
 
 	err = install(cfg)
@@ -104,7 +104,7 @@ func SetupShellWizard(autoConfigure bool) (*SetupShellResults, error) {
 	}
 
 	alert := color.New(color.Bold, color.FgYellow).SprintFunc()
-	fmt.Fprintf(os.Stderr, "\n%s\n", alert("Shell restart required to apply changes: please open a new terminal window and re-run your command."))
+	fmt.Fprintf(color.Error, "\n%s\n", alert("Shell restart required to apply changes: please open a new terminal window and re-run your command."))
 	os.Exit(0)
 
 	r := SetupShellResults{
@@ -242,7 +242,7 @@ func install(cfg Config) error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Added the Granted alias to %s\n", cfg.File)
+	fmt.Fprintf(color.Error, "Added the Granted alias to %s\n", cfg.File)
 	return nil
 }
 
@@ -302,6 +302,6 @@ func uninstall(cfg Config) error {
 		return err
 	}
 
-	fmt.Fprintf(os.Stderr, "Removed the Granted alias from %s\n", cfg.File)
+	fmt.Fprintf(color.Error, "Removed the Granted alias from %s\n", cfg.File)
 	return nil
 }

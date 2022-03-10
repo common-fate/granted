@@ -2,10 +2,10 @@ package granted
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -19,7 +19,7 @@ var DefaultBrowserCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(os.Stderr, "Granted is using %s. To change this run `granted browser set`.\n", conf.DefaultBrowser)
+		fmt.Fprintf(color.Error, "Granted is using %s. To change this run `granted browser set`.\n", conf.DefaultBrowser)
 
 		return nil
 	},
@@ -36,7 +36,7 @@ var SetBrowserCommand = cli.Command{
 
 		if outcome == "" {
 			if path != "" {
-				fmt.Fprintln(os.Stderr, "-path flag must be usedwith -browser flag, provided path will be ignored.")
+				fmt.Fprintln(color.Error, "-path flag must be usedwith -browser flag, provided path will be ignored.")
 			}
 			outcome, err = browsers.HandleManualBrowserSelection()
 			if err != nil {

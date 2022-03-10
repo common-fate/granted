@@ -79,7 +79,7 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 		)
 		err = cmd.Start()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "\nGranted was unable to open a browser session automatically")
+			fmt.Fprintf(color.Error, "\nGranted was unable to open a browser session automatically")
 			//allow them to try open the url manually
 			ManuallyOpenURL(url)
 			return nil
@@ -118,7 +118,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		tabURL)
 	err = cmd.Start()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\nGranted was unable to open a browser session automatically")
+		fmt.Fprintf(color.Error, "\nGranted was unable to open a browser session automatically")
 		//allow them to try open the url manually
 		ManuallyOpenURL(tabURL)
 		return nil
@@ -304,7 +304,7 @@ func PromoteUseFlags(labels RoleLabels) {
 	}
 
 	if labels.Region == "" || labels.Service == "" {
-		fmt.Fprintf(os.Stderr, "\nℹ️  %s (https://docs.commonfate.io/granted/usage/console)\n", strings.Join(m, " or "))
+		fmt.Fprintf(color.Error, "\nℹ️  %s (https://docs.commonfate.io/granted/usage/console)\n", strings.Join(m, " or "))
 
 	}
 }

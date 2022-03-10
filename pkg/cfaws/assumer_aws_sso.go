@@ -3,18 +3,17 @@ package cfaws
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/fatih/color"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	ssotypes "github.com/aws/aws-sdk-go-v2/service/sso/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/fatih/color"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 )
@@ -106,7 +105,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			if i < len(toAssume)-1 {
 				green := color.New(color.FgGreen)
 
-				green.Fprintf(os.Stderr, "\nAssumed parent profile: [%s](%s) session credentials will expire %s\n", p.Name, region, stsRes.Credentials.Expiration.Local().String())
+				green.Fprintf(color.Error, "\nAssumed parent profile: [%s](%s) session credentials will expire %s\n", p.Name, region, stsRes.Credentials.Expiration.Local().String())
 			}
 			credProvider = &CredProv{TypeCredsToAwsCreds(*stsRes.Credentials)}
 
@@ -140,13 +139,13 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 	}
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	fmt.Fprintf(os.Stderr, "If browser is not opened automatically, please open link:\n%v\n", url)
+	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 	err = browser.OpenURL(url)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Fprintln(os.Stderr, "\nAwaiting authentication in the browser...")
+	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
 		return nil, err

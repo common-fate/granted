@@ -40,7 +40,7 @@ func HandleManualBrowserSelection() (string, error) {
 		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Chromium"},
 	}
 	var selection string
-	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(color.Error)
 	err := testable.AskOne(&in, &selection, withStdio)
 	if err != nil {
 		return "", err
@@ -79,7 +79,7 @@ func Find() (string, error) {
 	}
 
 	if outcome == "" {
-		fmt.Fprintf(os.Stderr, "\nℹ️  Could not find default browser\n")
+		fmt.Fprintf(color.Error, "\nℹ️  Could not find default browser\n")
 		return HandleManualBrowserSelection()
 	}
 
@@ -138,21 +138,21 @@ func DetectInstallation(browserKey string) (string, bool) {
 
 func HandleBrowserWizard(ctx *cli.Context) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	fmt.Fprintf(os.Stderr, "\nGranted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers).\n")
+	fmt.Fprintf(color.Error, "\nGranted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers).\n")
 
 	browserName, err := Find()
 	if err != nil {
 		return err
 	}
 	browserTitle := strings.Title(strings.ToLower(GetBrowserKey(browserName)))
-	fmt.Fprintf(os.Stderr, "\nℹ️  Granted has detected that your default browser is %s.\n", browserTitle)
+	fmt.Fprintf(color.Error, "\nℹ️  Granted has detected that your default browser is %s.\n", browserTitle)
 
 	in := survey.Select{
 		Message: "Use this browser with Granted?",
 		Options: []string{"Yes", "Choose a different browser"},
 	}
 	var opt string
-	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(color.Error)
 	err = testable.AskOne(&in, &opt, withStdio)
 	if err != nil {
 		return err
@@ -183,12 +183,12 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	} else {
 		customBrowserPath, detected := DetectInstallation(browserKey)
 		if !detected {
-			fmt.Fprintf(os.Stderr, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
+			fmt.Fprintf(color.Error, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
 			validPath := false
 			for !validPath {
 				// prompt for custom path
 				bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
-				fmt.Fprintln(os.Stderr)
+				fmt.Fprintln(color.Error)
 				err := testable.AskOne(&bpIn, &customBrowserPath, withStdio)
 				if err != nil {
 					return err
@@ -196,7 +196,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 				if _, err := os.Stat(customBrowserPath); err == nil {
 					validPath = true
 				} else {
-					fmt.Fprintf(os.Stderr, "\n❌ The path you entered is not valid\n")
+					fmt.Fprintf(color.Error, "\n❌ The path you entered is not valid\n")
 				}
 			}
 		}
@@ -224,24 +224,24 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 
 	alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
 
-	fmt.Fprintf(os.Stderr, "\n%s\n", alert("✅  Granted will default to using %s.", browserTitle))
+	fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s.", browserTitle))
 
 	return nil
 }
 
 func GrantedIntroduction() {
-	fmt.Fprintf(os.Stderr, "\nTo change the web browser that Granted uses run: `granted browser -set`\n")
-	fmt.Fprintf(os.Stderr, "\n\nHere's how to use Granted to supercharge your cloud access:\n")
-	fmt.Fprintf(os.Stderr, "\n`assume`                   - search profiles to assume\n")
-	fmt.Fprintf(os.Stderr, "\n`assume <PROFILE_NAME>`    - assume a profile\n")
-	fmt.Fprintf(os.Stderr, "\n`assume -c <PROFILE_NAME>` - open the console for the specified profile\n")
+	fmt.Fprintf(color.Error, "\nTo change the web browser that Granted uses run: `granted browser -set`\n")
+	fmt.Fprintf(color.Error, "\n\nHere's how to use Granted to supercharge your cloud access:\n")
+	fmt.Fprintf(color.Error, "\n`assume`                   - search profiles to assume\n")
+	fmt.Fprintf(color.Error, "\n`assume <PROFILE_NAME>`    - assume a profile\n")
+	fmt.Fprintf(color.Error, "\n`assume -c <PROFILE_NAME>` - open the console for the specified profile\n")
 
 	os.Exit(0)
 
 }
 
 func RunFirefoxExtensionPrompts(firefoxPath string) error {
-	fmt.Fprintf(os.Stderr, "\nℹ️  In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted.\nThis addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon).\n")
+	fmt.Fprintf(color.Error, "\nℹ️  In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted.\nThis addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon).\n")
 
 	label := "Open Firefox to download the extension?"
 
@@ -251,7 +251,7 @@ func RunFirefoxExtensionPrompts(firefoxPath string) error {
 		Options: []string{"Yes", "Already installed", "No"},
 	}
 	var out string
-	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(color.Error)
 	err := testable.AskOne(in, &out, withStdio)
 	if err != nil {
 		return err
@@ -284,7 +284,7 @@ func RunFirefoxExtensionPrompts(firefoxPath string) error {
 		Default: true,
 	}
 	var confirm bool
-	fmt.Fprintln(os.Stderr)
+	fmt.Fprintln(color.Error)
 	err = testable.AskOne(confIn, &confirm, withStdio)
 	if err != nil {
 		return err

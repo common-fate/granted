@@ -11,6 +11,7 @@ import (
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/updates"
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -30,12 +31,12 @@ var GlobalFlags = []cli.Flag{
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Fprintln(os.Stderr, banners.WithVersion(banners.Assume()))
+		fmt.Fprintln(color.Error, banners.WithVersion(banners.Assume()))
 	}
 
 	app := &cli.App{
 		Name:                 "assume",
-		Writer:               os.Stderr,
+		Writer:               color.Error,
 		Usage:                "https://granted.dev",
 		UsageText:            "assume [options][Profile]",
 		Version:              build.Version,
