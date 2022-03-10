@@ -2,10 +2,10 @@ package settings
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/fatih/color"
 	"github.com/fatih/structs"
 	"github.com/olekukonko/tablewriter"
 	"github.com/urfave/cli/v2"
@@ -29,7 +29,7 @@ var PrintCommand = cli.Command{
 			data = append(data, []string{k, fmt.Sprint(v)})
 		}
 
-		table := tablewriter.NewWriter(os.Stderr)
+		table := tablewriter.NewWriter(color.Error)
 		table.SetHeader([]string{"SETTING", "VALUE"})
 		table.SetAutoWrapText(false)
 		table.SetAutoFormatHeaders(true)

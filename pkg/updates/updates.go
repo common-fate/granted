@@ -11,6 +11,7 @@ import (
 	"github.com/common-fate/granted/pkg/api"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,23 +24,23 @@ func Check(c *cli.Context) (string, bool) {
 	}
 	updateCheckerApiUrl := c.String("update-checker-api-url")
 	if updateCheckerApiUrl != "" {
-		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "starting update check\n")
+		debug.Fprintf(debug.VerbosityDebug, color.Error, "starting update check\n")
 		cfg, err := config.Load()
 		if err != nil {
 			return "", false
 		}
 		if cfg.LastCheckForUpdates != time.Now().Weekday() {
-			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "connecting to update checker\n")
+			debug.Fprintf(debug.VerbosityDebug, color.Error, "connecting to update checker\n")
 			cc, err := api.NewClientConn(c.Context, updateCheckerApiUrl)
 			if err != nil {
-				debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed connecting to update checker: %s\n", err.Error())
+				debug.Fprintf(debug.VerbosityDebug, color.Error, "failed connecting to update checker: %s\n", err.Error())
 				return "", false
 			}
-			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "connected to update checker\n")
+			debug.Fprintf(debug.VerbosityDebug, color.Error, "connected to update checker\n")
 			updateClient := updatev1alpha1.NewUpdateServiceClient(cc)
 			r, err := updateClient.CheckForUpdates(c.Context, &updatev1alpha1.CheckForUpdatesRequest{Version: "v" + build.Version, Application: "granted-cli"})
 			if err != nil {
-				debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed checking for updates: %s\n", err.Error())
+				debug.Fprintf(debug.VerbosityDebug, color.Error, "failed checking for updates: %s\n", err.Error())
 				return "", false
 			}
 			cfg.LastCheckForUpdates = time.Now().Weekday()
@@ -69,7 +70,7 @@ func WithUpdateCheck(action cli.ActionFunc) cli.ActionFunc {
 		err := action(c)
 		wg.Wait()
 		if updateAvailable {
-			fmt.Fprintf(os.Stderr, "\n%s\n", msg)
+			fmt.Fprintf(color.Error, "\n%s\n", msg)
 		}
 		return err
 	}

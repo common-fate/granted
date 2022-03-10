@@ -14,6 +14,7 @@ import (
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
+	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -40,7 +41,7 @@ func AssumeCommand(c *cli.Context) error {
 	if inProfile != "" {
 		var ok bool
 		if profile, ok = awsProfiles[inProfile]; !ok {
-			fmt.Fprintf(os.Stderr, "%s does not match any profiles in your AWS config\n", inProfile)
+			fmt.Fprintf(color.Error, "%s does not match any profiles in your AWS config\n", inProfile)
 		} else {
 			// background task to update the frecency cache
 			wg.Add(1)
@@ -54,10 +55,10 @@ func AssumeCommand(c *cli.Context) error {
 	//set the sesh creds using the active role if we have one and the flag is set
 	if activeRoleFlag && activeRoleProfile != "" {
 		//try opening using the active role
-		fmt.Fprintf(os.Stderr, "Attempting to open using active role...\n")
+		fmt.Fprintf(color.Error, "Attempting to open using active role...\n")
 		profile = awsProfiles[activeRoleProfile]
 		if profile == nil {
-			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "failed to find a profile matching AWS_PROFILE=%s when using the active-profile flag", activeRoleProfile)
+			debug.Fprintf(debug.VerbosityDebug, color.Error, "failed to find a profile matching AWS_PROFILE=%s when using the active-profile flag", activeRoleProfile)
 		}
 
 	}
@@ -67,16 +68,16 @@ func AssumeCommand(c *cli.Context) error {
 	if profile == nil {
 
 		fr, profiles := awsProfiles.GetFrecentProfiles()
-		fmt.Fprintln(os.Stderr, "")
+		fmt.Fprintln(color.Error, "")
 		// Replicate the logic from original assume fn.
 		in := survey.Select{
 			Message: "Please select the profile you would like to assume:",
 			Options: profiles,
 		}
 		if len(profiles) == 0 {
-			fmt.Fprintln(os.Stderr, "ℹ️ Granted couldn't find any aws roles")
-			fmt.Fprintln(os.Stderr, "You can add roles to your aws config by following our guide: ")
-			fmt.Fprintln(os.Stderr, "https://granted.dev/awsconfig")
+			fmt.Fprintln(color.Error, "ℹ️ Granted couldn't find any aws roles")
+			fmt.Fprintln(color.Error, "You can add roles to your aws config by following our guide: ")
+			fmt.Fprintln(color.Error, "https://granted.dev/awsconfig")
 			return nil
 		}
 		var p string
@@ -160,7 +161,7 @@ func AssumeCommand(c *cli.Context) error {
 		labels.Region = region
 		labels.Service = service
 		browsers.PromoteUseFlags(labels)
-		fmt.Fprintf(os.Stderr, "\nOpening a console for %s in your browser...\n", profile.Name)
+		fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
 		return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
 	} else {
 		creds, err := profile.AssumeTerminal(c.Context, assumeFlags.StringSlice("pass-through"))
@@ -172,10 +173,11 @@ func AssumeCommand(c *cli.Context) error {
 		// the shell script treats "None" as an emprty string and will not set a value for that positional output
 		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region})
 		fmt.Printf("GrantedAssume %s %s %s %s %s", output...)
+		green := color.New(color.FgGreen)
 		if creds.CanExpire {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials will expire %s\033[0m\n", profile.Name, region, creds.Expires.Local().String())
+			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
 		} else {
-			fmt.Fprintf(os.Stderr, "\033[32m\n[%s](%s) session credentials ready\033[0m\n", profile.Name, region)
+			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
 		}
 	}
 

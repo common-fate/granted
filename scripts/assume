@@ -5,13 +5,14 @@
 
 red=$(tput setaf 1)
 normal=$(tput sgr0)
-
 # pass an environment variable to the Go binary if the Granted alias hasn't been configured
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
   GRANTED_RETURN_STATUS="true"
   export GRANTED_ALIAS_CONFIGURED="true"
 fi
 
+# in some cases such as github actions, the SHELL env var is not available to the program
+# so here we set it explicitly 
 GRANTED_OUTPUT=$(assumego "$@")
 GRANTED_STATUS=$?
 read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 <<< $(echo $GRANTED_OUTPUT)
