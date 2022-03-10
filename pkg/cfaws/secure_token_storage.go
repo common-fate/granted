@@ -28,8 +28,8 @@ func GetValidCachedToken(profileKey string) *SSOToken {
 }
 
 // Attempts to store the token, any errors will be logged to debug logging
-func StoreSSOToken(profileKey string, ssoTokenValue SSOToken, profile string) {
-	err := credstore.Store(profileKey, ssoTokenValue, profile)
+func StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
+	err := credstore.Store(profileKey, ssoTokenValue)
 	if err != nil {
 		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "writing sso token to credentials cache").Error())
 	}

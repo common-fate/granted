@@ -27,7 +27,7 @@ func Retrieve(key string, target interface{}) error {
 	return json.Unmarshal(keyringItem.Data, &target)
 }
 
-func Store(key string, payload interface{}, profile string) error {
+func Store(key string, payload interface{}) error {
 	ring, err := openKeyring()
 	if err != nil {
 		return err
