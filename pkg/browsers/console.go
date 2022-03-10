@@ -57,27 +57,11 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 	}
 	chromePath := cfg.CustomBrowserPath
 	if chromePath == "" {
-		switch selectedBrowser {
-		case BrowserChrome:
-			chromePath, err = ChromePath()
-		case BrowserBrave:
-			chromePath, err = BravePath()
-		case BrowserEdge:
-			chromePath, err = EdgePath()
-		case BrowserChromium:
-			chromePath, err = ChromiumPath()
-		default:
-			return errors.New("os not supported")
-		}
-		if err != nil {
-			return err
-		}
+		return fmt.Errorf("default browser not configured. run `granted browser set` to configure")
 	}
-
 	// check if the default chrome location is accessible
 	_, err = os.Stat(chromePath)
 	if err == nil {
-
 		grantedFolder, err := config.GrantedConfigFolder()
 		if err != nil {
 			return err
@@ -95,7 +79,7 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 		)
 		err = cmd.Start()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "\nGranted was unable to open a browser session automatically")
+			fmt.Fprintf(color.Error, "\nGranted was unable to open a browser session automatically")
 			//allow them to try open the url manually
 			ManuallyOpenURL(url)
 			return nil
@@ -104,7 +88,6 @@ func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Brow
 		return cmd.Process.Release()
 	}
 	return errors.New("could not locate a Chrome installation")
-
 }
 
 func ManuallyOpenURL(url string) {
@@ -126,10 +109,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 	}
 	firefoxPath := cfg.CustomBrowserPath
 	if firefoxPath == "" {
-		firefoxPath, err = FirefoxPath()
-		if err != nil {
-			return err
-		}
+		return fmt.Errorf("default browser not configured. run `granted browser set` to configure")
 	}
 
 	tabURL := MakeFirefoxContainerURL(urlString, labels)
@@ -138,7 +118,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		tabURL)
 	err = cmd.Start()
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "\nGranted was unable to open a browser session automatically")
+		fmt.Fprintf(color.Error, "\nGranted was unable to open a browser session automatically")
 		//allow them to try open the url manually
 		ManuallyOpenURL(tabURL)
 		return nil
@@ -324,7 +304,7 @@ func PromoteUseFlags(labels RoleLabels) {
 	}
 
 	if labels.Region == "" || labels.Service == "" {
-		fmt.Fprintf(os.Stderr, "\nℹ️  %s (https://docs.commonfate.io/granted/usage/console)\n", strings.Join(m, " or "))
+		fmt.Fprintf(color.Error, "\nℹ️  %s (https://docs.commonfate.io/granted/usage/console)\n", strings.Join(m, " or "))
 
 	}
 }

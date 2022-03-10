@@ -53,18 +53,18 @@ var CompletionCommand = cli.Command{
 			// Try create a file
 			err := os.WriteFile(executableDir, []byte(combinedOutput), 0600)
 			if err != nil {
-				fmt.Fprintln(os.Stderr, "Something went wrong when saving fish autocompletions: "+err.Error())
+				fmt.Fprintln(color.Error, "Something went wrong when saving fish autocompletions: "+err.Error())
 			}
 
 			green := color.New(color.FgGreen)
 
-			green.Fprintln(os.Stderr, "[✔] Fish autocompletions generated successfully ")
-			fmt.Fprintln(os.Stderr, "To use these completions please run the executable:")
-			fmt.Fprintln(os.Stderr, "source "+executableDir)
+			green.Fprintln(color.Error, "[✔] Fish autocompletions generated successfully ")
+			fmt.Fprintln(color.Error, "To use these completions please run the executable:")
+			fmt.Fprintln(color.Error, "source "+executableDir)
 
 		} else {
-			fmt.Fprintln(os.Stderr, "To install completions for other shells like zsh, bash, please see our docs:")
-			fmt.Fprintln(os.Stderr, "https://granted.dev/autocompletion")
+			fmt.Fprintln(color.Error, "To install completions for other shells like zsh, bash, please see our docs:")
+			fmt.Fprintln(color.Error, "https://granted.dev/autocompletion")
 			/*
 				@TODO: consider adding automatic support for other shells in this same CLI command
 					Can be modelled off these tools
@@ -77,5 +77,4 @@ var CompletionCommand = cli.Command{
 	},
 
 	Description: "To install completions for other shells like zsh, bash, please see our docs:\nhttps://granted.dev/autocompletion\n",
-
 }

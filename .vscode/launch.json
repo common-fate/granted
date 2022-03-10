@@ -5,12 +5,26 @@
   "version": "0.2.0",
   "configurations": [
     {
+      "name": "Run test",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/testing/main.go"
+    },
+    {
       "name": "Run command assume",
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "cmd/assume/main.go",
-      "env": { "FORCE_NO_ALIAS": true }
+      "program": "cmd/assume/main.go"
+    },
+    {
+      "name": "Run uninstall",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/granted/main.go",
+      "args": ["uninstall"]
     },
     {
       "name": "Run command granted",
@@ -19,7 +33,7 @@
       "mode": "auto",
       "program": "cmd/granted/main.go",
       "args": ["completion"],
-      "env": { "FORCE_NO_ALIAS": true }
+      "env": { "FORCE_NO_ALIAS": "true" }
     },
     {
       "name": "Run command assume active role",
@@ -29,7 +43,7 @@
       "program": "cmd/assume/main.go",
       "args": ["test-role", "-c", "-s iam", "-r region-name"],
       "env": {
-        "FORCE_NO_ALIAS": true,
+        "FORCE_NO_ALIAS": "true",
         "AWS_PROFILE": "cf-dev"
       }
     },

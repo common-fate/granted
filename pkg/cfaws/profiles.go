@@ -3,7 +3,6 @@ package cfaws
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -11,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 )
 
@@ -55,7 +55,7 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 	for _, section := range configFile.Sections() {
 		rawConfig, err := configFile.Items(section)
 		if err != nil {
-			debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
+			debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
 			continue
 		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
@@ -63,7 +63,7 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 			name := strings.TrimPrefix(section, "profile ")
 			cf, err := config.LoadSharedConfigProfile(ctx, name)
 			if err != nil {
-				debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
+				debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
 				continue
 			} else {
 				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
@@ -110,7 +110,7 @@ func (c *uninitCFSharedConfig) init(profiles map[string]*uninitCFSharedConfig, d
 				c.Parents = append(sourceProfile.Parents, sourceProfile.CFSharedConfig)
 			}
 		} else {
-			fmt.Fprintf(os.Stderr, "maximum source profile depth exceeded for profile %s\nthis indicates that you have a cyclic reference in your aws profiles.[profile dev]\nregion = ap-southeast-2\nsource_profile = prod\n\n[profile prod]\nregion = ap-southeast-2\nsource_profile = dev", c.Name)
+			fmt.Fprintf(color.Error, "maximum source profile depth exceeded for profile %s\nthis indicates that you have a cyclic reference in your aws profiles.[profile dev]\nregion = ap-southeast-2\nsource_profile = prod\n\n[profile prod]\nregion = ap-southeast-2\nsource_profile = dev", c.Name)
 		}
 		c.initialised = true
 	}
