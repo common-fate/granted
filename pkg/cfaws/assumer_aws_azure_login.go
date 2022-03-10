@@ -41,6 +41,7 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 	if err != nil {
 		return aws.Credentials{}, err
 	}
+	// reload the profile from disk to check for the new credentials
 	cfg, err := c.AwsConfig(ctx, false)
 	if err != nil {
 		return aws.Credentials{}, err

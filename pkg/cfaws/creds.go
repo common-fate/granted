@@ -37,7 +37,6 @@ func GetCredentialsCreds(ctx context.Context, c *CFSharedConfig) (aws.Credential
 		return aws.Credentials{}, err
 	}
 	creds, _ := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
-
 	//check creds are valid - return them if they are
 	if creds.HasKeys() && !creds.Expired() {
 		return creds, nil

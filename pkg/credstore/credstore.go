@@ -36,6 +36,7 @@ func Store(key string, payload interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	return ring.Set(keyring.Item{
 		Key:  key, // store with the corresponding key
 		Data: b,   // store the bytes
@@ -48,6 +49,26 @@ func Clear(key string) error {
 		return err
 	}
 	return ring.Remove(key)
+}
+
+func ClearAll() error {
+
+	ring, err := openKeyring()
+	if err != nil {
+		return err
+	}
+	keys, err := ring.Keys()
+	if err != nil {
+		return err
+	}
+	for _, k := range keys {
+		err := ring.Remove(k)
+		if err != nil {
+			return err
+		}
+
+	}
+	return nil
 }
 
 func openKeyring() (keyring.Keyring, error) {
@@ -69,4 +90,33 @@ func openKeyring() (keyring.Keyring, error) {
 		},
 		ServiceName: "granted",
 	})
+}
+
+func List() ([]keyring.Item, error) {
+	tokenList := []keyring.Item{}
+	ring, err := openKeyring()
+	if err != nil {
+		return nil, err
+	}
+	keys, err := ring.Keys()
+	if err != nil {
+		return nil, err
+	}
+	for _, k := range keys {
+		item, err := ring.Get(k)
+		if err != nil {
+			return nil, err
+		}
+		tokenList = append(tokenList, item)
+
+	}
+	return tokenList, nil
+}
+
+func ListKeys() ([]string, error) {
+	ring, err := openKeyring()
+	if err != nil {
+		return nil, err
+	}
+	return ring.Keys()
 }

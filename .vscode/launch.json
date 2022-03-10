@@ -48,15 +48,30 @@
       }
     },
     {
+      "name": "Remove token",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/granted/main.go",
+      "args": [
+        "token",
+        "remove",
+        "https://d-976708da7d.awsapps.com/start---(test)"
+      ],
+      "env": {
+        "FORCE_NO_ALIAS": true
+      }
+    },
+    {
       "name": "Run command url",
       "type": "go",
       "request": "launch",
       "mode": "auto",
       "program": "cmd/assume/main.go",
-      "args": ["test-ad", "-pass-through", "a b"],
+      "args": ["demo-sandbox1"],
       "env": {
-        "FORCE_NO_ALIAS": "true",
-        "AWS_PROFILE": "cf-testing"
+        "FORCE_NO_ALIAS": true,
+        "AWS_PROFILE": "demo-sandbox1"
       }
     }
   ]

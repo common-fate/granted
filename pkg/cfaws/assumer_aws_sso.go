@@ -61,6 +61,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		if err != nil {
 			return aws.Credentials{}, err
 		}
+
 	}
 	if newToken {
 		StoreSSOToken(ssoTokenKey, *cachedToken)
@@ -130,6 +131,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 
 	// authorize your device using the client registration response
 	deviceAuth, err := ssooidcClient.StartDeviceAuthorization(ctx, &ssooidc.StartDeviceAuthorizationInput{
+
 		ClientId:     register.ClientId,
 		ClientSecret: register.ClientSecret,
 		StartUrl:     aws.String(rootProfile.AWSConfig.SSOStartURL),
@@ -169,6 +171,7 @@ func PollToken(ctx context.Context, c *ssooidc.Client, clientSecret string, clie
 		time.Sleep(cfg.CheckInterval)
 
 		token, err := c.CreateToken(ctx, &ssooidc.CreateTokenInput{
+
 			ClientId:     &clientID,
 			ClientSecret: &clientSecret,
 			DeviceCode:   &deviceCode,
