@@ -16,7 +16,7 @@ import (
 var TokenCommand = cli.Command{
 	Name:        "token",
 	Usage:       "Manage aws access tokens",
-	Subcommands: []*cli.Command{&TokenListCommand, &ClearTokensCommand, &ClearAllTokensCommand},
+	Subcommands: []*cli.Command{&TokenListCommand, &ClearTokensCommand},
 	Action:      TokenListCommand.Action,
 }
 
@@ -42,25 +42,12 @@ var TokenListCommand = cli.Command{
 	},
 }
 
-// granted token -> lists all
-// granted token list -> lists all
+// granted token -> lists all tick
+// granted token list -> lists all tick
 // granted token clear -> prompts for selection // promt confirm?
 // granted token clear --all or -a -> clear all
 // granted token clear profilename -> clear profile
 // granted token clear profilename --confirm -> skip confirm prompt
-
-var ClearAllTokensCommand = cli.Command{
-	Name:  "clear",
-	Usage: "Remove all saved tokens from keyring",
-	Action: func(c *cli.Context) error {
-		err := credstore.ClearAll()
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(os.Stderr, "Cleared all saved tokens")
-		return nil
-	},
-}
 
 func MapTokens(ctx context.Context) (map[string][]string, error) {
 	keys, err := credstore.ListKeys()
@@ -93,9 +80,21 @@ func MapTokens(ctx context.Context) (map[string][]string, error) {
 }
 
 var ClearTokensCommand = cli.Command{
-	Name:  "remove",
+	Name:  "clear",
 	Usage: "Remove a selected token from the keyring",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "Remove all saved tokens from keyring"},
+	},
 	Action: func(c *cli.Context) error {
+
+		if c.Bool("all") {
+			err := credstore.ClearAll()
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(os.Stderr, "Cleared all saved tokens")
+			return nil
+		}
 		var selection string
 
 		if c.Args().First() != "" {
