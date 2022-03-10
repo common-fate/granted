@@ -8,21 +8,20 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/pkg/errors"
 )
 
 type CFSharedConfig struct {
-	// the original config, some values may be empty strings depending on the type or profile
-	AWSConfig config.SharedConfig
 	// allows access to the raw values from the file
 	RawConfig   configparser.Dict
 	Name        string
 	ProfileType string
 	// ordered from root to direct parent profile
 	Parents []*CFSharedConfig
+	// the original config, some values may be empty strings depending on the type or profile
+	AWSConfig config.SharedConfig
 }
 type CFSharedConfigs map[string]*CFSharedConfig
 
@@ -33,6 +32,7 @@ type CFSharedConfigs map[string]*CFSharedConfig
 //
 // Secondary requirement is to identify profiles which use a specific credential process like saml2aws
 func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, error) {
+
 	// fetch the parsed config file
 	configPath := config.DefaultSharedConfigFilename()
 	configFile, err := configparser.NewConfigParserFromFile(configPath)
@@ -132,26 +132,6 @@ func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
 	return region, true, nil
 }
 
-// func (c CFSharedConfigs) SSOProfileNames() []string {
-// 	names := []string{}
-// 	for k, v := range c {
-// 		if v.ProfileType == ProfileTypeSSO {
-// 			names = append(names, k)
-// 		}
-// 	}
-// 	return names
-// }
-
-// func (c CFSharedConfigs) IAMProfileNames() []string {
-// 	names := []string{}
-// 	for k, v := range c {
-// 		if v.ProfileType == ProfileTypeIAM {
-// 			names = append(names, k)
-// 		}
-// 	}
-// 	return names
-// }
-
 func (c CFSharedConfigs) ProfileNames() []string {
 	names := []string{}
 	for k := range c {
@@ -160,35 +140,16 @@ func (c CFSharedConfigs) ProfileNames() []string {
 	return names
 }
 
-func (c *CFSharedConfig) AwsConfig(ctx context.Context, useSSORegion bool) (aws.Config, error) {
-
-	opts := []func(*config.LoadOptions) error{
-		// load the config profile
-		config.WithSharedConfigProfile(c.Name),
-	}
-
-	if useSSORegion {
-		// With region forces this config to use the profile region, ignoring region configured with environment variables
-		opts = append(opts, config.WithRegion(c.AWSConfig.SSORegion))
-	} else if c.AWSConfig.Region != "" {
-		// With region forces this config to use the profile region, ignoring region configured with environment variables
-		// if region is not configured for this profile, use the aws_default_region
-		opts = append(opts, config.WithRegion(c.AWSConfig.Region))
-	}
-
-	return config.LoadDefaultConfig(ctx,
-		opts...,
-	)
-}
-
-func (c *CFSharedConfig) CallerIdentity(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {
-	cfg, err := c.AwsConfig(ctx, false)
-	if err != nil {
-		return nil, err
-	}
-	client := sts.NewFromConfig(cfg)
-	return client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
-}
+// func (c *CFSharedConfig) AwsConfig(ctx context.Context, useSSORegion bool) config.SharedConfig {
+// 	if useSSORegion {
+// 		// With region forces this config to use the profile region, ignoring region configured with environment variables
+// 		opts = append(opts, config.WithRegion(c.AWSConfig.SSORegion))
+// 	} else if c.AWSConfig.Region != "" {
+// 		// With region forces this config to use the profile region, ignoring region configured with environment variables
+// 		// if region is not configured for this profile, use the aws_default_region
+// 		opts = append(opts, config.WithRegion(c.AWSConfig.Region))
+// 	}
+// }
 
 func (c *CFSharedConfig) AssumeConsole(ctx context.Context, args []string) (aws.Credentials, error) {
 	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, args)

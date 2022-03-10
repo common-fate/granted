@@ -49,22 +49,22 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	}
 
 	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
-	cfg, err := rootProfile.AwsConfig(ctx, true)
-	if err != nil {
-		return aws.Credentials{}, err
-	}
+	cfg := aws.NewConfig()
+	cfg.Region = rootProfile.AWSConfig.SSORegion
 	cachedToken := GetValidCachedToken(ssoTokenKey)
+	var err error
 	if cachedToken == nil {
-		cachedToken, err = SSODeviceCodeFlow(ctx, cfg, rootProfile)
+		cachedToken, err = SSODeviceCodeFlow(ctx, *cfg, rootProfile)
 		if err != nil {
 			return aws.Credentials{}, err
 		}
+
 	}
 
 	StoreSSOToken(ssoTokenKey, *cachedToken, rootProfile.Name)
 
 	// create sso client
-	ssoClient := sso.NewFromConfig(cfg)
+	ssoClient := sso.NewFromConfig(*cfg)
 	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
 	if err != nil {
 		var unauthorised *ssotypes.UnauthorizedException
@@ -126,6 +126,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 
 	// authorize your device using the client registration response
 	deviceAuth, err := ssooidcClient.StartDeviceAuthorization(ctx, &ssooidc.StartDeviceAuthorizationInput{
+
 		ClientId:     register.ClientId,
 		ClientSecret: register.ClientSecret,
 		StartUrl:     aws.String(rootProfile.AWSConfig.SSOStartURL),
@@ -165,6 +166,7 @@ func PollToken(ctx context.Context, c *ssooidc.Client, clientSecret string, clie
 		time.Sleep(cfg.CheckInterval)
 
 		token, err := c.CreateToken(ctx, &ssooidc.CreateTokenInput{
+
 			ClientId:     &clientID,
 			ClientSecret: &clientSecret,
 			DeviceCode:   &deviceCode,
