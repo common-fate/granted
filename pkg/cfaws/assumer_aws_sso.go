@@ -3,7 +3,6 @@ package cfaws
 import (
 	"context"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -14,6 +13,7 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/fatih/color"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 )
@@ -62,6 +62,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		if err != nil {
 			return aws.Credentials{}, err
 		}
+
 	}
 	if newToken {
 		StoreSSOToken(ssoTokenKey, *cachedToken)
@@ -107,7 +108,9 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			// only print for sub assumes because the final credentials are printed at the end of the assume command
 			// this is here for visibility in to role traversals when assuming a final profile with sso
 			if i < len(toAssume)-1 {
-				fmt.Fprintf(os.Stderr, "\033[32m\nAssumed parent profile: [%s](%s) session credentials will expire %s\033[0m\n", p.Name, region, stsRes.Credentials.Expiration.Local().String())
+				green := color.New(color.FgGreen)
+
+				green.Fprintf(color.Error, "\nAssumed parent profile: [%s](%s) session credentials will expire %s\n", p.Name, region, stsRes.Credentials.Expiration.Local().String())
 			}
 			credProvider = &CredProv{TypeCredsToAwsCreds(*stsRes.Credentials)}
 
@@ -132,6 +135,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 
 	// authorize your device using the client registration response
 	deviceAuth, err := ssooidcClient.StartDeviceAuthorization(ctx, &ssooidc.StartDeviceAuthorizationInput{
+
 		ClientId:     register.ClientId,
 		ClientSecret: register.ClientSecret,
 		StartUrl:     aws.String(rootProfile.AWSConfig.SSOStartURL),
@@ -141,13 +145,13 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 	}
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	fmt.Fprintf(os.Stderr, "If browser is not opened automatically, please open link:\n%v\n", url)
+	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 	err = browser.OpenURL(url)
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Fprintln(os.Stderr, "\nAwaiting authentication in the browser...")
+	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
 		return nil, err
@@ -171,6 +175,7 @@ func PollToken(ctx context.Context, c *ssooidc.Client, clientSecret string, clie
 		time.Sleep(cfg.CheckInterval)
 
 		token, err := c.CreateToken(ctx, &ssooidc.CreateTokenInput{
+
 			ClientId:     &clientID,
 			ClientSecret: &clientSecret,
 			DeviceCode:   &deviceCode,

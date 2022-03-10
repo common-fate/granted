@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/fatih/color"
 )
 
 // Implements Assumer
@@ -33,9 +34,9 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 
 	cmd := exec.Command("aws-azure-login", a...)
 
-	cmd.Stdout = os.Stderr
+	cmd.Stdout = color.Error
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = color.Error
 	err = cmd.Run()
 	if err != nil {
 		return aws.Credentials{}, err

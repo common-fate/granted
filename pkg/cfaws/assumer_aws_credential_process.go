@@ -12,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/fatih/color"
 )
 
 // Implements Assumer using the aws credential_process standard
@@ -36,7 +37,7 @@ func (wr *CredentialCapture) Write(p []byte) (n int, err error) {
 	var dest CredentialProcessJson
 	err = json.Unmarshal(p, &dest)
 	if err != nil {
-		return fmt.Fprint(os.Stderr, string(p))
+		return fmt.Fprint(color.Error, string(p))
 	}
 	wr.creds = &dest
 	return len(p), nil
@@ -81,7 +82,7 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 	capture := &CredentialCapture{}
 	cmd.Stdout = capture
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = os.Stderr
+	cmd.Stderr = color.Error
 	err := cmd.Run()
 	if err != nil {
 		return aws.Credentials{}, err

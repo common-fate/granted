@@ -1,4 +1,4 @@
-# Contributing to iamzero
+# Contributing to granted
 
 We welcome all contributions to Granted. Please read our [Contributor Code of Conduct](./CODE_OF_CONDUCT.md).
 
@@ -31,37 +31,59 @@ make cli
 The CLI should now be available on your PATH as `dgranted` and `dassume`.
 
 ## Creating a bug report
-Receiving bug reports is great, its helps us the identify and patch issues in the application so that the users have as good experience as possible. But it's important to include the necessary information in the bug report so that the maintainers are able to get to the bottom of the problem with as much context as possible. 
+
+Receiving bug reports is great, its helps us the identify and patch issues in the application so that the users have as good experience as possible. But it's important to include the necessary information in the bug report so that the maintainers are able to get to the bottom of the problem with as much context as possible.
 
 When opening a bug report we ask that you please include the following information:
-- Your Granted version `granted -v` 
+
+- Your Granted version `granted -v`
 - If applicable and relevant your .aws config file, found at `~/.aws/config` **(excluding any account IDs or SSO start URLs)**
 - Details surrouding the bug and steps to replicate
-- If possible an example of the bug 
+- If possible an example of the bug
 
 Some things to try before opening a new issue:
-- Make sure you're running the latest version of Granted 
+
+- Make sure you're running the latest version of Granted
 - Check if there is already an open issue surrounding your bug and add to that open issue
 
-
 **Example:**
+
 > Short and descriptive example bug report title
-> 
+>
 > Description of the bug
 >
 > Granted Version: v0.1.5
 >
 > Your config
+>
 > ```
 > [profile PROFNAME]
-> sso_start_url=*** 
-> sso_region=ap-southeast-2 
+> sso_start_url=***
+> sso_region=ap-southeast-2
 > sso_account_id=***
-> sso_role_name=ROLE_NAME 
-> region=ap-southeast-2 
-> credential_process=aws-sso-credential-process --profile PROFNAME 
->```
+> sso_role_name=ROLE_NAME
+> region=ap-southeast-2
+> credential_process=aws-sso-credential-process --profile PROFNAME
+> ```
+>
 > Any other information you want to share that is relevant to the issue being
 > reported. This might include the lines of code that you have identified as
 > causing the bug, and potential solutions (and your opinions on their
 > merits).
+
+# Technical Notes
+
+Before you get started developing on Granted, these notes will help to explain some key comcepts in the codebase.
+
+## IO
+
+Granted consists of 2 binaries, `granted` and `assumego`.
+When you run `assume` a shell script will run which wraps the assumego binary.
+This is required so that assume can set environment variables in your terminal.
+
+For this reason, output to the terminal from print statements should specify os.Stderr as the writer.
+For example
+
+```go
+    fmt.Fprintln(os.Stderr, "hello world")
+```
