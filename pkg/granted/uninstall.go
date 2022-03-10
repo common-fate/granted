@@ -17,7 +17,7 @@ var UninstallCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
-			Message: "Are you sure you want to reset your Granted config?",
+			Message: "Are you sure you want to remove your Granted config?",
 			Default: true,
 		}
 		var confirm bool
