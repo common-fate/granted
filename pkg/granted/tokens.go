@@ -29,8 +29,15 @@ var TokenListCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		for i, token := range tokens {
-			fmt.Fprintf(os.Stderr, "%d. %s---(%s)\n", i+1, token.Key, token.Description)
+		var max int
+		for _, token := range tokens {
+			if len(token.Key) > max {
+				max = len(token.Key)
+			}
+		}
+
+		for _, token := range tokens {
+			fmt.Fprintf(os.Stderr, "%s\n", fmt.Sprintf("%-*s %s)", max, token.Key, token.Description))
 		}
 		return nil
 	},
@@ -62,10 +69,20 @@ var ClearTokensCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+
 		if selection == "" {
+
+			var max int
+			for _, token := range keys {
+				if len(token.Key) > max {
+					max = len(token.Key)
+				}
+			}
+
 			tokenList := []string{}
 			for _, t := range keys {
-				tokenList = append(tokenList, t.Key+"---"+t.Description+")")
+				stringKey := fmt.Sprintf("%-*s---%s)", max, t.Key, t.Description)
+				tokenList = append(tokenList, stringKey)
 			}
 			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 			in := survey.Select{
@@ -78,7 +95,7 @@ var ClearTokensCommand = cli.Command{
 				return err
 			}
 		}
-		selection = strings.Split(selection, "---")[0]
+		selection = strings.TrimSpace(strings.Split(selection, "---")[0])
 
 		err = credstore.Clear(selection)
 		if err != nil {
