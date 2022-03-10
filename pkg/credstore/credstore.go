@@ -38,9 +38,26 @@ func Store(key string, payload interface{}, profile string) error {
 	if err != nil {
 		return err
 	}
+	desc, err := updateKeyDescription(key, profile)
+	if err != nil {
+		return err
+	}
+
+	return ring.Set(keyring.Item{
+		Key:         key,  // store with the corresponding key
+		Data:        b,    // store the bytes
+		Description: desc, //save the name for readability
+	})
+}
+
+func updateKeyDescription(key string, profile string) (string, error) {
 	//look up the keyring to see if we already have a corresponding key
 	//if theres a url already set then update the description for another profile
 	var desc string
+	ring, err := openKeyring()
+	if err != nil {
+		return "", err
+	}
 	keyringItem, err := ring.Get(key)
 	if err != nil {
 		desc = profile
@@ -51,12 +68,7 @@ func Store(key string, payload interface{}, profile string) error {
 
 		}
 	}
-
-	return ring.Set(keyring.Item{
-		Key:         key,  // store with the corresponding key
-		Data:        b,    // store the bytes
-		Description: desc, //save the name for readability
-	})
+	return desc, nil
 }
 
 func Clear(key string) error {

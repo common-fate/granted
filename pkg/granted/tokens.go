@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/credstore"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
@@ -17,12 +16,6 @@ var TokenCommand = cli.Command{
 	Usage:       "Manage aws access tokens",
 	Subcommands: []*cli.Command{&TokenListCommand, &ClearTokensCommand, &ClearAllTokensCommand},
 	Action: func(c *cli.Context) error {
-		//return the default browser that is set
-		conf, err := config.Load()
-		if err != nil {
-			return err
-		}
-		fmt.Fprintf(os.Stderr, "Granted is using %s. To change this run `granted browser set`.\n", conf.DefaultBrowser)
 
 		return nil
 	},
