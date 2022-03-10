@@ -19,16 +19,23 @@ import (
 
 //Checks the config to see if the user has already set up their default browser
 func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
-
 	//just check the config file for the default browser efield
-
 	conf, err := config.Load()
-
 	if err != nil {
 		return false, err
 	}
 
-	return conf.DefaultBrowser != "", nil
+	// Due to a change in the behaviour of the browser detection , this is here to migrate existing users who have already configured granted
+	// The change is that the browser path will be saved in the config along with the browser type for all installations, except the Stdout browser types
+	// This can be removed in a future version of granted, when everyone is expected to have migrated
+	if conf.DefaultBrowser != "" && conf.CustomBrowserPath == "" {
+		conf.CustomBrowserPath, _ = DetectInstallation(conf.DefaultBrowser)
+		err := conf.Save()
+		if err != nil {
+			return false, err
+		}
+	}
+	return conf.DefaultBrowser != "" && conf.CustomBrowserPath != "", nil
 }
 
 func HandleManualBrowserSelection() (string, error) {

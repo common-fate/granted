@@ -36,7 +36,7 @@ var SetBrowserCommand = cli.Command{
 
 		if outcome == "" {
 			if path != "" {
-				fmt.Fprintln(color.Error, "-path flag must be usedwith -browser flag, provided path will be ignored.")
+				fmt.Fprintln(color.Error, "-path flag must be used with -browser flag, provided path will be ignored.")
 			}
 			outcome, err = browsers.HandleManualBrowserSelection()
 			if err != nil {

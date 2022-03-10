@@ -29,7 +29,7 @@ func AssumeCommand(c *cli.Context) error {
 	activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
 
-	withStdio := survey.WithStdio(os.Stdin, os.Stdout, os.Stderr)
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
 	if err != nil {
 		return err

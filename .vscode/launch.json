@@ -16,8 +16,7 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "cmd/assume/main.go",
-      "env": { "FORCE_NO_ALIAS": true }
+      "program": "cmd/assume/main.go"
     },
     {
       "name": "Run uninstall",
@@ -34,7 +33,7 @@
       "mode": "auto",
       "program": "cmd/granted/main.go",
       "args": ["completion"],
-      "env": { "FORCE_NO_ALIAS": true }
+      "env": { "FORCE_NO_ALIAS": "true" }
     },
     {
       "name": "Run command assume active role",
@@ -44,7 +43,7 @@
       "program": "cmd/assume/main.go",
       "args": ["test-role", "-c", "-s iam", "-r region-name"],
       "env": {
-        "FORCE_NO_ALIAS": true,
+        "FORCE_NO_ALIAS": "true",
         "AWS_PROFILE": "cf-dev"
       }
     },
@@ -56,7 +55,7 @@
       "program": "cmd/assume/main.go",
       "args": ["test-ad", "-pass-through", "a b"],
       "env": {
-        "FORCE_NO_ALIAS": true,
+        "FORCE_NO_ALIAS": "true",
         "AWS_PROFILE": "cf-testing"
       }
     }
