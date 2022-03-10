@@ -41,13 +41,15 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 		return aws.Credentials{}, err
 	}
 	// reload the profile from disk to check for the new credentials
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithSharedConfigProfile(c.Name),
-	)
+	cfg, err := c.AwsConfig(ctx, false)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	return aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	creds, err = aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+	return creds, nil
 }
 
 func (aal *AwsAzureLoginAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {

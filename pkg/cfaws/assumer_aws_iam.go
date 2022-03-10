@@ -16,7 +16,11 @@ type AwsIamAssumer struct {
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
 func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	creds, err := aws.NewCredentialsCache(&CredProv{Credentials: c.AWSConfig.Credentials}).Retrieve(ctx)
+	cfg, err := c.AwsConfig(ctx, false)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+	creds, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
@@ -47,13 +51,11 @@ func (aia *AwsIamAssumer) ProfileMatchesType(rawProfile configparser.Dict, parse
 
 // GetFederationToken is used when launching a console session with longlived IAM credentials profiles
 func getFederationToken(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
-	cfg := aws.NewConfig()
-	r, _, err := c.Region(ctx)
+	cfg, err := c.AwsConfig(ctx, false)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	cfg.Region = r
-	client := sts.NewFromConfig(*cfg)
+	client := sts.NewFromConfig(cfg)
 	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.Name)})
 	if err != nil {
 		return aws.Credentials{}, err

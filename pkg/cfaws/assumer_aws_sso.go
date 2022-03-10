@@ -49,12 +49,13 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	}
 
 	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
-	cfg := aws.NewConfig()
-	cfg.Region = rootProfile.AWSConfig.SSORegion
+	cfg, err := rootProfile.AwsConfig(ctx, true)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
 	cachedToken := GetValidCachedToken(ssoTokenKey)
-	var err error
 	if cachedToken == nil {
-		cachedToken, err = SSODeviceCodeFlow(ctx, *cfg, rootProfile)
+		cachedToken, err = SSODeviceCodeFlow(ctx, cfg, rootProfile)
 		if err != nil {
 			return aws.Credentials{}, err
 		}
@@ -64,7 +65,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	StoreSSOToken(ssoTokenKey, *cachedToken, rootProfile.Name)
 
 	// create sso client
-	ssoClient := sso.NewFromConfig(*cfg)
+	ssoClient := sso.NewFromConfig(cfg)
 	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
 	if err != nil {
 		var unauthorised *ssotypes.UnauthorizedException

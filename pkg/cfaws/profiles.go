@@ -8,6 +8,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/pkg/errors"
@@ -157,4 +158,34 @@ func (c *CFSharedConfig) AssumeConsole(ctx context.Context, args []string) (aws.
 
 func (c *CFSharedConfig) AssumeTerminal(ctx context.Context, args []string) (aws.Credentials, error) {
 	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c, args)
+}
+
+func (c *CFSharedConfig) AwsConfig(ctx context.Context, useSSORegion bool) (aws.Config, error) {
+
+	opts := []func(*config.LoadOptions) error{
+		// load the config profile
+		config.WithSharedConfigProfile(c.Name),
+	}
+
+	if useSSORegion {
+		// With region forces this config to use the profile region, ignoring region configured with environment variables
+		opts = append(opts, config.WithRegion(c.AWSConfig.SSORegion))
+	} else if c.AWSConfig.Region != "" {
+		// With region forces this config to use the profile region, ignoring region configured with environment variables
+		// if region is not configured for this profile, use the aws_default_region
+		opts = append(opts, config.WithRegion(c.AWSConfig.Region))
+	}
+
+	return config.LoadDefaultConfig(ctx,
+		opts...,
+	)
+}
+
+func (c *CFSharedConfig) CallerIdentity(ctx context.Context) (*sts.GetCallerIdentityOutput, error) {
+	cfg, err := c.AwsConfig(ctx, false)
+	if err != nil {
+		return nil, err
+	}
+	client := sts.NewFromConfig(cfg)
+	return client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
 }
