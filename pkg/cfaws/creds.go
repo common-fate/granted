@@ -32,11 +32,7 @@ func GetEnvCredentials(ctx context.Context) aws.Credentials {
 
 func GetCredentialsCreds(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
 	//check to see if the creds are already exported
-	cfg, err := c.AwsConfig(ctx, false)
-	if err != nil {
-		return aws.Credentials{}, err
-	}
-	creds, _ := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	creds, _ := aws.NewCredentialsCache(&CredProv{Credentials: c.AWSConfig.Credentials}).Retrieve(ctx)
 
 	//check creds are valid - return them if they are
 	if creds.HasKeys() && !creds.Expired() {
