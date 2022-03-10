@@ -4,7 +4,7 @@ on: [push]
 
 jobs:
   test:
-    name: Test
+    name: Unit Tests
     runs-on: ubuntu-latest
 
     steps:
@@ -50,7 +50,7 @@ jobs:
           args: --timeout 2m
 
   linux-installs:
-    name: assume installs and runs on linux
+    name: Smoke Test (Linux)
     env:
       TEST_ACCESS_KEY_ID: 1234578910abcdefghij
       TEST_ACCESS_KEY: 1234578910abcdefghijklmnopqrstuvwxyz1234
@@ -131,7 +131,7 @@ jobs:
         shell: fish {0}
 
   osx-installs:
-    name: assume installs and runs on mac
+    name: Smoke Test (MacOS)
     runs-on: macos-11
     env:
       TEST_ACCESS_KEY_ID: 1234578910abcdefghij
