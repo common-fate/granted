@@ -24,19 +24,26 @@ var TokenListCommand = cli.Command{
 	Name:  "list",
 	Usage: "Lists all access tokens saved in the keyring",
 	Action: func(ctx *cli.Context) error {
-		tokens, err := credstore.List()
+
+		startUrlMap, err := MapTokens(ctx.Context)
 		if err != nil {
 			return err
 		}
+
 		var max int
-		for _, token := range tokens {
-			if len(token.Key) > max {
-				max = len(token.Key)
+		for k := range startUrlMap {
+			if len(k) > max {
+				max = len(k)
 			}
 		}
 
+		tokens, err := credstore.ListKeys()
+		if err != nil {
+			return err
+		}
+
 		for _, token := range tokens {
-			fmt.Fprintf(os.Stderr, "%s\n", fmt.Sprintf("%-*s (%s)", max, token.Key, token.Description))
+			fmt.Fprintf(os.Stderr, "%s\n", fmt.Sprintf("%-*s (%s)", max, token, strings.Join(startUrlMap[token], ", ")))
 		}
 		return nil
 	},
