@@ -17,6 +17,15 @@ import (
 	"github.com/fatih/color"
 )
 
+func init() {
+	// By default the shell wrapper makes the color library
+	// think that the terminal doesn't support colors.
+	// We override this behaviour here so that we can print colored output.
+	// Users can set NO_COLOR to true if they are working in a terminal without
+	// color support and want to use Granted there.
+	_, color.NoColor = os.LookupEnv("NO_COLOR")
+}
+
 // IsConfigured returns whether the shell alias is correctly set up
 // for Granted.
 func IsConfigured() bool {
