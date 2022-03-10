@@ -140,3 +140,11 @@ func List() ([]keyring.Item, error) {
 	}
 	return tokenList, nil
 }
+
+func ListKeys() ([]string, error) {
+	ring, err := openKeyring()
+	if err != nil {
+		return nil, err
+	}
+	return ring.Keys()
+}

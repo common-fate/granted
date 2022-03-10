@@ -1,11 +1,13 @@
 package granted
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/credstore"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
@@ -15,10 +17,7 @@ var TokenCommand = cli.Command{
 	Name:        "token",
 	Usage:       "Manage aws access tokens",
 	Subcommands: []*cli.Command{&TokenListCommand, &ClearTokensCommand, &ClearAllTokensCommand},
-	Action: func(c *cli.Context) error {
-
-		return nil
-	},
+	Action:      TokenListCommand.Action,
 }
 
 var TokenListCommand = cli.Command{
@@ -37,11 +36,19 @@ var TokenListCommand = cli.Command{
 		}
 
 		for _, token := range tokens {
-			fmt.Fprintf(os.Stderr, "%s\n", fmt.Sprintf("%-*s %s)", max, token.Key, token.Description))
+			fmt.Fprintf(os.Stderr, "%s\n", fmt.Sprintf("%-*s (%s)", max, token.Key, token.Description))
 		}
 		return nil
 	},
 }
+
+// granted token -> lists all
+// granted token list -> lists all
+// granted token clear -> prompts for selection // promt confirm?
+// granted token clear --all or -a -> clear all
+// granted token clear profilename -> clear profile
+// granted token clear profilename --confirm -> skip confirm prompt
+
 var ClearAllTokensCommand = cli.Command{
 	Name:  "clear",
 	Usage: "Remove all saved tokens from keyring",
@@ -55,6 +62,36 @@ var ClearAllTokensCommand = cli.Command{
 	},
 }
 
+func MapTokens(ctx context.Context) (map[string][]string, error) {
+	keys, err := credstore.ListKeys()
+	if err != nil {
+		return nil, err
+	}
+
+	conf, err := cfaws.GetProfilesFromDefaultSharedConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+	startUrlMap := make(map[string][]string)
+	for _, k := range keys {
+		startUrlMap[k] = []string{}
+	}
+	a := &cfaws.AwsSsoAssumer{}
+	for _, c := range conf {
+		if c.ProfileType == a.Type() {
+			ssoUrl := c.AWSConfig.SSOStartURL
+			if len(c.Parents) != 0 {
+				ssoUrl = c.Parents[0].AWSConfig.SSOStartURL
+			}
+			// Don't add any profiles which are not in the keyring already
+			if _, ok := startUrlMap[ssoUrl]; ok {
+				startUrlMap[ssoUrl] = append(startUrlMap[ssoUrl], c.Name)
+			}
+		}
+	}
+	return startUrlMap, nil
+}
+
 var ClearTokensCommand = cli.Command{
 	Name:  "remove",
 	Usage: "Remove a selected token from the keyring",
@@ -65,24 +102,23 @@ var ClearTokensCommand = cli.Command{
 			selection = c.Args().First()
 		}
 
-		keys, err := credstore.List()
+		startUrlMap, err := MapTokens(c.Context)
 		if err != nil {
 			return err
 		}
-
 		if selection == "" {
-
 			var max int
-			for _, token := range keys {
-				if len(token.Key) > max {
-					max = len(token.Key)
+			for k := range startUrlMap {
+				if len(k) > max {
+					max = len(k)
 				}
 			}
-
+			selectionsMap := make(map[string]string)
 			tokenList := []string{}
-			for _, t := range keys {
-				stringKey := fmt.Sprintf("%-*s---%s)", max, t.Key, t.Description)
+			for k, profiles := range startUrlMap {
+				stringKey := fmt.Sprintf("%-*s (%s)", max, k, strings.Join(profiles, ", "))
 				tokenList = append(tokenList, stringKey)
+				selectionsMap[stringKey] = k
 			}
 			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 			in := survey.Select{
@@ -90,13 +126,13 @@ var ClearTokensCommand = cli.Command{
 				Options: tokenList,
 			}
 			fmt.Fprintln(os.Stderr)
-			err = testable.AskOne(&in, &selection, withStdio)
+			var out string
+			err = testable.AskOne(&in, &out, withStdio)
 			if err != nil {
 				return err
 			}
+			selection = selectionsMap[out]
 		}
-		selection = strings.TrimSpace(strings.Split(selection, "---")[0])
-
 		err = credstore.Clear(selection)
 		if err != nil {
 			return err
