@@ -1,11 +1,11 @@
 package cfaws
 
 import (
-	"os"
 	"time"
 
 	"github.com/common-fate/granted/pkg/credstore"
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/fatih/color"
 	"github.com/pkg/errors"
 )
 
@@ -19,7 +19,7 @@ func GetValidCachedToken(profileKey string) *SSOToken {
 	var t SSOToken
 	err := credstore.Retrieve(profileKey, &t)
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "GetValidCachedToken").Error())
+		debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "GetValidCachedToken").Error())
 	}
 	if t.Expiry.Before(time.Now()) {
 		return nil
@@ -31,7 +31,7 @@ func GetValidCachedToken(profileKey string) *SSOToken {
 func StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
 	err := credstore.Store(profileKey, ssoTokenValue)
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "writing sso token to credentials cache").Error())
+		debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "writing sso token to credentials cache").Error())
 	}
 
 }
@@ -40,6 +40,6 @@ func StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
 func ClearSSOToken(profileKey string) {
 	err := credstore.Clear(profileKey)
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, os.Stderr, "%s\n", errors.Wrap(err, "clearing sso token from the credentials cache").Error())
+		debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "clearing sso token from the credentials cache").Error())
 	}
 }

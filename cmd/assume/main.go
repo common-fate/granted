@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/common-fate/granted/pkg/assume"
+	"github.com/fatih/color"
 )
 
 func main() {
@@ -13,7 +14,7 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "%s\n", err)
+		fmt.Fprintf(color.Error, "%s\n", err)
 		os.Exit(1)
 	}
 }

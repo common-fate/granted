@@ -8,7 +8,7 @@ import (
 // This package provides a lightweight way to set global debugging verbosity for the cli, if we need structured logging or more features, consider using an existing library
 // To use, add a cli flag that sets the value of CliVerbosity to one of the supported values in the enum
 // e.g debug.CliVerbosity = debug.VerbosityDebug
-// For convenience, you can add debug output using debug.Fpringf(debug.VerbosityDebug, os.Stderr, "my error output: %s", err.Error())
+// For convenience, you can add debug output using debug.Fpringf(debug.VerbosityDebug, color.Error, "my error output: %s", err.Error())
 
 type Verbosity int
 

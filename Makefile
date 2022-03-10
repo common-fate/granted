@@ -19,3 +19,13 @@ clean:
 
 aws-credentials: 
 	echo -e "\nAWS_ACCESS_KEY_ID=\"$$AWS_ACCESS_KEY_ID\"\nAWS_SECRET_ACCESS_KEY=\"$$AWS_SECRET_ACCESS_KEY\"\nAWS_SESSION_TOKEN=\"$$AWS_SESSION_TOKEN\"\nAWS_REGION=\"$$AWS_REGION\""
+
+test-browser-binary:
+	go build -o ./bin/tbrowser cmd/testing/browser/main.go
+	chmod +x ./bin/tbrowser
+
+test-creds-binary:
+	go build -o ./bin/tcreds cmd/testing/creds/main.go
+	chmod +x ./bin/tcreds
+
+test-binaries: test-browser-binary test-creds-binary
