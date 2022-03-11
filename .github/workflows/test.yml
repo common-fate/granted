@@ -31,6 +31,21 @@ jobs:
         uses: actions/setup-go@v2
         with:
           go-version: "1.17.3"
+      - name: Build All Platforms
+        run: make ci-cli-all-platforms
+      # Upload the built binaries to use in later tests on each platform
+      - uses: actions/upload-artifact@v3
+        with:
+          name: go-binaries-linux
+          path: ./bin/linux/
+      - uses: actions/upload-artifact@v3
+        with:
+          name: go-binaries-macos
+          path: ./bin/macos/
+      - uses: actions/upload-artifact@v3
+        with:
+          name: go-binaries-windows
+          path: ./bin/windows/
       - name: Lint
         run: go vet ./...
 
@@ -57,33 +72,20 @@ jobs:
       TEST_REGION: ap-southeast-2
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/download-artifact@v3
         with:
-          # In order:
-          # * Module download cache
-          # * Build cache (Linux)
-          # * Build cache (Mac)
-          # * Build cache (Windows)
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            ~/Library/Caches/go-build
-            %LocalAppData%\go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-      - name: Setup Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: "1.17.3"
-      - name: install granted
-        run: make cli
-      - name: build test browser
-        run: make test-binaries
+          name: go-binaries-linux
+      - name: move binaries
+        run: |
+          mv ./bin/linux/dassumego /usr/local/bin/dassumego
+          mv ./bin/linux/dgranted /usr/local/bin/dgranted
+          mv ./bin/linux/tbrowser /usr/local/bin/tbrowser
+          mv ./bin/linux/tcreds /usr/local/bin/tcreds
+          chmod +x ./bin/linux/dassume && mv ./bin/linux/dassume /usr/local/bin/dassume
+          chmod +x ./bin/linux/dassume.fish && mv ./bin/linux/dassume.fish /usr/local/bin/dassume.fish
       - name: set default browser
         # configures granted to use the test browser binary
-        run: dgranted browser set -b chrome -p ./bin/tbrowser
+        run: dgranted browser set -b chrome -p /usr/local/bin/tbrowser
       - name: setup aws config files
         run: mkdir ~/.aws; touch ~/.aws/config; touch ~/.aws/credentials;
       - name: setup fake aws profile
@@ -117,7 +119,7 @@ jobs:
       - name: assume zsh
         run: |
           SHELL=/bin/zsh dassume test
-          ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+          tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: zsh {0}
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
@@ -127,7 +129,7 @@ jobs:
       - name: assume zsh
         run: |
           SHELL=fish dassume test
-          ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+          tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: fish {0}
 
   osx-installs:
@@ -138,33 +140,20 @@ jobs:
       TEST_ACCESS_KEY: 1234578910abcdefghijklmnopqrstuvwxyz1234
       TEST_REGION: ap-southeast-2
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/cache@v2
+      - uses: actions/download-artifact@v3
         with:
-          # In order:
-          # * Module download cache
-          # * Build cache (Linux)
-          # * Build cache (Mac)
-          # * Build cache (Windows)
-          path: |
-            ~/go/pkg/mod
-            ~/.cache/go-build
-            ~/Library/Caches/go-build
-            %LocalAppData%\go-build
-          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
-          restore-keys: |
-            ${{ runner.os }}-go-
-      - name: Setup Go
-        uses: actions/setup-go@v2
-        with:
-          go-version: "1.17.3"
-      - name: install granted
-        run: make cli
-      - name: build test browser
-        run: make test-binaries
+          name: go-binaries-macos
+      - name: move binaries
+        run: |
+          mv ./bin/macos/dassumego /usr/local/bin/dassumego
+          mv ./bin/macos/dgranted /usr/local/bin/dgranted
+          mv ./bin/macos/tbrowser /usr/local/bin/tbrowser
+          mv ./bin/macos/tcreds /usr/local/bin/tcreds
+          chmod +x ./bin/macos/dassume && mv ./bin/macos/dassume /usr/local/bin/dassume
+          chmod +x ./bin/macos/dassume.fish && mv ./bin/macos/dassume.fish /usr/local/bin/dassume.fish
       - name: set default browser
         # configures granted to use the test browser binary
-        run: dgranted browser set -b chrome -p ./bin/tbrowser
+        run: dgranted browser set -b chrome -p /usr/local/bin/tbrowser
       - name: setup aws config files
         run: mkdir ~/.aws; touch ~/.aws/config; touch ~/.aws/credentials;
       - name: setup fake aws profile
@@ -195,7 +184,7 @@ jobs:
       - name: assume zsh
         run: |
           SHELL=/bin/zsh dassume test
-          ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+          tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: zsh {0}
       - name: install fish
         run: brew install fish
@@ -205,5 +194,5 @@ jobs:
       - name: assume fish
         run: |
           SHELL=fish dassume test
-          ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+          tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: fish {0}
