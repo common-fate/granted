@@ -291,10 +291,10 @@ func makeDestinationURL(service string, region string) (string, error) {
 	dest := prefix + serv + "/home"
 
 	//excluding region here if the service is apart of the global service list
-	//uncomplete list of global services
-	_, notGlobal := globalServiceMap[service]
+	//incomplete list of global services
+	_, Global := globalServiceMap[service]
 	hasRegion := region != ""
-	if notGlobal && hasRegion {
+	if !Global && hasRegion {
 		dest = dest + "?region=" + region
 
 	}
