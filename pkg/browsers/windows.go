@@ -3,9 +3,8 @@
 package browsers
 
 import (
-	"os"
-
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/fatih/color"
 	"golang.org/x/sys/windows/registry"
 )
 
