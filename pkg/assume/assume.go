@@ -141,6 +141,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		return nil
 	}
+
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context

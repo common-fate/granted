@@ -50,6 +50,12 @@ var ServiceMap = map[string]string{
 	"iam":            "iamv2",
 }
 
+var globalServiceMap = map[string]bool{
+	"iam":     true,
+	"route53": true,
+	"r53":     true,
+}
+
 func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Browser) error {
 	cfg, err := config.Load()
 	if err != nil {
@@ -284,9 +290,13 @@ func makeDestinationURL(service string, region string) (string, error) {
 
 	dest := prefix + serv + "/home"
 
-	//NOTE here: excluding iam here and possibly others as the region isnt in the uri of the webpage on the console
-	if region != "" || serv != "iam" {
+	//excluding region here if the service is apart of the global service list
+	//incomplete list of global services
+	_, global := globalServiceMap[service]
+	hasRegion := region != ""
+	if !global && hasRegion {
 		dest = dest + "?region=" + region
+
 	}
 
 	return dest, nil
