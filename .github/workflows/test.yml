@@ -79,6 +79,10 @@ jobs:
           path: /usr/local/bin/
       - name: move binaries
         run: |
+          chmod +x /usr/local/bin/dassumego
+          chmod +x /usr/local/bin/dgranted
+          chmod +x /usr/local/bin/tbrowser
+          chmod +x /usr/local/bin/tcreds
           chmod +x /usr/local/bin/dassume
           chmod +x /usr/local/bin/dassume.fish
       - name: set default browser
@@ -145,6 +149,10 @@ jobs:
           path: /usr/local/bin/
       - name: move binaries
         run: |
+          chmod +x /usr/local/bin/dassumego
+          chmod +x /usr/local/bin/dgranted
+          chmod +x /usr/local/bin/tbrowser
+          chmod +x /usr/local/bin/tcreds
           chmod +x /usr/local/bin/dassume
           chmod +x /usr/local/bin/dassume.fish
       - name: set default browser
