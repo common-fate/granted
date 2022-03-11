@@ -76,14 +76,11 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: go-binaries-linux
+          path: /usr/local/bin/
       - name: move binaries
         run: |
-          mv ./bin/linux/dassumego /usr/local/bin/dassumego
-          mv ./bin/linux/dgranted /usr/local/bin/dgranted
-          mv ./bin/linux/tbrowser /usr/local/bin/tbrowser
-          mv ./bin/linux/tcreds /usr/local/bin/tcreds
-          chmod +x ./bin/linux/dassume && mv ./bin/linux/dassume /usr/local/bin/dassume
-          chmod +x ./bin/linux/dassume.fish && mv ./bin/linux/dassume.fish /usr/local/bin/dassume.fish
+          chmod +x /usr/local/bin/dassume
+          chmod +x /usr/local/bin/dassume.fish
       - name: set default browser
         # configures granted to use the test browser binary
         run: dgranted browser set -b chrome -p /usr/local/bin/tbrowser
@@ -145,14 +142,11 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: go-binaries-macos
+          path: /usr/local/bin/
       - name: move binaries
         run: |
-          mv ./bin/macos/dassumego /usr/local/bin/dassumego
-          mv ./bin/macos/dgranted /usr/local/bin/dgranted
-          mv ./bin/macos/tbrowser /usr/local/bin/tbrowser
-          mv ./bin/macos/tcreds /usr/local/bin/tcreds
-          chmod +x ./bin/macos/dassume && mv ./bin/macos/dassume /usr/local/bin/dassume
-          chmod +x ./bin/macos/dassume.fish && mv ./bin/macos/dassume.fish /usr/local/bin/dassume.fish
+          chmod +x /usr/local/bin/dassume
+          chmod +x /usr/local/bin/dassume.fish
       - name: set default browser
         # configures granted to use the test browser binary
         run: dgranted browser set -b chrome -p /usr/local/bin/tbrowser
