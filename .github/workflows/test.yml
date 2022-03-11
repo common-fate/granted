@@ -76,9 +76,6 @@ jobs:
       - uses: actions/download-artifact@v3
         with:
           name: go-binaries-linux
-      - name: Display structure of downloaded files
-        run: ls -R
-
       - name: move binaries
         run: |
           chmod +x ./dassumego && mv ./dassumego /usr/local/bin/
@@ -87,56 +84,54 @@ jobs:
           chmod +x ./tcreds && mv ./tcreds /usr/local/bin/
           chmod +x ./dassume && mv ./dassume /usr/local/bin/
           chmod +x ./dassume.fish && mv ./dassume.fish /usr/local/bin/
-      - name: Display structure of moved files
-        run: ls /usr/local/bin
-  #     - name: set default browser
-  #       # configures granted to use the test browser binary
-  #       run: dgranted browser set -b chrome -p /usr/local/bin/tbrowser
-  #     - name: setup aws config files
-  #       run: mkdir ~/.aws; touch ~/.aws/config; touch ~/.aws/credentials;
-  #     - name: setup fake aws profile
-  #       run: |
-  #         cat << EOF >> ~/.aws/config
-  #         [profile test]
-  #         region = ${TEST_REGION}
-  #         EOF
-  #     - name: setup fake aws profile credentials
-  #       run: |
-  #         cat << EOF >> ~/.aws/credentials
-  #         [test]
-  #         aws_access_key_id=${TEST_ACCESS_KEY_ID}
-  #         aws_secret_access_key=${TEST_ACCESS_KEY}
-  #         EOF
-  #     - name: bash
-  #       run: SHELL=/bin/bash dassume -auto-configure-shell
-  #     # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
-  #     # the below does not work
-  #     # - name: assume bash
-  #     #   run: |
-  #     #     source ~/.bash_profile
-  #     #     SHELL=/bin/bash bash dassume test
-  #     #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
-  #     #   shell: bash
-  #     - name: Install zsh
-  #       run: sudo apt-get update; sudo apt-get install zsh
-  #     - name: zsh
-  #       run: SHELL=/bin/zsh dassume -auto-configure-shell
-  #       shell: zsh {0}
-  #     - name: assume zsh
-  #       run: |
-  #         SHELL=/bin/zsh dassume test
-  #         tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
-  #       shell: zsh {0}
-  #     - name: install fish
-  #       run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
-  #     - name: fish
-  #       run: SHELL=fish dassume -auto-configure-shell
-  #       shell: fish {0}
-  #     - name: assume zsh
-  #       run: |
-  #         SHELL=fish dassume test
-  #         tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
-  #       shell: fish {0}
+      - name: set default browser
+        # configures granted to use the test browser binary
+        run: dgranted browser set -b chrome -p /usr/local/bin/tbrowser
+      - name: setup aws config files
+        run: mkdir ~/.aws; touch ~/.aws/config; touch ~/.aws/credentials;
+      - name: setup fake aws profile
+        run: |
+          cat << EOF >> ~/.aws/config
+          [profile test]
+          region = ${TEST_REGION}
+          EOF
+      - name: setup fake aws profile credentials
+        run: |
+          cat << EOF >> ~/.aws/credentials
+          [test]
+          aws_access_key_id=${TEST_ACCESS_KEY_ID}
+          aws_secret_access_key=${TEST_ACCESS_KEY}
+          EOF
+      - name: bash
+        run: SHELL=/bin/bash dassume -auto-configure-shell
+      # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
+      # the below does not work
+      # - name: assume bash
+      #   run: |
+      #     source ~/.bash_profile
+      #     SHELL=/bin/bash bash dassume test
+      #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+      #   shell: bash
+      - name: Install zsh
+        run: sudo apt-get update; sudo apt-get install zsh
+      - name: zsh
+        run: SHELL=/bin/zsh dassume -auto-configure-shell
+        shell: zsh {0}
+      - name: assume zsh
+        run: |
+          SHELL=/bin/zsh dassume test
+          tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+        shell: zsh {0}
+      - name: install fish
+        run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
+      - name: fish
+        run: SHELL=fish dassume -auto-configure-shell
+        shell: fish {0}
+      - name: assume zsh
+        run: |
+          SHELL=fish dassume test
+          tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+        shell: fish {0}
 
   # osx-installs:
   #   needs: test
