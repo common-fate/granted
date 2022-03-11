@@ -27,7 +27,7 @@ test-browser-binary:
 
 test-creds-binary:
 	GOOS=linux go build -o ./bin/linux/tcreds cmd/testing/creds/main.go
-	GOOS=darwin GOARCH=amd64 go build -o ./bin/linux/tcreds cmd/testing/creds/main.go
+	GOOS=darwin GOARCH=amd64 go build -o ./bin/macos/tcreds cmd/testing/creds/main.go
 	GOOS=windows go build -o ./bin/windows/tcreds.exe cmd/testing/creds/main.go
 
 test-binaries: test-browser-binary test-creds-binary

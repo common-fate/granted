@@ -38,31 +38,31 @@ jobs:
         with:
           name: go-binaries-linux
           path: ./bin/linux/
-      # - uses: actions/upload-artifact@v3
-      #   with:
-      #     name: go-binaries-macos
-      #     path: ./bin/macos/
-      # - uses: actions/upload-artifact@v3
-      #   with:
-      #     name: go-binaries-windows
-      #     path: ./bin/windows/
-  #     - name: Lint
-  #       run: go vet ./...
+      - uses: actions/upload-artifact@v3
+        with:
+          name: go-binaries-macos
+          path: ./bin/macos/
+      - uses: actions/upload-artifact@v3
+        with:
+          name: go-binaries-windows
+          path: ./bin/windows/
+      - name: Lint
+        run: go vet ./...
 
-  #     - name: Test
-  #       run: go test ./...
+      - name: Test
+        run: go test ./...
 
-  # golangci-lint:
-  #   name: Go Lint
-  #   runs-on: ubuntu-latest
-  #   steps:
-  #     - uses: actions/checkout@v2
-  #     - name: golangci-lint
-  #       uses: golangci/golangci-lint-action@v2
-  #       timeout-minutes: 5
-  #       with:
-  #         version: v1.39
-  #         args: --timeout 2m
+  golangci-lint:
+    name: Go Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v2
+        timeout-minutes: 5
+        with:
+          version: v1.39
+          args: --timeout 2m
 
   linux-installs:
     needs: test
@@ -133,69 +133,68 @@ jobs:
           tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: fish {0}
 
-  # osx-installs:
-  #   needs: test
-  #   name: Smoke Test (MacOS)
-  #   runs-on: macos-11
-  #   env:
-  #     TEST_ACCESS_KEY_ID: 1234578910abcdefghij
-  #     TEST_ACCESS_KEY: 1234578910abcdefghijklmnopqrstuvwxyz1234
-  #     TEST_REGION: ap-southeast-2
-  #   steps:
-  #     - uses: actions/download-artifact@v3
-  #       with:
-  #         name: go-binaries-macos
-  #         path: /usr/local/bin/
-  #     - name: move binaries
-  #       run: |
-  #         chmod +x /usr/local/bin/dassumego
-  #         chmod +x /usr/local/bin/dgranted
-  #         chmod +x /usr/local/bin/tbrowser
-  #         chmod +x /usr/local/bin/tcreds
-  #         chmod +x /usr/local/bin/dassume
-  #         chmod +x /usr/local/bin/dassume.fish
-  #     - name: set default browser
-  #       # configures granted to use the test browser binary
-  #       run: dgranted browser set -b chrome -p /usr/local/bin/tbrowser
-  #     - name: setup aws config files
-  #       run: mkdir ~/.aws; touch ~/.aws/config; touch ~/.aws/credentials;
-  #     - name: setup fake aws profile
-  #       run: |
-  #         cat << EOF >> ~/.aws/config
-  #         [profile test]
-  #         region = ${TEST_REGION}
-  #         EOF
-  #     - name: setup fake aws profile credentials
-  #       run: |
-  #         cat << EOF >> ~/.aws/credentials
-  #         [test]
-  #         aws_access_key_id=${TEST_ACCESS_KEY_ID}
-  #         aws_secret_access_key=${TEST_ACCESS_KEY}
-  #         EOF
-  #     - name: bash
-  #       run: SHELL=/bin/bash dassume -auto-configure-shell
-  #       shell: bash {0}
-  #     # bash doesn't work in github actions
-  #     # - name: assume bash
-  #     #   run: |
-  #     #     SHELL=/bin/bash dassume test
-  #     #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
-  #     #   shell: bash -l {0}
-  #     - name: zsh
-  #       run: SHELL=/bin/zsh dassume -auto-configure-shell
-  #       shell: zsh {0}
-  #     - name: assume zsh
-  #       run: |
-  #         SHELL=/bin/zsh dassume test
-  #         tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
-  #       shell: zsh {0}
-  #     - name: install fish
-  #       run: brew install fish
-  #     - name: fish
-  #       run: SHELL=fish dassume -auto-configure-shell
-  #       shell: fish {0}
-  #     - name: assume fish
-  #       run: |
-  #         SHELL=fish dassume test
-  #         tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
-  #       shell: fish {0}
+  osx-installs:
+    needs: test
+    name: Smoke Test (MacOS)
+    runs-on: macos-11
+    env:
+      TEST_ACCESS_KEY_ID: 1234578910abcdefghij
+      TEST_ACCESS_KEY: 1234578910abcdefghijklmnopqrstuvwxyz1234
+      TEST_REGION: ap-southeast-2
+    steps:
+      - uses: actions/download-artifact@v3
+        with:
+          name: go-binaries-macos
+      - name: move binaries
+        run: |
+          chmod +x ./dassumego && mv ./dassumego /usr/local/bin/
+          chmod +x ./dgranted && mv ./dgranted /usr/local/bin/
+          chmod +x ./tbrowser && mv ./tbrowser /usr/local/bin/
+          chmod +x ./tcreds && mv ./tcreds /usr/local/bin/
+          chmod +x ./dassume && mv ./dassume /usr/local/bin/
+          chmod +x ./dassume.fish && mv ./dassume.fish /usr/local/bin/
+      - name: set default browser
+        # configures granted to use the test browser binary
+        run: dgranted browser set -b chrome -p /usr/local/bin/tbrowser
+      - name: setup aws config files
+        run: mkdir ~/.aws; touch ~/.aws/config; touch ~/.aws/credentials;
+      - name: setup fake aws profile
+        run: |
+          cat << EOF >> ~/.aws/config
+          [profile test]
+          region = ${TEST_REGION}
+          EOF
+      - name: setup fake aws profile credentials
+        run: |
+          cat << EOF >> ~/.aws/credentials
+          [test]
+          aws_access_key_id=${TEST_ACCESS_KEY_ID}
+          aws_secret_access_key=${TEST_ACCESS_KEY}
+          EOF
+      - name: bash
+        run: SHELL=/bin/bash dassume -auto-configure-shell
+        shell: bash {0}
+      # bash doesn't work in github actions
+      # - name: assume bash
+      #   run: |
+      #     SHELL=/bin/bash dassume test
+      #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+      #   shell: bash -l {0}
+      - name: zsh
+        run: SHELL=/bin/zsh dassume -auto-configure-shell
+        shell: zsh {0}
+      - name: assume zsh
+        run: |
+          SHELL=/bin/zsh dassume test
+          /usr/local/bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+        shell: zsh {0}
+      - name: install fish
+        run: brew install fish
+      - name: fish
+        run: SHELL=fish dassume -auto-configure-shell
+        shell: fish {0}
+      - name: assume fish
+        run: |
+          SHELL=fish dassume test
+          tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+        shell: fish {0}
