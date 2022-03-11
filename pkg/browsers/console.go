@@ -294,7 +294,7 @@ func makeDestinationURL(service string, region string) (string, error) {
 	//incomplete list of global services
 	_, Global := globalServiceMap[service]
 	hasRegion := region != ""
-	if !Global && hasRegion {
+	if !global && hasRegion {
 		dest = dest + "?region=" + region
 
 	}
