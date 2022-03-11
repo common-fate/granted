@@ -28,7 +28,7 @@ test-browser-binary:
 test-creds-binary:
 	GOOS=linux go build -o ./bin/linux/tcreds cmd/testing/creds/main.go
 	GOOS=darwin GOARCH=amd64 go build -o ./bin/linux/tcreds cmd/testing/creds/main.go
-	GOOS=windows go build -o ./bin/linux/tcreds.exe cmd/testing/creds/main.go
+	GOOS=windows go build -o ./bin/windows/tcreds.exe cmd/testing/creds/main.go
 
 test-binaries: test-browser-binary test-creds-binary
 
@@ -38,9 +38,9 @@ ci-cli-all-platforms: test-binaries
 	GOOS=linux go build -o ./bin/linux/dgranted cmd/granted/main.go
 	GOOS=darwin GOARCH=amd64 go build -o ./bin/macos/dgranted cmd/granted/main.go
 	GOOS=windows go build -o ./bin/windows/dgranted.exe cmd/granted/main.go
-	GOOS=linux go build -o ./bin/linux/dassume cmd/assume/main.go
-	GOOS=darwin GOARCH=amd64 go build -o ./bin/macos/dassume cmd/assume/main.go
-	GOOS=windows go build -o ./bin/windows/dassume.exe cmd/assume/main.go
+	GOOS=linux go build -o ./bin/linux/dassumego cmd/assume/main.go
+	GOOS=darwin GOARCH=amd64 go build -o ./bin/macos/dassumego cmd/assume/main.go
+	GOOS=windows go build -o ./bin/windows/dassumego.exe cmd/assume/main.go
 	# replace references to "assumego" (the production binary) with "dassumego"
 	cat scripts/assume | sed 's/assumego/dassumego/g' > bin/linux/dassume && chmod +x bin/linux/dassume
 	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > bin/linux/dassume.fish && chmod +x bin/linux/dassume.fish

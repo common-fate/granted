@@ -79,14 +79,16 @@ jobs:
       - name: Display structure of downloaded files
         run: ls -R
 
-  #     - name: move binaries
-  #       run: |
-  #         chmod +x /usr/local/bin/dassumego
-  #         chmod +x /usr/local/bin/dgranted
-  #         chmod +x /usr/local/bin/tbrowser
-  #         chmod +x /usr/local/bin/tcreds
-  #         chmod +x /usr/local/bin/dassume
-  #         chmod +x /usr/local/bin/dassume.fish
+      - name: move binaries
+        run: |
+          chmod +x ./dassumego && mv ./dassumego /usr/local/bin/
+          chmod +x ./dgranted && mv ./dgranted /usr/local/bin/
+          chmod +x ./tbrowser && mv ./tbrowser /usr/local/bin/
+          chmod +x ./tcreds && mv ./tcreds /usr/local/bin/
+          chmod +x ./dassume && mv ./dassume /usr/local/bin/
+          chmod +x ./dassume.fish && mv ./dassume.fish /usr/local/bin/
+      - name: Display structure of moved files
+        run: ls /usr/local/bin
   #     - name: set default browser
   #       # configures granted to use the test browser binary
   #       run: dgranted browser set -b chrome -p /usr/local/bin/tbrowser
