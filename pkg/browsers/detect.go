@@ -35,7 +35,7 @@ func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
 			return false, err
 		}
 	}
-	return conf.DefaultBrowser != "" || conf.CustomBrowserPath != "", nil
+	return conf.DefaultBrowser != "" && conf.CustomBrowserPath != "", nil
 }
 
 func HandleManualBrowserSelection() (string, error) {
@@ -179,12 +179,6 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	browserKey := GetBrowserKey(browserName)
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	browserTitle := strings.Title(strings.ToLower(browserKey))
-
-	//save the detected browser as the default
-	conf, err := config.Load()
-	if err != nil {
-		return err
-	}
 	// We allow users to configure a custom install path is we cannot detect the installation
 	customBrowserPath := path
 	// detect installation
@@ -195,7 +189,6 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 		}
 	} else {
 		customBrowserPath, detected := DetectInstallation(browserKey)
-
 		if !detected {
 			fmt.Fprintf(color.Error, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
 			validPath := false
@@ -207,12 +200,8 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 				if err != nil {
 					return err
 				}
-
 				if _, err := os.Stat(customBrowserPath); err == nil {
-					conf.CustomBrowserPath = customBrowserPath
-
 					validPath = true
-
 				} else {
 					fmt.Fprintf(color.Error, "\n❌ The path you entered is not valid\n")
 				}
@@ -220,8 +209,21 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 		}
 	}
 
-	conf.DefaultBrowser = browserKey
+	if browserKey == FirefoxKey {
+		err := RunFirefoxExtensionPrompts(customBrowserPath)
+		if err != nil {
+			return err
+		}
+	}
 
+	//save the detected browser as the default
+	conf, err := config.Load()
+	if err != nil {
+		return err
+	}
+
+	conf.DefaultBrowser = browserKey
+	conf.CustomBrowserPath = customBrowserPath
 	err = conf.Save()
 	if err != nil {
 		return err
