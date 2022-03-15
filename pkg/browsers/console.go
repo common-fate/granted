@@ -153,9 +153,9 @@ type RoleLabels struct {
 
 func (r *RoleLabels) MakeExternalFirefoxTitle() string {
 
-	hash := r.MakeExternalProfileTitle()
+	//hash := r.MakeExternalProfileTitle()
 	if r.Region != "" {
-		return r.Profile + hash
+		return r.Profile
 
 	}
 	return r.Profile
