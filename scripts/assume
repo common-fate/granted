@@ -77,8 +77,8 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
     fi
   done
 fi
-if [ !"$GRANTED_FLAG" = "GrantedDesume" ];then
-  echo "$GRANTED_OUTPUT"
+if [ "$GRANTED_FLAG" = "GrantedOutput" ];then
+  echo ${GRANTED_1}
 fi
 
 if [ "$GRANTED_RETURN_STATUS" = "true" ]; then

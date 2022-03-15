@@ -7,12 +7,13 @@ import (
 )
 
 const (
-	ChromeKey   string = "CHROME"
-	FirefoxKey  string = "FIREFOX"
-	EdgeKey     string = "EDGE"
-	BraveKey    string = "BRAVE"
-	DefaultKey  string = "DEFAULT"
-	ChromiumKey string = "CHROMIUM"
+	ChromeKey        string = "CHROME"
+	FirefoxKey       string = "FIREFOX"
+	FirefoxStdoutKey string = "FIREFOX_STDOUT"
+	EdgeKey          string = "EDGE"
+	BraveKey         string = "BRAVE"
+	StdoutKey        string = "STDOUT"
+	ChromiumKey      string = "CHROMIUM"
 )
 
 // A few default paths to check for the browser
@@ -25,7 +26,7 @@ var BravePathWindows = []string{`\Program Files\BraveSoftware\Brave-Browser\Appl
 var EdgePathMac = []string{"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"}
 var EdgePathLinux = []string{`/usr/bin/edge`}
 var EdgePathWindows = []string{`\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`}
-var FirefoxPathMac = []string{"/Applications/Firefox.app/Contents/MacOS/firefox"}
+var FirefoxPathMac = []string{"/Applications/Firefox.app/Contents/MacOS/firefoxs"}
 var FirefoxPathLinux = []string{`/usr/bin/firefox`}
 var FirefoxPathWindows = []string{`\Program Files\Mozilla Firefox\firefox.exe`}
 var ChromiumPathMac = []string{"/Applications/Chromium.app/Contents/MacOS/Chromium"}
