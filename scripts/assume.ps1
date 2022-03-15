@@ -49,4 +49,8 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
     }
 }
 
+elseif ( $ASSUME_FLAG -eq "GrantedOutput") {
+    Write-Host "$ASSUME_1"
+}
+
 exit $env:ASSUME_STATUS

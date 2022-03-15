@@ -7,12 +7,13 @@ import (
 )
 
 const (
-	ChromeKey   string = "CHROME"
-	FirefoxKey  string = "FIREFOX"
-	EdgeKey     string = "EDGE"
-	BraveKey    string = "BRAVE"
-	DefaultKey  string = "DEFAULT"
-	ChromiumKey string = "CHROMIUM"
+	ChromeKey        string = "CHROME"
+	FirefoxKey       string = "FIREFOX"
+	FirefoxStdoutKey string = "FIREFOX_STDOUT"
+	EdgeKey          string = "EDGE"
+	BraveKey         string = "BRAVE"
+	StdoutKey        string = "STDOUT"
+	ChromiumKey      string = "CHROMIUM"
 )
 
 // A few default paths to check for the browser
