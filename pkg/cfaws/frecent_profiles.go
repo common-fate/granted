@@ -9,11 +9,10 @@ import (
 	"github.com/pkg/errors"
 )
 
-var frecencyStoreKey = "aws_profiles_frecency"
-
 type FrecentProfiles struct {
-	store    *frecency.FrecencyStore
-	toRemove []string
+	store            *frecency.FrecencyStore
+	toRemove         []string
+	frecencyStoreKey string
 }
 
 // should be called after selecting a profile to update frecency cache
@@ -34,7 +33,7 @@ func (f *FrecentProfiles) Update(selectedProfile string) {
 }
 
 // use this to update frecency cache when the profile is supplied by the commandline
-func UpdateFrecencyCache(selectedProfile string) {
+func UpdateFrecencyCache(frecencyStoreKey string, selectedProfile string) {
 	fr, err := frecency.Load(frecencyStoreKey)
 	if err != nil {
 		debug.Fprintf(debug.VerbosityDebug, color.Error, errors.Wrap(err, "loading aws_profiles_frecency frecency store").Error())
@@ -48,7 +47,7 @@ func UpdateFrecencyCache(selectedProfile string) {
 
 // loads the frecency cache and generates a list of profiles with frecently used profiles first, followed by alphabetically sorted profiles that have not been used with assume
 // this method returns a FrecentProfiles pointer which should be used after selecting a profile to update the cache, it will also remove any entries which no longer exist in the aws config
-func (c CFSharedConfigs) GetFrecentProfiles() (*FrecentProfiles, []string) {
+func (c CFSharedConfigs) GetFrecentProfiles(frecencyStoreKey string) (*FrecentProfiles, []string) {
 	names := []string{}
 	namesMap := make(map[string]string)
 	profileNames := c.ProfileNames()
@@ -83,7 +82,7 @@ func (c CFSharedConfigs) GetFrecentProfiles() (*FrecentProfiles, []string) {
 	sort.Strings(namesToSort)
 	names = append(names, namesToSort...)
 
-	frPr := &FrecentProfiles{store: fr, toRemove: namesToRemoveFromFrecency}
+	frPr := &FrecentProfiles{store: fr, toRemove: namesToRemoveFromFrecency, frecencyStoreKey: frecencyStoreKey}
 
 	return frPr, names
 }
