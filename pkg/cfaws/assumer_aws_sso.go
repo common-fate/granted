@@ -13,6 +13,7 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
@@ -148,7 +149,8 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 	err = browser.OpenURL(url)
 	if err != nil {
-		return nil, err
+		// fail silently
+		debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
 	}
 
 	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
