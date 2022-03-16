@@ -16,7 +16,19 @@ type AwsIamAssumer struct {
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
 func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	creds, err := aws.NewCredentialsCache(&CredProv{Credentials: c.AWSConfig.Credentials}).Retrieve(ctx)
+
+	opts := []func(*config.LoadOptions) error{
+		// load the config profile
+		config.WithSharedConfigProfile(c.Name),
+	}
+
+	//load the creds from the credentials file
+	cfg, err := config.LoadDefaultConfig(ctx, opts...)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+
+	creds, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
