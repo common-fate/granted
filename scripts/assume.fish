@@ -64,6 +64,8 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
       echo set -gx AWS_REGION $GRANTED_5
     end
   end
+else if test "$GRANTED_FLAG" = "GrantedOutput"
+  echo $GRANTED_1
 end
 
 exit $GRANTED_STATUS

@@ -126,47 +126,7 @@ func AssumeCommand(c *cli.Context) error {
 		return err
 	}
 
-	if assumeFlags.Bool("url") {
-		//dont want to open the browser just return the link
-		labels := browsers.RoleLabels{Profile: profile.Name}
-
-		var creds aws.Credentials
-
-		creds, err = profile.AssumeConsole(c.Context, assumeFlags.StringSlice("pass-through"))
-		if err != nil {
-			return err
-		}
-
-		service := assumeFlags.String("service")
-		if assumeFlags.String("region") != "" {
-			region = assumeFlags.String("region")
-		}
-
-		labels.Region = region
-		labels.Service = service
-		url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), labels, service, region)
-		if err != nil {
-			return err
-		}
-
-		cfg, _ := config.Load()
-
-		if cfg.DefaultBrowser == browsers.FirefoxKey {
-			url = browsers.MakeFirefoxContainerURL(url, labels)
-			if err != nil {
-				return err
-			}
-			fmt.Print(url)
-
-		} else {
-			fmt.Print(url)
-
-		}
-
-		return nil
-	}
-
-	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role")
+	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.Bool("url")
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 		labels := browsers.RoleLabels{Profile: profile.Name}
@@ -185,9 +145,28 @@ func AssumeCommand(c *cli.Context) error {
 
 		labels.Region = region
 		labels.Service = service
-		browsers.PromoteUseFlags(labels)
-		fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
-		return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+		if assumeFlags.Bool("url") || cfg.DefaultBrowser == browsers.StdoutKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
+			url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), labels, service, region)
+			if err != nil {
+				return err
+			}
+			if cfg.DefaultBrowser == browsers.FirefoxKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
+				url = browsers.MakeFirefoxContainerURL(url, labels)
+				if err != nil {
+					return err
+				}
+			}
+			fmt.Printf("GrantedOutput %s", url)
+		} else {
+			browsers.PromoteUseFlags(labels)
+			fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
+			return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
+		}
+
 	} else {
 		creds, err := profile.AssumeTerminal(c.Context, assumeFlags.StringSlice("pass-through"))
 		if err != nil {
