@@ -133,7 +133,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		var creds aws.Credentials
 
-		creds, err = profile.AssumeConsole(c.Context, assumeFlags.StringSlice("pass-through"))
+		creds, err = profile.AssumeConsole(c, assumeFlags.StringSlice("pass-through"))
 		if err != nil {
 			return err
 		}
@@ -168,7 +168,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 	} else {
-		creds, err := profile.AssumeTerminal(c.Context, assumeFlags.StringSlice("pass-through"))
+		creds, err := profile.AssumeTerminal(c, assumeFlags.StringSlice("pass-through"))
 		if err != nil {
 			return err
 		}

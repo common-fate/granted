@@ -17,18 +17,19 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
 // Implements Assumer
 type AwsSsoAssumer struct {
 }
 
-func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return c.SSOLogin(ctx)
+func (asa *AwsSsoAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+	return cfg.SSOLogin(c.Context)
 }
 
-func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return c.SSOLogin(ctx)
+func (asa *AwsSsoAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+	return cfg.SSOLogin(c.Context)
 }
 
 func (asa *AwsSsoAssumer) Type() string {

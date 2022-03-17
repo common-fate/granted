@@ -1,7 +1,6 @@
 package cfaws
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/fatih/color"
+	"github.com/urfave/cli/v2"
 )
 
 // Implements Assumer
@@ -19,8 +19,8 @@ type AwsGoogleAuthAssumer struct {
 
 // launch the aws-google-auth utility to generate the credentials
 // then fetch them from the environment for use
-func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", c.Name))
+func (aia *AwsGoogleAuthAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", cfg.Name))
 
 	cmd.Stdout = color.Error
 	cmd.Stdin = os.Stdin
@@ -29,15 +29,15 @@ func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	creds := GetEnvCredentials(ctx)
+	creds := GetEnvCredentials(c.Context)
 	if !creds.HasKeys() {
-		return aws.Credentials{}, fmt.Errorf("no credentials exported to terminal when using %s to assume profile: %s", aia.Type(), c.Name)
+		return aws.Credentials{}, fmt.Errorf("no credentials exported to terminal when using %s to assume profile: %s", aia.Type(), cfg.Name)
 	}
 	return creds, nil
 }
 
-func (aia *AwsGoogleAuthAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return aia.AssumeTerminal(ctx, c, args)
+func (aia *AwsGoogleAuthAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+	return aia.AssumeTerminal(c, cfg, args)
 }
 
 // A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH

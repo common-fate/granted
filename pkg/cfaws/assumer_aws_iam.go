@@ -7,6 +7,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/urfave/cli/v2"
 )
 
 // Implements Assumer
@@ -15,20 +16,20 @@ type AwsIamAssumer struct {
 
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
-func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
 
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
-		config.WithSharedConfigProfile(c.Name),
+		config.WithSharedConfigProfile(cfg.Name),
 	}
 
 	//load the creds from the credentials file
-	cfg, err := config.LoadDefaultConfig(ctx, opts...)
+	AwsCfg, err := config.LoadDefaultConfig(c.Context, opts...)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
 
-	creds, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	creds, err := aws.NewCredentialsCache(AwsCfg.Credentials).Retrieve(c.Context)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
@@ -37,12 +38,12 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig,
 
 // if required will get a FederationToken to be used to launch the console
 // This is required is the iam profile does not assume a role using sts.AssumeRole
-func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	if c.AWSConfig.RoleARN == "" {
-		return getFederationToken(ctx, c)
+func (aia *AwsIamAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+	if cfg.AWSConfig.RoleARN == "" {
+		return getFederationToken(c.Context, cfg)
 	} else {
 		// profile assume a role
-		return aia.AssumeTerminal(ctx, c, args)
+		return aia.AssumeTerminal(c, cfg, args)
 	}
 }
 

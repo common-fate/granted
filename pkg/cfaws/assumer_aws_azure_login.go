@@ -1,7 +1,6 @@
 package cfaws
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"os/exec"
@@ -11,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/fatih/color"
+	"github.com/urfave/cli/v2"
 )
 
 // Implements Assumer
@@ -20,16 +20,16 @@ type AwsAzureLoginAssumer struct {
 //https://github.com/sportradar/aws-azure-login
 
 // then fetch them from the environment for use
-func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aal *AwsAzureLoginAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
 	//check to see if the creds are already exported
-	creds, err := GetCredentialsCreds(ctx, c)
+	creds, err := GetCredentialsCreds(c.Context, cfg)
 
 	if err == nil {
 		return creds, nil
 	}
 
 	//request for the creds if they are invalid
-	a := []string{fmt.Sprintf("--profile=%s", c.Name)}
+	a := []string{fmt.Sprintf("--profile=%s", cfg.Name)}
 	a = append(a, args...)
 
 	cmd := exec.Command("aws-azure-login", a...)
@@ -42,17 +42,17 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 		return aws.Credentials{}, err
 	}
 	// reload the profile from disk to check for the new credentials
-	cfg, err := config.LoadDefaultConfig(ctx,
-		config.WithSharedConfigProfile(c.Name),
+	awsCfg, err := config.LoadDefaultConfig(c.Context,
+		config.WithSharedConfigProfile(cfg.Name),
 	)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	return aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	return aws.NewCredentialsCache(awsCfg.Credentials).Retrieve(c.Context)
 }
 
-func (aal *AwsAzureLoginAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return aal.AssumeTerminal(ctx, c, args)
+func (aal *AwsAzureLoginAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+	return aal.AssumeTerminal(c, cfg, args)
 }
 
 // A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH

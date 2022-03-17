@@ -1,7 +1,6 @@
 package cfaws
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -13,6 +12,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/fatih/color"
+	"github.com/urfave/cli/v2"
 )
 
 // Implements Assumer using the aws credential_process standard
@@ -64,10 +64,10 @@ type Writer interface {
 	Write(p []byte) (n int, err error)
 }
 
-func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args2 []string) (aws.Credentials, error) {
+func (cpa *CredentialProcessAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args2 []string) (aws.Credentials, error) {
 	var args []string
 	var command string
-	for k, v := range c.RawConfig {
+	for k, v := range cfg.RawConfig {
 		if k == "credential_process" {
 			s := strings.Split(v, " ")
 			command = s[0]
@@ -91,8 +91,8 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 	return capture.Creds()
 }
 
-func (cpa *CredentialProcessAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return cpa.AssumeTerminal(ctx, c, args)
+func (cpa *CredentialProcessAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+	return cpa.AssumeTerminal(c, cfg, args)
 }
 
 // A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH

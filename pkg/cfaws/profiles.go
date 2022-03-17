@@ -11,6 +11,7 @@ import (
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
+	"github.com/urfave/cli/v2"
 )
 
 type CFSharedConfig struct {
@@ -140,10 +141,10 @@ func (c CFSharedConfigs) ProfileNames() []string {
 	return names
 }
 
-func (c *CFSharedConfig) AssumeConsole(ctx context.Context, args []string) (aws.Credentials, error) {
+func (c *CFSharedConfig) AssumeConsole(ctx *cli.Context, args []string) (aws.Credentials, error) {
 	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, args)
 }
 
-func (c *CFSharedConfig) AssumeTerminal(ctx context.Context, args []string) (aws.Credentials, error) {
+func (c *CFSharedConfig) AssumeTerminal(ctx *cli.Context, args []string) (aws.Credentials, error) {
 	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c, args)
 }

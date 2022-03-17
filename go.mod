@@ -15,6 +15,7 @@ require (
 	github.com/fatih/color v1.13.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
+	github.com/urfave/cli v1.22.5
 	github.com/urfave/cli/v2 v2.3.0
 	google.golang.org/grpc v1.44.0
 )
