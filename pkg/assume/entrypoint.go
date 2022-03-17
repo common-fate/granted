@@ -18,7 +18,7 @@ import (
 // Prevent issues where these flags are initialised in some part of the program then used by another part
 // For our use case, we need fresh copies of these flags in the app and in the assume command
 // we use this to allow flags to be set on either side of the profile arg e.g `assume -c profile-name -r ap-southeast-2`
-func GlobalFlags() []cli.Flag {
+var GlobalFlags = func() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
 		&cli.BoolFlag{Name: "unset", Aliases: []string{"un"}, Usage: "Unset all environment variables configured by Assume"},
