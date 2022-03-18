@@ -79,7 +79,7 @@ func MapTokens(ctx context.Context) (map[string][]string, error) {
 			}
 			// Don't add any profiles which are not in the keyring already
 			if _, ok := startUrlMap[ssoUrl]; ok {
-				startUrlMap[ssoUrl] = append(startUrlMap[ssoUrl], c.Name)
+				startUrlMap[ssoUrl] = append(startUrlMap[ssoUrl], c.DisplayName)
 			}
 		}
 	}

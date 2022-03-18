@@ -20,7 +20,7 @@ type AwsGoogleAuthAssumer struct {
 // launch the aws-google-auth utility to generate the credentials
 // then fetch them from the environment for use
 func (aia *AwsGoogleAuthAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
-	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", cfg.Name))
+	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", cfg.AWSConfig.Profile))
 
 	cmd.Stdout = color.Error
 	cmd.Stdin = os.Stdin
@@ -31,7 +31,7 @@ func (aia *AwsGoogleAuthAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedCon
 	}
 	creds := GetEnvCredentials(c.Context)
 	if !creds.HasKeys() {
-		return aws.Credentials{}, fmt.Errorf("no credentials exported to terminal when using %s to assume profile: %s", aia.Type(), cfg.Name)
+		return aws.Credentials{}, fmt.Errorf("no credentials exported to terminal when using %s to assume profile: %s", aia.Type(), cfg.DisplayName)
 	}
 	return creds, nil
 }

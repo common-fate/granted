@@ -101,7 +101,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 
 			stsRes, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
 				RoleArn:         &p.AWSConfig.RoleARN,
-				RoleSessionName: &p.Name,
+				RoleSessionName: &p.AWSConfig.Profile,
 				TokenCode:       &p.AWSConfig.MFASerial,
 			})
 			if err != nil {
@@ -112,7 +112,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			if i < len(toAssume)-1 {
 				green := color.New(color.FgGreen)
 
-				green.Fprintf(color.Error, "\nAssumed parent profile: [%s](%s) session credentials will expire %s\n", p.Name, region, stsRes.Credentials.Expiration.Local().String())
+				green.Fprintf(color.Error, "\nAssumed parent profile: [%s](%s) session credentials will expire %s\n", p.DisplayName, region, stsRes.Credentials.Expiration.Local().String())
 			}
 			credProvider = &CredProv{TypeCredsToAwsCreds(*stsRes.Credentials)}
 

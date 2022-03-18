@@ -29,7 +29,7 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedCon
 	}
 
 	//request for the creds if they are invalid
-	a := []string{fmt.Sprintf("--profile=%s", cfg.Name)}
+	a := []string{fmt.Sprintf("--profile=%s", cfg.AWSConfig.Profile)}
 	a = append(a, args...)
 
 	cmd := exec.Command("aws-azure-login", a...)
@@ -43,7 +43,7 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedCon
 	}
 	// reload the profile from disk to check for the new credentials
 	awsCfg, err := config.LoadDefaultConfig(c.Context,
-		config.WithSharedConfigProfile(cfg.Name),
+		config.WithSharedConfigProfile(cfg.AWSConfig.Profile),
 	)
 	if err != nil {
 		return aws.Credentials{}, err

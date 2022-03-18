@@ -15,13 +15,17 @@ import (
 )
 
 type CFSharedConfig struct {
-	// allows access to the raw values from the file
-	RawConfig   configparser.Dict
-	Name        string
+	// Allows access to the raw values from the file
+	RawConfig configparser.Dict
+	// Display name can be used in dialogs, It must be unique.
+	// By default this is the profile name for sharedconfig profiles
+	DisplayName string
+	// This identifies which assume should be used to assume this profile.
+	// It is assigned during loading by comparing the profile to an assumer until a match is found
 	ProfileType string
-	// ordered from root to direct parent profile
+	// Ordered from root to direct parent profile
 	Parents []*CFSharedConfig
-	// the original config, some values may be empty strings depending on the type or profile
+	// The original config, some values may be empty strings depending on the type or profile
 	AWSConfig config.SharedConfig
 }
 type CFSharedConfigs map[string]*CFSharedConfig
@@ -66,7 +70,7 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 				debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
 				continue
 			} else {
-				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
+				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, DisplayName: name, RawConfig: rawConfig}}
 			}
 		}
 	}
@@ -110,7 +114,7 @@ func (c *uninitCFSharedConfig) init(profiles map[string]*uninitCFSharedConfig, d
 				c.Parents = append(sourceProfile.Parents, sourceProfile.CFSharedConfig)
 			}
 		} else {
-			fmt.Fprintf(color.Error, "maximum source profile depth exceeded for profile %s\nthis indicates that you have a cyclic reference in your aws profiles.[profile dev]\nregion = ap-southeast-2\nsource_profile = prod\n\n[profile prod]\nregion = ap-southeast-2\nsource_profile = dev", c.Name)
+			fmt.Fprintf(color.Error, "maximum source profile depth exceeded for profile %s\nthis indicates that you have a cyclic reference in your aws profiles.[profile dev]\nregion = ap-southeast-2\nsource_profile = prod\n\n[profile prod]\nregion = ap-southeast-2\nsource_profile = dev", c.DisplayName)
 		}
 		c.initialised = true
 	}
@@ -128,7 +132,7 @@ func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
 		return c.AWSConfig.Region, false, nil
 	}
 	if region == "" {
-		return "", false, fmt.Errorf("region not set on profile %s, could not load a default AWS_REGION. Either set a default region `aws configure set default.region us-west-2` or add a region to your profile", c.Name)
+		return "", false, fmt.Errorf("region not set on profile %s, could not load a default AWS_REGION. Either set a default region `aws configure set default.region us-west-2` or add a region to your profile", c.DisplayName)
 	}
 	return region, true, nil
 }

@@ -20,7 +20,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, ar
 
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
-		config.WithSharedConfigProfile(cfg.Name),
+		config.WithSharedConfigProfile(cfg.AWSConfig.Profile),
 	}
 
 	//load the creds from the credentials file
@@ -67,7 +67,7 @@ func getFederationToken(ctx context.Context, c *CFSharedConfig) (aws.Credentials
 	}
 	cfg.Region = r
 	client := sts.NewFromConfig(*cfg)
-	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.Name)})
+	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.DisplayName)})
 	if err != nil {
 		return aws.Credentials{}, err
 	}

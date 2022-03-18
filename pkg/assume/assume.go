@@ -129,7 +129,7 @@ func AssumeCommand(c *cli.Context) error {
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.Bool("url")
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
-		labels := browsers.RoleLabels{Profile: profile.Name}
+		labels := browsers.RoleLabels{Profile: profile.DisplayName}
 
 		var creds aws.Credentials
 
@@ -163,7 +163,7 @@ func AssumeCommand(c *cli.Context) error {
 			fmt.Printf("GrantedOutput %s", url)
 		} else {
 			browsers.PromoteUseFlags(labels)
-			fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
+			fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.DisplayName)
 			return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
 		}
 
@@ -175,13 +175,13 @@ func AssumeCommand(c *cli.Context) error {
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
 		// the shell script treats "None" as an emprty string and will not set a value for that positional output
-		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region})
+		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.AWSConfig.Profile, region})
 		fmt.Printf("GrantedAssume %s %s %s %s %s", output...)
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
-			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
+			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.DisplayName, region, creds.Expires.Local().String())
 		} else {
-			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
+			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.DisplayName, region)
 		}
 	}
 
