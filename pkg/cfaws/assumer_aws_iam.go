@@ -74,6 +74,5 @@ func getFederationToken(ctx context.Context, c *CFSharedConfig) (creds aws.Crede
 	if err != nil {
 		return creds, region, err
 	}
-	creds, err = TypeCredsToAwsCreds(*out.Credentials), err
-	return creds, region, err
+	return TypeCredsToAwsCreds(*out.Credentials), region, err
 }
