@@ -4,9 +4,12 @@
 #ASSUME_n - the data from assumego
 $env:SHELL="ps"
 $env:GRANTED_ALIAS_CONFIGURED="true"
-$ASSUME_FLAG, $ASSUME_1, $ASSUME_2, $ASSUME_3, $ASSUME_4, $ASSUME_5 = `
+$ASSUME_FLAG, $ASSUME_OUTPUT = `
 $(assumego $args) -split '\s+'
 $env:ASSUME_STATUS = $LASTEXITCODE
+
+$ASSUME_1, $ASSUME_2, $ASSUME_3, $ASSUME_4, $ASSUME_5 = `
+$ASSUME_OUTPUT -split '\s+'
 
 
 if ( $ASSUME_FLAG -eq "GrantedDesume" ) {
@@ -50,7 +53,7 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
 }
 
 elseif ( $ASSUME_FLAG -eq "GrantedOutput") {
-    Write-Host "$ASSUME_1"
+    Write-Host "$ASSUME_OUTPUT"
 }
 
 exit $env:ASSUME_STATUS

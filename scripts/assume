@@ -78,6 +78,8 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   done
 fi
 if [ "$GRANTED_FLAG" = "GrantedOutput" ];then
+  # the url may contain spaces, so be sure to include everything after the granted_flag
+  read GRANTED_FLAG GRANTED_1 <<< $(echo $GRANTED_OUTPUT)
   echo ${GRANTED_1}
 fi
 

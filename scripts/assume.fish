@@ -65,7 +65,8 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
     end
   end
 else if test "$GRANTED_FLAG" = "GrantedOutput"
-  echo $GRANTED_1
+  echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1
+  echo GRANTED_1
 end
 
 exit $GRANTED_STATUS
