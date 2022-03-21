@@ -164,6 +164,11 @@ func AssumeCommand(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
+
+		// Allow setting a region via "-r" flag for terminal
+		if assumeFlags.String("region") != "" {
+			region = assumeFlags.String("region")
+		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
 		// the shell script treats "None" as an emprty string and will not set a value for that positional output
