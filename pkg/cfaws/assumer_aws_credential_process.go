@@ -64,7 +64,7 @@ type Writer interface {
 	Write(p []byte) (n int, err error)
 }
 
-func (cpa *CredentialProcessAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args2 []string) (aws.Credentials, error) {
+func (cpa *CredentialProcessAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args2 []string) (creds aws.Credentials, region string, err error) {
 	var args []string
 	var command string
 	for k, v := range cfg.RawConfig {
@@ -83,15 +83,20 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(c *cli.Context, cfg *CFShare
 	cmd.Stdout = capture
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = color.Error
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
-		return aws.Credentials{}, err
+		return creds, region, err
 	}
-
-	return capture.Creds()
+	creds, err = capture.Creds()
+	if err != nil {
+		return creds, region, err
+	}
+	// return the region of the profile
+	region, _, err = cfg.Region(c.Context)
+	return creds, region, err
 }
 
-func (cpa *CredentialProcessAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (cpa *CredentialProcessAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (creds aws.Credentials, region string, err error) {
 	return cpa.AssumeTerminal(c, cfg, args)
 }
 

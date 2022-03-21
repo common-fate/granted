@@ -7,7 +7,6 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
-	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
@@ -121,19 +120,12 @@ func AssumeCommand(c *cli.Context) error {
 	// ensure that frecency has finished updating before returning from this function
 	defer wg.Wait()
 
-	region, _, err := profile.Region(c.Context)
-	if err != nil {
-		return err
-	}
-
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.Bool("url")
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 		labels := browsers.RoleLabels{Profile: profile.DisplayName}
 
-		var creds aws.Credentials
-
-		creds, err = profile.AssumeConsole(c, assumeFlags.StringSlice("pass-through"))
+		creds, region, err := profile.AssumeConsole(c, assumeFlags.StringSlice("pass-through"))
 		if err != nil {
 			return err
 		}
@@ -168,7 +160,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 	} else {
-		creds, err := profile.AssumeTerminal(c, assumeFlags.StringSlice("pass-through"))
+		creds, region, err := profile.AssumeTerminal(c, assumeFlags.StringSlice("pass-through"))
 		if err != nil {
 			return err
 		}

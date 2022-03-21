@@ -145,10 +145,10 @@ func (c CFSharedConfigs) ProfileNames() []string {
 	return names
 }
 
-func (c *CFSharedConfig) AssumeConsole(ctx *cli.Context, args []string) (aws.Credentials, error) {
+func (c *CFSharedConfig) AssumeConsole(ctx *cli.Context, args []string) (creds aws.Credentials, region string, err error) {
 	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, args)
 }
 
-func (c *CFSharedConfig) AssumeTerminal(ctx *cli.Context, args []string) (aws.Credentials, error) {
+func (c *CFSharedConfig) AssumeTerminal(ctx *cli.Context, args []string) (creds aws.Credentials, region string, err error) {
 	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c, args)
 }

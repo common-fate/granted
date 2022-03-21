@@ -16,7 +16,7 @@ type AwsIamAssumer struct {
 
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
-func (aia *AwsIamAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (creds aws.Credentials, region string, err error) {
 
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
@@ -26,19 +26,22 @@ func (aia *AwsIamAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, ar
 	//load the creds from the credentials file
 	AwsCfg, err := config.LoadDefaultConfig(c.Context, opts...)
 	if err != nil {
-		return aws.Credentials{}, err
+		return creds, region, err
 	}
 
-	creds, err := aws.NewCredentialsCache(AwsCfg.Credentials).Retrieve(c.Context)
+	creds, err = aws.NewCredentialsCache(AwsCfg.Credentials).Retrieve(c.Context)
 	if err != nil {
-		return aws.Credentials{}, err
+		return creds, region, err
 	}
-	return creds, nil
+	// return the region of the profile
+	region, _, err = cfg.Region(c.Context)
+	return creds, region, err
+
 }
 
 // if required will get a FederationToken to be used to launch the console
 // This is required is the iam profile does not assume a role using sts.AssumeRole
-func (aia *AwsIamAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (creds aws.Credentials, region string, err error) {
 	if cfg.AWSConfig.RoleARN == "" {
 		return getFederationToken(c.Context, cfg)
 	} else {
@@ -59,18 +62,18 @@ func (aia *AwsIamAssumer) ProfileMatchesType(rawProfile configparser.Dict, parse
 }
 
 // GetFederationToken is used when launching a console session with longlived IAM credentials profiles
-func getFederationToken(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+func getFederationToken(ctx context.Context, c *CFSharedConfig) (creds aws.Credentials, region string, err error) {
 	cfg := aws.NewConfig()
-	r, _, err := c.Region(ctx)
+	region, _, err = c.Region(ctx)
 	if err != nil {
-		return aws.Credentials{}, err
+		return creds, region, err
 	}
-	cfg.Region = r
+	cfg.Region = region
 	client := sts.NewFromConfig(*cfg)
 	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.DisplayName)})
 	if err != nil {
-		return aws.Credentials{}, err
+		return creds, region, err
 	}
-	return TypeCredsToAwsCreds(*out.Credentials), err
-
+	creds, err = TypeCredsToAwsCreds(*out.Credentials), err
+	return creds, region, err
 }

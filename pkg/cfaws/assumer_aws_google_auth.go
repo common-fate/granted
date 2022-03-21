@@ -19,24 +19,26 @@ type AwsGoogleAuthAssumer struct {
 
 // launch the aws-google-auth utility to generate the credentials
 // then fetch them from the environment for use
-func (aia *AwsGoogleAuthAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aia *AwsGoogleAuthAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (creds aws.Credentials, region string, err error) {
 	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", cfg.AWSConfig.Profile))
 
 	cmd.Stdout = color.Error
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = color.Error
-	err := cmd.Run()
+	err = cmd.Run()
 	if err != nil {
-		return aws.Credentials{}, err
+		return creds, region, err
 	}
-	creds := GetEnvCredentials(c.Context)
+	creds = GetEnvCredentials(c.Context)
 	if !creds.HasKeys() {
-		return aws.Credentials{}, fmt.Errorf("no credentials exported to terminal when using %s to assume profile: %s", aia.Type(), cfg.DisplayName)
+		return creds, region, fmt.Errorf("no credentials exported to terminal when using %s to assume profile: %s", aia.Type(), cfg.DisplayName)
 	}
-	return creds, nil
+	// return the region of the profile
+	region, _, err = cfg.Region(c.Context)
+	return creds, region, err
 }
 
-func (aia *AwsGoogleAuthAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aia *AwsGoogleAuthAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (creds aws.Credentials, region string, err error) {
 	return aia.AssumeTerminal(c, cfg, args)
 }
 

@@ -12,9 +12,13 @@ import (
 //EG. assume role-a -pt --mode -pt gui (Run the proxy login with a gui rather than in cli. Example taken from aws-azure-login)
 type Assumer interface {
 	// AssumeTerminal should follow the required process for it implemetation and return aws credentials ready to be exported to the terminal environment
-	AssumeTerminal(*cli.Context, *CFSharedConfig, []string) (aws.Credentials, error)
+	//
+	// Returning a region from this makes it simple to manipulate the final credentials in the assumer for custom usecases
+	AssumeTerminal(*cli.Context, *CFSharedConfig, []string) (creds aws.Credentials, region string, err error)
 	// AssumeConsole should follow any console specific credentials processes, this may be the same as AssumeTerminal under the hood
-	AssumeConsole(*cli.Context, *CFSharedConfig, []string) (aws.Credentials, error)
+	//
+	// Returning a region from this makes it simple to manipulate the final credentials in the assumer for custom usecases
+	AssumeConsole(*cli.Context, *CFSharedConfig, []string) (creds aws.Credentials, region string, err error)
 	// A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH
 	Type() string
 	// ProfileMatchesType takes a list of strings which are the lines in an aw config profile and returns true if this profile is the assumers type

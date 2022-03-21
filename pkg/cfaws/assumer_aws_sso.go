@@ -24,11 +24,11 @@ import (
 type AwsSsoAssumer struct {
 }
 
-func (asa *AwsSsoAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (asa *AwsSsoAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (creds aws.Credentials, region string, err error) {
 	return cfg.SSOLogin(c.Context)
 }
 
-func (asa *AwsSsoAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (asa *AwsSsoAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (creds aws.Credentials, region string, err error) {
 	return cfg.SSOLogin(c.Context)
 }
 
@@ -41,7 +41,7 @@ func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile configparser.Dict, parse
 	return parsedProfile.SSOAccountID != ""
 }
 
-func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) {
+func (c *CFSharedConfig) SSOLogin(ctx context.Context) (creds aws.Credentials, region string, err error) {
 
 	rootProfile := c
 	requiresAssuming := false
@@ -56,13 +56,12 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	cfg.Region = rootProfile.AWSConfig.SSORegion
 
 	cachedToken := GetValidCachedToken(ssoTokenKey)
-	var err error
 	newToken := false
 	if cachedToken == nil {
 		newToken = true
 		cachedToken, err = SSODeviceCodeFlow(ctx, *cfg, rootProfile)
 		if err != nil {
-			return aws.Credentials{}, err
+			return creds, region, err
 		}
 
 	}
@@ -79,7 +78,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
 			ClearSSOToken(ssoTokenKey)
 		}
-		return aws.Credentials{}, err
+		return creds, region, err
 
 	}
 
@@ -91,21 +90,21 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 		toAssume := append([]*CFSharedConfig{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
 		for i, p := range toAssume {
-			region, _, err := c.Region(ctx)
+			region, _, err = c.Region(ctx)
 			if err != nil {
-				return aws.Credentials{}, err
+				return creds, region, err
 			}
 			// in order to support profiles which do not specify a region, we use the default region when assuming the role
 
 			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: region})
-
-			stsRes, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
+			var stsRes *sts.AssumeRoleOutput
+			stsRes, err = stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
 				RoleArn:         &p.AWSConfig.RoleARN,
 				RoleSessionName: &p.AWSConfig.Profile,
 				TokenCode:       &p.AWSConfig.MFASerial,
 			})
 			if err != nil {
-				return aws.Credentials{}, err
+				return creds, region, err
 			}
 			// only print for sub assumes because the final credentials are printed at the end of the assume command
 			// this is here for visibility in to role traversals when assuming a final profile with sso
@@ -118,7 +117,10 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 
 		}
 	}
-	return credProvider.Credentials, nil
+
+	// return the region of the profile
+	region, _, err = c.Region(ctx)
+	return creds, region, err
 
 }
 

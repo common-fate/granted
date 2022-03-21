@@ -20,12 +20,12 @@ type AwsAzureLoginAssumer struct {
 //https://github.com/sportradar/aws-azure-login
 
 // then fetch them from the environment for use
-func (aal *AwsAzureLoginAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aal *AwsAzureLoginAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedConfig, args []string) (creds aws.Credentials, region string, err error) {
 	//check to see if the creds are already exported
-	creds, err := GetCredentialsCreds(c.Context, cfg)
+	creds, err = GetCredentialsCreds(c.Context, cfg)
 
 	if err == nil {
-		return creds, nil
+		return creds, region, err
 	}
 
 	//request for the creds if they are invalid
@@ -39,19 +39,25 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(c *cli.Context, cfg *CFSharedCon
 	cmd.Stderr = color.Error
 	err = cmd.Run()
 	if err != nil {
-		return aws.Credentials{}, err
+		return creds, region, err
 	}
 	// reload the profile from disk to check for the new credentials
 	awsCfg, err := config.LoadDefaultConfig(c.Context,
 		config.WithSharedConfigProfile(cfg.AWSConfig.Profile),
 	)
 	if err != nil {
-		return aws.Credentials{}, err
+		return creds, region, err
 	}
-	return aws.NewCredentialsCache(awsCfg.Credentials).Retrieve(c.Context)
+	creds, err = aws.NewCredentialsCache(awsCfg.Credentials).Retrieve(c.Context)
+	if err != nil {
+		return creds, region, err
+	}
+	// return the region of the profile
+	region, _, err = cfg.Region(c.Context)
+	return creds, region, err
 }
 
-func (aal *AwsAzureLoginAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aal *AwsAzureLoginAssumer) AssumeConsole(c *cli.Context, cfg *CFSharedConfig, args []string) (creds aws.Credentials, region string, err error) {
 	return aal.AssumeTerminal(c, cfg, args)
 }
 
