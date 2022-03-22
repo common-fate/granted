@@ -20,6 +20,14 @@ type Config struct {
 	// used to override the builtin filepaths for custom installation locations
 	CustomBrowserPath   string
 	LastCheckForUpdates time.Weekday
+	Keyring             *KeyringConfig `toml:",omitempty"`
+}
+
+type KeyringConfig struct {
+	Backend                 *string `toml:",omitempty"`
+	KeychainName            *string `toml:",omitempty"`
+	FileDir                 *string `toml:",omitempty"`
+	LibSecretCollectionName *string `toml:",omitempty"`
 }
 
 // checks and or creates the config folder on startup

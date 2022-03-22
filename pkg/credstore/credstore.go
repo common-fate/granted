@@ -2,7 +2,6 @@ package credstore
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 	"path"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/testable"
+	"github.com/pkg/errors"
 )
 
 var ErrCouldNotOpenKeyring error = errors.New("keyring not opened successfully")
@@ -72,14 +72,39 @@ func ClearAll() error {
 }
 
 func openKeyring() (keyring.Keyring, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+
 	grantedFolder, err := config.GrantedConfigFolder()
 	if err != nil {
 		return nil, err
 	}
-	// check if the cred-store file exists in the folder
+
 	credStorePath := path.Join(grantedFolder, "cred-store")
 
-	return keyring.Open(keyring.Config{
+	c := keyring.Config{
+		ServiceName: "granted",
+
+		// MacOS keychain
+		KeychainName:             "login",
+		KeychainTrustApplication: true,
+
+		// KDE Wallet
+		KWalletAppID:  "granted",
+		KWalletFolder: "granted",
+
+		// Windows
+		WinCredPrefix: "granted",
+
+		// freedesktop.org's Secret Service
+		LibSecretCollectionName: "granted",
+
+		// Pass (https://www.passwordstore.org/)
+		PassPrefix: "granted",
+
+		// Fallback encrypted file
 		FileDir: credStorePath,
 		FilePasswordFunc: func(s string) (string, error) {
 			in := survey.Password{Message: s}
@@ -88,8 +113,29 @@ func openKeyring() (keyring.Keyring, error) {
 			err := testable.AskOne(&in, &out, withStdio)
 			return out, err
 		},
-		ServiceName: "granted",
-	})
+	}
+
+	if cfg.Keyring != nil {
+		if cfg.Keyring.Backend != nil {
+			c.AllowedBackends = []keyring.BackendType{keyring.BackendType(*cfg.Keyring.Backend)}
+		}
+		if cfg.Keyring.KeychainName != nil {
+			c.KeychainName = *cfg.Keyring.KeychainName
+		}
+		if cfg.Keyring.FileDir != nil {
+			c.FileDir = *cfg.Keyring.FileDir
+		}
+		if cfg.Keyring.LibSecretCollectionName != nil {
+			c.LibSecretCollectionName = *cfg.Keyring.LibSecretCollectionName
+		}
+	}
+
+	k, err := keyring.Open(c)
+	if err != nil {
+		return nil, errors.Wrap(err, "opening keyring")
+	}
+
+	return k, nil
 }
 
 func List() ([]keyring.Item, error) {
