@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/fatih/color"
-	"github.com/pkg/errors"
 )
 
 type CFSharedConfig struct {
@@ -53,20 +52,27 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 	for _, section := range configFile.Sections() {
 		rawConfig, err := configFile.Items(section)
 		if err != nil {
-			fmt.Fprintln(color.Error, errors.Wrapf(err, "failed to load a profile from your AWS config: %s . Due to the following error", section).Error())
+			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS config: %s Due to the following error: %s\n", section, err)
 			continue
 		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
 		if strings.HasPrefix(section, "profile ") && len(section) > 8 {
 			name := strings.TrimPrefix(section, "profile ")
-			cf, err := config.LoadSharedConfigProfile(ctx, name)
-
-			if err != nil {
-				fmt.Fprintln(color.Error, errors.Wrapf(err, "failed to load a profile from your AWS config: %s . Due to the following error", name).Error())
+			if strings.Contains(name, ".") {
+				// The AWS SDK actually fails to parse profiles containing "." however the error it returns is not useful so we need to warn users of this
+				fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains '.' in the name, try replacing these with '-'\n", name)
 				continue
 			} else {
-				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
+				cf, err := config.LoadSharedConfigProfile(ctx, name)
+
+				if err != nil {
+					fmt.Fprintf(color.Error, "failed to load a profile from your AWS config: %s Due to the following error: %s\n", name, err)
+					continue
+				} else {
+					profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
+				}
 			}
+
 		}
 	}
 
