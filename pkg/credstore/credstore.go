@@ -8,6 +8,7 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/pkg/errors"
 )
@@ -113,6 +114,11 @@ func openKeyring() (keyring.Keyring, error) {
 			err := testable.AskOne(&in, &out, withStdio)
 			return out, err
 		},
+	}
+
+	// enable debug logging if the verbose flag is set in the CLI
+	if debug.CliVerbosity == debug.VerbosityDebug {
+		keyring.Debug = true
 	}
 
 	if cfg.Keyring != nil {
