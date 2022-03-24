@@ -59,13 +59,18 @@ func (aia *AwsIamAssumer) ProfileMatchesType(rawProfile configparser.Dict, parse
 
 // GetFederationToken is used when launching a console session with longlived IAM credentials profiles
 func getFederationToken(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
-	cfg := aws.NewConfig()
-	r, _, err := c.Region(ctx)
+	opts := []func(*config.LoadOptions) error{
+		// load the config profile
+		config.WithSharedConfigProfile(c.Name),
+	}
+
+	//load the creds from the credentials file
+	cfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	cfg.Region = r
-	client := sts.NewFromConfig(*cfg)
+
+	client := sts.NewFromConfig(cfg)
 	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.Name)})
 	if err != nil {
 		return aws.Credentials{}, err

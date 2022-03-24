@@ -8,9 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
-	"github.com/pkg/errors"
 )
 
 type CFSharedConfig struct {
@@ -54,19 +52,28 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 	for _, section := range configFile.Sections() {
 		rawConfig, err := configFile.Items(section)
 		if err != nil {
-			debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
+			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS config: %s Due to the following error: %s\n", section, err)
 			continue
 		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
 		if strings.HasPrefix(section, "profile ") && len(section) > 8 {
 			name := strings.TrimPrefix(section, "profile ")
-			cf, err := config.LoadSharedConfigProfile(ctx, name)
-			if err != nil {
-				debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "loading profiles from config").Error())
+			illegalChars := ".,@#$%^&*()+=\\|]}[{;:'\"<>/?"
+			if strings.ContainsAny(name, illegalChars) {
+				// The AWS SDK actually fails to parse profiles containing "." however the error it returns is not useful so we need to warn users of this
+				fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains one or more of: '%s' in the name, try replacing these with '-'\n", name, illegalChars)
 				continue
 			} else {
-				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
+				cf, err := config.LoadSharedConfigProfile(ctx, name)
+
+				if err != nil {
+					fmt.Fprintf(color.Error, "failed to load a profile from your AWS config: %s Due to the following error: %s\n", name, err)
+					continue
+				} else {
+					profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
+				}
 			}
+
 		}
 	}
 
@@ -103,10 +110,15 @@ func (c *uninitCFSharedConfig) init(profiles map[string]*uninitCFSharedConfig, d
 					}
 				}
 			} else {
-				sourceProfile := profiles[c.AWSConfig.SourceProfileName]
-				sourceProfile.init(profiles, depth+1)
-				c.ProfileType = sourceProfile.ProfileType
-				c.Parents = append(sourceProfile.Parents, sourceProfile.CFSharedConfig)
+				sourceProfile, ok := profiles[c.AWSConfig.SourceProfileName]
+				if ok {
+					sourceProfile.init(profiles, depth+1)
+					c.ProfileType = sourceProfile.ProfileType
+					c.Parents = append(sourceProfile.Parents, sourceProfile.CFSharedConfig)
+				} else {
+					fmt.Fprintf(color.Error, "failed to load a source-profile for profile: %s . You should fix the issue with the source profile before you can assume this profile.", c.Name)
+				}
+
 			}
 		} else {
 			fmt.Fprintf(color.Error, "maximum source profile depth exceeded for profile %s\nthis indicates that you have a cyclic reference in your aws profiles.[profile dev]\nregion = ap-southeast-2\nsource_profile = prod\n\n[profile prod]\nregion = ap-southeast-2\nsource_profile = dev", c.Name)
