@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	ssotypes "github.com/aws/aws-sdk-go-v2/service/sso/types"
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
@@ -86,7 +87,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	credProvider := &CredProv{rootCreds}
 
 	if requiresAssuming {
-
+		// return creds, nil
 		toAssume := append([]*CFSharedConfig{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
 		for i, p := range toAssume {
@@ -95,14 +96,22 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 				return aws.Credentials{}, err
 			}
 			// in order to support profiles which do not specify a region, we use the default region when assuming the role
-
 			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: region})
+			stsp := stscreds.NewAssumeRoleProvider(stsClient, p.AWSConfig.RoleARN, func(aro *stscreds.AssumeRoleOptions) {
+				// all configuration goes in here for this profile
+				aro.RoleSessionName = "Granted-" + c.Name
+				if c.AWSConfig.MFASerial != "" {
+					aro.SerialNumber = &c.AWSConfig.MFASerial
+					aro.TokenProvider = stscreds.StdinTokenProvider
+				}
 
-			stsRes, err := stsClient.AssumeRole(ctx, &sts.AssumeRoleInput{
-				RoleArn:         &p.AWSConfig.RoleARN,
-				RoleSessionName: &p.Name,
-				TokenCode:       &p.AWSConfig.MFASerial,
+				// Default Duration set to 1 hour for the final assumed role
+				// In future when we support passing session duration as a flag, set it here
+				if i < len(toAssume)-1 {
+					aro.Duration = time.Hour
+				}
 			})
+			stsCreds, err := stsp.Retrieve(ctx)
 			if err != nil {
 				return aws.Credentials{}, err
 			}
@@ -110,10 +119,9 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 			// this is here for visibility in to role traversals when assuming a final profile with sso
 			if i < len(toAssume)-1 {
 				green := color.New(color.FgGreen)
-
-				green.Fprintf(color.Error, "\nAssumed parent profile: [%s](%s) session credentials will expire %s\n", p.Name, region, stsRes.Credentials.Expiration.Local().String())
+				green.Fprintf(color.Error, "\nAssumed parent profile: [%s](%s) session credentials will expire %s\n", p.Name, region, stsCreds.Expires.Local().String())
 			}
-			credProvider = &CredProv{TypeCredsToAwsCreds(*stsRes.Credentials)}
+			credProvider = &CredProv{stsCreds}
 
 		}
 	}
