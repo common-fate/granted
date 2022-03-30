@@ -102,7 +102,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 				aro.RoleSessionName = "Granted-" + c.Name
 				if c.AWSConfig.MFASerial != "" {
 					aro.SerialNumber = &c.AWSConfig.MFASerial
-					aro.TokenProvider = stscreds.StdinTokenProvider
+					aro.TokenProvider = MfaTokenProvider
 				}
 
 				// Default Duration set to 1 hour for the final assumed role
