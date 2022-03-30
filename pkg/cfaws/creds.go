@@ -6,9 +6,11 @@ import (
 	"os"
 	"time"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ssotypes "github.com/aws/aws-sdk-go-v2/service/sso/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/common-fate/granted/pkg/testable"
 )
 
 func TypeCredsToAwsCreds(c types.Credentials) aws.Credentials {
@@ -40,4 +42,12 @@ func GetCredentialsCreds(ctx context.Context, c *CFSharedConfig) (aws.Credential
 	}
 	return aws.Credentials{}, fmt.Errorf("creds invalid or expired")
 
+}
+
+func MfaTokenProvider() (string, error) {
+	in := survey.Input{Message: "MFA Token"}
+	var out string
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+	err := testable.AskOne(&in, &out, withStdio)
+	return out, err
 }

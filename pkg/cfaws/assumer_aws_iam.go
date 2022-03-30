@@ -23,7 +23,14 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig,
 		config.WithSharedConfigProfile(c.Name),
 		config.WithAssumeRoleCredentialOptions(func(aro *stscreds.AssumeRoleOptions) {
 			// set the token provider up
-			aro.TokenProvider = stscreds.StdinTokenProvider
+			aro.TokenProvider = MfaTokenProvider
+
+			// If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token
+			if len(c.Parents) > 0 {
+				if c.Parents[0].AWSConfig.MFASerial != "" {
+					aro.SerialNumber = aws.String(c.Parents[0].AWSConfig.MFASerial)
+				}
+			}
 		}),
 	}
 
