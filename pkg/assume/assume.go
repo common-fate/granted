@@ -2,6 +2,8 @@ package assume
 
 import (
 	"fmt"
+	"os/exec"
+	"strings"
 	"sync"
 	"time"
 
@@ -137,7 +139,7 @@ func AssumeCommand(c *cli.Context) error {
 					return err
 				}
 			}
-			fmt.Printf("GrantedOutput %s", url)
+			fmt.Printf("GrantedOutput\n%s", url)
 		} else {
 			browsers.PromoteUseFlags(labels)
 			fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
@@ -157,13 +159,15 @@ func AssumeCommand(c *cli.Context) error {
 		} else {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
 		}
+		if assumeFlags.String("exec") != "" {
+			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
+		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
 		// the shell script treats "None" as an emprty string and will not set a value for that positional output
 		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration})
 		fmt.Printf("GrantedAssume %s %s %s %s %s %s", output...)
 	}
-
 	return nil
 }
 
@@ -180,4 +184,25 @@ func PrepareStringsForShellScript(in []string) []interface{} {
 
 	}
 	return out
+}
+
+// RunExecCommandWithCreds takes in a command, which may be a program and arguments sperated by spaces
+// it splits these then runs the command with teh credentials as the environment.
+// The output of this is returned via the assume script to stdout so it may be processed further by piping
+func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) error {
+	fmt.Print("GrantedOutput\n")
+	args := strings.Split(cmd, " ")
+	c := exec.Command(args[0], args[1:]...)
+	c.Stdout = os.Stdout
+	c.Stderr = color.Error
+	c.Env = append(c.Env, EnvKeys(creds, region)...)
+	return c.Run()
+}
+
+// EnvKeys is used to set the env for the "exec" flag
+func EnvKeys(creds aws.Credentials, region string) []string {
+	return []string{"AWS_ACCESS_KEY_ID=" + creds.AccessKeyID,
+		"AWS_SECRET_ACCESS_KEY=" + creds.SecretAccessKey,
+		"AWS_SESSION_TOKEN=" + creds.SessionToken,
+		"AWS_REGION=" + region}
 }
