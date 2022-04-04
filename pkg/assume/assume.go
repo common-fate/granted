@@ -3,6 +3,7 @@ package assume
 import (
 	"fmt"
 	"sync"
+	"time"
 
 	"os"
 
@@ -148,17 +149,19 @@ func AssumeCommand(c *cli.Context) error {
 		if err != nil {
 			return err
 		}
-		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
-		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
-		// the shell script treats "None" as an emprty string and will not set a value for that positional output
-		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region})
-		fmt.Printf("GrantedAssume %s %s %s %s %s", output...)
+		sessionExpiration := ""
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
+			sessionExpiration = creds.Expires.Format(time.RFC3339)
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
 		} else {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
 		}
+		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
+		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
+		// the shell script treats "None" as an emprty string and will not set a value for that positional output
+		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration})
+		fmt.Printf("GrantedAssume %s %s %s %s %s %s", output...)
 	}
 
 	return nil

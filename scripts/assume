@@ -15,7 +15,7 @@ fi
 # so here we set it explicitly 
 GRANTED_OUTPUT=$(assumego "$@")
 GRANTED_STATUS=$?
-read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 <<< $(echo $GRANTED_OUTPUT)
+read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6<<< $(echo $GRANTED_OUTPUT)
 
 # # unset the exported GRANTED_ALIAS_CONFIGURED flag
 unset GRANTED_ALIAS_CONFIGURED
@@ -29,6 +29,7 @@ if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
   unset AWS_SESSION_TOKEN
   unset AWS_PROFILE
   unset AWS_REGION
+  unset AWS_SESSION_EXPIRATION
 fi
 
 if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
@@ -37,6 +38,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   unset AWS_SESSION_TOKEN
   unset AWS_PROFILE
   unset AWS_REGION
+  unset AWS_SESSION_EXPIRATION
 
   export GRANTED_COMMAND="$@"
 
@@ -54,6 +56,9 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   fi
   if [ ! "${GRANTED_5}" = "None" ]; then
     export AWS_REGION=${GRANTED_5}
+  fi
+  if [ ! "${GRANTED_6}" = "None" ]; then
+    export AWS_SESSION_EXPIRATION=${GRANTED_6}
   fi
 
   for GRANTED_var in "$@"
@@ -73,6 +78,9 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
       fi
       if [ ! "${GRANTED_5}" = "None" ]; then
         echo export AWS_REGION=${GRANTED_5}
+      fi
+       if [ ! "${GRANTED_6}" = "None" ]; then
+        echo export AWS_SESSION_EXPIRATION=${GRANTED_6}
       fi
     fi
   done

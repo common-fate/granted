@@ -9,7 +9,7 @@ set -gx GRANTED_ALIAS_CONFIGURED "true"
 
 set GRANTED_OUTPUT (assumego $argv)
 set GRANTED_STATUS $status
-echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5
+echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6
 
 
 # remove carriage return
@@ -23,12 +23,14 @@ else if test "$GRANTED_FLAG" = "GrantedDesume"
   set -e AWS_SESSION_TOKEN
   set -e AWS_PROFILE
   set -e AWS_REGION
+  set -e AWS_SESSION_EXPIRATION
 else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_ACCESS_KEY_ID
   set -e AWS_SECRET_ACCESS_KEY
   set -e AWS_SESSION_TOKEN
   set -e AWS_PROFILE
   set -e AWS_REGION
+  set -e AWS_SESSION_EXPIRATION
 
   set -gx GRANTED_COMMAND $argv
   if test "$GRANTED_1" != "None"
@@ -46,6 +48,9 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   if test "$GRANTED_5" != "None"
     set -gx AWS_REGION $GRANTED_5
   end
+  if test "$GRANTED_6" != "None"
+    set -gx AWS_SESSION_EXPIRATION $GRANTED_6
+  end
 
   if contains -- -s $argv
     if test "$GRANTED_1" != "None"
@@ -62,6 +67,9 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
     end
     if test "$GRANTED_5" != "None"
       echo set -gx AWS_REGION $GRANTED_5
+    end
+    if test "$GRANTED_6" != "None"
+      echo set -gx AWS_SESSION_EXPIRATION $GRANTED_6
     end
   end
 else if test "$GRANTED_FLAG" = "GrantedOutput"
