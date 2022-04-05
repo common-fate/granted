@@ -15,6 +15,8 @@ import (
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 )
 
 //Checks the config to see if the user has already set up their default browser
@@ -158,7 +160,8 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	browserTitle := strings.Title(strings.ToLower(GetBrowserKey(browserName)))
+	title := cases.Title(language.AmericanEnglish)
+	browserTitle := title.String((strings.ToLower(GetBrowserKey(browserName))))
 	fmt.Fprintf(color.Error, "\nℹ️  Granted has detected that your default browser is %s.\n", browserTitle)
 
 	in := survey.Select{
@@ -185,7 +188,8 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 func ConfigureBrowserSelection(browserName string, path string) error {
 	browserKey := GetBrowserKey(browserName)
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	browserTitle := strings.Title(strings.ToLower(browserKey))
+	title := cases.Title(language.AmericanEnglish)
+	browserTitle := title.String(strings.ToLower(browserKey))
 	// We allow users to configure a custom install path is we cannot detect the installation
 	browserPath := path
 	// detect installation
