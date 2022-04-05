@@ -31,7 +31,7 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	if assumeFlags.String("exec") != "" && runtime.GOOS == "windows" {
-		return fmt.Errorf("--exec flag is not currently supported on windows. If you would like this feature, consider opening an issue on our github repo to let us know")
+		return fmt.Errorf("--exec flag is not currently supported on Windows. Let us know if you'd like support for this: https://github.com/common-fate/granted/issues/new")
 	}
 	var wg sync.WaitGroup
 	activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
