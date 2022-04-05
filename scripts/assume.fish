@@ -73,7 +73,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
     end
   end
 else if test "$GRANTED_FLAG" = "GrantedOutput"
-  echo $GRANTED_1
+  echo $GRANTED_OUTPUT | sed -n '1!p'
 end
 
 exit $GRANTED_STATUS

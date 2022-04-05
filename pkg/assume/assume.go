@@ -3,6 +3,7 @@ package assume
 import (
 	"fmt"
 	"os/exec"
+	"runtime"
 	"strings"
 	"sync"
 	"time"
@@ -27,6 +28,10 @@ func AssumeCommand(c *cli.Context) error {
 	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
 		return err
+	}
+
+	if assumeFlags.String("exec") != "" && runtime.GOOS == "windows" {
+		return fmt.Errorf("--exec flag is not currently supported on windows. If you would like this feature, consider opening an issue on our github repo to let us know")
 	}
 	var wg sync.WaitGroup
 	activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
@@ -139,7 +144,8 @@ func AssumeCommand(c *cli.Context) error {
 					return err
 				}
 			}
-			fmt.Printf("GrantedOutput\n%s", url)
+			// return the url via stdout through the cli wrapper script
+			fmt.Print(MakeGrantedOutput(url))
 		} else {
 			browsers.PromoteUseFlags(labels)
 			fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
@@ -190,7 +196,7 @@ func PrepareStringsForShellScript(in []string) []interface{} {
 // it splits these then runs the command with teh credentials as the environment.
 // The output of this is returned via the assume script to stdout so it may be processed further by piping
 func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) error {
-	fmt.Print("GrantedOutput\n")
+	fmt.Print(MakeGrantedOutput(""))
 	args := strings.Split(cmd, " ")
 	c := exec.Command(args[0], args[1:]...)
 	c.Stdout = os.Stdout
@@ -205,4 +211,17 @@ func EnvKeys(creds aws.Credentials, region string) []string {
 		"AWS_SECRET_ACCESS_KEY=" + creds.SecretAccessKey,
 		"AWS_SESSION_TOKEN=" + creds.SessionToken,
 		"AWS_REGION=" + region}
+}
+
+// MakeGrantedOutput formats a string to match the requirements of granted output in the shell script
+// Currently in windows, the grantedoutput is handled differently, as linux and mac support the exec cli flag whereas windows does not yet have support
+// this method may be changed in future if we implement support for "--exec" in windows
+func MakeGrantedOutput(s string) string {
+	out := "GrantedOutput"
+	if runtime.GOOS != "windows" {
+		out += "\n"
+	} else {
+		out += " "
+	}
+	return out + s
 }
