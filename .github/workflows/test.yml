@@ -61,7 +61,7 @@ jobs:
         uses: golangci/golangci-lint-action@v2
         timeout-minutes: 5
         with:
-          version: v1.39
+          version: latest
           args: --timeout 2m
 
   linux-installs:
