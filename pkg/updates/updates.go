@@ -19,7 +19,7 @@ import (
 // the last day checked is stored in the local config cache
 // this function will fail silently
 func Check(c *cli.Context) (string, bool) {
-	if os.Getenv("GRANTED_DISABLE_UPDATE_CHECK") == "true" {
+	if os.Getenv("GRANTED_DISABLE_UPDATE_CHECK") == "true" || build.Version == "dev" {
 		return "", false
 	}
 	updateCheckerApiUrl := c.String("update-checker-api-url")

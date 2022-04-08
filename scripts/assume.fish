@@ -73,7 +73,11 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
     end
   end
 else if test "$GRANTED_FLAG" = "GrantedOutput"
-  echo $GRANTED_1
+  for line in $GRANTED_OUTPUT
+      if test "$line" != "GrantedOutput"
+        echo $line
+      end
+  end
 end
 
 exit $GRANTED_STATUS
