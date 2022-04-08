@@ -73,6 +73,18 @@
         "FORCE_NO_ALIAS": "true",
         "AWS_PROFILE": "demo-sandbox1"
       }
+    },
+    {
+      "name": "Run command exec",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/assume/main.go",
+      "args": ["cf-testing", "--exec", "aws s3 ls"],
+      "env": {
+        "FORCE_NO_ALIAS": "true",
+        "AWS_PROFILE": "demo-sandbox1"
+      }
     }
   ]
 }
