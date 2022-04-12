@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -12,8 +13,13 @@ import (
 	"github.com/fatih/color"
 )
 
+type ConfigOpts struct {
+	Duration time.Duration
+	Args     []string
+}
+
 type CFSharedConfig struct {
-	Opts browsers.BrowserOpts
+	// Opts browsers.BrowserOpts
 	// allows access to the raw values from the file
 	RawConfig   configparser.Dict
 	Name        string
@@ -154,10 +160,10 @@ func (c CFSharedConfigs) ProfileNames() []string {
 	return names
 }
 
-func (c *CFSharedConfig) AssumeConsole(ctx context.Context, args []string) (aws.Credentials, error) {
-	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, args)
+func (c *CFSharedConfig) AssumeConsole(ctx context.Context, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
+	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, browserOpts, configOpts)
 }
 
-func (c *CFSharedConfig) AssumeTerminal(ctx context.Context, args []string) (aws.Credentials, error) {
-	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c, args)
+func (c *CFSharedConfig) AssumeTerminal(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
+	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c, configOpts)
 }

@@ -14,6 +14,7 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
@@ -24,12 +25,12 @@ import (
 type AwsSsoAssumer struct {
 }
 
-func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return c.SSOLogin(ctx)
+func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+	return c.SSOLogin(ctx, browsers.BrowserOpts{}, configOpts)
 }
 
-func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return c.SSOLogin(ctx)
+func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
+	return c.SSOLogin(ctx, browserOpts, configOpts)
 }
 
 func (asa *AwsSsoAssumer) Type() string {
@@ -41,7 +42,7 @@ func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile configparser.Dict, parse
 	return parsedProfile.SSOAccountID != ""
 }
 
-func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) {
+func (c *CFSharedConfig) SSOLogin(ctx context.Context, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
 
 	rootProfile := c
 	requiresAssuming := false
@@ -89,8 +90,8 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	if requiresAssuming {
 		duration := time.Hour
 
-		if c.Opts.Duration > duration {
-			duration = c.Opts.Duration
+		if configOpts.Duration != 0 {
+			duration = configOpts.Duration
 		}
 
 		// return creds, nil
@@ -109,9 +110,9 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 				if c.AWSConfig.MFASerial != "" {
 					aro.SerialNumber = &c.AWSConfig.MFASerial
 					aro.TokenProvider = MfaTokenProvider
-					aro.Duration = duration
 
 				}
+				aro.Duration = duration
 
 				// Default Duration set to 1 hour for the final assumed role
 				// In future when we support passing session duration as a flag, set it here

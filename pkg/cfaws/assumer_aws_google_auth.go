@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/fatih/color"
 )
 
@@ -19,7 +20,7 @@ type AwsGoogleAuthAssumer struct {
 
 // launch the aws-google-auth utility to generate the credentials
 // then fetch them from the environment for use
-func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
 	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", c.Name))
 
 	cmd.Stdout = color.Error
@@ -36,8 +37,8 @@ func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 	return creds, nil
 }
 
-func (aia *AwsGoogleAuthAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return aia.AssumeTerminal(ctx, c, args)
+func (aia *AwsGoogleAuthAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
+	return aia.AssumeTerminal(ctx, c, configOpts)
 }
 
 // A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH
