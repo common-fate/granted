@@ -87,6 +87,12 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	credProvider := &CredProv{rootCreds}
 
 	if requiresAssuming {
+		duration := time.Hour
+
+		if c.Opts.Duration > duration {
+			duration = c.Opts.Duration
+		}
+
 		// return creds, nil
 		toAssume := append([]*CFSharedConfig{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
@@ -103,6 +109,8 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 				if c.AWSConfig.MFASerial != "" {
 					aro.SerialNumber = &c.AWSConfig.MFASerial
 					aro.TokenProvider = MfaTokenProvider
+					aro.Duration = duration
+
 				}
 
 				// Default Duration set to 1 hour for the final assumed role
