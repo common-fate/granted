@@ -123,11 +123,14 @@ func AssumeCommand(c *cli.Context) error {
 
 		opts.Region = region
 		opts.Service = service
-		d, err := time.ParseDuration(duration)
-		if err != nil {
-			return err
+		if duration != "" {
+			d, err := time.ParseDuration(duration)
+			if err != nil {
+				return err
+			}
+			opts.Duration = d
+
 		}
-		opts.Duration = d
 
 		profile.Opts = opts
 		var creds aws.Credentials
