@@ -32,6 +32,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"AWS_PROFILE"}, Hidden: true},
 		&cli.BoolFlag{Name: "auto-configure-shell", Usage: "Configure shell alias without prompts"},
 		&cli.StringFlag{Name: "exec", Usage: "assume a profile then execute this command"},
+		&cli.StringFlag{Name: "duration", Aliases: []string{"d"}, Usage: "Set session duration for your assumed role"},
 	}
 }
 

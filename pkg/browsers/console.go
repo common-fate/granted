@@ -12,6 +12,7 @@ import (
 	"path"
 	"sort"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/config"
@@ -56,7 +57,7 @@ var globalServiceMap = map[string]bool{
 	"r53":     true,
 }
 
-func OpenWithChromiumProfile(url string, labels RoleLabels, selectedBrowser Browser) error {
+func OpenWithChromiumProfile(url string, labels BrowserOpts, selectedBrowser Browser) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -102,13 +103,13 @@ func ManuallyOpenURL(url string) {
 	fmt.Fprintf(os.Stdout, "\n%s\n", alert("", url))
 }
 
-func MakeFirefoxContainerURL(urlString string, labels RoleLabels) string {
+func MakeFirefoxContainerURL(urlString string, ops BrowserOpts) string {
 
-	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", labels.MakeExternalFirefoxTitle(), url.QueryEscape(urlString))
+	tabURL := fmt.Sprintf("ext+granted-containers:name=%s&url=%s", ops.MakeExternalFirefoxTitle(), url.QueryEscape(urlString))
 	return tabURL
 }
 
-func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
+func OpenWithFirefoxContainer(urlString string, ops BrowserOpts) error {
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -118,7 +119,7 @@ func OpenWithFirefoxContainer(urlString string, labels RoleLabels) error {
 		return fmt.Errorf("default browser not configured. run `granted browser set` to configure")
 	}
 
-	tabURL := MakeFirefoxContainerURL(urlString, labels)
+	tabURL := MakeFirefoxContainerURL(urlString, ops)
 	cmd := exec.Command(firefoxPath,
 		"--new-tab",
 		tabURL)
@@ -144,21 +145,22 @@ func SessionFromCredentials(creds aws.Credentials) Session {
 	return Session{SessionID: creds.AccessKeyID, SesssionKey: creds.SecretAccessKey, SessionToken: creds.SessionToken}
 }
 
-type RoleLabels struct {
+type BrowserOpts struct {
 	// the name of the role
-	Profile string
-	Region  string
-	Service string
+	Profile  string
+	Region   string
+	Service  string
+	Duration time.Duration
 }
 
-func (r *RoleLabels) MakeExternalFirefoxTitle() string {
+func (r *BrowserOpts) MakeExternalFirefoxTitle() string {
 	if r.Region != "" {
 		return r.Profile
 	}
 	return r.Profile
 }
 
-func (r *RoleLabels) MakeExternalProfileTitle() string {
+func (r *BrowserOpts) MakeExternalProfileTitle() string {
 	n := r.Profile
 	if r.Region != "" {
 		n = r.Profile + "(" + r.Region + ")"
@@ -184,7 +186,7 @@ const (
 	BrowserDefault
 )
 
-func MakeUrl(sess Session, labels RoleLabels, service string, region string) (string, error) {
+func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (string, error) {
 	sessJSON, err := json.Marshal(sess)
 	if err != nil {
 		return "", err
@@ -237,8 +239,8 @@ func MakeUrl(sess Session, labels RoleLabels, service string, region string) (st
 	return u.String(), nil
 }
 
-func LaunchConsoleSession(sess Session, labels RoleLabels, service string, region string) error {
-	url, err := MakeUrl(sess, labels, service, region)
+func LaunchConsoleSession(sess Session, opts BrowserOpts, service string, region string) error {
+	url, err := MakeUrl(sess, opts, service, region)
 	if err != nil {
 		return err
 	}
@@ -249,15 +251,15 @@ func LaunchConsoleSession(sess Session, labels RoleLabels, service string, regio
 	}
 	switch cfg.DefaultBrowser {
 	case FirefoxKey:
-		return OpenWithFirefoxContainer(url, labels)
+		return OpenWithFirefoxContainer(url, opts)
 	case ChromeKey:
-		return OpenWithChromiumProfile(url, labels, BrowserChrome)
+		return OpenWithChromiumProfile(url, opts, BrowserChrome)
 	case BraveKey:
-		return OpenWithChromiumProfile(url, labels, BrowserBrave)
+		return OpenWithChromiumProfile(url, opts, BrowserBrave)
 	case EdgeKey:
-		return OpenWithChromiumProfile(url, labels, BrowserEdge)
+		return OpenWithChromiumProfile(url, opts, BrowserEdge)
 	case ChromiumKey:
-		return OpenWithChromiumProfile(url, labels, BrowserChromium)
+		return OpenWithChromiumProfile(url, opts, BrowserChromium)
 	default:
 		return browser.OpenURL(url)
 	}
@@ -299,7 +301,7 @@ func makeDestinationURL(service string, region string) (string, error) {
 	return dest, nil
 }
 
-func PromoteUseFlags(labels RoleLabels) {
+func PromoteUseFlags(labels BrowserOpts) {
 	var m []string
 
 	if labels.Region == "" {

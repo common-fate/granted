@@ -8,10 +8,12 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/fatih/color"
 )
 
 type CFSharedConfig struct {
+	Opts browsers.BrowserOpts
 	// allows access to the raw values from the file
 	RawConfig   configparser.Dict
 	Name        string
