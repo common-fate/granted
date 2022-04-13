@@ -139,7 +139,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		var creds aws.Credentials
 
-		creds, err = profile.AssumeConsole(c.Context, browserOpts, configOpts)
+		creds, err = profile.AssumeConsole(c.Context, configOpts)
 		if err != nil {
 			return err
 		}

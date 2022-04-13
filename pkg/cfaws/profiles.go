@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/fatih/color"
 )
 
@@ -160,7 +159,7 @@ func (c CFSharedConfigs) ProfileNames() []string {
 	return names
 }
 
-func (c *CFSharedConfig) AssumeConsole(ctx context.Context, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
+func (c *CFSharedConfig) AssumeConsole(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
 	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, configOpts)
 }
 
