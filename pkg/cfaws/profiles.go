@@ -161,7 +161,7 @@ func (c CFSharedConfigs) ProfileNames() []string {
 }
 
 func (c *CFSharedConfig) AssumeConsole(ctx context.Context, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
-	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, browserOpts, configOpts)
+	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, configOpts)
 }
 
 func (c *CFSharedConfig) AssumeTerminal(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {

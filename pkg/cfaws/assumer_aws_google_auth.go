@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/fatih/color"
 )
 
@@ -37,7 +36,7 @@ func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 	return creds, nil
 }
 
-func (aia *AwsGoogleAuthAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
+func (aia *AwsGoogleAuthAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
 	return aia.AssumeTerminal(ctx, c, configOpts)
 }
 

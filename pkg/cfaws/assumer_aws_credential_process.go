@@ -7,7 +7,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/processcreds"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/browsers"
 )
 
 // Implements Assumer using the aws credential_process standard
@@ -27,7 +26,7 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 
 }
 
-func (cpa *CredentialProcessAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
+func (cpa *CredentialProcessAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
 	return cpa.AssumeTerminal(ctx, c, configOpts)
 }
 

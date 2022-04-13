@@ -14,7 +14,6 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
@@ -26,11 +25,11 @@ type AwsSsoAssumer struct {
 }
 
 func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
-	return c.SSOLogin(ctx, browsers.BrowserOpts{}, configOpts)
+	return c.SSOLogin(ctx, configOpts)
 }
 
-func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
-	return c.SSOLogin(ctx, browserOpts, configOpts)
+func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+	return c.SSOLogin(ctx, configOpts)
 }
 
 func (asa *AwsSsoAssumer) Type() string {
@@ -42,7 +41,7 @@ func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile configparser.Dict, parse
 	return parsedProfile.SSOAccountID != ""
 }
 
-func (c *CFSharedConfig) SSOLogin(ctx context.Context, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
+func (c *CFSharedConfig) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
 
 	rootProfile := c
 	requiresAssuming := false

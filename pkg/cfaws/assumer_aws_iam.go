@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/browsers"
 )
 
 // Implements Assumer
@@ -58,7 +57,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig,
 
 // if required will get a FederationToken to be used to launch the console
 // This is required is the iam profile does not assume a role using sts.AssumeRole
-func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, browserOpts browsers.BrowserOpts, configOpts ConfigOpts) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
 	if c.AWSConfig.RoleARN == "" {
 		return getFederationToken(ctx, c)
 	} else {
