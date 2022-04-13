@@ -2,6 +2,7 @@ package cfaws
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -16,7 +17,13 @@ type AwsIamAssumer struct {
 
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
-func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+
+	duration := time.Hour
+
+	if configOpts.Duration != 0 {
+		duration = configOpts.Duration
+	}
 
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
@@ -24,6 +31,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig,
 		config.WithAssumeRoleCredentialOptions(func(aro *stscreds.AssumeRoleOptions) {
 			// set the token provider up
 			aro.TokenProvider = MfaTokenProvider
+			aro.Duration = duration
 
 			// If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token
 			if len(c.Parents) > 0 {
@@ -49,12 +57,12 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig,
 
 // if required will get a FederationToken to be used to launch the console
 // This is required is the iam profile does not assume a role using sts.AssumeRole
-func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
 	if c.AWSConfig.RoleARN == "" {
 		return getFederationToken(ctx, c)
 	} else {
 		// profile assume a role
-		return aia.AssumeTerminal(ctx, c, args)
+		return aia.AssumeTerminal(ctx, c, configOpts)
 	}
 }
 

@@ -109,37 +109,52 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
+	configOpts := cfaws.ConfigOpts{}
+
+	if len(assumeFlags.StringSlice("pass-through")) > 0 {
+		configOpts.Args = assumeFlags.StringSlice("pass-through")
+	}
 
 	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.Bool("url")
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
-		labels := browsers.RoleLabels{Profile: profile.Name}
 
-		var creds aws.Credentials
-
-		creds, err = profile.AssumeConsole(c.Context, assumeFlags.StringSlice("pass-through"))
-		if err != nil {
-			return err
-		}
-
+		browserOpts := browsers.BrowserOpts{Profile: profile.Name}
+		duration := assumeFlags.String("duration")
 		service := assumeFlags.String("service")
 		if assumeFlags.String("region") != "" {
 			region = assumeFlags.String("region")
 		}
 
-		labels.Region = region
-		labels.Service = service
+		browserOpts.Region = region
+		browserOpts.Service = service
+		if duration != "" {
+			d, err := time.ParseDuration(duration)
+			if err != nil {
+				return err
+			}
+			configOpts.Duration = d
+
+		}
+
+		var creds aws.Credentials
+
+		creds, err = profile.AssumeConsole(c.Context, configOpts)
+		if err != nil {
+			return err
+		}
+
 		cfg, err := config.Load()
 		if err != nil {
 			return err
 		}
 		if assumeFlags.Bool("url") || cfg.DefaultBrowser == browsers.StdoutKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
-			url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), labels, service, region)
+			url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), browserOpts, service, region)
 			if err != nil {
 				return err
 			}
 			if cfg.DefaultBrowser == browsers.FirefoxKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
-				url = browsers.MakeFirefoxContainerURL(url, labels)
+				url = browsers.MakeFirefoxContainerURL(url, browserOpts)
 				if err != nil {
 					return err
 				}
@@ -147,13 +162,13 @@ func AssumeCommand(c *cli.Context) error {
 			// return the url via stdout through the cli wrapper script
 			fmt.Print(MakeGrantedOutput(url))
 		} else {
-			browsers.PromoteUseFlags(labels)
+			browsers.PromoteUseFlags(browserOpts)
 			fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
-			return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), labels, service, region)
+			return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), browserOpts, service, region)
 		}
 
 	} else {
-		creds, err := profile.AssumeTerminal(c.Context, assumeFlags.StringSlice("pass-through"))
+		creds, err := profile.AssumeTerminal(c.Context, configOpts)
 		if err != nil {
 			return err
 		}

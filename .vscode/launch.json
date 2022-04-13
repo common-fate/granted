@@ -68,10 +68,9 @@
       "request": "launch",
       "mode": "auto",
       "program": "cmd/assume/main.go",
-      "args": ["cf-testing", "-c"],
+      "args": ["cf-dev", "-c"],
       "env": {
-        "FORCE_NO_ALIAS": "true",
-        "AWS_PROFILE": "demo-sandbox1"
+        "FORCE_NO_ALIAS": "true"
       }
     },
     {

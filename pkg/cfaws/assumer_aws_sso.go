@@ -24,12 +24,12 @@ import (
 type AwsSsoAssumer struct {
 }
 
-func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return c.SSOLogin(ctx)
+func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+	return c.SSOLogin(ctx, configOpts)
 }
 
-func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return c.SSOLogin(ctx)
+func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+	return c.SSOLogin(ctx, configOpts)
 }
 
 func (asa *AwsSsoAssumer) Type() string {
@@ -41,7 +41,7 @@ func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile configparser.Dict, parse
 	return parsedProfile.SSOAccountID != ""
 }
 
-func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) {
+func (c *CFSharedConfig) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
 
 	rootProfile := c
 	requiresAssuming := false
@@ -87,6 +87,12 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 	credProvider := &CredProv{rootCreds}
 
 	if requiresAssuming {
+		duration := time.Hour
+
+		if configOpts.Duration != 0 {
+			duration = configOpts.Duration
+		}
+
 		// return creds, nil
 		toAssume := append([]*CFSharedConfig{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
@@ -103,7 +109,9 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context) (aws.Credentials, error) 
 				if c.AWSConfig.MFASerial != "" {
 					aro.SerialNumber = &c.AWSConfig.MFASerial
 					aro.TokenProvider = MfaTokenProvider
+
 				}
+				aro.Duration = duration
 
 				// Default Duration set to 1 hour for the final assumed role
 				// In future when we support passing session duration as a flag, set it here

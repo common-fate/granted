@@ -20,7 +20,7 @@ type AwsAzureLoginAssumer struct {
 //https://github.com/sportradar/aws-azure-login
 
 // then fetch them from the environment for use
-func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
+func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
 	//check to see if the creds are already exported
 	creds, err := GetCredentialsCreds(ctx, c)
 
@@ -30,7 +30,7 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 
 	//request for the creds if they are invalid
 	a := []string{fmt.Sprintf("--profile=%s", c.Name)}
-	a = append(a, args...)
+	a = append(a, configOpts.Args...)
 
 	cmd := exec.Command("aws-azure-login", a...)
 
@@ -51,8 +51,8 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 	return aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
 }
 
-func (aal *AwsAzureLoginAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return aal.AssumeTerminal(ctx, c, args)
+func (aal *AwsAzureLoginAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+	return aal.AssumeTerminal(ctx, c, configOpts)
 }
 
 // A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH

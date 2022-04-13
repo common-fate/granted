@@ -13,7 +13,7 @@ import (
 type CredentialProcessAssumer struct {
 }
 
-func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, args2 []string) (aws.Credentials, error) {
+func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
 	var credProcessCommand string
 	for k, v := range c.RawConfig {
 		if k == "credential_process" {
@@ -26,8 +26,8 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 
 }
 
-func (cpa *CredentialProcessAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, args []string) (aws.Credentials, error) {
-	return cpa.AssumeTerminal(ctx, c, args)
+func (cpa *CredentialProcessAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+	return cpa.AssumeTerminal(ctx, c, configOpts)
 }
 
 // A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH
