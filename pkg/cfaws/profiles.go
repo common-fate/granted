@@ -58,9 +58,8 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
 		if strings.HasPrefix(section, "profile ") && len(section) > 8 {
 			name := strings.TrimPrefix(section, "profile ")
-			illegalChars := ".,@#$%^&*()+=\\|]}[{;:'\"<>/?"
+			illegalChars := "\\][;'\"" // These characters break the config file format and should not be usable for profile names
 			if strings.ContainsAny(name, illegalChars) {
-				// The AWS SDK actually fails to parse profiles containing "." however the error it returns is not useful so we need to warn users of this
 				fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains one or more of: '%s' in the name, try replacing these with '-'\n", name, illegalChars)
 				continue
 			} else {
