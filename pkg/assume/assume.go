@@ -112,7 +112,6 @@ func AssumeCommand(c *cli.Context) error {
 
 	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
 	duration := assumeFlags.String("duration")
-	fmt.Fprintln(os.Stderr, duration)
 	if duration != "" {
 		d, err := time.ParseDuration(duration)
 		if err != nil {
@@ -120,8 +119,6 @@ func AssumeCommand(c *cli.Context) error {
 		}
 		configOpts.Duration = d
 	}
-
-	fmt.Fprintf(os.Stderr, "duration: %v\n", duration)
 
 	if len(assumeFlags.StringSlice("pass-through")) > 0 {
 		configOpts.Args = assumeFlags.StringSlice("pass-through")
@@ -131,8 +128,15 @@ func AssumeCommand(c *cli.Context) error {
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 
-		browserOpts := browsers.BrowserOpts{Profile: profile.Name}
-
+		browserOpts := browsers.BrowserOpts{Profile: profile.Name, Duration: time.Hour}
+		bd := assumeFlags.String("browser-duration")
+		if bd != "" {
+			d, err := time.ParseDuration(bd)
+			if err != nil {
+				return err
+			}
+			browserOpts.Duration = d
+		}
 		service := assumeFlags.String("service")
 		if assumeFlags.String("region") != "" {
 			region = assumeFlags.String("region")

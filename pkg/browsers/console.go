@@ -186,7 +186,7 @@ const (
 	BrowserDefault
 )
 
-func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (string, error) {
+func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (string, error) {
 	sessJSON, err := json.Marshal(sess)
 	if err != nil {
 		return "", err
@@ -234,6 +234,7 @@ func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (s
 	q.Add("Action", "login")
 	q.Add("Issuer", "")
 	q.Add("Destination", dest)
+	q.Add("SessionDuration", fmt.Sprintf("%v", opts.Duration.Seconds()))
 	q.Add("SigninToken", token.SigninToken)
 	u.RawQuery = q.Encode()
 	return u.String(), nil
