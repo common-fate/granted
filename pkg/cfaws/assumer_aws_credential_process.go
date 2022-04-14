@@ -2,10 +2,13 @@ package cfaws
 
 import (
 	"context"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/processcreds"
+	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
 )
 
@@ -13,7 +16,7 @@ import (
 type CredentialProcessAssumer struct {
 }
 
-func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func loadCredProcessCreds(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
 	var credProcessCommand string
 	for k, v := range c.RawConfig {
 		if k == "credential_process" {
@@ -23,6 +26,58 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 	}
 	p := processcreds.NewProvider(credProcessCommand)
 	return p.Retrieve(ctx)
+}
+
+func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+	duration := time.Hour
+	if configOpts.Duration != 0 {
+		duration = configOpts.Duration
+	}
+	// if the profile has parents, then we need to first use credentail process to assume the root profile.
+	// then assume each of the chained profiles
+	if len(c.Parents) != 0 {
+		p := c.Parents[0]
+		creds, err := loadCredProcessCreds(ctx, p)
+		if err != nil {
+			return creds, err
+		}
+		for _, p := range c.Parents[1:] {
+			region, _, err := p.Region(ctx)
+			if err != nil {
+				return aws.Credentials{}, err
+			}
+			stsp := stscreds.NewAssumeRoleProvider(sts.New(sts.Options{Credentials: aws.NewCredentialsCache(&CredProv{creds}), Region: region}), p.AWSConfig.RoleARN, func(aro *stscreds.AssumeRoleOptions) {
+				aro.RoleSessionName = "Granted-" + c.Name
+				if p.AWSConfig.MFASerial != "" {
+					aro.SerialNumber = &p.AWSConfig.MFASerial
+					aro.TokenProvider = MfaTokenProvider
+				} else if c.AWSConfig.MFASerial != "" {
+					aro.SerialNumber = &c.AWSConfig.MFASerial
+					aro.TokenProvider = MfaTokenProvider
+				}
+				aro.Duration = duration
+			})
+			creds, err = stsp.Retrieve(ctx)
+			if err != nil {
+				return creds, err
+			}
+		}
+		region, _, err := c.Region(ctx)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+		stsp := stscreds.NewAssumeRoleProvider(sts.New(sts.Options{Credentials: aws.NewCredentialsCache(&CredProv{creds}), Region: region}), c.AWSConfig.RoleARN, func(aro *stscreds.AssumeRoleOptions) {
+			aro.RoleSessionName = "Granted-" + c.Name
+			if c.AWSConfig.MFASerial != "" {
+				aro.SerialNumber = &c.AWSConfig.MFASerial
+				aro.TokenProvider = MfaTokenProvider
+			}
+			aro.Duration = duration
+		})
+		return stsp.Retrieve(ctx)
+	}
+
+	return loadCredProcessCreds(ctx, c)
 
 }
 
