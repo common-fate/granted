@@ -75,7 +75,17 @@ func AssumeCommand(c *cli.Context) error {
 
 	if profile == nil {
 
+		//load config to check frecency enabled
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+
 		fr, profiles := awsProfiles.GetFrecentProfiles()
+
+		if cfg.Ordering == "Alphabetical" {
+			profiles = awsProfiles.ProfileNames()
+		}
 		fmt.Fprintln(color.Error, "")
 		// Replicate the logic from original assume fn.
 		in := survey.Select{
