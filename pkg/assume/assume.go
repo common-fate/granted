@@ -128,15 +128,7 @@ func AssumeCommand(c *cli.Context) error {
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 
-		browserOpts := browsers.BrowserOpts{Profile: profile.Name, Duration: time.Hour}
-		bd := assumeFlags.String("browser-duration")
-		if bd != "" {
-			d, err := time.ParseDuration(bd)
-			if err != nil {
-				return err
-			}
-			browserOpts.Duration = d
-		}
+		browserOpts := browsers.BrowserOpts{Profile: profile.Name}
 		service := assumeFlags.String("service")
 		if assumeFlags.String("region") != "" {
 			region = assumeFlags.String("region")

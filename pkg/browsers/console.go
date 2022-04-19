@@ -12,7 +12,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/config"
@@ -147,10 +146,9 @@ func SessionFromCredentials(creds aws.Credentials) Session {
 
 type BrowserOpts struct {
 	// the name of the role
-	Profile  string
-	Region   string
-	Service  string
-	Duration time.Duration
+	Profile string
+	Region  string
+	Service string
 }
 
 func (r *BrowserOpts) MakeExternalFirefoxTitle() string {
@@ -199,7 +197,6 @@ func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (str
 	}
 	q := u.Query()
 	q.Add("Action", "getSigninToken")
-	q.Add("SessionDuration", fmt.Sprintf("%v", opts.Duration.Seconds()))
 	q.Add("Session", string(sessJSON))
 	u.RawQuery = q.Encode()
 
