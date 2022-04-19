@@ -152,13 +152,13 @@ func DetectInstallation(browserKey string) (string, bool) {
 	return "", false
 }
 
-func HandleBrowserWizard(ctx *cli.Context) error {
+func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	fmt.Fprintf(color.Error, "\nGranted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers).\n")
 
 	browserName, err := Find()
 	if err != nil {
-		return err
+		return "", err
 	}
 	title := cases.Title(language.AmericanEnglish)
 	browserTitle := title.String((strings.ToLower(GetBrowserKey(browserName))))
@@ -172,16 +172,16 @@ func HandleBrowserWizard(ctx *cli.Context) error {
 	fmt.Fprintln(color.Error)
 	err = testable.AskOne(&in, &opt, withStdio)
 	if err != nil {
-		return err
+		return "", err
 	}
 	if opt != "Yes" {
 		browserName, err = HandleManualBrowserSelection()
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 
-	return ConfigureBrowserSelection(browserName, "")
+	return browserName, ConfigureBrowserSelection(browserName, "")
 }
 
 //ConfigureBrowserSelection will verify the existance of the browser executable and promot for a path if it cannot be found
@@ -258,6 +258,43 @@ func GrantedIntroduction() {
 	fmt.Fprintf(color.Error, "\n`assume -c <PROFILE_NAME>` - open the console for the specified profile\n")
 
 	os.Exit(0)
+
+}
+
+func SSOBrowser(grantedDefaultBrowser string) error {
+	label := "Set SSO default browser as selected?"
+
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+	in := &survey.Select{
+		Message: label,
+		Options: []string{"Yes", "Leave as computers default"},
+	}
+	var out string
+	fmt.Fprintln(color.Error)
+	err := testable.AskOne(in, &out, withStdio)
+	if err != nil {
+		return err
+	}
+
+	if out == "Yes" {
+		//save the detected browser as the default
+		conf, err := config.Load()
+		if err != nil {
+			return err
+		}
+
+		conf.DefaultBrowser = browserKey
+		conf.CustomBrowserPath = browserPath
+		err = conf.Save()
+		if err != nil {
+			return err
+		}
+
+		alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
+
+		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s.", browserTitle))
+	}
+	return nil
 
 }
 

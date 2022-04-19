@@ -73,7 +73,13 @@ func GetCliApp() *cli.App {
 				return err
 			}
 			if !hasSetup {
-				err = browsers.HandleBrowserWizard(c)
+				browserName, err := browsers.HandleBrowserWizard(c)
+				if err != nil {
+					return err
+				}
+
+				//see if they want to set their sso browser the same as their granted default
+				err = browsers.SSOBrowser()
 				if err != nil {
 					return err
 				}
