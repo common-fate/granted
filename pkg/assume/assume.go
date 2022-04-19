@@ -116,7 +116,6 @@ func AssumeCommand(c *cli.Context) error {
 	defer wg.Wait()
 
 	region, _, err := profile.Region(c.Context)
-
 	if err != nil {
 		return err
 	}
@@ -160,7 +159,7 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 		if assumeFlags.Bool("url") || cfg.DefaultBrowser == browsers.StdoutKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
-			url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), browserOpts, service, region, browsers.Default)
+			url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), browserOpts, service, region)
 			if err != nil {
 				return err
 			}
@@ -175,7 +174,7 @@ func AssumeCommand(c *cli.Context) error {
 		} else {
 			browsers.PromoteUseFlags(browserOpts)
 			fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
-			return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), browserOpts, service, region, browsers.Default)
+			return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), browserOpts, service, region)
 		}
 
 	} else {

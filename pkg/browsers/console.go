@@ -221,6 +221,7 @@ func (p PartitionHost) HostString() string {
 	case Cn:
 		return "signin.amazonaws.cn"
 	}
+	// Note: we're not handling the ISO and ISOB cases, I don't think they are supported by a public AWS console
 	return "signin.aws.amazon.com"
 }
 
@@ -341,8 +342,8 @@ func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (s
 	return u.String(), nil
 }
 
-func LaunchConsoleSession(sess Session, opts BrowserOpts, service string, region string, partition PartitionHost) error {
-	url, err := MakeUrl(sess, opts, service, region, partition)
+func LaunchConsoleSession(sess Session, opts BrowserOpts, service string, region string) error {
+	url, err := MakeUrl(sess, opts, service, region)
 	if err != nil {
 		return err
 	}
