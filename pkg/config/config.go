@@ -21,6 +21,7 @@ type Config struct {
 	CustomBrowserPath   string
 	LastCheckForUpdates time.Weekday
 	Keyring             *KeyringConfig `toml:",omitempty"`
+	Ordering            string
 }
 
 type KeyringConfig struct {
