@@ -186,15 +186,117 @@ const (
 	BrowserDefault
 )
 
+type PartitionHost int
+
+const (
+	Default PartitionHost = iota
+	Gov
+	Cn
+	ISO
+	ISOB
+)
+
+func (p PartitionHost) String() string {
+	switch p {
+	case Default:
+		return "aws"
+	case Gov:
+		return "aws-us-gov"
+	case Cn:
+		return "aws-cn"
+	case ISO:
+		return "aws-iso"
+	case ISOB:
+		return "aws-iso-b"
+	}
+	return "aws"
+}
+
+func (p PartitionHost) HostString() string {
+	switch p {
+	case Default:
+		return "signin.aws.amazon.com"
+	case Gov:
+		return "signin.amazonaws-us-gov.com"
+	case Cn:
+		return "signin.amazonaws.cn"
+	}
+	return "signin.aws.amazon.com"
+}
+
+// https://news.ycombinator.com/item?id=23297872
+var AWS_REGIONS = []string{
+	"ap-south-1",
+	"eu-north-1",
+	"eu-west-3",
+	"eu-west-2",
+	"eu-west-1",
+	"ap-northeast-2",
+	"ap-northeast-1",
+	"me-south-1",
+	"ca-central-1",
+	"sa-east-1",
+	"ap-east-1",
+	"ap-southeast-1",
+	"ap-southeast-2",
+	"eu-central-1",
+	"us-east-1",
+	"us-east-2",
+	"us-west-1",
+	"us-west-2",
+}
+
+var AWS_CN_REGIONS = []string{
+	"cn-north-1",
+	"cn-northwest-1",
+}
+
+var AWS_ISO_REGIONS = []string{
+	"us-iso-east-1",
+}
+
+var AWS_ISO_B_REGIONS = []string{
+	"us-isob-east-1",
+}
+
+var AWS_US_GOV_REGIONS = []string{
+	"us-gov-west-1",
+	"us-gov-east-1",
+}
+
+func GetPartitionFromRegion(region string) PartitionHost {
+	for _, r := range AWS_CN_REGIONS {
+		if r == region {
+			return PartitionHost(Cn)
+		}
+	}
+	for _, r := range AWS_ISO_REGIONS {
+		if r == region {
+			return PartitionHost(ISO)
+		}
+	}
+	for _, r := range AWS_ISO_B_REGIONS {
+		if r == region {
+			return PartitionHost(ISOB)
+		}
+	}
+	// default case
+	return PartitionHost(Default)
+}
+
 func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (string, error) {
+
 	sessJSON, err := json.Marshal(sess)
+
 	if err != nil {
 		return "", err
 	}
 
+	partition := GetPartitionFromRegion(region)
+
 	u := url.URL{
 		Scheme: "https",
-		Host:   "signin.aws.amazon.com",
+		Host:   partition.HostString(),
 		Path:   "/federation",
 	}
 	q := u.Query()
@@ -221,7 +323,7 @@ func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (s
 
 	u = url.URL{
 		Scheme: "https",
-		Host:   "signin.aws.amazon.com",
+		Host:   partition.HostString(),
 		Path:   "/federation",
 	}
 
@@ -239,8 +341,8 @@ func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (s
 	return u.String(), nil
 }
 
-func LaunchConsoleSession(sess Session, opts BrowserOpts, service string, region string) error {
-	url, err := MakeUrl(sess, opts, service, region)
+func LaunchConsoleSession(sess Session, opts BrowserOpts, service string, region string, partition PartitionHost) error {
+	url, err := MakeUrl(sess, opts, service, region, partition)
 	if err != nil {
 		return err
 	}
