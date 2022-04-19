@@ -199,6 +199,7 @@ func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (str
 	}
 	q := u.Query()
 	q.Add("Action", "getSigninToken")
+	q.Add("SessionDuration", fmt.Sprintf("%v", opts.Duration.Seconds()))
 	q.Add("Session", string(sessJSON))
 	u.RawQuery = q.Encode()
 
@@ -234,7 +235,6 @@ func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (str
 	q.Add("Action", "login")
 	q.Add("Issuer", "")
 	q.Add("Destination", dest)
-	q.Add("SessionDuration", fmt.Sprintf("%v", opts.Duration.Seconds()))
 	q.Add("SigninToken", token.SigninToken)
 	u.RawQuery = q.Encode()
 	return u.String(), nil
