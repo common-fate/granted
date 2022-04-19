@@ -84,7 +84,7 @@ func AssumeCommand(c *cli.Context) error {
 		fr, profiles := awsProfiles.GetFrecentProfiles()
 
 		if cfg.Ordering == "Alphabetical" {
-			profiles = awsProfiles.GetAlphabeticalProfiles()
+			profiles = awsProfiles.ProfileNames()
 		}
 		fmt.Fprintln(color.Error, "")
 		// Replicate the logic from original assume fn.

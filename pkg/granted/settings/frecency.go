@@ -11,9 +11,27 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+var ProfileOrderingCommand = cli.Command{
+	Name:        "profile-order",
+	Usage:       "Update profile ordering when assuming",
+	Subcommands: []*cli.Command{&SetProfileOrderingCommand},
+	Action: func(c *cli.Context) error {
+		cfg, err := config.Load()
+		if err != nil {
+			return err
+		}
+
+		green := color.New(color.FgGreen)
+
+		green.Fprintln(color.Error, "Current profile ordering method: ", cfg.Ordering)
+		return nil
+
+	},
+}
+
 var SetProfileOrderingCommand = cli.Command{
-	Name:  "set-order",
-	Usage: "Update profile ordering when assuming",
+	Name:  "set",
+	Usage: "Sets the method of ordering IAM profiles in the assume method",
 	Action: func(c *cli.Context) error {
 		cfg, err := config.Load()
 		if err != nil {
