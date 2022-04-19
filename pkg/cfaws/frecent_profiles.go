@@ -46,6 +46,12 @@ func UpdateFrecencyCache(selectedProfile string) {
 	}
 }
 
+func (c CFSharedConfigs) GetAlphabeticalProfiles() []string {
+	profileNames := c.ProfileNames()
+	return profileNames
+
+}
+
 // loads the frecency cache and generates a list of profiles with frecently used profiles first, followed by alphabetically sorted profiles that have not been used with assume
 // this method returns a FrecentProfiles pointer which should be used after selecting a profile to update the cache, it will also remove any entries which no longer exist in the aws config
 func (c CFSharedConfigs) GetFrecentProfiles() (*FrecentProfiles, []string) {
