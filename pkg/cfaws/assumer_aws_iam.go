@@ -91,7 +91,12 @@ func getFederationToken(ctx context.Context, c *CFSharedConfig) (aws.Credentials
 	}
 
 	client := sts.NewFromConfig(cfg)
-	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.Name)})
+	name := "Granted@" + c.Name
+
+	if len(name) > 32 {
+		name = name[:32]
+	}
+	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String(name)})
 	if err != nil {
 		return aws.Credentials{}, err
 	}
