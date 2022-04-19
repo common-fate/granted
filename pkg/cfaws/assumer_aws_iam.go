@@ -77,7 +77,21 @@ func (aia *AwsIamAssumer) ProfileMatchesType(rawProfile configparser.Dict, parse
 	return parsedProfile.SSOAccountID == ""
 }
 
+var allowAllPolicy = `{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Sid": "AllowAll",
+            "Effect": "Allow",
+            "Action": "*",
+            "Resource": "*"
+        }
+    ]
+}`
+
 // GetFederationToken is used when launching a console session with longlived IAM credentials profiles
+// GetFederation token uses an allow all IAM policy so that the console session will be able to access everything
+// If this is not provided, the session cannot do anything in the console
 func getFederationToken(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
@@ -91,7 +105,7 @@ func getFederationToken(ctx context.Context, c *CFSharedConfig) (aws.Credentials
 	}
 
 	client := sts.NewFromConfig(cfg)
-	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.Name)})
+	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String("Granted@" + c.Name), Policy: aws.String(allowAllPolicy)})
 	if err != nil {
 		return aws.Credentials{}, err
 	}
