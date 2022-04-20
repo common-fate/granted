@@ -333,7 +333,9 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 
 	if out == "Pick different browser" {
 		browserPath, err := AskAndGetBrowserPath()
-
+		if err != nil {
+			return err
+		}
 		conf.CustomSSOBrowserPath = browserPath
 		err = conf.Save()
 		if err != nil {

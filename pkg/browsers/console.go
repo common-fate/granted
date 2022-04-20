@@ -239,7 +239,7 @@ func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (s
 	return u.String(), nil
 }
 
-func LaunchBrowserSession(opts BrowserOpts, url string) error {
+func LaunchBrowserSession(url string) error {
 
 	cfg, _ := config.Load()
 	if cfg == nil {
@@ -247,7 +247,7 @@ func LaunchBrowserSession(opts BrowserOpts, url string) error {
 	}
 	if cfg.CustomSSOBrowserPath != "" {
 		cmd := exec.Command(cfg.CustomSSOBrowserPath,
-			fmt.Sprintf("--no-first-run", "--no-default-browser-check", url),
+			"--no-first-run --no-default-browser-check"+url,
 		)
 		err := cmd.Start()
 		if err != nil {
@@ -312,7 +312,7 @@ func makeDestinationURL(service string, region string) (string, error) {
 		// and this avoids the need to keep the ServiceMap alphabetically sorted when developing Granted.
 		sort.Strings(validServices)
 
-		return "", fmt.Errorf("\nservice %s not found, please enter a valid service shortcut.\nValid service shortcuts: [%s]\n", service, strings.Join(validServices, ", "))
+		return "", fmt.Errorf("\nservice %s not found, please enter a valid service shortcut \nValid service shortcuts: [%s]\n", service, strings.Join(validServices, ", "))
 
 	}
 
