@@ -267,7 +267,7 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := &survey.Select{
 		Message: label,
-		Options: []string{"Yes", "Leave as computers default"},
+		Options: []string{"Yes", "Use computers default browser", "Pick different browser"},
 	}
 	var out string
 	fmt.Fprintln(color.Error)
@@ -275,13 +275,12 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 	if err != nil {
 		return err
 	}
-
+	//save the detected browser as the default
+	conf, err := config.Load()
+	if err != nil {
+		return err
+	}
 	if out == "Yes" {
-		//save the detected browser as the default
-		conf, err := config.Load()
-		if err != nil {
-			return err
-		}
 
 		browserKey := GetBrowserKey(grantedDefaultBrowser)
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
@@ -330,6 +329,20 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 		alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
 
 		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s.", grantedDefaultBrowser))
+	}
+
+	if out == "Pick different browser" {
+		browserPath, err := AskAndGetBrowserPath()
+
+		conf.CustomSSOBrowserPath = browserPath
+		err = conf.Save()
+		if err != nil {
+			return err
+		}
+
+		alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
+
+		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s for SSO flows.", browserPath))
 	}
 	return nil
 
@@ -389,4 +402,46 @@ func RunFirefoxExtensionPrompts(firefoxPath string) error {
 		return errors.New("cancelled browser setup")
 	}
 	return nil
+}
+
+func AskAndGetBrowserPath() (string, error) {
+	fmt.Fprintf(color.Error, "\nℹ️  Select your SSO default browser\n")
+	outcome, err := HandleManualBrowserSelection()
+	if err != nil {
+		return "", err
+	}
+
+	browserKey := GetBrowserKey(outcome)
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+	title := cases.Title(language.AmericanEnglish)
+	browserTitle := title.String(strings.ToLower(browserKey))
+	// We allow users to configure a custom install path is we cannot detect the installation
+	browserPath := ""
+	// detect installation
+	if browserKey != FirefoxStdoutKey && browserKey != StdoutKey {
+
+		customBrowserPath, detected := DetectInstallation(browserKey)
+		if !detected {
+			fmt.Fprintf(color.Error, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
+			validPath := false
+			for !validPath {
+				// prompt for custom path
+				bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
+				fmt.Fprintln(color.Error)
+				err := testable.AskOne(&bpIn, &customBrowserPath, withStdio)
+				if err != nil {
+					return "", err
+				}
+				if _, err := os.Stat(customBrowserPath); err == nil {
+					validPath = true
+				} else {
+					fmt.Fprintf(color.Error, "\n❌ The path you entered is not valid\n")
+				}
+			}
+		}
+		browserPath = customBrowserPath
+
+	}
+
+	return browserPath, nil
 }
