@@ -15,6 +15,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
 )
@@ -233,7 +234,7 @@ func (p PartitionHost) ConsoleHostString() string {
 		return "https://console.amazonaws.cn/"
 	}
 	// Note: we're not handling the ISO and ISOB cases, I don't think they are supported by a public AWS console
-	return "console.aws.amazon.com"
+	return "https://console.aws.amazon.com/"
 }
 
 func GetPartitionFromRegion(region string) PartitionHost {
@@ -262,8 +263,7 @@ func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (str
 	}
 
 	partition := GetPartitionFromRegion(region)
-	// couldn't figure out how to flag this based on the '--verbose' setting
-	//fmt.Fprintf(color.Error, "Partition is detected as %s for region %s...\n", partition, region)
+	debug.Fprintf(debug.VerbosityDebug, color.Error, "Partition is detected as %s for region %s...\n", partition, region)
 
 	u := url.URL{
 		Scheme: "https",
