@@ -12,7 +12,6 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/config"
@@ -147,10 +146,9 @@ func SessionFromCredentials(creds aws.Credentials) Session {
 
 type BrowserOpts struct {
 	// the name of the role
-	Profile  string
-	Region   string
-	Service  string
-	Duration time.Duration
+	Profile string
+	Region  string
+	Service string
 }
 
 func (r *BrowserOpts) MakeExternalFirefoxTitle() string {
@@ -285,7 +283,7 @@ func GetPartitionFromRegion(region string) PartitionHost {
 	return PartitionHost(Default)
 }
 
-func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (string, error) {
+func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (string, error) {
 
 	sessJSON, err := json.Marshal(sess)
 
@@ -386,8 +384,7 @@ func makeDestinationURL(service string, region string) (string, error) {
 		// and this avoids the need to keep the ServiceMap alphabetically sorted when developing Granted.
 		sort.Strings(validServices)
 
-		return "", fmt.Errorf("\nservice %s not found, please enter a valid service shortcut.\nValid service shortcuts: [%s]\n", service, strings.Join(validServices, ", "))
-
+		return "", fmt.Errorf("\nservice %s not found, please enter a valid service shortcut.\nValid service shortcuts: [%s]", service, strings.Join(validServices, ", "))
 	}
 
 	dest := prefix + serv + "/home"
