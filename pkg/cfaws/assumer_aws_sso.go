@@ -14,9 +14,9 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/debug"
+	"github.com/common-fate/granted/pkg/browsers"
+	grantCfg "github.com/common-fate/granted/pkg/config"
 	"github.com/fatih/color"
-	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 )
 
@@ -165,11 +165,22 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
 	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
-	err = browser.OpenURL(url)
+
+	//check if sso browser path is set
+
+	config, err := grantCfg.Load()
 	if err != nil {
-		// fail silently
-		debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+		return nil, err
 	}
+	if config.CustomSSOBrowserPath != "" {
+		browsers.LaunchBrowserSession(browsers.BrowserOpts{}, url)
+	}
+
+	// err = browser.OpenURL(url)
+	// if err != nil {
+	// 	// fail silently
+	// 	debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+	// }
 
 	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})

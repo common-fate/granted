@@ -262,7 +262,7 @@ func GrantedIntroduction() {
 }
 
 func SSOBrowser(grantedDefaultBrowser string) error {
-	label := "Set SSO default browser as selected?"
+	label := "Set SSO default browser as selected? (The browser you use to run through SSO flows)"
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := &survey.Select{
@@ -283,8 +283,45 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 			return err
 		}
 
-		conf.DefaultBrowser = browserKey
-		conf.CustomBrowserPath = browserPath
+		browserKey := GetBrowserKey(grantedDefaultBrowser)
+		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+		title := cases.Title(language.AmericanEnglish)
+		browserTitle := title.String(strings.ToLower(browserKey))
+		// We allow users to configure a custom install path is we cannot detect the installation
+		browserPath := ""
+		// detect installation
+		if browserKey != FirefoxStdoutKey && browserKey != StdoutKey {
+
+			customBrowserPath, detected := DetectInstallation(browserKey)
+			if !detected {
+				fmt.Fprintf(color.Error, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
+				validPath := false
+				for !validPath {
+					// prompt for custom path
+					bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
+					fmt.Fprintln(color.Error)
+					err := testable.AskOne(&bpIn, &customBrowserPath, withStdio)
+					if err != nil {
+						return err
+					}
+					if _, err := os.Stat(customBrowserPath); err == nil {
+						validPath = true
+					} else {
+						fmt.Fprintf(color.Error, "\n❌ The path you entered is not valid\n")
+					}
+				}
+			}
+			browserPath = customBrowserPath
+
+			if browserKey == FirefoxKey {
+				err := RunFirefoxExtensionPrompts(browserPath)
+				if err != nil {
+					return err
+				}
+			}
+		}
+
+		conf.CustomSSOBrowserPath = browserPath
 		err = conf.Save()
 		if err != nil {
 			return err
@@ -292,7 +329,7 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 
 		alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
 
-		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s.", browserTitle))
+		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s.", grantedDefaultBrowser))
 	}
 	return nil
 

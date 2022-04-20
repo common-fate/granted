@@ -79,7 +79,7 @@ func GetCliApp() *cli.App {
 				}
 
 				//see if they want to set their sso browser the same as their granted default
-				err = browsers.SSOBrowser()
+				err = browsers.SSOBrowser(browserName)
 				if err != nil {
 					return err
 				}

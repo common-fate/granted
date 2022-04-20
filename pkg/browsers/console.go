@@ -82,7 +82,7 @@ func OpenWithChromiumProfile(url string, labels BrowserOpts, selectedBrowser Bro
 		userDataPath := path.Join(grantedFolder, "chromium-profiles", fmt.Sprintf("%v", selectedBrowser))
 
 		cmd := exec.Command(chromePath,
-			fmt.Sprintf("--user-data-dir=%s", userDataPath), "--profile-directory="+labels.MakeExternalProfileTitle(), "--no-first-run", "--no-default-browser-check", url,
+			fmt.Sprintf("--user-data-dir=%s", userDataPath), "--profile-directory="+labels.MakeExternalProfileTitle(), "--no-first-run", " ", url,
 		)
 		err = cmd.Start()
 		if err != nil {
@@ -237,6 +237,35 @@ func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (s
 	q.Add("SigninToken", token.SigninToken)
 	u.RawQuery = q.Encode()
 	return u.String(), nil
+}
+
+func LaunchBrowserSession(opts BrowserOpts, url string) error {
+
+	cfg, _ := config.Load()
+	if cfg == nil {
+		return browser.OpenURL(url)
+	}
+	if cfg.CustomSSOBrowserPath != "" {
+		cmd := exec.Command(cfg.CustomSSOBrowserPath,
+			fmt.Sprintf("--no-first-run", "--no-default-browser-check", url),
+		)
+		err := cmd.Start()
+		if err != nil {
+			fmt.Fprintf(color.Error, "\nGranted was unable to open a browser session automatically")
+			//allow them to try open the url manually
+			ManuallyOpenURL(url)
+			return nil
+		}
+		// detach from this new process because it continues to run
+		return cmd.Process.Release()
+	} else {
+		err := browser.OpenURL(url)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+
 }
 
 func LaunchConsoleSession(sess Session, opts BrowserOpts, service string, region string) error {
