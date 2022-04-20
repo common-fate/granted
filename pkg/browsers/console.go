@@ -223,63 +223,33 @@ func (p PartitionHost) HostString() string {
 	return "signin.aws.amazon.com"
 }
 
-// https://news.ycombinator.com/item?id=23297872
-var AWS_REGIONS = []string{
-	"ap-south-1",
-	"eu-north-1",
-	"eu-west-3",
-	"eu-west-2",
-	"eu-west-1",
-	"ap-northeast-2",
-	"ap-northeast-1",
-	"me-south-1",
-	"ca-central-1",
-	"sa-east-1",
-	"ap-east-1",
-	"ap-southeast-1",
-	"ap-southeast-2",
-	"eu-central-1",
-	"us-east-1",
-	"us-east-2",
-	"us-west-1",
-	"us-west-2",
-}
-
-var AWS_CN_REGIONS = []string{
-	"cn-north-1",
-	"cn-northwest-1",
-}
-
-var AWS_ISO_REGIONS = []string{
-	"us-iso-east-1",
-}
-
-var AWS_ISO_B_REGIONS = []string{
-	"us-isob-east-1",
-}
-
-var AWS_US_GOV_REGIONS = []string{
-	"us-gov-west-1",
-	"us-gov-east-1",
+func (p PartitionHost) ConsoleHostString() string {
+	switch p {
+	case Default:
+		return "https://console.aws.amazon.com/"
+	case Gov:
+		return "https://console.amazonaws-us-gov.com/"
+	case Cn:
+		return "https://console.amazonaws.cn/"
+	}
+	// Note: we're not handling the ISO and ISOB cases, I don't think they are supported by a public AWS console
+	return "console.aws.amazon.com"
 }
 
 func GetPartitionFromRegion(region string) PartitionHost {
-	for _, r := range AWS_CN_REGIONS {
-		if r == region {
-			return PartitionHost(Cn)
-		}
+	partition := strings.Split(region, "-")
+	if partition[0] == "cn" {
+		return PartitionHost(Cn)
 	}
-	for _, r := range AWS_ISO_REGIONS {
-		if r == region {
-			return PartitionHost(ISO)
-		}
+	if partition[1] == "iso" {
+		return PartitionHost(ISO)
 	}
-	for _, r := range AWS_ISO_B_REGIONS {
-		if r == region {
-			return PartitionHost(ISOB)
-		}
+	if partition[1] == "isob" {
+		return PartitionHost(ISOB)
 	}
-	// default case
+	if partition[1] == "gov" {
+		return PartitionHost(Gov)
+	}
 	return PartitionHost(Default)
 }
 
@@ -292,6 +262,8 @@ func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (str
 	}
 
 	partition := GetPartitionFromRegion(region)
+	// couldn't figure out how to flag this based on the '--verbose' setting
+	//fmt.Fprintf(color.Error, "Partition is detected as %s for region %s...\n", partition, region)
 
 	u := url.URL{
 		Scheme: "https",
@@ -371,7 +343,8 @@ func makeDestinationURL(service string, region string) (string, error) {
 	if region == "" {
 		region = "us-east-1"
 	}
-	prefix := "https://console.aws.amazon.com/"
+	partition := GetPartitionFromRegion(region)
+	prefix := partition.ConsoleHostString()
 
 	serv := ServiceMap[service]
 	if serv == "" {
