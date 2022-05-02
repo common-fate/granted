@@ -3,6 +3,7 @@ package cfaws
 import (
 	"context"
 	"fmt"
+	"sort"
 	"strings"
 	"time"
 
@@ -155,6 +156,7 @@ func (c CFSharedConfigs) ProfileNames() []string {
 	for k := range c {
 		names = append(names, k)
 	}
+	sort.Strings(names)
 	return names
 }
 
