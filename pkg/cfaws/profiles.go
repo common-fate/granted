@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 )
 
@@ -91,7 +92,13 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 
 	initialisedProfiles := make(map[string]*CFSharedConfig)
 	for k, profile := range profiles {
-		initialisedProfiles[k] = profile.CFSharedConfig
+		// if the profile type is not set, it means there was an error with a source profile
+		// We exclude it from the profile list so it cannot be assumed
+		if profile.ProfileType != "" {
+			initialisedProfiles[k] = profile.CFSharedConfig
+		} else {
+			debug.Fprintf(debug.VerbosityDebug, color.Error, "failed to identify profile type for profile: %s", k)
+		}
 	}
 	return initialisedProfiles, nil
 }
