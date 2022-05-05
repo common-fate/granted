@@ -16,7 +16,9 @@
       "type": "go",
       "request": "launch",
       "mode": "auto",
-      "program": "cmd/assume/main.go"
+      "program": "cmd/assume/main.go",
+      "args": ["spacecubedabdhdhdhhdhddhhdhdhdhdhdhdhdhdhdhdhdhdhdhdhd"],
+      "env": { "FORCE_NO_ALIAS": "true" }
     },
     {
       "name": "Run uninstall",
