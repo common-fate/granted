@@ -134,7 +134,7 @@ func AssumeCommand(c *cli.Context) error {
 		configOpts.Args = assumeFlags.StringSlice("pass-through")
 	}
 
-	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.Bool("url")
+	openBrower := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.Bool("url"))
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 
@@ -189,6 +189,13 @@ func AssumeCommand(c *cli.Context) error {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
 		} else {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
+		}
+		if assumeFlags.Bool("env") {
+			err = cfaws.WriteCredentialsToDotenv(region, creds)
+			if err != nil {
+				return err
+			}
+			green.Fprintln(color.Error, "Exported credentials to .env file successfully")
 		}
 		if assumeFlags.String("exec") != "" {
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
