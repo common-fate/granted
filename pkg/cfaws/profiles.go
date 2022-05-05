@@ -64,7 +64,7 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 			continue
 		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
-		if strings.HasPrefix(section, "profile ") && len(section) > 8 {
+		if (strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default" {
 			name := strings.TrimPrefix(section, "profile ")
 			illegalChars := "\\][;'\"" // These characters break the config file format and should not be usable for profile names
 			if strings.ContainsAny(name, illegalChars) {
