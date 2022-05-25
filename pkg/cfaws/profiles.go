@@ -162,7 +162,7 @@ func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
 // returns a duration, and bool = true if the default region was used
 func (c CFSharedConfig) DefaultDuration(ctx context.Context) (*time.Duration, error) {
 
-	if c.AWSConfig.RoleDurationSeconds.String() != "" {
+	if c.AWSConfig.RoleDurationSeconds != nil {
 		return c.AWSConfig.RoleDurationSeconds, nil
 	}
 
