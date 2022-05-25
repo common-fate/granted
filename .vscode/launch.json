@@ -55,8 +55,7 @@
       "program": "cmd/assume/main.go",
       "args": ["cf-dev"],
       "env": {
-        "FORCE_NO_ALIAS": "true",
-        "AWS_PROFILE": "cf-dev"
+        "FORCE_NO_ALIAS": "true"
       }
     },
     {
