@@ -158,6 +158,17 @@ func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
 	return region, true, nil
 }
 
+// DefaultDuration will attempt to load the default duration on this profile, if it is not set, attempts to load the default config
+// returns a duration, and bool = true if the default region was used
+func (c CFSharedConfig) DefaultDuration(ctx context.Context) (*time.Duration, error) {
+
+	if c.AWSConfig.RoleDurationSeconds.String() != "" {
+		return c.AWSConfig.RoleDurationSeconds, nil
+	}
+
+	return nil, nil
+}
+
 func (c CFSharedConfigs) ProfileNames() []string {
 	names := []string{}
 	for k := range c {
