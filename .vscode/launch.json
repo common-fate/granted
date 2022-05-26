@@ -48,18 +48,39 @@
       }
     },
     {
+      "name": "Run command assume cf-dev",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/assume/main.go",
+      "args": ["cf-dev"],
+      "env": {
+        "FORCE_NO_ALIAS": "true",
+        "AWS_PROFILE": "cf-dev"
+      }
+    },
+    {
+      "name": "Run command assume cf-dev export",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/assume/main.go",
+      "args": ["cf-dev", "--export"],
+      "env": {
+        "FORCE_NO_ALIAS": "true",
+        "AWS_PROFILE": "cf-dev"
+      }
+    },
+    {
       "name": "Remove token",
       "type": "go",
       "request": "launch",
       "mode": "auto",
       "program": "cmd/granted/main.go",
-      "args": [
-        "token",
-        "remove",
-        "https://d-976708da7d.awsapps.com/start---(test)"
-      ],
+      "args": ["token", "clear", "https://commonfate.awsapps.com/start"],
       "env": {
-        "FORCE_NO_ALIAS": true
+        "FORCE_NO_ALIAS": "true",
+        "AWS_PROFILE": "cf-dev"
       }
     },
     {
