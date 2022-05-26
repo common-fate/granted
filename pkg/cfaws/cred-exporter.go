@@ -8,14 +8,15 @@ import (
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/fatih/color"
 )
 
 // ExportCredsToProfile will write assumed credentials to ~/.aws/credentials with a specified profile name header
 func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 	// fetch the parsed cred file
-	// credPath := config.DefaultSharedCredentialsFilename()
-	credPath := "./test-creds"
+	credPath := config.DefaultSharedCredentialsFilename()
+	// credPath := "./test-creds"
 
 	//create it if it doesn't exist
 	if _, err := os.Stat(credPath); os.IsNotExist(err) {
