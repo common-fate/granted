@@ -2,10 +2,7 @@ package cfaws
 
 import (
 	"fmt"
-	"io/ioutil"
-	"log"
 	"os"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -17,7 +14,6 @@ import (
 func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 	// fetch the parsed cred file
 	credPath := config.DefaultSharedCredentialsFilename()
-	// credPath := "./test-creds"
 
 	//create it if it doesn't exist
 	if _, err := os.Stat(credPath); os.IsNotExist(err) {
@@ -39,71 +35,31 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 		return err
 	}
 
-	// Itterate through the config sections
-	for _, section := range credFile.Sections() {
-		rawConfig, err := credFile.Items(section)
+	if credFile.HasSection(profileName) {
+		//put the creds into options
+		credFile.Set(profileName, "aws_access_key_id", creds.AccessKeyID)
+		credFile.Set(profileName, "aws_secret_access_key", creds.SecretAccessKey)
+		credFile.Set(profileName, "aws_session_token", creds.SessionToken)
+		err = credFile.SaveWithDelimiter(credPath, "=")
 		if err != nil {
-			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS config: %s Due to the following error: %s\n", section, err)
-			continue
+			return err
 		}
-		// Check if the section is prefixed with 'profile ' and that the profile has a name
-		if strings.HasPrefix(section, "["+profileName+"]") {
-			name := strings.TrimPrefix(section, "profile ")
-			illegalChars := "\\][;'\"" // These characters break the config file format and should not be usable for profile names
-			if strings.ContainsAny(name, illegalChars) {
-				fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains one or more of: '%s' in the name, try replacing these with '-'\n", name, illegalChars)
-				continue
-			} else {
-				cf, err := config.LoadSharedConfigProfile(ctx, name)
 
-				if err != nil {
-					fmt.Fprintf(color.Error, "failed to load a profile from your AWS config: %s Due to the following error: %s\n", name, err)
-					continue
-				} else {
-					profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
-				}
-			}
-
+	} else {
+		//create section and add creds
+		err = credFile.AddSection(profileName)
+		if err != nil {
+			return err
 		}
-	}
 
-	//Check to see if there already is a cred profile for this profile
-	input, err := ioutil.ReadFile(credPath)
-	if err != nil {
-		return err
-	}
+		credFile.Set(profileName, "aws_access_key_id", creds.AccessKeyID)
+		credFile.Set(profileName, "aws_secret_access_key", creds.SecretAccessKey)
+		credFile.Set(profileName, "aws_session_token", creds.SessionToken)
 
-	lines := strings.Split(string(input), "\n")
-	found := false
-
-	//might need to bundle this up in a goroutine if it becomes slow for large cred files
-	for i, line := range lines {
-		//replace creds if exist
-		if strings.Contains(line, "["+profileName+"]") {
-			found = true
-
-			lines[i] = "[" + profileName + "]"
-			lines[i+1] = "aws_access_key_id=" + creds.AccessKeyID
-			lines[i+2] = "aws_secret_access_key=" + creds.SecretAccessKey
-			lines[i+3] = "aws_session_token=" + creds.SessionToken
-
-			break
+		err = credFile.SaveWithDelimiter(credPath, "=")
+		if err != nil {
+			return err
 		}
-	}
-
-	// //otherwise just write new profile
-	// //append the new profile to the creds
-	if !found {
-		lines = append(lines, "["+profileName+"]")
-		lines = append(lines, "aws_access_key_id="+creds.AccessKeyID)
-		lines = append(lines, "aws_secret_access_key="+creds.SecretAccessKey)
-		lines = append(lines, "aws_session_token="+creds.SessionToken)
-	}
-	//put the file back together
-	output := strings.Join(lines, "\n")
-	err = ioutil.WriteFile(credPath, []byte(output), 0644)
-	if err != nil {
-		log.Fatalln(err)
 	}
 
 	return nil
