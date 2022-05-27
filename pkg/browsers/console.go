@@ -82,7 +82,7 @@ func OpenWithChromiumProfile(url string, labels BrowserOpts, selectedBrowser Bro
 		userDataPath := path.Join(grantedFolder, "chromium-profiles", fmt.Sprintf("%v", selectedBrowser))
 
 		cmd := exec.Command(chromePath,
-			fmt.Sprintf("--user-data-dir=%s", userDataPath), "--profile-directory="+labels.MakeExternalProfileTitle(), "--no-first-run", " ", url,
+			fmt.Sprintf("--user-data-dir=%s", userDataPath), "--profile-directory="+labels.MakeExternalProfileTitle(), "--no-first-run", "--no-default-browser-check", url,
 		)
 		err = cmd.Start()
 		if err != nil {
@@ -312,7 +312,7 @@ func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (str
 	return u.String(), nil
 }
 
-func LaunchBrowserSession(url string) error {
+func OpenUrlWithCustomBrowser(url string) error {
 
 	cfg, _ := config.Load()
 	if cfg == nil {

@@ -16,7 +16,9 @@ import (
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/pkg/browsers"
 	grantCfg "github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
+	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 )
 
@@ -162,17 +164,17 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 		return nil, err
 	}
 	if config.CustomSSOBrowserPath != "" {
-		err = browsers.LaunchBrowserSession(url)
+		err = browsers.OpenUrlWithCustomBrowser(url)
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		err = browser.OpenURL(url)
+		if err != nil {
+			// fail silently
+			debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+		}
 	}
-
-	// err = browser.OpenURL(url)
-	// if err != nil {
-	// 	// fail silently
-	// 	debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
-	// }
 
 	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
