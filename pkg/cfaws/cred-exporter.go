@@ -36,9 +36,15 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 	}
 
 	if credFile.HasSection(profileName) {
-		credFile.RemoveSection(profileName)
+		err := credFile.RemoveSection(profileName)
+		if err != nil {
+			return err
+		}
 	}
-	credFile.AddSection(profileName)
+	err = credFile.AddSection(profileName)
+	if err != nil {
+		return err
+	}
 	//put the creds into options
 	err = credFile.Set(profileName, "aws_access_key_id", creds.AccessKeyID)
 	if err != nil {
