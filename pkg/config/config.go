@@ -18,10 +18,11 @@ import (
 type Config struct {
 	DefaultBrowser string
 	// used to override the builtin filepaths for custom installation locations
-	CustomBrowserPath   string
-	LastCheckForUpdates time.Weekday
-	Keyring             *KeyringConfig `toml:",omitempty"`
-	Ordering            string
+	CustomBrowserPath    string
+	CustomSSOBrowserPath string
+	LastCheckForUpdates  time.Weekday
+	Keyring              *KeyringConfig `toml:",omitempty"`
+	Ordering             string
 }
 
 type KeyringConfig struct {

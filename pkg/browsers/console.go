@@ -312,6 +312,25 @@ func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (str
 	return u.String(), nil
 }
 
+func OpenUrlWithCustomBrowser(url string) error {
+
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
+	if cfg.CustomSSOBrowserPath != "" {
+		cmd := exec.Command(cfg.CustomSSOBrowserPath, fmt.Sprintf(" %s ", url))
+		err := cmd.Start()
+		if err != nil {
+			return err
+		}
+		// detach from this new process because it continues to run
+		return cmd.Process.Release()
+	}
+	return nil
+
+}
+
 func LaunchConsoleSession(sess Session, opts BrowserOpts, service string, region string) error {
 	url, err := MakeUrl(sess, opts, service, region)
 	if err != nil {
@@ -357,7 +376,8 @@ func makeDestinationURL(service string, region string) (string, error) {
 		// and this avoids the need to keep the ServiceMap alphabetically sorted when developing Granted.
 		sort.Strings(validServices)
 
-		return "", fmt.Errorf("\nservice %s not found, please enter a valid service shortcut.\nValid service shortcuts: [%s]", service, strings.Join(validServices, ", "))
+		return "", fmt.Errorf("\nservice %s not found, please enter a valid service shortcut \nValid service shortcuts: [%s]\n", service, strings.Join(validServices, ", "))
+
 	}
 
 	dest := prefix + serv + "/home"
