@@ -48,6 +48,18 @@
       }
     },
     {
+      "name": "Run command assume role",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/assume/main.go",
+      "args": ["cf-dev", "-c"],
+      "env": {
+        "FORCE_NO_ALIAS": "true",
+        "AWS_PROFILE": "cf-dev"
+      }
+    },
+    {
       "name": "Remove token",
       "type": "go",
       "request": "launch",
