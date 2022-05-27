@@ -192,13 +192,9 @@ func AssumeCommand(c *cli.Context) error {
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
 			sessionExpiration = creds.Expires.Format(time.RFC3339)
-			if configOpts.Duration.String() != "" {
-				green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s: %.2fhr\n", profile.Name, region, creds.Expires.Local().String(), configOpts.Duration.Hours())
 
-			} else {
-				green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
+			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
 
-			}
 		} else {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
 		}
