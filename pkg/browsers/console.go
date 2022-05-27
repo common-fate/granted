@@ -12,10 +12,10 @@ import (
 	"path"
 	"sort"
 	"strings"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
 )
@@ -147,10 +147,9 @@ func SessionFromCredentials(creds aws.Credentials) Session {
 
 type BrowserOpts struct {
 	// the name of the role
-	Profile  string
-	Region   string
-	Service  string
-	Duration time.Duration
+	Profile string
+	Region  string
+	Service string
 }
 
 func (r *BrowserOpts) MakeExternalFirefoxTitle() string {
@@ -186,15 +185,89 @@ const (
 	BrowserDefault
 )
 
-func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (string, error) {
+type PartitionHost int
+
+const (
+	Default PartitionHost = iota
+	Gov
+	Cn
+	ISO
+	ISOB
+)
+
+func (p PartitionHost) String() string {
+	switch p {
+	case Default:
+		return "aws"
+	case Gov:
+		return "aws-us-gov"
+	case Cn:
+		return "aws-cn"
+	case ISO:
+		return "aws-iso"
+	case ISOB:
+		return "aws-iso-b"
+	}
+	return "aws"
+}
+
+func (p PartitionHost) HostString() string {
+	switch p {
+	case Default:
+		return "signin.aws.amazon.com"
+	case Gov:
+		return "signin.amazonaws-us-gov.com"
+	case Cn:
+		return "signin.amazonaws.cn"
+	}
+	// Note: we're not handling the ISO and ISOB cases, I don't think they are supported by a public AWS console
+	return "signin.aws.amazon.com"
+}
+
+func (p PartitionHost) ConsoleHostString() string {
+	switch p {
+	case Default:
+		return "https://console.aws.amazon.com/"
+	case Gov:
+		return "https://console.amazonaws-us-gov.com/"
+	case Cn:
+		return "https://console.amazonaws.cn/"
+	}
+	// Note: we're not handling the ISO and ISOB cases, I don't think they are supported by a public AWS console
+	return "https://console.aws.amazon.com/"
+}
+
+func GetPartitionFromRegion(region string) PartitionHost {
+	partition := strings.Split(region, "-")
+	if partition[0] == "cn" {
+		return PartitionHost(Cn)
+	}
+	if partition[1] == "iso" {
+		return PartitionHost(ISO)
+	}
+	if partition[1] == "isob" {
+		return PartitionHost(ISOB)
+	}
+	if partition[1] == "gov" {
+		return PartitionHost(Gov)
+	}
+	return PartitionHost(Default)
+}
+
+func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (string, error) {
+
 	sessJSON, err := json.Marshal(sess)
+
 	if err != nil {
 		return "", err
 	}
 
+	partition := GetPartitionFromRegion(region)
+	debug.Fprintf(debug.VerbosityDebug, color.Error, "Partition is detected as %s for region %s...\n", partition, region)
+
 	u := url.URL{
 		Scheme: "https",
-		Host:   "signin.aws.amazon.com",
+		Host:   partition.HostString(),
 		Path:   "/federation",
 	}
 	q := u.Query()
@@ -221,7 +294,7 @@ func MakeUrl(sess Session, labels BrowserOpts, service string, region string) (s
 
 	u = url.URL{
 		Scheme: "https",
-		Host:   "signin.aws.amazon.com",
+		Host:   partition.HostString(),
 		Path:   "/federation",
 	}
 
@@ -299,7 +372,8 @@ func makeDestinationURL(service string, region string) (string, error) {
 	if region == "" {
 		region = "us-east-1"
 	}
-	prefix := "https://console.aws.amazon.com/"
+	partition := GetPartitionFromRegion(region)
+	prefix := partition.ConsoleHostString()
 
 	serv := ServiceMap[service]
 	if serv == "" {

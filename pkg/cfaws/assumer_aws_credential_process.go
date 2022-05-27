@@ -2,7 +2,6 @@ package cfaws
 
 import (
 	"context"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -29,10 +28,6 @@ func loadCredProcessCreds(ctx context.Context, c *CFSharedConfig) (aws.Credentia
 }
 
 func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
-	duration := time.Hour
-	if configOpts.Duration != 0 {
-		duration = configOpts.Duration
-	}
 	// if the profile has parents, then we need to first use credentail process to assume the root profile.
 	// then assume each of the chained profiles
 	if len(c.Parents) != 0 {
@@ -55,7 +50,7 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 					aro.SerialNumber = &c.AWSConfig.MFASerial
 					aro.TokenProvider = MfaTokenProvider
 				}
-				aro.Duration = duration
+				aro.Duration = configOpts.Duration
 			})
 			creds, err = stsp.Retrieve(ctx)
 			if err != nil {
@@ -72,7 +67,7 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 				aro.SerialNumber = &c.AWSConfig.MFASerial
 				aro.TokenProvider = MfaTokenProvider
 			}
-			aro.Duration = duration
+			aro.Duration = configOpts.Duration
 		})
 		return stsp.Retrieve(ctx)
 	}
