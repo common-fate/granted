@@ -37,9 +37,18 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 
 	if credFile.HasSection(profileName) {
 		//put the creds into options
-		credFile.Set(profileName, "aws_access_key_id", creds.AccessKeyID)
-		credFile.Set(profileName, "aws_secret_access_key", creds.SecretAccessKey)
-		credFile.Set(profileName, "aws_session_token", creds.SessionToken)
+		err = credFile.Set(profileName, "aws_access_key_id", creds.AccessKeyID)
+		if err != nil {
+			return err
+		}
+		err = credFile.Set(profileName, "aws_secret_access_key", creds.SecretAccessKey)
+		if err != nil {
+			return err
+		}
+		err = credFile.Set(profileName, "aws_session_token", creds.SessionToken)
+		if err != nil {
+			return err
+		}
 		err = credFile.SaveWithDelimiter(credPath, "=")
 		if err != nil {
 			return err
@@ -52,10 +61,18 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 			return err
 		}
 
-		credFile.Set(profileName, "aws_access_key_id", creds.AccessKeyID)
-		credFile.Set(profileName, "aws_secret_access_key", creds.SecretAccessKey)
-		credFile.Set(profileName, "aws_session_token", creds.SessionToken)
-
+		err = credFile.Set(profileName, "aws_access_key_id", creds.AccessKeyID)
+		if err != nil {
+			return err
+		}
+		err = credFile.Set(profileName, "aws_secret_access_key", creds.SecretAccessKey)
+		if err != nil {
+			return err
+		}
+		err = credFile.Set(profileName, "aws_session_token", creds.SessionToken)
+		if err != nil {
+			return err
+		}
 		err = credFile.SaveWithDelimiter(credPath, "=")
 		if err != nil {
 			return err
