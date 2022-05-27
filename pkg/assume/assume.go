@@ -119,18 +119,26 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	configOpts := cfaws.ConfigOpts{}
+
+	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
+	duration := assumeFlags.String("duration")
+	if duration != "" {
+		d, err := time.ParseDuration(duration)
+		if err != nil {
+			return err
+		}
+		configOpts.Duration = d
+	}
 
 	if len(assumeFlags.StringSlice("pass-through")) > 0 {
 		configOpts.Args = assumeFlags.StringSlice("pass-through")
 	}
 
-	openBrower := assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.Bool("url")
+	openBrower := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.Bool("url"))
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 
 		browserOpts := browsers.BrowserOpts{Profile: profile.Name}
-		duration := assumeFlags.String("duration")
 		service := assumeFlags.String("service")
 		if assumeFlags.String("region") != "" {
 			region = assumeFlags.String("region")
@@ -138,14 +146,6 @@ func AssumeCommand(c *cli.Context) error {
 
 		browserOpts.Region = region
 		browserOpts.Service = service
-		if duration != "" {
-			d, err := time.ParseDuration(duration)
-			if err != nil {
-				return err
-			}
-			configOpts.Duration = d
-
-		}
 
 		var creds aws.Credentials
 
@@ -189,6 +189,13 @@ func AssumeCommand(c *cli.Context) error {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
 		} else {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
+		}
+		if assumeFlags.Bool("env") {
+			err = cfaws.WriteCredentialsToDotenv(region, creds)
+			if err != nil {
+				return err
+			}
+			green.Fprintln(color.Error, "Exported credentials to .env file successfully")
 		}
 		if assumeFlags.String("exec") != "" {
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
