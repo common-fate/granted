@@ -48,6 +48,17 @@
       }
     },
     {
+      "name": "Run command assume cf-dev",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "cmd/assume/main.go",
+      "args": ["cf-dev"],
+      "env": {
+        "FORCE_NO_ALIAS": "true"
+      }
+    },
+    {
       "name": "Remove token",
       "type": "go",
       "request": "launch",
