@@ -121,6 +121,12 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
+
+	//attempt to get session duration from profile
+	if profile.AWSConfig.RoleDurationSeconds != nil {
+		configOpts.Duration = *profile.AWSConfig.RoleDurationSeconds
+	}
+
 	duration := assumeFlags.String("duration")
 	if duration != "" {
 		d, err := time.ParseDuration(duration)
@@ -186,7 +192,9 @@ func AssumeCommand(c *cli.Context) error {
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
 			sessionExpiration = creds.Expires.Format(time.RFC3339)
+
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
+
 		} else {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
 		}
