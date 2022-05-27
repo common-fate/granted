@@ -11,3 +11,6 @@ gon.assume.hcl
 gon.assume.arm.hcl
 gon.granted.hcl
 gon.granted.arm.hcl
+
+launch.json
+.env
