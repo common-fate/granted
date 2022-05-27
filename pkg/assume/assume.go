@@ -123,13 +123,10 @@ func AssumeCommand(c *cli.Context) error {
 	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
 
 	//attempt to get session duration from profile
-	defaultDuration, err := profile.DefaultDuration(c.Context)
-	if err != nil {
-		return err
+	if profile.AWSConfig.RoleDurationSeconds != nil {
+		configOpts.Duration = *profile.AWSConfig.RoleDurationSeconds
 	}
-	if defaultDuration != nil {
-		configOpts.Duration = *defaultDuration
-	}
+
 	duration := assumeFlags.String("duration")
 	if duration != "" {
 		d, err := time.ParseDuration(duration)
