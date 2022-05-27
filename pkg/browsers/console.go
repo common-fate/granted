@@ -246,9 +246,7 @@ func LaunchBrowserSession(url string) error {
 		return browser.OpenURL(url)
 	}
 	if cfg.CustomSSOBrowserPath != "" {
-		cmd := exec.Command(cfg.CustomSSOBrowserPath,
-			"--no-first-run --no-default-browser-check"+url,
-		)
+		cmd := exec.Command(cfg.CustomSSOBrowserPath, fmt.Sprintf(" %s ", url))
 		err := cmd.Start()
 		if err != nil {
 			fmt.Fprintf(color.Error, "\nGranted was unable to open a browser session automatically")
