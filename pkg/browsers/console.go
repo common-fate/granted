@@ -314,26 +314,18 @@ func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (str
 
 func OpenUrlWithCustomBrowser(url string) error {
 
-	cfg, _ := config.Load()
-	if cfg == nil {
-		return browser.OpenURL(url)
+	cfg, err := config.Load()
+	if err != nil {
+		return err
 	}
 	if cfg.CustomSSOBrowserPath != "" {
 		cmd := exec.Command(cfg.CustomSSOBrowserPath, fmt.Sprintf(" %s ", url))
 		err := cmd.Start()
 		if err != nil {
-			fmt.Fprintf(color.Error, "\nGranted was unable to open a browser session automatically")
-			//allow them to try open the url manually
-			ManuallyOpenURL(url)
-			return nil
+			return err
 		}
 		// detach from this new process because it continues to run
 		return cmd.Process.Release()
-	} else {
-		err := browser.OpenURL(url)
-		if err != nil {
-			return err
-		}
 	}
 	return nil
 

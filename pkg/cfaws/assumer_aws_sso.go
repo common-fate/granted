@@ -166,7 +166,10 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFShare
 	if config.CustomSSOBrowserPath != "" {
 		err = browsers.OpenUrlWithCustomBrowser(url)
 		if err != nil {
-			return nil, err
+			if err != nil {
+				// fail silently
+				debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+			}
 		}
 	} else {
 		err = browser.OpenURL(url)
