@@ -9,6 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/bigkevmcd/go-configparser"
 	"github.com/fatih/color"
 )
 
@@ -31,6 +32,39 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 		}
 		fmt.Fprintln(color.Error, "Created file.")
 
+	}
+
+	credFile, err := configparser.NewConfigParserFromFile(credPath)
+	if err != nil {
+		return err
+	}
+
+	// Itterate through the config sections
+	for _, section := range credFile.Sections() {
+		rawConfig, err := credFile.Items(section)
+		if err != nil {
+			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS config: %s Due to the following error: %s\n", section, err)
+			continue
+		}
+		// Check if the section is prefixed with 'profile ' and that the profile has a name
+		if strings.HasPrefix(section, "["+profileName+"]") {
+			name := strings.TrimPrefix(section, "profile ")
+			illegalChars := "\\][;'\"" // These characters break the config file format and should not be usable for profile names
+			if strings.ContainsAny(name, illegalChars) {
+				fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains one or more of: '%s' in the name, try replacing these with '-'\n", name, illegalChars)
+				continue
+			} else {
+				cf, err := config.LoadSharedConfigProfile(ctx, name)
+
+				if err != nil {
+					fmt.Fprintf(color.Error, "failed to load a profile from your AWS config: %s Due to the following error: %s\n", name, err)
+					continue
+				} else {
+					profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
+				}
+			}
+
+		}
 	}
 
 	//Check to see if there already is a cred profile for this profile
