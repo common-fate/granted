@@ -205,6 +205,14 @@ func AssumeCommand(c *cli.Context) error {
 			}
 			green.Fprintln(color.Error, "Exported credentials to .env file successfully")
 		}
+
+		if assumeFlags.Bool("export") {
+			err = cfaws.ExportCredsToProfile(profile.Name, creds)
+			if err != nil {
+				return err
+			}
+			green.Fprintln(color.Error, "Exported credentials to ~.aws/credentials file successfully")
+		}
 		if assumeFlags.String("exec") != "" {
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
 		}
