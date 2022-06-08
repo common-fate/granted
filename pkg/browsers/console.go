@@ -49,6 +49,7 @@ var ServiceMap = map[string]string{
 	"s3":             "s3",
 	"secretsmanager": "secretsmanager",
 	"iam":            "iamv2",
+	"waf":            "wafv2",
 }
 
 var globalServiceMap = map[string]bool{
