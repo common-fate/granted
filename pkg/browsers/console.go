@@ -40,6 +40,7 @@ var ServiceMap = map[string]string{
 	"cf":             "cloudfront",
 	"ct":             "cloudtrail",
 	"ddb":            "dynamodbv2",
+	"eb":             "elasticbeanstalk",
 	"ebs":            "elasticbeanstalk",
 	"ecr":            "ecr",
 	"grafana":        "grafana",
