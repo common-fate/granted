@@ -40,6 +40,7 @@ var ServiceMap = map[string]string{
 	"cf":             "cloudfront",
 	"ct":             "cloudtrail",
 	"ddb":            "dynamodbv2",
+	"eb":             "elasticbeanstalk",
 	"ebs":            "elasticbeanstalk",
 	"ecr":            "ecr",
 	"grafana":        "grafana",
@@ -49,6 +50,8 @@ var ServiceMap = map[string]string{
 	"s3":             "s3",
 	"secretsmanager": "secretsmanager",
 	"iam":            "iamv2",
+	"waf":            "wafv2",
+	"rds":            "rds",
 }
 
 var globalServiceMap = map[string]bool{
