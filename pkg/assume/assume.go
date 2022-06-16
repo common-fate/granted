@@ -265,6 +265,9 @@ func EnvKeys(creds aws.Credentials, region string) []string {
 // Currently in windows, the grantedoutput is handled differently, as linux and mac support the exec cli flag whereas windows does not yet have support
 // this method may be changed in future if we implement support for "--exec" in windows
 func MakeGrantedOutput(s string) string {
+	if os.Getenv("NO_GRANTED_OUTPUT_PREFIX") == "true" {
+		return ""
+	}
 	out := "GrantedOutput"
 	if runtime.GOOS != "windows" {
 		out += "\n"
