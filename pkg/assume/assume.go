@@ -192,10 +192,10 @@ func AssumeCommand(c *cli.Context) error {
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
 			sessionExpiration = creds.Expires.Format(time.RFC3339)
-			if os.Getenv("GRANTED_NO_STDERR") != "true" {
+			if os.Getenv("GRANTED_QUIET") != "true" {
 				green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
 			}
-		} else if os.Getenv("GRANTED_NO_STDERR") != "true" {
+		} else if os.Getenv("GRANTED_QUIET") != "true" {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
 		}
 		if assumeFlags.Bool("env") {
