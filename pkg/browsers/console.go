@@ -54,6 +54,7 @@ var ServiceMap = map[string]string{
 	"rds":            "rds",
 	"dms":            "dms/v2",
 	"mwaa":           "mwaa",
+	"param":          "systems-manager/parameters",
 	"redshift":       "redshiftv2",
 	"sagemaker":      "sagemaker",
 	"ssm":            "systems-manager",	
