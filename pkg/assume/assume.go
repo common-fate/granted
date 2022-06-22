@@ -192,10 +192,10 @@ func AssumeCommand(c *cli.Context) error {
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
 			sessionExpiration = creds.Expires.Format(time.RFC3339)
-
-			green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
-
-		} else {
+			if os.Getenv("GRANTED_QUIET") != "true" {
+				green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
+			}
+		} else if os.Getenv("GRANTED_QUIET") != "true" {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
 		}
 		if assumeFlags.Bool("env") {
@@ -265,6 +265,13 @@ func EnvKeys(creds aws.Credentials, region string) []string {
 // Currently in windows, the grantedoutput is handled differently, as linux and mac support the exec cli flag whereas windows does not yet have support
 // this method may be changed in future if we implement support for "--exec" in windows
 func MakeGrantedOutput(s string) string {
+	// if the GRANTED_ALIAS_CONFIGURED env variable isn't set,
+	// we aren't running in the context of the `assume` shell script.
+	// If this is the case, don't add a prefix to the output as we don't have the
+	// wrapper shell script to parse it.
+	if os.Getenv("GRANTED_ALIAS_CONFIGURED") != "true" {
+		return ""
+	}
 	out := "GrantedOutput"
 	if runtime.GOOS != "windows" {
 		out += "\n"
