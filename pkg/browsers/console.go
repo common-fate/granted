@@ -52,6 +52,12 @@ var ServiceMap = map[string]string{
 	"iam":            "iamv2",
 	"waf":            "wafv2",
 	"rds":            "rds",
+	"dms":            "dms/v2",
+	"mwaa":           "mwaa",
+	"param":          "systems-manager/parameters",
+	"redshift":       "redshiftv2",
+	"sagemaker":      "sagemaker",
+	"ssm":            "systems-manager",	
 }
 
 var globalServiceMap = map[string]bool{
