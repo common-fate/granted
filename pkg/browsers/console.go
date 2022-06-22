@@ -26,14 +26,8 @@ var ServiceMap = map[string]string{
 	"":               "console",
 	"ec2":            "ec2/v2",
 	"sso":            "singlesignon",
-	"ecs":            "ecs",
-	"eks":            "eks",
-	"athena":         "athena",
-	"cloudmap":       "cloudmap",
 	"c9":             "cloud9",
 	"cfn":            "cloudformation",
-	"cloudformation": "cloudformation",
-	"cloudwatch":     "cloudwatch",
 	"gd":             "guardduty",
 	"l":              "lambda",
 	"cw":             "cloudwatch",
@@ -42,21 +36,13 @@ var ServiceMap = map[string]string{
 	"ddb":            "dynamodbv2",
 	"eb":             "elasticbeanstalk",
 	"ebs":            "elasticbeanstalk",
-	"ecr":            "ecr",
-	"grafana":        "grafana",
-	"lambda":         "lambda",
 	"route53":        "route53/v2",
 	"r53":            "route53/v2",
-	"s3":             "s3",
-	"secretsmanager": "secretsmanager",
 	"iam":            "iamv2",
 	"waf":            "wafv2",
-	"rds":            "rds",
 	"dms":            "dms/v2",
-	"mwaa":           "mwaa",
 	"param":          "systems-manager/parameters",
 	"redshift":       "redshiftv2",
-	"sagemaker":      "sagemaker",
 	"ssm":            "systems-manager",	
 }
 
@@ -376,17 +362,7 @@ func makeDestinationURL(service string, region string) (string, error) {
 
 	serv := ServiceMap[service]
 	if serv == "" {
-		var validServices []string
-		for s := range ServiceMap {
-			validServices = append(validServices, s)
-		}
-		// present the strings in alphabetical order.
-		// Yes, this is a bit of computation - but our arrays are quite small
-		// and this avoids the need to keep the ServiceMap alphabetically sorted when developing Granted.
-		sort.Strings(validServices)
-
-		return "", fmt.Errorf("\nservice %s not found, please enter a valid service shortcut \nValid service shortcuts: [%s]\n", service, strings.Join(validServices, ", "))
-
+		serv = service
 	}
 
 	dest := prefix + serv + "/home"
