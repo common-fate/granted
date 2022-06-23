@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -26,7 +25,7 @@ var ServiceMap = map[string]string{
 	"":               "console",
 	"ec2":            "ec2/v2",
 	"sso":            "singlesignon",
-	"ecs":            "ecs",
+ 	"ecs":            "ecs",
 	"eks":            "eks",
 	"athena":         "athena",
 	"cloudmap":       "cloudmap",
@@ -376,17 +375,8 @@ func makeDestinationURL(service string, region string) (string, error) {
 
 	serv := ServiceMap[service]
 	if serv == "" {
-		var validServices []string
-		for s := range ServiceMap {
-			validServices = append(validServices, s)
-		}
-		// present the strings in alphabetical order.
-		// Yes, this is a bit of computation - but our arrays are quite small
-		// and this avoids the need to keep the ServiceMap alphabetically sorted when developing Granted.
-		sort.Strings(validServices)
-
-		return "", fmt.Errorf("\nservice %s not found, please enter a valid service shortcut \nValid service shortcuts: [%s]\n", service, strings.Join(validServices, ", "))
-
+		color.New(color.FgYellow).Fprintf(color.Error, "[warning] we don't recognize service %s but we'll try and open it anyway (you may receive a 404 page)", service)
+		serv = service
 	}
 
 	dest := prefix + serv + "/home"
