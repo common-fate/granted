@@ -10,7 +10,6 @@ import (
 	"os"
 	"os/exec"
 	"path"
-	"sort"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -26,8 +25,14 @@ var ServiceMap = map[string]string{
 	"":               "console",
 	"ec2":            "ec2/v2",
 	"sso":            "singlesignon",
+ 	"ecs":            "ecs",
+	"eks":            "eks",
+	"athena":         "athena",
+	"cloudmap":       "cloudmap",
 	"c9":             "cloud9",
 	"cfn":            "cloudformation",
+	"cloudformation": "cloudformation",
+	"cloudwatch":     "cloudwatch",
 	"gd":             "guardduty",
 	"l":              "lambda",
 	"cw":             "cloudwatch",
@@ -36,13 +41,21 @@ var ServiceMap = map[string]string{
 	"ddb":            "dynamodbv2",
 	"eb":             "elasticbeanstalk",
 	"ebs":            "elasticbeanstalk",
+	"ecr":            "ecr",
+	"grafana":        "grafana",
+	"lambda":         "lambda",
 	"route53":        "route53/v2",
 	"r53":            "route53/v2",
+	"s3":             "s3",
+	"secretsmanager": "secretsmanager",
 	"iam":            "iamv2",
 	"waf":            "wafv2",
+	"rds":            "rds",
 	"dms":            "dms/v2",
+	"mwaa":           "mwaa",
 	"param":          "systems-manager/parameters",
 	"redshift":       "redshiftv2",
+	"sagemaker":      "sagemaker",
 	"ssm":            "systems-manager",	
 }
 
