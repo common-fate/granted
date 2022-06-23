@@ -362,6 +362,7 @@ func makeDestinationURL(service string, region string) (string, error) {
 
 	serv := ServiceMap[service]
 	if serv == "" {
+		color.New(color.FgYellow).Fprintf(color.Error, "[warning] we don't recognize service %s but we'll try and open it anyway (you may receive a 404 page)", service)
 		serv = service
 	}
 
