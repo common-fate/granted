@@ -53,6 +53,7 @@ func GetCliApp() *cli.App {
 		Flags:                GlobalFlags(),
 		Action:               updates.WithUpdateCheck(func(c *cli.Context) error { return AssumeCommand(c) }),
 		EnableBashCompletion: true,
+		BashComplete:         Completion,
 		Before: func(c *cli.Context) error {
 			// unsets the exported env vars
 			if c.Bool("unset") {

@@ -157,12 +157,15 @@ func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
 	}
 	return region, true, nil
 }
-
 func (c CFSharedConfigs) ProfileNames() []string {
 	names := []string{}
 	for k := range c {
 		names = append(names, k)
 	}
+	return names
+}
+func (c CFSharedConfigs) ProfileNamesSorted() []string {
+	names := c.ProfileNames()
 	sort.Strings(names)
 	return names
 }

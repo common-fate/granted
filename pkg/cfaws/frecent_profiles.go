@@ -51,7 +51,7 @@ func UpdateFrecencyCache(selectedProfile string) {
 func (c CFSharedConfigs) GetFrecentProfiles() (*FrecentProfiles, []string) {
 	names := []string{}
 	namesMap := make(map[string]string)
-	profileNames := c.ProfileNames()
+	profileNames := c.ProfileNamesSorted()
 	pnMap := make(map[string]string)
 	for _, pn := range profileNames {
 		pnMap[pn] = pn
