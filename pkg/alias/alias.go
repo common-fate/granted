@@ -9,7 +9,6 @@ package alias
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
@@ -227,7 +226,7 @@ func (e *ErrAlreadyInstalled) Error() string {
 // Returns ErrAlreadyInstalled if the alias
 // already exists in the file.
 func install(cfg Config) error {
-	b, err := ioutil.ReadFile(cfg.File)
+	b, err := os.ReadFile(cfg.File)
 	if err != nil {
 		return err
 	}
@@ -244,6 +243,7 @@ func install(cfg Config) error {
 	if err != nil {
 		return err
 	}
+	defer out.Close()
 	// include newlines around the alias
 	a := fmt.Sprintf("\n%s\n", cfg.Alias)
 	_, err = out.WriteString(a)
@@ -267,7 +267,7 @@ func (e *ErrNotInstalled) Error() string {
 // Returns ErrNotInstalled if the alias
 // doesn't exist in the file.
 func uninstall(cfg Config) error {
-	b, err := ioutil.ReadFile(cfg.File)
+	b, err := os.ReadFile(cfg.File)
 	if err != nil {
 		return err
 	}
@@ -306,7 +306,7 @@ func uninstall(cfg Config) error {
 
 	output := strings.Join(ignored, "\n")
 
-	err = ioutil.WriteFile(cfg.File, []byte(output), 0644)
+	err = os.WriteFile(cfg.File, []byte(output), 0644)
 	if err != nil {
 		return err
 	}
