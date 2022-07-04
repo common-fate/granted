@@ -1,8 +1,8 @@
-#compdef granted
+#compdef dgranted
 
 _cli_zsh_autocomplete() {
   # adapted from https://github.com/urfave/cli/blob/main/autocomplete/zsh_autocomplete  
-  # the granted binary does not yet implement any custom behaviour for auto complete
+  # the dgranted binary does not yet implement any custom behaviour for auto complete
   # It uses the default completion from the urFavCli package
   local -a opts
   local cur
@@ -22,4 +22,4 @@ _cli_zsh_autocomplete() {
   return
 }
 
-compdef _cli_zsh_autocomplete granted
+compdef _cli_zsh_autocomplete dgranted
