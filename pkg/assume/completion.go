@@ -15,7 +15,9 @@ import (
 //
 // You can use `assume -c ` + tab to get profile names or `assume -` + tab to get flags
 func Completion(ctx *cli.Context) {
-	if len(os.Args) > 2 && os.Args[len(os.Args)-2] == "-" {
+	if len(os.Args) > 2 && strings.HasPrefix(os.Args[len(os.Args)-2], "-") {
+		// set the ooutput back to std out so that this completion works correctly
+		ctx.App.Writer = os.Stdout
 		cli.DefaultAppComplete(ctx)
 	} else {
 		// Ignore errors from this function. Tab completion handles graceful degradation back to listing files.
