@@ -143,6 +143,7 @@ func SetupShellWizard(autoConfigure bool) error {
 	fmt.Fprintf(color.Error, "Added the Granted alias to %s\n", cfg.File)
 	alert := color.New(color.Bold, color.FgYellow).SprintFunc()
 	fmt.Fprintf(color.Error, "\n%s\n", alert("Shell restart required to apply changes: please open a new terminal window and re-run your command."))
+	os.Exit(0)
 	return nil
 }
 
