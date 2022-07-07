@@ -130,16 +130,18 @@ func installZSHCompletions(c *cli.Context) error {
 	}
 	err = shells.AppendLine(file, fmt.Sprintf("fpath=(%s/ $fpath)", zshPathAssume))
 	var lae *shells.ErrLineAlreadyExists
-	if is := errors.As(err, &lae); !is {
+	if is := errors.As(err, &lae); err != nil && !is {
 		return err
 	}
 	err = shells.AppendLine(file, fmt.Sprintf("fpath=(%s/ $fpath)", zshPathGranted))
 	lae = nil
-	if is := errors.As(err, &lae); !is {
+	if is := errors.As(err, &lae); err != nil && !is {
 		return err
 	}
 	green := color.New(color.FgGreen)
 	green.Fprintln(color.Error, "[✔] ZSH autocompletions generated successfully ")
+	alert := color.New(color.Bold, color.FgYellow).SprintFunc()
+	fmt.Fprintf(color.Error, "\n%s\n", alert("Shell restart required to apply changes: please open a new terminal and test the autocomplete."))
 	return nil
 }
 
