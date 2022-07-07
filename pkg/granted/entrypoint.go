@@ -42,7 +42,5 @@ func GetCliApp() *cli.App {
 		},
 	}
 
-	app.EnableBashCompletion = true
-
 	return app
 }

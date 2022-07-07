@@ -9,11 +9,12 @@ package alias
 import (
 	"errors"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/granted/internal/build"
+	"github.com/common-fate/granted/pkg/shells"
 	"github.com/fatih/color"
 )
 
@@ -26,6 +27,29 @@ func init() {
 	_, color.NoColor = os.LookupEnv("NO_COLOR")
 }
 
+const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`
+const defaultAlias = `alias assume="source assume"`
+const devFishAlias = `alias dassume="source /usr/local/bin/dassume.fish"`
+const devDefaultAlias = `alias dassume="source dassume"`
+
+func GetDefaultAlias() string {
+	if build.IsDev() {
+		return devDefaultAlias
+	}
+	return defaultAlias
+}
+func GetFishAlias() string {
+	if build.IsDev() {
+		return devFishAlias
+	}
+	return fishAlias
+}
+
+type Config struct {
+	File  string
+	Alias string
+}
+
 // IsConfigured returns whether the shell alias is correctly set up
 // for Granted.
 func IsConfigured() bool {
@@ -36,90 +60,91 @@ func IsConfigured() bool {
 // if the alias is detected as not being configured properly.
 func MustBeConfigured(autoConfigure bool) error {
 	if !IsConfigured() {
-		_, err := SetupShellWizard(autoConfigure)
-		if err != nil {
-			return err
-		}
+		return SetupShellWizard(autoConfigure)
 	}
 	return nil
 }
 
-// IsSupported returns true if Granted supports configuring aliases
-// automatically for a user's shell
-func IsSupported(shell string) bool {
-	return shell == "fish" || shell == "bash" || shell == "zsh"
+// GetShellFromShellEnv returns the shell from the SHELL environment variable
+func GetShellFromShellEnv(shellEnv string) (string, error) {
+	if strings.Contains(shellEnv, "fish") {
+		return "fish", nil
+
+	} else if strings.Contains(shellEnv, "bash") {
+		return "bash", nil
+
+	} else if strings.Contains(shellEnv, "zsh") {
+		return "zsh", nil
+
+	} else {
+		return "", fmt.Errorf("we couldn't detect your shell type (%s). Please follow the steps at https://granted.dev/shell-alias to assume roles with Granted", shellEnv)
+	}
 }
 
-type SetupShellResults struct {
-	ConfigFile string
+// GetShellAlias returns the alias config for a shell
+func GetShellAlias(shell string) (Config, error) {
+	var file string
+	var err error
+	alias := GetDefaultAlias()
+	switch shell {
+	case "fish":
+		file, err = shells.GetFishConfigFile()
+		alias = GetFishAlias()
+	case "bash":
+		file, err = shells.GetBashConfigFile()
+	case "zsh":
+		file, err = shells.GetZshConfigFile()
+	default:
+		err = &ErrShellNotSupported{Shell: shell}
+	}
+	if err != nil {
+		return Config{}, err
+	}
+	return Config{File: file, Alias: alias}, nil
 }
 
-func SetupShellWizard(autoConfigure bool) (*SetupShellResults, error) {
+func SetupShellWizard(autoConfigure bool) error {
 	// SHELL is set by the wrapper script
 	shellEnv := os.Getenv("SHELL")
-	var cfg Config
-	var shell string
-	var err error
-	if strings.Contains(shellEnv, "fish") {
-		shell = "fish"
-		cfg, err = getFishConfig()
-		if err != nil {
-			return nil, err
-		}
-	} else if strings.Contains(shellEnv, "bash") {
-		shell = "bash"
-		cfg, err = getBashConfig()
-		if err != nil {
-			return nil, err
-		}
-	} else if strings.Contains(shellEnv, "zsh") {
-		shell = "zsh"
-		cfg, err = getZshConfig()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, fmt.Errorf("we couldn't detect your shell type (%s). Please follow the steps at https://granted.dev/shell-alias to assume roles with Granted", shellEnv)
+	shell, err := GetShellFromShellEnv(shellEnv)
+	if err != nil {
+		return err
 	}
-
+	cfg, err := GetShellAlias(shell)
+	if err != nil {
+		return err
+	}
 	// skip prompt if autoConfigure is set to true
 	if !autoConfigure {
 		ul := color.New(color.Underline).SprintFunc()
-
 		fmt.Fprintf(color.Error, "ℹ️  To assume roles with Granted, we need to add an alias to your shell profile (%s).\n", ul("https://granted.dev/shell-alias"))
-
-		label := fmt.Sprintf("Install %s alias at %s", shell, cfg.File)
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
-			Message: label,
+			Message: fmt.Sprintf("Install %s alias at %s", shell, cfg.File),
 			Default: true,
 		}
 		var confirm bool
 		err = survey.AskOne(in, &confirm, withStdio)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		if !confirm {
-			return nil, errors.New("cancelled alias installation")
+			return errors.New("cancelled alias installation")
 		}
 
 		fmt.Fprintln(color.Error, "")
 	}
 
-	err = install(cfg)
+	err = Install(cfg)
 	if err != nil {
-		return nil, err
+		return err
 	}
-
+	fmt.Fprintf(color.Error, "Added the Granted alias to %s\n", cfg.File)
 	alert := color.New(color.Bold, color.FgYellow).SprintFunc()
 	fmt.Fprintf(color.Error, "\n%s\n", alert("Shell restart required to apply changes: please open a new terminal window and re-run your command."))
 	os.Exit(0)
-
-	r := SetupShellResults{
-		ConfigFile: cfg.File,
-	}
-	return &r, nil
+	return nil
 }
 
 type UninstallShellResults struct {
@@ -128,189 +153,41 @@ type UninstallShellResults struct {
 
 // UninstallDefaultShellAlias tries to uninstall the Granted aliases from the
 // user's default shell bindings
-func UninstallDefaultShellAlias() (*UninstallShellResults, error) {
+func UninstallDefaultShellAlias() error {
 	// SHELL is set by the wrapper script
 	shellEnv := os.Getenv("SHELL")
-	var cfg Config
-	var err error
-	if strings.Contains(shellEnv, "fish") {
-		cfg, err = getFishConfig()
-		if err != nil {
-			return nil, err
-		}
-	} else if strings.Contains(shellEnv, "bash") {
-		cfg, err = getBashConfig()
-		if err != nil {
-			return nil, err
-		}
-	} else if strings.Contains(shellEnv, "zsh") {
-		cfg, err = getZshConfig()
-		if err != nil {
-			return nil, err
-		}
-	} else {
-		return nil, fmt.Errorf("We couldn't detect your shell type (%s). You may need to manually removed Granted's aliases from your shell configuration.", shellEnv)
-	}
-
-	err = uninstall(cfg)
+	shell, err := GetShellFromShellEnv(shellEnv)
 	if err != nil {
-		return nil, err
+		return fmt.Errorf("we couldn't detect your shell type (%s). You may need to manually removed Granted's aliases from your shell configuration", shellEnv)
 	}
-
-	r := UninstallShellResults{
-		ConfigFile: cfg.File,
+	cfg, err := GetShellAlias(shell)
+	if err != nil {
+		return err
 	}
-	return &r, nil
-}
-
-type ErrShellNotSupported struct {
-	Shell string
-}
-
-func (e *ErrShellNotSupported) Error() string {
-	return fmt.Sprintf("unsupported shell %s", e.Shell)
+	err = Uninstall(cfg)
+	if err != nil {
+		return err
+	}
+	fmt.Fprintf(color.Error, "Removed the Granted alias from %s\n", cfg.File)
+	return nil
 }
 
 // Install the Granted alias to a config file for a specified shell.
-func Install(shell string) error {
-	var cfg Config
-	var err error
-
-	switch shell {
-	case "fish":
-		cfg, err = getFishConfig()
-	case "bash":
-		cfg, err = getBashConfig()
-	case "zsh":
-		cfg, err = getZshConfig()
-	default:
-		return &ErrShellNotSupported{Shell: shell}
+func Install(cfg Config) error {
+	err := shells.AppendLine(cfg.File, cfg.Alias)
+	var aee *shells.ErrLineAlreadyExists
+	if errors.As(err, &aee) {
+		return &ErrAlreadyInstalled{File: cfg.File}
 	}
-	if err != nil {
-		return err
-	}
-
-	return install(cfg)
+	return err
 }
 
 // Uninstall the Granted alias to a config file for a specified shell.
-func Uninstall(shell string) error {
-	var cfg Config
-	var err error
-
-	switch shell {
-	case "fish":
-		cfg, err = getFishConfig()
-	case "bash":
-		cfg, err = getBashConfig()
-	case "zsh":
-		cfg, err = getZshConfig()
-	default:
-		return &ErrShellNotSupported{Shell: shell}
-	}
-	if err != nil {
-		return err
-	}
-
-	return uninstall(cfg)
-}
-
-type ErrAlreadyInstalled struct {
-	File string
-}
-
-func (e *ErrAlreadyInstalled) Error() string {
-	return fmt.Sprintf("the Granted alias has already been added to %s", e.File)
-}
-
-// install the Granted alias to a file.
-// Returns ErrAlreadyInstalled if the alias
-// already exists in the file.
-func install(cfg Config) error {
-	b, err := ioutil.ReadFile(cfg.File)
-	if err != nil {
-		return err
-	}
-
-	// return an error if the file already contains an
-	// alias we've set up, to avoid Granted adding
-	// an alias multiple times to a shell config file.
-	if strings.Contains(string(b), cfg.Alias) {
-		return &ErrAlreadyInstalled{File: cfg.File}
-	}
-
-	// open the file for writing
-	out, err := os.OpenFile(cfg.File, os.O_APPEND|os.O_WRONLY, 0644)
-	if err != nil {
-		return err
-	}
-	// include newlines around the alias
-	a := fmt.Sprintf("\n%s\n", cfg.Alias)
-	_, err = out.WriteString(a)
-	if err != nil {
-		return err
-	}
-
-	fmt.Fprintf(color.Error, "Added the Granted alias to %s\n", cfg.File)
-	return nil
-}
-
-type ErrNotInstalled struct {
-	File string
-}
-
-func (e *ErrNotInstalled) Error() string {
-	return fmt.Sprintf("the Granted alias hasn't been added to %s", e.File)
-}
-
-// uninstall the Granted alias to a file.
-// Returns ErrNotInstalled if the alias
-// doesn't exist in the file.
-func uninstall(cfg Config) error {
-	b, err := ioutil.ReadFile(cfg.File)
-	if err != nil {
-		return err
-	}
-
-	// the line number in the file where the alias was found
-	var aliasLineIndex int
-	var found bool
-
-	var ignored []string
-
-	lines := strings.Split(string(b), "\n")
-	for i, line := range lines {
-		removeLine := strings.Contains(line, cfg.Alias)
-
-		// When removing the line containing the alias, if the line after the alias is empty we
-		// remove that too. This prevents the length of the config file growing by 1 with blank lines
-		// every time the Granted alias is installed and uninstalled. Really only useful as a nice
-		// convenience for developing the Granted CLI, when we do a lot of installing/uninstalling the aliases.
-		if found && i == aliasLineIndex+1 && line == "" {
-			removeLine = true
-		}
-
-		if !removeLine {
-			ignored = append(ignored, line)
-		} else {
-			// mark that we've found the alias in the file
-			found = true
-			aliasLineIndex = i
-		}
-	}
-
-	if !found {
-		// we didn't find the alias in the file, so return an error in order to let the user know that it doesn't exist there.
+func Uninstall(cfg Config) error {
+	err := shells.RemoveLine(cfg.File, cfg.Alias)
+	var aee *shells.ErrLineAlreadyExists
+	if errors.As(err, &aee) {
 		return &ErrNotInstalled{File: cfg.File}
 	}
-
-	output := strings.Join(ignored, "\n")
-
-	err = ioutil.WriteFile(cfg.File, []byte(output), 0644)
-	if err != nil {
-		return err
-	}
-
-	fmt.Fprintf(color.Error, "Removed the Granted alias from %s\n", cfg.File)
-	return nil
+	return err
 }

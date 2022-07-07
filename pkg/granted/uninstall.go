@@ -27,7 +27,7 @@ var UninstallCommand = cli.Command{
 		}
 		if confirm {
 
-			_, err = alias.UninstallDefaultShellAlias()
+			err = alias.UninstallDefaultShellAlias()
 			if err != nil {
 				fmt.Fprintln(color.Error, err)
 			}
