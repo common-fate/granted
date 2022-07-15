@@ -40,51 +40,18 @@ type CFSharedConfigs map[string]*CFSharedConfig
 // Secondary requirement is to identify profiles which use a specific credential process like saml2aws
 func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, error) {
 
-	// fetch the parsed config file
-	configPath := config.DefaultSharedConfigFilename()
-	configFile, err := configparser.NewConfigParserFromFile(configPath)
+	profiles := make(map[string]*uninitCFSharedConfig)
+
+	// apply profiles from the default config file
+	err := addProfilesFromDefaultConfig(ctx, profiles)
 	if err != nil {
 		return nil, err
 	}
-
-	// .aws/config files are structured as follows,
-	//
-	// [profile cf-dev]
-	// sso_region=ap-southeast-2
-	// ...
-	// [profile cf-prod]
-	// sso_region=ap-southeast-2
-	// ...
-	profiles := make(map[string]*uninitCFSharedConfig)
-
-	// Itterate through the config sections
-	for _, section := range configFile.Sections() {
-		rawConfig, err := configFile.Items(section)
-		if err != nil {
-			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS config: %s Due to the following error: %s\n", section, err)
-			continue
-		}
-		// Check if the section is prefixed with 'profile ' and that the profile has a name
-		if (strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default" {
-			name := strings.TrimPrefix(section, "profile ")
-			illegalChars := "\\][;'\"" // These characters break the config file format and should not be usable for profile names
-			if strings.ContainsAny(name, illegalChars) {
-				fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains one or more of: '%s' in the name, try replacing these with '-'\n", name, illegalChars)
-				continue
-			} else {
-				cf, err := config.LoadSharedConfigProfile(ctx, name)
-
-				if err != nil {
-					fmt.Fprintf(color.Error, "failed to load a profile from your AWS config: %s Due to the following error: %s\n", name, err)
-					continue
-				} else {
-					profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
-				}
-			}
-
-		}
+	// apply profiles from default credentials file (which don't override anything from config)
+	err = addProfilesFromDefaultCredentials(ctx, profiles)
+	if err != nil {
+		return nil, err
 	}
-
 	// build parent trees and assert types
 	for _, profile := range profiles {
 		profile.init(profiles, 0)
@@ -101,6 +68,106 @@ func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, e
 		}
 	}
 	return initialisedProfiles, nil
+}
+
+func addProfilesFromDefaultConfig(ctx context.Context, profiles map[string]*uninitCFSharedConfig) error {
+	// fetch the parsed config file
+	configPath := config.DefaultSharedConfigFilename()
+	configFile, err := configparser.NewConfigParserFromFile(configPath)
+	if err != nil {
+		return err
+	}
+
+	// .aws/config files are structured as follows,
+	//
+	// [profile cf-dev]
+	// sso_region=ap-southeast-2
+	// ...
+	// [profile cf-prod]
+	// sso_region=ap-southeast-2
+	// ...
+
+	// Itterate through the config sections
+	for _, section := range configFile.Sections() {
+		rawConfig, err := configFile.Items(section)
+		if err != nil {
+			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS config: %s Due to the following error: %s\n", section, err)
+			continue
+		}
+		// Check if the section is prefixed with 'profile ' and that the profile has a name
+		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(section) {
+			name := strings.TrimPrefix(section, "profile ")
+			cf, err := config.LoadSharedConfigProfile(ctx, name)
+
+			if err != nil {
+				fmt.Fprintf(color.Error, "failed to load a profile from your AWS config: %s Due to the following error: %s\n", name, err)
+				continue
+			} else {
+				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
+			}
+		}
+	}
+	return nil
+}
+
+// Load profiles from the default credentials file
+// These will only be included where there is no overriding configuration from the default config file
+// modifies the supplied map rather than returning a new map
+func addProfilesFromDefaultCredentials(ctx context.Context, profiles map[string]*uninitCFSharedConfig) error {
+
+	//fetch parsed credentials file
+	credsPath := config.DefaultSharedCredentialsFilename()
+	credsFile, err := configparser.NewConfigParserFromFile(credsPath)
+	if err != nil {
+		return err
+	}
+
+	// .aws/configuration files are structured as follows,
+	//
+	// [cf-dev]
+	// aws_access_key_id = xxxxxx
+	// aws_secret_access_key = xxxxxx
+	// ...
+	// [cf-prod]
+	// aws_access_key_id = xxxxxx
+	// aws_secret_access_key = xxxxxx
+	// ...
+
+	for _, section := range credsFile.Sections() {
+		rawConfig, err := credsFile.Items(section)
+		if err != nil {
+			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS credentials: %s Due to the following error: %s\n", section, err)
+			continue
+		}
+		// We only care about the non default sections for the credentials file (no profile prefix either)
+		if section != "default" && isLegalProfileName(section) {
+			// check for a duplicate profile in the map and skip if present (config file should take precedence)
+			_, exists := profiles[section]
+			if exists {
+				debug.Fprintf(debug.VerbosityDebug, color.Output, "skipping profile with name %s - profile already defined in config", section)
+				continue
+			}
+			cf, err := config.LoadSharedConfigProfile(ctx, section)
+
+			if err != nil {
+				fmt.Fprintf(color.Error, "failed to load a profile from your AWS credentials: %s Due to the following error: %s\n", section, err)
+				continue
+			} else {
+				profiles[section] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: section, RawConfig: rawConfig}}
+			}
+		}
+	}
+	return nil
+}
+
+// Helper function which returns true if provided profile name string does not contain illegal characters
+func isLegalProfileName(name string) bool {
+	illegalChars := "\\][;'\"" // These characters break the config file format and should not be usable for profile names
+	if strings.ContainsAny(name, illegalChars) {
+		fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains one or more of: '%s' in the name, try replacing these with '-'\n", name, illegalChars)
+		return false
+	}
+	return true
 }
 
 // an interim type while the profiles are being initialised
