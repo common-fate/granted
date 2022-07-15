@@ -95,7 +95,7 @@ func addProfilesFromDefaultConfig(ctx context.Context, profiles map[string]*unin
 			continue
 		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
-		if (strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default" && isLegalProfileName(section) {
+		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(section) {
 			name := strings.TrimPrefix(section, "profile ")
 			cf, err := config.LoadSharedConfigProfile(ctx, name)
 
