@@ -111,6 +111,9 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context, configOpts ConfigOpts) (a
 					aro.TokenProvider = MfaTokenProvider
 				}
 				aro.Duration = configOpts.Duration
+				if p.AWSConfig.ExternalID != "" {
+					aro.ExternalID = &p.AWSConfig.ExternalID
+				}
 			})
 			stsCreds, err := stsp.Retrieve(ctx)
 			if err != nil {
