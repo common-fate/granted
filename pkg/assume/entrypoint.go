@@ -26,7 +26,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "unset", Aliases: []string{"un"}, Usage: "Unset all environment variables configured by Assume"},
 		&cli.BoolFlag{Name: "url", Aliases: []string{"u"}, Usage: "Get an active console session url"},
 		&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Console service to open"},
-		&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "Console region to open"},
+		&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "region to launch the console or export to the terminal"},
 		&cli.StringSliceFlag{Name: "pass-through", Aliases: []string{"pt"}, Usage: "Pass args to proxy assumer"},
 		&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
