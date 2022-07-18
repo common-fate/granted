@@ -8,6 +8,7 @@ package config
 import (
 	"os"
 	"path"
+	"runtime"
 	"time"
 
 	"github.com/BurntSushi/toml"
@@ -30,6 +31,20 @@ type KeyringConfig struct {
 	KeychainName            *string `toml:",omitempty"`
 	FileDir                 *string `toml:",omitempty"`
 	LibSecretCollectionName *string `toml:",omitempty"`
+}
+
+// NewDefaultConfig returns a config with OS specific defaults populated
+func NewDefaultConfig() Config {
+	// macos devices should default to the keychain backend
+	if runtime.GOOS == "darwin" {
+		keychain := "keychain"
+		return Config{
+			Keyring: &KeyringConfig{
+				Backend: &keychain,
+			},
+		}
+	}
+	return Config{}
 }
 
 // checks and or creates the config folder on startup
@@ -115,7 +130,7 @@ func Load() (*Config, error) {
 	}
 	defer file.Close()
 
-	c := Config{}
+	c := NewDefaultConfig()
 
 	_, err = toml.NewDecoder(file).Decode(&c)
 	if err != nil {
