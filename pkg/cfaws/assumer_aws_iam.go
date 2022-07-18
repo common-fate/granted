@@ -30,8 +30,10 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig,
 			if len(c.Parents) > 0 {
 				if c.Parents[0].AWSConfig.MFASerial != "" {
 					aro.SerialNumber = aws.String(c.Parents[0].AWSConfig.MFASerial)
+
 				}
 			}
+			aro.RoleSessionName = sessionName()
 		}),
 	}
 
@@ -98,14 +100,8 @@ func getFederationToken(ctx context.Context, c *CFSharedConfig) (aws.Credentials
 	}
 
 	client := sts.NewFromConfig(cfg)
-	name := "Granted@" + c.Name
 
-	//getfederationtoken fails if name is longer than 32 characters long
-	//truncating the name to 32 characters if its longer than 32
-	if len(name) > 32 {
-		name = name[0:32]
-	}
-	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String(name), Policy: aws.String(allowAllPolicy)})
+	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String(sessionName()), Policy: aws.String(allowAllPolicy)})
 
 	if err != nil {
 		return aws.Credentials{}, err
