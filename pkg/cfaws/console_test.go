@@ -1,8 +1,8 @@
-package browsers
+package cfaws
 
 import "testing"
 
-func Test_expandRegion(t *testing.T) {
+func TestExpandRegion(t *testing.T) {
 	type args struct {
 		region string
 	}
@@ -35,10 +35,11 @@ func Test_expandRegion(t *testing.T) {
 		{"a", args{"a"}, "", true},     // Right major, too short
 		{"ax", args{"ax"}, "", true},   // Right major, too short
 		{"aee", args{"aee"}, "", true}, // Right major & minor, trailing crap
+
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, err := expandRegion(tt.args.region)
+			got, err := ExpandRegion(tt.args.region)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("expandRegion() error = %v, wantErr %v", err, tt.wantErr)
 				return
