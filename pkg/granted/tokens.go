@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"runtime"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -95,7 +96,7 @@ var ClearTokensCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 
 		if c.Bool("all") {
-			err := credstore.ClearAll()
+			err := clearAllTokens()
 			if err != nil {
 				return err
 			}
@@ -139,11 +140,42 @@ var ClearTokensCommand = cli.Command{
 			}
 			selection = selectionsMap[out]
 		}
-		err = credstore.Clear(selection)
+
+		err = clearToken(selection)
 		if err != nil {
 			return err
 		}
 		fmt.Fprintf(os.Stderr, "Cleared %s", selection)
 		return nil
 	},
+}
+
+// clearAllTokens calls clearToken for each key in the keyring
+func clearAllTokens() error {
+	keys, err := credstore.ListKeys()
+	if err != nil {
+		return err
+	}
+	for _, k := range keys {
+		err = clearToken(k)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// clearToken has some specific behaviour for darwin systems
+func clearToken(key string) error {
+	// Specific to the mac keychain, the granted binary will not have access to delete the items set by the assume binary without the user granting access.
+	// So, first ask the user to allow access, then attempt to delete the item.
+	if runtime.GOOS == "darwin" {
+		fmt.Fprintf(os.Stderr, "If you are using the mac keychain, choose to 'Always Allow' when prompted to allow Granted access to the item.\nThis will allow the item to be deleted by this command.\n")
+		var t interface{}
+		err := credstore.Retrieve(key, &t)
+		if err != nil {
+			return err
+		}
+	}
+	return credstore.Clear(key)
 }

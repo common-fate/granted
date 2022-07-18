@@ -52,26 +52,6 @@ func Clear(key string) error {
 	return ring.Remove(key)
 }
 
-func ClearAll() error {
-
-	ring, err := openKeyring()
-	if err != nil {
-		return err
-	}
-	keys, err := ring.Keys()
-	if err != nil {
-		return err
-	}
-	for _, k := range keys {
-		err := ring.Remove(k)
-		if err != nil {
-			return err
-		}
-
-	}
-	return nil
-}
-
 func openKeyring() (keyring.Keyring, error) {
 	cfg, err := config.Load()
 	if err != nil {
