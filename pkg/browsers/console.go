@@ -25,7 +25,7 @@ var ServiceMap = map[string]string{
 	"":               "console",
 	"ec2":            "ec2/v2",
 	"sso":            "singlesignon",
- 	"ecs":            "ecs",
+	"ecs":            "ecs",
 	"eks":            "eks",
 	"athena":         "athena",
 	"cloudmap":       "cloudmap",
@@ -56,7 +56,7 @@ var ServiceMap = map[string]string{
 	"param":          "systems-manager/parameters",
 	"redshift":       "redshiftv2",
 	"sagemaker":      "sagemaker",
-	"ssm":            "systems-manager",	
+	"ssm":            "systems-manager",
 }
 
 var globalServiceMap = map[string]bool{
@@ -250,22 +250,22 @@ func GetPartitionFromRegion(region string) PartitionHost {
 	if partition[0] == "cn" {
 		return PartitionHost(Cn)
 	}
-	if partition[1] == "iso" {
-		return PartitionHost(ISO)
-	}
-	if partition[1] == "isob" {
-		return PartitionHost(ISOB)
-	}
-	if partition[1] == "gov" {
-		return PartitionHost(Gov)
+	if len(partition) > 1 {
+		if partition[1] == "iso" {
+			return PartitionHost(ISO)
+		}
+		if partition[1] == "isob" {
+			return PartitionHost(ISOB)
+		}
+		if partition[1] == "gov" {
+			return PartitionHost(Gov)
+		}
 	}
 	return PartitionHost(Default)
 }
 
 func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (string, error) {
-
 	sessJSON, err := json.Marshal(sess)
-
 	if err != nil {
 		return "", err
 	}
@@ -319,6 +319,30 @@ func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (str
 	u.RawQuery = q.Encode()
 	return u.String(), nil
 }
+func makeDestinationURL(service string, region string) (string, error) {
+
+	partition := GetPartitionFromRegion(region)
+	prefix := partition.ConsoleHostString()
+
+	serv := ServiceMap[service]
+	if serv == "" {
+		color.New(color.FgYellow).Fprintf(color.Error, "[warning] we don't recognize service %s but we'll try and open it anyway (you may receive a 404 page)", service)
+		serv = service
+	}
+
+	dest := prefix + serv + "/home"
+
+	//excluding region here if the service is apart of the global service list
+	//incomplete list of global services
+	_, global := globalServiceMap[service]
+	hasRegion := region != ""
+	if !global && hasRegion {
+		dest = dest + "?region=" + region
+
+	}
+
+	return dest, nil
+}
 
 func OpenUrlWithCustomBrowser(url string) error {
 
@@ -363,34 +387,6 @@ func LaunchConsoleSession(sess Session, opts BrowserOpts, service string, region
 	default:
 		return browser.OpenURL(url)
 	}
-}
-
-func makeDestinationURL(service string, region string) (string, error) {
-
-	if region == "" {
-		region = "us-east-1"
-	}
-	partition := GetPartitionFromRegion(region)
-	prefix := partition.ConsoleHostString()
-
-	serv := ServiceMap[service]
-	if serv == "" {
-		color.New(color.FgYellow).Fprintf(color.Error, "[warning] we don't recognize service %s but we'll try and open it anyway (you may receive a 404 page)", service)
-		serv = service
-	}
-
-	dest := prefix + serv + "/home"
-
-	//excluding region here if the service is apart of the global service list
-	//incomplete list of global services
-	_, global := globalServiceMap[service]
-	hasRegion := region != ""
-	if !global && hasRegion {
-		dest = dest + "?region=" + region
-
-	}
-
-	return dest, nil
 }
 
 func PromoteUseFlags(labels BrowserOpts) {

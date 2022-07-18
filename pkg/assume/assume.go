@@ -115,9 +115,20 @@ func AssumeCommand(c *cli.Context) error {
 	// ensure that frecency has finished updating before returning from this function
 	defer wg.Wait()
 
-	region, _, err := profile.Region(c.Context)
-	if err != nil {
-		return err
+	var region string
+	// The region flag may be supplied in shorthand form, first check if the flag is set and expand the region
+	// else use the profile region
+	if assumeFlags.String("region") != "" {
+		regionFlag := assumeFlags.String("region")
+		region, err = cfaws.ExpandRegion(regionFlag)
+		if err != nil {
+			return fmt.Errorf("couldn't parse region %s: %v", region, err)
+		}
+	} else {
+		region, _, err = profile.Region(c.Context)
+		if err != nil {
+			return err
+		}
 	}
 
 	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
@@ -146,9 +157,6 @@ func AssumeCommand(c *cli.Context) error {
 
 		browserOpts := browsers.BrowserOpts{Profile: profile.Name}
 		service := assumeFlags.String("service")
-		if assumeFlags.String("region") != "" {
-			region = assumeFlags.String("region")
-		}
 
 		browserOpts.Region = region
 		browserOpts.Service = service
