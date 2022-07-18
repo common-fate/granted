@@ -6,11 +6,18 @@ import (
 	"strings"
 )
 
+const DefaultRegion = "us-east-1"
+
+// ExpandRegion takes a string and attemps to expand it into a fully formed region e.g ue1 -> us-east-1
+//
+// If region is an empty string, the DefaultRegion is returned
+//
+// ExpandRegion does not attempt to fully validate regions and may produce regions which do not exist, for example as2 -> ap-south-2 which is not a valid region
 func ExpandRegion(region string) (string, error) {
 	// Region could come in one of three formats:
 	// 1. No region specified
 	if region == "" {
-		return "us-east-1", nil
+		return DefaultRegion, nil
 	}
 	// 2. A fully-qualified region. Assume that if there's one dash, it's valid.
 	if strings.Contains(region, "-") {

@@ -26,6 +26,8 @@ func TestExpandRegion(t *testing.T) {
 		{"se1", args{"se1"}, "sa-east-1", false},
 		{"uge1", args{"uge1"}, "us-gov-east-1", false},
 		{"cnn1", args{"cnn1"}, "cn-north-1", false},
+		{"as1", args{"as1"}, "ap-south-1", false},
+		{"ase1", args{"ase1"}, "ap-southeast-1", false},
 
 		// Special cases
 		{"mes1", args{"mes1"}, "me-south-1", false},

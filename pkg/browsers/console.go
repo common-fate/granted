@@ -265,9 +265,6 @@ func GetPartitionFromRegion(region string) PartitionHost {
 }
 
 func MakeUrl(sess Session, opts BrowserOpts, service string, region string) (string, error) {
-	if region == "" {
-		region = "us-east-1"
-	}
 	sessJSON, err := json.Marshal(sess)
 	if err != nil {
 		return "", err
