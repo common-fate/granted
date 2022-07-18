@@ -20,7 +20,7 @@ type AwsAzureLoginAssumer struct {
 //https://github.com/sportradar/aws-azure-login
 
 // then fetch them from the environment for use
-func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	//check to see if the creds are already exported
 	creds, err := GetCredentialsCreds(ctx, c)
 
@@ -51,7 +51,7 @@ func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 	return aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
 }
 
-func (aal *AwsAzureLoginAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (aal *AwsAzureLoginAssumer) AssumeConsole(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	return aal.AssumeTerminal(ctx, c, configOpts)
 }
 

@@ -62,24 +62,25 @@ func MapTokens(ctx context.Context) (map[string][]string, error) {
 		return nil, err
 	}
 
-	conf, err := cfaws.GetProfilesFromDefaultSharedConfig(ctx)
+	profiles, err := cfaws.LoadProfiles()
 	if err != nil {
 		return nil, err
 	}
+	profiles.InitialiseProfilesTree(ctx)
 	startUrlMap := make(map[string][]string)
 	for _, k := range keys {
 		startUrlMap[k] = []string{}
 	}
 	a := &cfaws.AwsSsoAssumer{}
-	for _, c := range conf {
-		if c.ProfileType == a.Type() {
-			ssoUrl := c.AWSConfig.SSOStartURL
-			if len(c.Parents) != 0 {
-				ssoUrl = c.Parents[0].AWSConfig.SSOStartURL
+	for _, name := range profiles.ProfileNames {
+		if p, _ := profiles.Profile(name); p.ProfileType == a.Type() {
+			ssoUrl := p.AWSConfig.SSOStartURL
+			if len(p.Parents) != 0 {
+				ssoUrl = p.Parents[0].AWSConfig.SSOStartURL
 			}
 			// Don't add any profiles which are not in the keyring already
 			if _, ok := startUrlMap[ssoUrl]; ok {
-				startUrlMap[ssoUrl] = append(startUrlMap[ssoUrl], c.Name)
+				startUrlMap[ssoUrl] = append(startUrlMap[ssoUrl], p.Name)
 			}
 		}
 	}

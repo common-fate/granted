@@ -32,7 +32,7 @@ func GetEnvCredentials(ctx context.Context) aws.Credentials {
 	return aws.Credentials{AccessKeyID: os.Getenv("AWS_ACCESS_KEY_ID"), SecretAccessKey: os.Getenv("AWS_SECRET_ACCESS_KEY"), SessionToken: os.Getenv("AWS_SESSION_TOKEN")}
 }
 
-func GetCredentialsCreds(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+func GetCredentialsCreds(ctx context.Context, c *Profile) (aws.Credentials, error) {
 	//check to see if the creds are already exported
 	creds, _ := aws.NewCredentialsCache(&CredProv{Credentials: c.AWSConfig.Credentials}).Retrieve(ctx)
 

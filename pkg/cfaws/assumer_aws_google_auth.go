@@ -19,7 +19,7 @@ type AwsGoogleAuthAssumer struct {
 
 // launch the aws-google-auth utility to generate the credentials
 // then fetch them from the environment for use
-func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", c.Name))
 
 	cmd.Stdout = color.Error
@@ -36,7 +36,7 @@ func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *CFShared
 	return creds, nil
 }
 
-func (aia *AwsGoogleAuthAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (aia *AwsGoogleAuthAssumer) AssumeConsole(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	return aia.AssumeTerminal(ctx, c, configOpts)
 }
 

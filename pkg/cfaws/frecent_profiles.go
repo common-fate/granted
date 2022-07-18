@@ -1,8 +1,6 @@
 package cfaws
 
 import (
-	"sort"
-
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/frecency"
 	"github.com/fatih/color"
@@ -48,14 +46,9 @@ func UpdateFrecencyCache(selectedProfile string) {
 
 // loads the frecency cache and generates a list of profiles with frecently used profiles first, followed by alphabetically sorted profiles that have not been used with assume
 // this method returns a FrecentProfiles pointer which should be used after selecting a profile to update the cache, it will also remove any entries which no longer exist in the aws config
-func (c CFSharedConfigs) GetFrecentProfiles() (*FrecentProfiles, []string) {
+func (p *Profiles) GetFrecentProfiles() (*FrecentProfiles, []string) {
 	names := []string{}
 	namesMap := make(map[string]string)
-	profileNames := c.ProfileNamesSorted()
-	pnMap := make(map[string]string)
-	for _, pn := range profileNames {
-		pnMap[pn] = pn
-	}
 	fr, err := frecency.Load(frecencyStoreKey)
 	if err != nil {
 		debug.Fprintf(debug.VerbosityDebug, color.Error, errors.Wrap(err, "loading aws_profiles_frecency frecency store").Error())
@@ -65,7 +58,7 @@ func (c CFSharedConfigs) GetFrecentProfiles() (*FrecentProfiles, []string) {
 	// add all frecent profile names in order if they are still present in the profileNames slice
 	for _, entry := range fr.Entries {
 		e := entry.Entry.(string)
-		if _, ok := pnMap[e]; ok {
+		if p.HasProfile(e) {
 			names = append(names, e)
 			namesMap[e] = e
 		} else {
@@ -74,15 +67,11 @@ func (c CFSharedConfigs) GetFrecentProfiles() (*FrecentProfiles, []string) {
 	}
 
 	// add all other entries from profileNames, sort them alphabetically first
-	namesToSort := []string{}
-	for _, n := range profileNames {
+	for _, n := range p.ProfileNames {
 		if _, ok := namesMap[n]; !ok {
-			namesToSort = append(namesToSort, n)
+			names = append(names, n)
 		}
 	}
-	sort.Strings(namesToSort)
-	names = append(names, namesToSort...)
-
 	frPr := &FrecentProfiles{store: fr, toRemove: namesToRemoveFromFrecency}
 
 	return frPr, names

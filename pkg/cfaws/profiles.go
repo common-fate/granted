@@ -2,6 +2,7 @@ package cfaws
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sort"
 	"strings"
@@ -19,73 +20,72 @@ type ConfigOpts struct {
 	Args     []string
 }
 
-type CFSharedConfig struct {
-	// Opts browsers.BrowserOpts
+type Profile struct {
 	// allows access to the raw values from the file
-	RawConfig   configparser.Dict
-	Name        string
+	RawConfig configparser.Dict
+	Name      string
+	// the file that this profile is from
+	File        string
 	ProfileType string
+
 	// ordered from root to direct parent profile
-	Parents []*CFSharedConfig
+	Parents []*Profile
 	// the original config, some values may be empty strings depending on the type or profile
-	AWSConfig config.SharedConfig
+	AWSConfig    config.SharedConfig
+	Initialised  bool
+	LoadingError error
 }
-type CFSharedConfigs map[string]*CFSharedConfig
 
-// GetProfilesFromDefaultSharedConfig returns initialised profiles
-// these profiles state their type and parents
-// The main reason we need to use a config parsing library here is to list the names of all the profiles.
-// The aws SDK does not provide a method to list all profiles
+var ErrProfileNotInitialised error = errors.New("profile not initialised")
+
+var ErrProfileNotFound error = errors.New("profile not found")
+
+type Profiles struct {
+	// alphabetically sorted after first load
+	ProfileNames []string
+	profiles     map[string]*Profile
+}
+
+func (p *Profiles) HasProfile(profile string) bool {
+	_, ok := p.profiles[profile]
+	return ok
+}
+
+func (p *Profiles) Profile(profile string) (*Profile, error) {
+	if c, ok := p.profiles[profile]; ok {
+		return c, nil
+	}
+	return nil, ErrProfileNotFound
+}
+
+func LoadProfiles() (*Profiles, error) {
+	p := Profiles{profiles: make(map[string]*Profile)}
+	err := p.loadDefaultConfigFile()
+	if err != nil {
+		return nil, err
+	}
+	err = p.loadDefaultCredentialsFile()
+	if err != nil {
+		return nil, err
+	}
+	sort.Strings(p.ProfileNames)
+	return &p, nil
+}
+
+// .aws/config files are structured as follows,
 //
-// Secondary requirement is to identify profiles which use a specific credential process like saml2aws
-func GetProfilesFromDefaultSharedConfig(ctx context.Context) (CFSharedConfigs, error) {
-
-	profiles := make(map[string]*uninitCFSharedConfig)
-
-	// apply profiles from the default config file
-	err := addProfilesFromDefaultConfig(ctx, profiles)
-	if err != nil {
-		return nil, err
-	}
-	// apply profiles from default credentials file (which don't override anything from config)
-	err = addProfilesFromDefaultCredentials(ctx, profiles)
-	if err != nil {
-		return nil, err
-	}
-	// build parent trees and assert types
-	for _, profile := range profiles {
-		profile.init(profiles, 0)
-	}
-
-	initialisedProfiles := make(map[string]*CFSharedConfig)
-	for k, profile := range profiles {
-		// if the profile type is not set, it means there was an error with a source profile
-		// We exclude it from the profile list so it cannot be assumed
-		if profile.ProfileType != "" {
-			initialisedProfiles[k] = profile.CFSharedConfig
-		} else {
-			debug.Fprintf(debug.VerbosityDebug, color.Error, "failed to identify profile type for profile: %s", k)
-		}
-	}
-	return initialisedProfiles, nil
-}
-
-func addProfilesFromDefaultConfig(ctx context.Context, profiles map[string]*uninitCFSharedConfig) error {
-	// fetch the parsed config file
+// [profile cf-dev]
+// sso_region=ap-southeast-2
+// ...
+// [profile cf-prod]
+// sso_region=ap-southeast-2
+// ...
+func (p *Profiles) loadDefaultConfigFile() error {
 	configPath := config.DefaultSharedConfigFilename()
 	configFile, err := configparser.NewConfigParserFromFile(configPath)
 	if err != nil {
 		return err
 	}
-
-	// .aws/config files are structured as follows,
-	//
-	// [profile cf-dev]
-	// sso_region=ap-southeast-2
-	// ...
-	// [profile cf-prod]
-	// sso_region=ap-southeast-2
-	// ...
 
 	// Itterate through the config sections
 	for _, section := range configFile.Sections() {
@@ -97,41 +97,30 @@ func addProfilesFromDefaultConfig(ctx context.Context, profiles map[string]*unin
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
 		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(section) {
 			name := strings.TrimPrefix(section, "profile ")
-			cf, err := config.LoadSharedConfigProfile(ctx, name)
-
-			if err != nil {
-				fmt.Fprintf(color.Error, "failed to load a profile from your AWS config: %s Due to the following error: %s\n", name, err)
-				continue
-			} else {
-				profiles[name] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: name, RawConfig: rawConfig}}
-			}
+			p.ProfileNames = append(p.ProfileNames, name)
+			p.profiles[name] = &Profile{RawConfig: rawConfig, Name: name, File: configPath}
 		}
 	}
 	return nil
 }
 
-// Load profiles from the default credentials file
-// These will only be included where there is no overriding configuration from the default config file
-// modifies the supplied map rather than returning a new map
-func addProfilesFromDefaultCredentials(ctx context.Context, profiles map[string]*uninitCFSharedConfig) error {
-
+// .aws/configuration files are structured as follows,
+//
+// [cf-dev]
+// aws_access_key_id = xxxxxx
+// aws_secret_access_key = xxxxxx
+// ...
+// [cf-prod]
+// aws_access_key_id = xxxxxx
+// aws_secret_access_key = xxxxxx
+// ...
+func (p *Profiles) loadDefaultCredentialsFile() error {
 	//fetch parsed credentials file
 	credsPath := config.DefaultSharedCredentialsFilename()
 	credsFile, err := configparser.NewConfigParserFromFile(credsPath)
 	if err != nil {
 		return err
 	}
-
-	// .aws/configuration files are structured as follows,
-	//
-	// [cf-dev]
-	// aws_access_key_id = xxxxxx
-	// aws_secret_access_key = xxxxxx
-	// ...
-	// [cf-prod]
-	// aws_access_key_id = xxxxxx
-	// aws_secret_access_key = xxxxxx
-	// ...
 
 	for _, section := range credsFile.Sections() {
 		rawConfig, err := credsFile.Items(section)
@@ -142,19 +131,13 @@ func addProfilesFromDefaultCredentials(ctx context.Context, profiles map[string]
 		// We only care about the non default sections for the credentials file (no profile prefix either)
 		if section != "default" && isLegalProfileName(section) {
 			// check for a duplicate profile in the map and skip if present (config file should take precedence)
-			_, exists := profiles[section]
+			_, exists := p.profiles[section]
 			if exists {
 				debug.Fprintf(debug.VerbosityDebug, color.Output, "skipping profile with name %s - profile already defined in config", section)
 				continue
 			}
-			cf, err := config.LoadSharedConfigProfile(ctx, section)
-
-			if err != nil {
-				fmt.Fprintf(color.Error, "failed to load a profile from your AWS credentials: %s Due to the following error: %s\n", section, err)
-				continue
-			} else {
-				profiles[section] = &uninitCFSharedConfig{initialised: false, CFSharedConfig: &CFSharedConfig{AWSConfig: cf, Name: section, RawConfig: rawConfig}}
-			}
+			p.ProfileNames = append(p.ProfileNames, section)
+			p.profiles[section] = &Profile{RawConfig: rawConfig, Name: section, File: credsPath}
 		}
 	}
 	return nil
@@ -170,77 +153,103 @@ func isLegalProfileName(name string) bool {
 	return true
 }
 
-// an interim type while the profiles are being initialised
-type uninitCFSharedConfig struct {
-	*CFSharedConfig
-	initialised bool
+// InitialiseProfilesTree will initialise all profiles
+// this means that the profile prarent relations are walked and the profile type is determined
+// use this if you need to know the type of every profile in the config
+// for large configuations, this may be expensive
+func (p *Profiles) InitialiseProfilesTree(ctx context.Context) {
+	for _, v := range p.profiles {
+		_ = v.init(ctx, p, 0)
+	}
 }
 
-func (c *uninitCFSharedConfig) init(profiles map[string]*uninitCFSharedConfig, depth int) {
-	if !c.initialised {
+// LoadInitialisedProfile returns an initialised profile by name
+// this means that all the parents have been loaded and the profile type is defined
+func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (*Profile, error) {
+	pr, err := p.Profile(profile)
+	if err != nil {
+		return nil, err
+	}
+	err = pr.init(ctx, p, 0)
+	if err != nil {
+		return nil, err
+	}
+	return pr, nil
+}
+func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error {
+	if !p.Initialised {
 		// Ensures this recursive call does not exceed a maximum depth
 		// potentially triggered by bad config files with cycles in source_profile
 		// In simple cases this seems to be picked up by the AWS sdk before the profiles are initialised which would log a debug message instead
+		p.Initialised = true
+		cfg, err := config.LoadSharedConfigProfile(ctx, p.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{p.File} })
+		if err != nil {
+			return err
+		}
+		p.AWSConfig = cfg
 		if depth < 10 {
-			if c.AWSConfig.SourceProfileName == "" {
+			if p.AWSConfig.SourceProfileName == "" {
 				as := assumers
 				for _, a := range as {
-					if a.ProfileMatchesType(c.RawConfig, c.AWSConfig) {
-						c.ProfileType = a.Type()
+					if a.ProfileMatchesType(p.RawConfig, p.AWSConfig) {
+						p.ProfileType = a.Type()
 						break
 					}
 				}
 			} else {
-				sourceProfile, ok := profiles[c.AWSConfig.SourceProfileName]
+				sourceProfile, ok := profiles.profiles[p.AWSConfig.SourceProfileName]
 				if ok {
-					sourceProfile.init(profiles, depth+1)
-					c.ProfileType = sourceProfile.ProfileType
-					c.Parents = append(sourceProfile.Parents, sourceProfile.CFSharedConfig)
+					p.LoadingError = sourceProfile.init(ctx, profiles, depth+1)
+					if p.LoadingError != nil {
+						return p.LoadingError
+					}
+					p.ProfileType = sourceProfile.ProfileType
+					p.Parents = append(sourceProfile.Parents, sourceProfile)
 				} else {
-					fmt.Fprintf(color.Error, "failed to load a source-profile for profile: %s . You should fix the issue with the source profile before you can assume this profile.", c.Name)
+					p.LoadingError = fmt.Errorf("failed to load a source-profile for profile: %s . You should fix the issue with the source profile before you can assume this profile.", p.Name)
+					return p.LoadingError
 				}
-
 			}
 		} else {
-			fmt.Fprintf(color.Error, "maximum source profile depth exceeded for profile %s\nthis indicates that you have a cyclic reference in your aws profiles.[profile dev]\nregion = ap-southeast-2\nsource_profile = prod\n\n[profile prod]\nregion = ap-southeast-2\nsource_profile = dev", c.Name)
+			p.LoadingError = fmt.Errorf("maximum source profile depth exceeded for profile %s\nthis indicates that you have a cyclic reference in your aws profiles.[profile dev]\nregion = ap-southeast-2\nsource_profile = prod\n\n[profile prod]\nregion = ap-southeast-2\nsource_profile = dev", p.Name)
+			return p.LoadingError
 		}
-		c.initialised = true
 	}
+	return nil
 }
 
-// Region will attempt to load the reason on this profile, if it is not set, attempts to load the default config
+// Region will attempt to load the reason on this profile, if it is not set,
+// attempt to load the parent if it exists
+// else attempts to load the default config
 // returns a region, and bool = true if the default region was used
-func (c CFSharedConfig) Region(ctx context.Context) (string, bool, error) {
+func (p *Profile) Region(ctx context.Context) (string, error) {
+	if !p.Initialised {
+		return "", ErrProfileNotInitialised
+	}
+
+	if p.AWSConfig.Region != "" {
+		return p.AWSConfig.Region, nil
+	}
+	if len(p.Parents) > 0 {
+		// return the region of the direct parent
+		return p.Parents[len(p.Parents)-1].Region(ctx)
+	}
+	// if no region set, and no parent, return the default region
 	defaultCfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
-		return "", false, err
+		return "", err
 	}
 	region := defaultCfg.Region
-	if c.AWSConfig.Region != "" {
-		return c.AWSConfig.Region, false, nil
-	}
 	if region == "" {
-		return "", false, fmt.Errorf("region not set on profile %s, could not load a default AWS_REGION. Either set a default region `aws configure set default.region us-west-2` or add a region to your profile", c.Name)
+		return "", fmt.Errorf("region not set on profile %s, could not load a default AWS_REGION. Either set a default region `aws configure set default.region us-west-2` or add a region to your profile", p.Name)
 	}
-	return region, true, nil
-}
-func (c CFSharedConfigs) ProfileNames() []string {
-	names := []string{}
-	for k := range c {
-		names = append(names, k)
-	}
-	return names
-}
-func (c CFSharedConfigs) ProfileNamesSorted() []string {
-	names := c.ProfileNames()
-	sort.Strings(names)
-	return names
+	return region, nil
 }
 
-func (c *CFSharedConfig) AssumeConsole(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
+func (c *Profile) AssumeConsole(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
 	return AssumerFromType(c.ProfileType).AssumeConsole(ctx, c, configOpts)
 }
 
-func (c *CFSharedConfig) AssumeTerminal(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
+func (c *Profile) AssumeTerminal(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
 	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c, configOpts)
 }

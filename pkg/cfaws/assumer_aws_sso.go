@@ -26,11 +26,11 @@ import (
 type AwsSsoAssumer struct {
 }
 
-func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (asa *AwsSsoAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	return c.SSOLogin(ctx, configOpts)
 }
 
-func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (asa *AwsSsoAssumer) AssumeConsole(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	return c.SSOLogin(ctx, configOpts)
 }
 
@@ -43,7 +43,7 @@ func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile configparser.Dict, parse
 	return parsedProfile.SSOAccountID != ""
 }
 
-func (c *CFSharedConfig) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
+func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
 
 	rootProfile := c
 	requiresAssuming := false
@@ -91,10 +91,10 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context, configOpts ConfigOpts) (a
 	if requiresAssuming {
 
 		// return creds, nil
-		toAssume := append([]*CFSharedConfig{}, c.Parents[1:]...)
+		toAssume := append([]*Profile{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
 		for i, p := range toAssume {
-			region, _, err := c.Region(ctx)
+			region, err := c.Region(ctx)
 			if err != nil {
 				return aws.Credentials{}, err
 			}
@@ -134,7 +134,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context, configOpts ConfigOpts) (a
 }
 
 // SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token
-func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *CFSharedConfig) (*SSOToken, error) {
+func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile) (*SSOToken, error) {
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
 	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
