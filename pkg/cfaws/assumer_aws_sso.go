@@ -102,7 +102,7 @@ func (c *CFSharedConfig) SSOLogin(ctx context.Context, configOpts ConfigOpts) (a
 			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: region})
 			stsp := stscreds.NewAssumeRoleProvider(stsClient, p.AWSConfig.RoleARN, func(aro *stscreds.AssumeRoleOptions) {
 				// all configuration goes in here for this profile
-				aro.RoleSessionName = "Granted-" + c.Name
+				aro.RoleSessionName = sessionName()
 				if p.AWSConfig.MFASerial != "" {
 					aro.SerialNumber = &p.AWSConfig.MFASerial
 					aro.TokenProvider = MfaTokenProvider

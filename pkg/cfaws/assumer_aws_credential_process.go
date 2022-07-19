@@ -42,7 +42,7 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 				return aws.Credentials{}, err
 			}
 			stsp := stscreds.NewAssumeRoleProvider(sts.New(sts.Options{Credentials: aws.NewCredentialsCache(&CredProv{creds}), Region: region}), p.AWSConfig.RoleARN, func(aro *stscreds.AssumeRoleOptions) {
-				aro.RoleSessionName = "Granted-" + c.Name
+				aro.RoleSessionName = sessionName()
 				if p.AWSConfig.MFASerial != "" {
 					aro.SerialNumber = &p.AWSConfig.MFASerial
 					aro.TokenProvider = MfaTokenProvider
@@ -62,7 +62,7 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 			return aws.Credentials{}, err
 		}
 		stsp := stscreds.NewAssumeRoleProvider(sts.New(sts.Options{Credentials: aws.NewCredentialsCache(&CredProv{creds}), Region: region}), c.AWSConfig.RoleARN, func(aro *stscreds.AssumeRoleOptions) {
-			aro.RoleSessionName = "Granted-" + c.Name
+			aro.RoleSessionName = sessionName()
 			if c.AWSConfig.MFASerial != "" {
 				aro.SerialNumber = &c.AWSConfig.MFASerial
 				aro.TokenProvider = MfaTokenProvider
