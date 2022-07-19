@@ -24,7 +24,6 @@ import (
 func AssumeCommand(c *cli.Context) error {
 	// this custom behavious allows flags to be passed on either side of the role arg
 	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
-	t := time.Now()
 	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
 		return err
@@ -81,7 +80,6 @@ func AssumeCommand(c *cli.Context) error {
 		if cfg.Ordering == "Alphabetical" {
 			profileNames = profiles.ProfileNames
 		}
-		fmt.Fprintln(color.Error, time.Since(t))
 		fmt.Fprintln(color.Error, "")
 		// Replicate the logic from original assume fn.
 		in := survey.Select{
