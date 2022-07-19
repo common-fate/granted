@@ -33,84 +33,94 @@ func AssumeCommand(c *cli.Context) error {
 	if assumeFlags.String("exec") != "" && runtime.GOOS == "windows" {
 		return fmt.Errorf("--exec flag is not currently supported on Windows. Let us know if you'd like support for this: https://github.com/common-fate/granted/issues/new")
 	}
-	var wg sync.WaitGroup
-	activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
-	activeRoleFlag := assumeFlags.Bool("active-role")
 
-	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	profiles, err := cfaws.LoadProfiles()
-	if err != nil {
-		return err
-	}
-
-	profileName := c.Args().First()
-	if profileName != "" {
-		if !profiles.HasProfile(profileName) {
-			fmt.Fprintf(color.Error, "%s does not match any profiles in your AWS config or credentials files\n", profileName)
-			profileName = ""
+	var profile *cfaws.Profile
+	if c.Bool("sso") {
+		profile, err = SSOProfileFromFlags(c)
+		if err != nil {
+			return err
 		}
-	}
+	} else {
 
-	//set the sesh creds using the active role if we have one and the flag is set
-	if activeRoleFlag && activeRoleProfile != "" {
-		if !profiles.HasProfile(activeRoleProfile) {
-			fmt.Fprintf(color.Error, "you tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files\n", activeRoleProfile)
-		} else {
-			profileName = activeRoleProfile
-			fmt.Fprintf(color.Error, "using active profile: %s\n", profileName)
-		}
-	}
-	if profileName != "" {
-		// background task to update the frecency cache
-		wg.Add(1)
-		go func() {
-			cfaws.UpdateFrecencyCache(profileName)
-			wg.Done()
-		}()
-	}
+		var wg sync.WaitGroup
+		activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
+		activeRoleFlag := assumeFlags.Bool("active-role")
 
-	// if profile is still "" here, then prompt to select a profile
-	if profileName == "" {
-		//load config to check frecency enabled
-		cfg, err := config.Load()
+		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
 		}
 
-		fr, profileNames := profiles.GetFrecentProfiles()
-		if cfg.Ordering == "Alphabetical" {
-			profileNames = profiles.ProfileNames
+		profileName := c.Args().First()
+		if profileName != "" {
+			if !profiles.HasProfile(profileName) {
+				fmt.Fprintf(color.Error, "%s does not match any profiles in your AWS config or credentials files\n", profileName)
+				profileName = ""
+			}
 		}
-		fmt.Fprintln(color.Error, time.Since(t))
-		fmt.Fprintln(color.Error, "")
-		// Replicate the logic from original assume fn.
-		in := survey.Select{
-			Message: "Please select the profile you would like to assume:",
-			Options: profileNames,
+
+		//set the sesh creds using the active role if we have one and the flag is set
+		if activeRoleFlag && activeRoleProfile != "" {
+			if !profiles.HasProfile(activeRoleProfile) {
+				fmt.Fprintf(color.Error, "you tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files\n", activeRoleProfile)
+			} else {
+				profileName = activeRoleProfile
+				fmt.Fprintf(color.Error, "using active profile: %s\n", profileName)
+			}
 		}
-		if len(profileNames) == 0 {
-			fmt.Fprintln(color.Error, "ℹ️ Granted couldn't find any aws roles")
-			fmt.Fprintln(color.Error, "You can add roles to your aws config by following our guide: ")
-			fmt.Fprintln(color.Error, "https://granted.dev/awsconfig")
-			return nil
+		if profileName != "" {
+			// background task to update the frecency cache
+			wg.Add(1)
+			go func() {
+				cfaws.UpdateFrecencyCache(profileName)
+				wg.Done()
+			}()
 		}
-		err = testable.AskOne(&in, &profileName, withStdio)
+
+		// if profile is still "" here, then prompt to select a profile
+		if profileName == "" {
+			//load config to check frecency enabled
+			cfg, err := config.Load()
+			if err != nil {
+				return err
+			}
+
+			fr, profileNames := profiles.GetFrecentProfiles()
+			if cfg.Ordering == "Alphabetical" {
+				profileNames = profiles.ProfileNames
+			}
+			fmt.Fprintln(color.Error, time.Since(t))
+			fmt.Fprintln(color.Error, "")
+			// Replicate the logic from original assume fn.
+			in := survey.Select{
+				Message: "Please select the profile you would like to assume:",
+				Options: profileNames,
+			}
+			if len(profileNames) == 0 {
+				fmt.Fprintln(color.Error, "ℹ️ Granted couldn't find any aws roles")
+				fmt.Fprintln(color.Error, "You can add roles to your aws config by following our guide: ")
+				fmt.Fprintln(color.Error, "https://granted.dev/awsconfig")
+				return nil
+			}
+			err = testable.AskOne(&in, &profileName, withStdio)
+			if err != nil {
+				return err
+			}
+			// background task to update the frecency cache
+			wg.Add(1)
+			go func() {
+				fr.Update(profileName)
+				wg.Done()
+			}()
+		}
+		// ensure that frecency has finished updating before returning from this function
+		defer wg.Wait()
+		//finally, load the profile and initialise it, this builds the parent tree structure
+		profile, err = profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
 			return err
 		}
-		// background task to update the frecency cache
-		wg.Add(1)
-		go func() {
-			fr.Update(profileName)
-			wg.Done()
-		}()
-	}
-	// ensure that frecency has finished updating before returning from this function
-	defer wg.Wait()
-	//finally, load the profile and initialise it, this builds the parent tree structure
-	profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
-	if err != nil {
-		return err
 	}
 
 	var region string
