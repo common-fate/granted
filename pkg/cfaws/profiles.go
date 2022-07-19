@@ -220,6 +220,7 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 
 // Region will attempt to load the reason on this profile, if it is not set,
 // attempt to load the parent if it exists
+// else attempts to use the sso-region
 // else attempts to load the default config
 // returns a region, and bool = true if the default region was used
 func (p *Profile) Region(ctx context.Context) (string, error) {
@@ -234,7 +235,10 @@ func (p *Profile) Region(ctx context.Context) (string, error) {
 		// return the region of the direct parent
 		return p.Parents[len(p.Parents)-1].Region(ctx)
 	}
-	// if no region set, and no parent, return the default region
+	if p.AWSConfig.SSORegion != "" {
+		return p.AWSConfig.SSORegion, nil
+	}
+	// if no region set, and no parent, and no sso region return the default region
 	defaultCfg, err := config.LoadDefaultConfig(ctx)
 	if err != nil {
 		return "", err

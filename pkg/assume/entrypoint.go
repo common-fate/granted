@@ -35,6 +35,11 @@ func GlobalFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "auto-configure-shell", Usage: "Configure shell alias without prompts"},
 		&cli.StringFlag{Name: "exec", Usage: "assume a profile then execute this command"},
 		&cli.StringFlag{Name: "duration", Aliases: []string{"d"}, Usage: "Set session duration for your assumed role"},
+		&cli.BoolFlag{Name: "sso", Usage: "Assume an account and role with provided sso flags"},
+		&cli.StringFlag{Name: "sso-start-url", Usage: "assume a profile then execute this command"},
+		&cli.StringFlag{Name: "sso-region", Usage: "assume a profile then execute this command"},
+		&cli.StringFlag{Name: "account-id", Usage: "assume a profile then execute this command"},
+		&cli.StringFlag{Name: "role-name", Usage: "assume a profile then execute this command"},
 	}
 }
 
@@ -65,6 +70,10 @@ func GetCliApp() *cli.App {
 			}
 			if c.Bool("verbose") {
 				debug.CliVerbosity = debug.VerbosityDebug
+			}
+			err := ValidateSSOFlags(c)
+			if err != nil {
+				return err
 			}
 
 			if err := config.SetupConfigFolder(); err != nil {
