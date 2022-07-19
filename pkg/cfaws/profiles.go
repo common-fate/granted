@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
 	"sort"
 	"strings"
 	"time"
@@ -84,6 +85,9 @@ func (p *Profiles) loadDefaultConfigFile() error {
 	configPath := config.DefaultSharedConfigFilename()
 	configFile, err := configparser.NewConfigParserFromFile(configPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 
@@ -119,6 +123,9 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 	credsPath := config.DefaultSharedCredentialsFilename()
 	credsFile, err := configparser.NewConfigParserFromFile(credsPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 
