@@ -6,5 +6,6 @@ import "github.com/segmentio/ksuid"
 // this ensures that user activity can be easily audited per session
 // this uses the convenient ksuid library for generating unique IDs
 func sessionName() string {
-	return "gran-" + ksuid.New().String()
+	// using the acronym gntd to ensure the id is not longer than 32 chars
+	return "gntd-" + ksuid.New().String()
 }
