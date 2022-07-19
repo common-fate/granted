@@ -15,7 +15,6 @@ import (
 	"github.com/common-fate/granted/pkg/browsers"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/fatih/color"
@@ -25,6 +24,7 @@ import (
 func AssumeCommand(c *cli.Context) error {
 	// this custom behavious allows flags to be passed on either side of the role arg
 	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
+	t := time.Now()
 	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
 		return err
@@ -38,82 +38,80 @@ func AssumeCommand(c *cli.Context) error {
 	activeRoleFlag := assumeFlags.Bool("active-role")
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	awsProfiles, err := cfaws.GetProfilesFromDefaultSharedConfig(c.Context)
+	profiles, err := cfaws.LoadProfiles()
 	if err != nil {
 		return err
 	}
 
-	var profile *cfaws.CFSharedConfig
-	inProfile := c.Args().First()
-
-	if inProfile != "" {
-		var ok bool
-		if profile, ok = awsProfiles[inProfile]; !ok {
-			fmt.Fprintf(color.Error, "%s does not match any profiles in your AWS config\n", inProfile)
-		} else {
-			// background task to update the frecency cache
-			wg.Add(1)
-			go func() {
-				cfaws.UpdateFrecencyCache(inProfile)
-				wg.Done()
-			}()
+	profileName := c.Args().First()
+	if profileName != "" {
+		if !profiles.HasProfile(profileName) {
+			fmt.Fprintf(color.Error, "%s does not match any profiles in your AWS config or credentials files\n", profileName)
+			profileName = ""
 		}
 	}
 
 	//set the sesh creds using the active role if we have one and the flag is set
 	if activeRoleFlag && activeRoleProfile != "" {
-		//try opening using the active role
-		fmt.Fprintf(color.Error, "Attempting to open using active role...\n")
-		profile = awsProfiles[activeRoleProfile]
-		if profile == nil {
-			debug.Fprintf(debug.VerbosityDebug, color.Error, "failed to find a profile matching AWS_PROFILE=%s when using the active-profile flag", activeRoleProfile)
+		if !profiles.HasProfile(activeRoleProfile) {
+			fmt.Fprintf(color.Error, "you tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files\n", activeRoleProfile)
+		} else {
+			profileName = activeRoleProfile
+			fmt.Fprintf(color.Error, "using active profile: %s\n", profileName)
 		}
-
+	}
+	if profileName != "" {
+		// background task to update the frecency cache
+		wg.Add(1)
+		go func() {
+			cfaws.UpdateFrecencyCache(profileName)
+			wg.Done()
+		}()
 	}
 
-	// if profile is still nil here, then prompt to select a profile
-
-	if profile == nil {
-
+	// if profile is still "" here, then prompt to select a profile
+	if profileName == "" {
 		//load config to check frecency enabled
 		cfg, err := config.Load()
 		if err != nil {
 			return err
 		}
 
-		fr, profiles := awsProfiles.GetFrecentProfiles()
-
+		fr, profileNames := profiles.GetFrecentProfiles()
 		if cfg.Ordering == "Alphabetical" {
-			profiles = awsProfiles.ProfileNamesSorted()
+			profileNames = profiles.ProfileNames
 		}
+		fmt.Fprintln(color.Error, time.Since(t))
 		fmt.Fprintln(color.Error, "")
 		// Replicate the logic from original assume fn.
 		in := survey.Select{
 			Message: "Please select the profile you would like to assume:",
-			Options: profiles,
+			Options: profileNames,
 		}
-		if len(profiles) == 0 {
+		if len(profileNames) == 0 {
 			fmt.Fprintln(color.Error, "ℹ️ Granted couldn't find any aws roles")
 			fmt.Fprintln(color.Error, "You can add roles to your aws config by following our guide: ")
 			fmt.Fprintln(color.Error, "https://granted.dev/awsconfig")
 			return nil
 		}
-		var p string
-		err = testable.AskOne(&in, &p, withStdio)
+		err = testable.AskOne(&in, &profileName, withStdio)
 		if err != nil {
 			return err
 		}
-
-		profile = awsProfiles[p]
 		// background task to update the frecency cache
 		wg.Add(1)
 		go func() {
-			fr.Update(p)
+			fr.Update(profileName)
 			wg.Done()
 		}()
 	}
 	// ensure that frecency has finished updating before returning from this function
 	defer wg.Wait()
+	//finally, load the profile and initialise it, this builds the parent tree structure
+	profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
+	if err != nil {
+		return err
+	}
 
 	var region string
 	// The region flag may be supplied in shorthand form, first check if the flag is set and expand the region
@@ -125,7 +123,7 @@ func AssumeCommand(c *cli.Context) error {
 			return fmt.Errorf("couldn't parse region %s: %v", region, err)
 		}
 	} else {
-		region, _, err = profile.Region(c.Context)
+		region, err = profile.Region(c.Context)
 		if err != nil {
 			return err
 		}

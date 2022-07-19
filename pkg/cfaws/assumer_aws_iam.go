@@ -16,7 +16,7 @@ type AwsIamAssumer struct {
 
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
-func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
@@ -52,7 +52,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig,
 
 // if required will get a FederationToken to be used to launch the console
 // This is required is the iam profile does not assume a role using sts.AssumeRole
-func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	if c.AWSConfig.RoleARN == "" {
 		return getFederationToken(ctx, c)
 	} else {
@@ -87,7 +87,7 @@ var allowAllPolicy = `{
 // GetFederationToken is used when launching a console session with longlived IAM credentials profiles
 // GetFederation token uses an allow all IAM policy so that the console session will be able to access everything
 // If this is not provided, the session cannot do anything in the console
-func getFederationToken(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+func getFederationToken(ctx context.Context, c *Profile) (aws.Credentials, error) {
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
 		config.WithSharedConfigProfile(c.Name),

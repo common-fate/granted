@@ -21,8 +21,8 @@ func Completion(ctx *cli.Context) {
 		cli.DefaultAppComplete(ctx)
 	} else {
 		// Ignore errors from this function. Tab completion handles graceful degradation back to listing files.
-		awsProfiles, _ := cfaws.GetProfilesFromDefaultSharedConfig(ctx.Context)
+		awsProfiles, _ := cfaws.LoadProfiles()
 		// Tab completion script requires each option to be separated by a newline
-		fmt.Println(strings.Join(awsProfiles.ProfileNamesSorted(), "\n"))
+		fmt.Println(strings.Join(awsProfiles.ProfileNames, "\n"))
 	}
 }

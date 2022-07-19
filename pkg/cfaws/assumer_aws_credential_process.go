@@ -15,7 +15,7 @@ import (
 type CredentialProcessAssumer struct {
 }
 
-func loadCredProcessCreds(ctx context.Context, c *CFSharedConfig) (aws.Credentials, error) {
+func loadCredProcessCreds(ctx context.Context, c *Profile) (aws.Credentials, error) {
 	var credProcessCommand string
 	for k, v := range c.RawConfig {
 		if k == "credential_process" {
@@ -27,7 +27,7 @@ func loadCredProcessCreds(ctx context.Context, c *CFSharedConfig) (aws.Credentia
 	return p.Retrieve(ctx)
 }
 
-func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	// if the profile has parents, then we need to first use credentail process to assume the root profile.
 	// then assume each of the chained profiles
 	if len(c.Parents) != 0 {
@@ -37,7 +37,7 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 			return creds, err
 		}
 		for _, p := range c.Parents[1:] {
-			region, _, err := p.Region(ctx)
+			region, err := p.Region(ctx)
 			if err != nil {
 				return aws.Credentials{}, err
 			}
@@ -57,7 +57,7 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 				return creds, err
 			}
 		}
-		region, _, err := c.Region(ctx)
+		region, err := c.Region(ctx)
 		if err != nil {
 			return aws.Credentials{}, err
 		}
@@ -76,7 +76,7 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *CFSh
 
 }
 
-func (cpa *CredentialProcessAssumer) AssumeConsole(ctx context.Context, c *CFSharedConfig, configOpts ConfigOpts) (aws.Credentials, error) {
+func (cpa *CredentialProcessAssumer) AssumeConsole(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	return cpa.AssumeTerminal(ctx, c, configOpts)
 }
 
