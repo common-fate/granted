@@ -123,6 +123,9 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 	credsPath := config.DefaultSharedCredentialsFilename()
 	credsFile, err := configparser.NewConfigParserFromFile(credsPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
 		return err
 	}
 
