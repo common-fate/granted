@@ -147,7 +147,7 @@ func AssumeCommand(c *cli.Context) error {
 		configOpts.Args = assumeFlags.StringSlice("pass-through")
 	}
 
-	openBrower := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || len(assumeFlags.String("service")) > 0 || assumeFlags.Bool("url"))
+	openBrower := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 
