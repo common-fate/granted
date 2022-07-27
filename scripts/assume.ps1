@@ -5,7 +5,7 @@
 $env:SHELL="ps"
 $env:GRANTED_ALIAS_CONFIGURED="true"
 $ASSUME_FLAG, $ASSUME_1, $ASSUME_2, $ASSUME_3, $ASSUME_4, $ASSUME_5, $ASSUME_6= `
-$(assumego $args) -split '\s+'
+$(& (Join-Path $PSScriptRoot -ChildPath "assumego") $args) -split '\s+'
 $env:ASSUME_STATUS = $LASTEXITCODE
 
 
