@@ -13,7 +13,7 @@ import (
 
 var ExportSettingsCommand = cli.Command{
 	Name:        "export-suffix",
-	Usage:       "sets a exported profile name with a user specified suffix",
+	Usage:       "suffix to be added when exporting credentials using granteds --export flag.",
 	Subcommands: []*cli.Command{&SetExportSettingsCommand},
 	Action: func(c *cli.Context) error {
 		cfg, err := config.Load()
@@ -31,7 +31,7 @@ var ExportSettingsCommand = cli.Command{
 
 var SetExportSettingsCommand = cli.Command{
 	Name:  "set",
-	Usage: "Sets the prefix",
+	Usage: "sets a suffix to be added when exporting credentials using granteds --export flag.",
 	Action: func(c *cli.Context) error {
 		cfg, err := config.Load()
 		if err != nil {
@@ -39,7 +39,7 @@ var SetExportSettingsCommand = cli.Command{
 		}
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := survey.Input{
-			Message: "Exported credential suffix",
+			Message: "Exported credential suffix:",
 		}
 		var selection string
 		fmt.Fprintln(color.Error)
