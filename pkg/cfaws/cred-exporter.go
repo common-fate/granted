@@ -7,6 +7,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
+	gconfig "github.com/common-fate/granted/pkg/config"
+
 	"github.com/fatih/color"
 )
 
@@ -33,6 +35,15 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 	credFile, err := configparser.NewConfigParserFromFile(credPath)
 	if err != nil {
 		return err
+	}
+
+	cfg, err := gconfig.Load()
+	if err != nil {
+		return err
+	}
+
+	if cfg.ExportCredentialSuffix != "" {
+		profileName = profileName + "-" + cfg.ExportCredentialSuffix
 	}
 
 	if credFile.HasSection(profileName) {
