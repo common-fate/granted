@@ -147,7 +147,12 @@ func AssumeCommand(c *cli.Context) error {
 		configOpts.Args = assumeFlags.StringSlice("pass-through")
 	}
 
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
 	openBrower := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
+
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 
@@ -164,10 +169,6 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 
-		cfg, err := config.Load()
-		if err != nil {
-			return err
-		}
 		if assumeFlags.Bool("url") || cfg.DefaultBrowser == browsers.StdoutKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
 			url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), browserOpts, service, region)
 			if err != nil {
@@ -215,7 +216,19 @@ func AssumeCommand(c *cli.Context) error {
 			if err != nil {
 				return err
 			}
-			green.Fprintln(color.Error, "Exported credentials to ~.aws/credentials file successfully")
+			var profileName string
+			if cfg.ExportCredentialSuffix != "" {
+				profileName = profile.Name + "-" + cfg.ExportCredentialSuffix
+
+			} else {
+				profileName = profile.Name
+				yellow := color.New(color.FgYellow)
+
+				yellow.Fprintln(color.Error, "No credential suffix found. This can cause issues with using exported credentials if conflicting profiles exist. Run `granted settings export-suffix set` to set one.")
+
+			}
+
+			green.Fprintln(color.Error, fmt.Sprintf("Exported credentials to ~.aws/credentials file as %s successfully", profileName))
 		}
 		if assumeFlags.String("exec") != "" {
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
