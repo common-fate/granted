@@ -21,8 +21,8 @@ import (
 func GlobalFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
-		&cli.BoolFlag{Name: "env", Aliases: []string{"e"}, Usage: "export credentials to a .env file"},
-		&cli.BoolFlag{Name: "export", Aliases: []string{"ex"}, Usage: "export credentials to a ~.aws/credentials file"},
+		&cli.BoolFlag{Name: "env", Aliases: []string{"e"}, Usage: "Export credentials to a .env file"},
+		&cli.BoolFlag{Name: "export", Aliases: []string{"ex"}, Usage: "Export credentials to a ~.aws/credentials file"},
 		&cli.BoolFlag{Name: "unset", Aliases: []string{"un"}, Usage: "Unset all environment variables configured by Assume"},
 		&cli.BoolFlag{Name: "url", Aliases: []string{"u"}, Usage: "Get an active console session url"},
 		&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Like --c, but opens to a specified service"},
@@ -33,8 +33,13 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 		&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"AWS_PROFILE"}, Hidden: true},
 		&cli.BoolFlag{Name: "auto-configure-shell", Usage: "Configure shell alias without prompts"},
-		&cli.StringFlag{Name: "exec", Usage: "assume a profile then execute this command"},
+		&cli.StringFlag{Name: "exec", Usage: "Assume a profile then execute this command"},
 		&cli.StringFlag{Name: "duration", Aliases: []string{"d"}, Usage: "Set session duration for your assumed role"},
+		&cli.BoolFlag{Name: "sso", Usage: "Assume an account and role with provided SSO flags"},
+		&cli.StringFlag{Name: "sso-start-url", Usage: "Assume a profile then execute this command"},
+		&cli.StringFlag{Name: "sso-region", Usage: "Assume a profile then execute this command"},
+		&cli.StringFlag{Name: "account-id", Usage: "Assume a profile then execute this command"},
+		&cli.StringFlag{Name: "role-name", Usage: "Assume a profile then execute this command"},
 	}
 }
 
@@ -65,6 +70,10 @@ func GetCliApp() *cli.App {
 			}
 			if c.Bool("verbose") {
 				debug.CliVerbosity = debug.VerbosityDebug
+			}
+			err := ValidateSSOFlags(c)
+			if err != nil {
+				return err
 			}
 
 			if err := config.SetupConfigFolder(); err != nil {
