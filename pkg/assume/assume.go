@@ -24,7 +24,6 @@ import (
 func AssumeCommand(c *cli.Context) error {
 	// this custom behavious allows flags to be passed on either side of the role arg
 	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
-	t := time.Now()
 	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
 		return err
@@ -90,7 +89,6 @@ func AssumeCommand(c *cli.Context) error {
 			if cfg.Ordering == "Alphabetical" {
 				profileNames = profiles.ProfileNames
 			}
-			fmt.Fprintln(color.Error, time.Since(t))
 			fmt.Fprintln(color.Error, "")
 			// Replicate the logic from original assume fn.
 			in := survey.Select{
@@ -159,7 +157,7 @@ func AssumeCommand(c *cli.Context) error {
 		configOpts.Args = assumeFlags.StringSlice("pass-through")
 	}
 
-	openBrower := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.Bool("url"))
+	openBrower := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
 	if openBrower {
 		// these are just labels for the tabs so we may need to updates these for the sso role context
 
@@ -207,7 +205,7 @@ func AssumeCommand(c *cli.Context) error {
 		sessionExpiration := ""
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
-			sessionExpiration = creds.Expires.Format(time.RFC3339)
+			sessionExpiration = creds.Expires.Local().Format(time.RFC3339)
 			if os.Getenv("GRANTED_QUIET") != "true" {
 				green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
 			}
