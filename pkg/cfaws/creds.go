@@ -9,6 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	ssotypes "github.com/aws/aws-sdk-go-v2/service/sso/types"
+	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/common-fate/granted/pkg/testable"
 )
@@ -38,7 +39,14 @@ func GetCredentialsCreds(ctx context.Context, c *Profile) (aws.Credentials, erro
 
 	//check creds are valid - return them if they are
 	if creds.HasKeys() && !creds.Expired() {
-		return creds, nil
+		cfg := aws.NewConfig()
+		cfg.Credentials = &CredProv{Credentials: c.AWSConfig.Credentials}
+		client := sts.NewFromConfig(cfg.Copy())
+		// the AWS SDK check for credential expiry doesn't actually check some credentials so we do this sts call to validate it
+		_, err := client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+		if err == nil {
+			return creds, nil
+		}
 	}
 	return aws.Credentials{}, fmt.Errorf("creds invalid or expired")
 
