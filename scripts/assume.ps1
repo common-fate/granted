@@ -43,7 +43,7 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
     }
 
     if ( $ASSUME_4 -ne "None" ) {
-        $env:ASSUME_PROFILE = $ASSUME_4
+        $env:AWS_PROFILE = $ASSUME_4
     }
     
     if ( $ASSUME_5 -ne "None" ) {
@@ -77,8 +77,6 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssumeSSO") {
     if ( $ASSUME_3 -ne "None" ) {
         $env:AWS_SESSION_TOKEN = $ASSUME_3
     }
-
-    
     if ( $ASSUME_4 -ne "None" ) {
         $env:AWS_REGION = $ASSUME_4
     }
