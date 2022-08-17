@@ -55,6 +55,40 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
     }
 }
 
+#ASSUME the profile
+elseif ( $ASSUME_FLAG -eq "GrantedAssumeSSO") {
+    #Remove the environment variables associated with the AWS CLI,
+    #ensuring all environment variables will be valid
+    $env:AWS_ACCESS_KEY_ID = ""
+    $env:AWS_SECRET_ACCESS_KEY = ""
+    $env:AWS_SESSION_TOKEN = ""
+    $env:AWS_PROFILE = ""
+    $env:AWS_REGION = ""
+    $env:AWS_SESSION_EXPIRATION = ""
+
+    $env:ASSUME_COMMAND=$args
+    if ( $ASSUME_1 -ne "None" ) {
+        $env:AWS_ACCESS_KEY_ID = $ASSUME_1
+    }
+    if ( $ASSUME_2 -ne "None" ) {
+        $env:AWS_SECRET_ACCESS_KEY = $ASSUME_2
+    }
+
+    if ( $ASSUME_3 -ne "None" ) {
+        $env:AWS_SESSION_TOKEN = $ASSUME_3
+    }
+
+    
+    if ( $ASSUME_4 -ne "None" ) {
+        $env:AWS_REGION = $ASSUME_4
+    }
+
+    if ( $ASSUME_5 -ne "None" ) {
+        $env:AWS_SESSION_EXPIRATION = $ASSUME_5
+    }
+}
+
+
 elseif ( $ASSUME_FLAG -eq "GrantedOutput") {
     Write-Host "$ASSUME_1"
 }
