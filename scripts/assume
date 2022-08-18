@@ -86,6 +86,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   done
 fi
 
+
 # The GrantedOutput flag should be followed by a newline, then the output. 
 # This way, the shell script can omit the first line containing the flag and return the unaltered output to the stdout
 # This is great as it works well with the -exec flag

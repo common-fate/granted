@@ -43,7 +43,7 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
     }
 
     if ( $ASSUME_4 -ne "None" ) {
-        $env:ASSUME_PROFILE = $ASSUME_4
+        $env:AWS_PROFILE = $ASSUME_4
     }
     
     if ( $ASSUME_5 -ne "None" ) {
@@ -54,6 +54,8 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
         $env:AWS_SESSION_EXPIRATION = $ASSUME_6
     }
 }
+
+
 
 elseif ( $ASSUME_FLAG -eq "GrantedOutput") {
     Write-Host "$ASSUME_1"

@@ -72,6 +72,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
       echo set -gx AWS_SESSION_EXPIRATION $GRANTED_6
     end
   end
+
 else if test "$GRANTED_FLAG" = "GrantedOutput"
   for line in $GRANTED_OUTPUT
       if test "$line" != "GrantedOutput"

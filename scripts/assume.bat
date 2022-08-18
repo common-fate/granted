@@ -48,5 +48,7 @@ for /f "tokens=1,2,3,4,5,6,7 delims= " %%a in ("%ASSUME_OUTPUT%") do (
 
         Exit /b %ASSUME_STATUS%
     )
+
+    
     echo %ASSUME_OUTPUT%
 )
