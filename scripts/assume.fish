@@ -72,48 +72,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
       echo set -gx AWS_SESSION_EXPIRATION $GRANTED_6
     end
   end
-else if test "$GRANTED_FLAG" = "GrantedAssumeSSO"
-  set -e AWS_ACCESS_KEY_ID
-  set -e AWS_SECRET_ACCESS_KEY
-  set -e AWS_SESSION_TOKEN
-  set -e AWS_PROFILE
-  set -e AWS_REGION
-  set -e AWS_SESSION_EXPIRATION
 
-  set -gx GRANTED_COMMAND $argv
-  if test "$GRANTED_1" != "None"
-    set -gx AWS_ACCESS_KEY_ID $GRANTED_1
-  end
-  if test "$GRANTED_2" != "None"
-    set -gx AWS_SECRET_ACCESS_KEY $GRANTED_2
-  end
-  if test "$GRANTED_3" != "None"
-    set -gx AWS_SESSION_TOKEN $GRANTED_3
-  end
-  if test "$GRANTED_4" != "None"
-    set -gx AWS_REGION $GRANTED_4
-  end
-  if test "$GRANTED_5" != "None"
-    set -gx AWS_SESSION_EXPIRATION $GRANTED_5
-  end
-
-  if contains -- -s $argv
-    if test "$GRANTED_1" != "None"
-      echo set -gx AWS_ACCESS_KEY_ID $GRANTED_1
-    end
-    if test "$GRANTED_2" != "None"
-      echo set -gx AWS_SECRET_ACCESS_KEY $GRANTED_2
-    end
-    if test "$GRANTED_3" != "None"
-      echo set -gx AWS_SESSION_TOKEN $GRANTED_3
-    end
-    if test "$GRANTED_4" != "None"
-      echo set -gx AWS_REGION $GRANTED_4
-    end
-    if test "$GRANTED_5" != "None"
-      echo set -gx AWS_SESSION_EXPIRATION $GRANTED_5
-    end
-  end
 else if test "$GRANTED_FLAG" = "GrantedOutput"
   for line in $GRANTED_OUTPUT
       if test "$line" != "GrantedOutput"

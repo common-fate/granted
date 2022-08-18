@@ -247,8 +247,8 @@ func AssumeCommand(c *cli.Context) error {
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
 		// the shell script treats "None" as an emprty string and will not set a value for that positional output
 		if c.Bool("sso") {
-			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, region, sessionExpiration})
-			fmt.Printf("GrantedAssumeSSO %s %s %s %s %s", output...)
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration})
+			fmt.Printf("GrantedAssume %s %s %s %s %s %s", output...)
 		} else {
 			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s", output...)

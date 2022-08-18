@@ -86,53 +86,6 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   done
 fi
 
-if [ "$GRANTED_FLAG" = "GrantedAssumeSSO" ]; then
-  unset AWS_ACCESS_KEY_ID
-  unset AWS_SECRET_ACCESS_KEY
-  unset AWS_SESSION_TOKEN
-  unset AWS_PROFILE
-  unset AWS_REGION
-  unset AWS_SESSION_EXPIRATION
-
-  export GRANTED_COMMAND="$@"
-
-  if [ ! "${GRANTED_1}" = "None" ]; then
-    export AWS_ACCESS_KEY_ID=${GRANTED_1}
-  fi
-  if [ ! "${GRANTED_2}" = "None" ]; then
-    export AWS_SECRET_ACCESS_KEY=${GRANTED_2}
-  fi
-  if [ ! "${GRANTED_3}" = "None" ]; then
-    export AWS_SESSION_TOKEN=${GRANTED_3}
-  fi
-  if [ ! "${GRANTED_4}" = "None" ]; then
-    export AWS_REGION=${GRANTED_4}
-  fi
-  if [ ! "${GRANTED_5}" = "None" ]; then
-    export AWS_SESSION_EXPIRATION=${GRANTED_5}
-  fi
-
-  for GRANTED_var in "$@"
-  do
-    if [[ "$GRANTED_var" == "-s"* ]]; then
-      if [ ! "${GRANTED_1}" = "None" ]; then
-        echo export AWS_ACCESS_KEY_ID=${GRANTED_1}
-      fi
-      if [ ! "${GRANTED_2}" = "None" ]; then
-        echo export AWS_SECRET_ACCESS_KEY=${GRANTED_2}
-      fi
-      if [ ! "${GRANTED_3}" = "None" ]; then
-        echo export AWS_SESSION_TOKEN=${GRANTED_3}
-      fi
-      if [ ! "${GRANTED_4}" = "None" ]; then
-        echo export AWS_REGION=${GRANTED_4}
-      fi
-       if [ ! "${GRANTED_5}" = "None" ]; then
-        echo export AWS_SESSION_EXPIRATION=${GRANTED_5}
-      fi
-    fi
-  done
-fi
 
 # The GrantedOutput flag should be followed by a newline, then the output. 
 # This way, the shell script can omit the first line containing the flag and return the unaltered output to the stdout
