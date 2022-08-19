@@ -280,10 +280,9 @@ func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) e
 	fmt.Print(MakeGrantedOutput(""))
 	args := strings.Split(cmd, " ")
 	c := exec.Command(args[0], args[1:]...)
-	c.Env = os.Environ()
 	c.Stdout = os.Stdout
 	c.Stderr = color.Error
-	c.Env = append(c.Env, EnvKeys(creds, region)...)
+	c.Env = append(os.Environ(), EnvKeys(creds, region)...)
 	return c.Run()
 }
 
