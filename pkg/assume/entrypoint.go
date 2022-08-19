@@ -36,10 +36,10 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "exec", Usage: "Assume a profile then execute this command"},
 		&cli.StringFlag{Name: "duration", Aliases: []string{"d"}, Usage: "Set session duration for your assumed role"},
 		&cli.BoolFlag{Name: "sso", Usage: "Assume an account and role with provided SSO flags"},
-		&cli.StringFlag{Name: "sso-start-url", Usage: "Assume a profile then execute this command"},
-		&cli.StringFlag{Name: "sso-region", Usage: "Assume a profile then execute this command"},
-		&cli.StringFlag{Name: "account-id", Usage: "Assume a profile then execute this command"},
-		&cli.StringFlag{Name: "role-name", Usage: "Assume a profile then execute this command"},
+		&cli.StringFlag{Name: "sso-start-url", Usage: "Use this in conjunction with --sso, the sso-start-url"},
+		&cli.StringFlag{Name: "sso-region", Usage: "Use this in conjunction with --sso, the sso-region"},
+		&cli.StringFlag{Name: "account-id", Usage: "Use this in conjunction with --sso, the account-id"},
+		&cli.StringFlag{Name: "role-name", Usage: "Use this in conjunction with --sso, the role-name"},
 	}
 }
 
