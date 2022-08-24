@@ -35,11 +35,11 @@ func GlobalFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "auto-configure-shell", Usage: "Configure shell alias without prompts"},
 		&cli.StringFlag{Name: "exec", Usage: "Assume a profile then execute this command"},
 		&cli.StringFlag{Name: "duration", Aliases: []string{"d"}, Usage: "Set session duration for your assumed role"},
-		&cli.BoolFlag{Name: "sso", Usage: "Assume an account and role with provided SSO flags"},
-		&cli.StringFlag{Name: "sso-start-url", Usage: "Assume a profile then execute this command"},
-		&cli.StringFlag{Name: "sso-region", Usage: "Assume a profile then execute this command"},
-		&cli.StringFlag{Name: "account-id", Usage: "Assume a profile then execute this command"},
-		&cli.StringFlag{Name: "role-name", Usage: "Assume a profile then execute this command"},
+		&cli.BoolFlag{Name: "sso", Usage: "Assume an account and role with provided SSO flags", EnvVars: []string{"GRANTED_SSO"}, Hidden: true},
+		&cli.StringFlag{Name: "sso-start-url", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_START_URL"}, Hidden: true},
+		&cli.StringFlag{Name: "sso-region", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_REGION"}, Hidden: true},
+		&cli.StringFlag{Name: "account-id", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_ACCOUNT_ID"}, Hidden: true},
+		&cli.StringFlag{Name: "role-name", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_ROLE_NAME", "AWS_PROFILE"}, Hidden: true},
 	}
 }
 

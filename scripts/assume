@@ -30,15 +30,30 @@ if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
   unset AWS_PROFILE
   unset AWS_REGION
   unset AWS_SESSION_EXPIRATION
+
+  unset GRANTED_SSO
+  unset GRANTED_SSO_START_URL
+  unset GRANTED_SSO_ROLE_NAME
+  unset GRANTED_SSO_REGION
+  unset GRANTED_SSO_ACCOUNT_ID
 fi
 
 if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
+  # unset any previous vars
   unset AWS_ACCESS_KEY_ID
   unset AWS_SECRET_ACCESS_KEY
   unset AWS_SESSION_TOKEN
   unset AWS_PROFILE
   unset AWS_REGION
   unset AWS_SESSION_EXPIRATION
+
+  # if [[ "$GRANTED_var" == "-sso"* ]]; then
+  unset GRANTED_SSO
+  unset GRANTED_SSO_START_URL
+  unset GRANTED_SSO_ROLE_NAME
+  unset GRANTED_SSO_REGION
+  unset GRANTED_SSO_ACCOUNT_ID
+  # fi
 
   export GRANTED_COMMAND="$@"
 
@@ -60,9 +75,25 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   if [ ! "${GRANTED_6}" = "None" ]; then
     export AWS_SESSION_EXPIRATION=${GRANTED_6}
   fi
+  if [ ! "${GRANTED_7}" = "None" ]; then
+    export GRANTED_SSO=${GRANTED_7}
+  fi
+  if [ ! "${GRANTED_8}" = "None" ]; then
+    export GRANTED_SSO_START_URL=${GRANTED_8}
+  fi
+  if [ ! "${GRANTED_9}" = "None" ]; then
+    export GRANTED_SSO_ROLE_NAME=${GRANTED_9}
+  fi
+  if [ ! "${GRANTED_10}" = "None" ]; then
+    export GRANTED_SSO_REGION=${GRANTED_10}
+  fi
+  if [ ! "${GRANTED_11}" = "None" ]; then
+    export GRANTED_SSO_ACCOUNT_ID=${GRANTED_11}
+  fi
 
   for GRANTED_var in "$@"
   do
+  # Q: what is the purpose of service flag here, echo the export command?
     if [[ "$GRANTED_var" == "-s"* ]]; then
       if [ ! "${GRANTED_1}" = "None" ]; then
         echo export AWS_ACCESS_KEY_ID=${GRANTED_1}
@@ -82,6 +113,21 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
        if [ ! "${GRANTED_6}" = "None" ]; then
         echo export AWS_SESSION_EXPIRATION=${GRANTED_6}
       fi
+      if [ ! "${GRANTED_7}" = "None" ]; then
+        echo export GRANTED_SSO=${GRANTED_7}
+      fi
+      if [ ! "${GRANTED_8}" = "None" ]; then
+        echo export GRANTED_SSO_START_URL=${GRANTED_8}
+      fi
+      if [ ! "${GRANTED_9}" = "None" ]; then
+        echo export GRANTED_SSO_ROLE_NAME=${GRANTED_9}
+      fi      
+      if [ ! "${GRANTED_10}" = "None" ]; then
+        echo export GRANTED_SSO_REGION=${GRANTED_10}
+      fi      
+      if [ ! "${GRANTED_11}" = "None" ]; then
+        echo export GRANTED_SSO_ACCOUNT_ID=${GRANTED_11}
+      fi      
     fi
   done
 fi

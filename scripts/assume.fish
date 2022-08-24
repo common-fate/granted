@@ -9,7 +9,7 @@ set -gx GRANTED_ALIAS_CONFIGURED "true"
 
 set GRANTED_OUTPUT (assumego $argv)
 set GRANTED_STATUS $status
-echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6
+echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9
 
 
 # remove carriage return
@@ -24,6 +24,9 @@ else if test "$GRANTED_FLAG" = "GrantedDesume"
   set -e AWS_PROFILE
   set -e AWS_REGION
   set -e AWS_SESSION_EXPIRATION
+  set -e GRANTED_SSO
+  set -e GRANTED_SSO_START_URL
+  set -e GRANTED_SSO_ROLE_NAME
 else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_ACCESS_KEY_ID
   set -e AWS_SECRET_ACCESS_KEY
@@ -31,6 +34,9 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_PROFILE
   set -e AWS_REGION
   set -e AWS_SESSION_EXPIRATION
+  set -e GRANTED_SSO
+  set -e GRANTED_SSO_START_URL
+  set -e GRANTED_SSO_ROLE_NAME
 
   set -gx GRANTED_COMMAND $argv
   if test "$GRANTED_1" != "None"
