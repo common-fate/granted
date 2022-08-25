@@ -33,7 +33,11 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 
 				}
 			}
-			aro.RoleSessionName = sessionName()
+			if c.AWSConfig.RoleSessionName != "" {
+				aro.RoleSessionName = c.AWSConfig.RoleSessionName
+			} else {
+				aro.RoleSessionName = sessionName()
+			}
 		}),
 	}
 
