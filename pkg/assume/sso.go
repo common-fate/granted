@@ -45,8 +45,6 @@ func ssoFlags(c *cli.Context) (ssoStartURL, ssoRegion, accountID, roleName strin
 func ValidateSSOFlags(c *cli.Context) error {
 	ssoStartURL, ssoRegion, accountID, roleName := ssoFlags(c)
 	if c.Bool("sso") {
-		// fmt.Fprintln(os.Stderr, "HELLO")
-		// fmt.Fprintln(os.Stderr, ssoStartURL, ssoRegion, accountID, roleName)
 		good := ssoStartURL != "" && ssoRegion != "" && accountID != "" && roleName != ""
 		if !good {
 			return errors.New("flags [sso-start-url, sso-region, account-id, role-name] are required to use the -sso flag")

@@ -71,9 +71,6 @@ func GetCliApp() *cli.App {
 			if c.Bool("verbose") {
 				debug.CliVerbosity = debug.VerbosityDebug
 			}
-			// This is throwing an error, even after --unset is called
-			// This means it is picking up on an env var that is set
-			// investigate
 			err := ValidateSSOFlags(c)
 			if err != nil {
 				return err
