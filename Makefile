@@ -1,3 +1,4 @@
+PREFIX?=/usr/local/
 
 go-binary:
 	go build -o ./bin/dgranted cmd/granted/main.go
@@ -6,16 +7,16 @@ assume-binary:
 	go build -o ./bin/dassumego cmd/assume/main.go
 
 cli: go-binary assume-binary
-	mv ./bin/dgranted /usr/local/bin/
-	mv ./bin/dassumego /usr/local/bin/
+	mv ./bin/dgranted ${PREFIX}/bin/
+	mv ./bin/dassumego ${PREFIX}/bin/
 	# replace references to "assumego" (the production binary) with "dassumego"
-	cat scripts/assume | sed 's/assumego/dassumego/g' > /usr/local/bin/dassume && chmod +x /usr/local/bin/dassume
-	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > /usr/local/bin/dassume.fish && chmod +x /usr/local/bin/dassume.fish
+	cat scripts/assume | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume && chmod +x ${PREFIX}/bin/dassume
+	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.fish && chmod +x ${PREFIX}/bin/dassume.fish
 
 clean:
-	rm /usr/local/bin/dassumego
-	rm /usr/local/bin/dassume
-	rm /usr/local/bin/dassume.fish
+	rm ${PREFIX}/bin/dassumego
+	rm ${PREFIX}/bin/dassume
+	rm ${PREFIX}/bin/dassume.fish
 
 aws-credentials: 
 	echo -e "\nAWS_ACCESS_KEY_ID=\"$$AWS_ACCESS_KEY_ID\"\nAWS_SECRET_ACCESS_KEY=\"$$AWS_SECRET_ACCESS_KEY\"\nAWS_SESSION_TOKEN=\"$$AWS_SESSION_TOKEN\"\nAWS_REGION=\"$$AWS_REGION\""
