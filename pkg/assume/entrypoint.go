@@ -39,7 +39,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "sso-start-url", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_START_URL"}, Hidden: true},
 		&cli.StringFlag{Name: "sso-region", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_REGION"}, Hidden: true},
 		&cli.StringFlag{Name: "account-id", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_ACCOUNT_ID"}, Hidden: true},
-		&cli.StringFlag{Name: "role-name", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_ROLE_NAME", "AWS_PROFILE"}, Hidden: true},
+		&cli.StringFlag{Name: "role-name", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_ROLE_NAME"}, Hidden: true},
 	}
 }
 
@@ -71,6 +71,9 @@ func GetCliApp() *cli.App {
 			if c.Bool("verbose") {
 				debug.CliVerbosity = debug.VerbosityDebug
 			}
+			// This is throwing an error, even after --unset is called
+			// This means it is picking up on an env var that is set
+			// investigate
 			err := ValidateSSOFlags(c)
 			if err != nil {
 				return err

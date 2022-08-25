@@ -14,8 +14,23 @@ fi
 # in some cases such as github actions, the SHELL env var is not available to the program
 # so here we set it explicitly 
 GRANTED_OUTPUT=$(assumego "$@")
+
+echo $GRANTED_OUTPUT
+
 GRANTED_STATUS=$?
-read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6<<< $(echo $GRANTED_OUTPUT)
+read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11<<< $(echo $GRANTED_OUTPUT)
+
+echo $GRANTED_1
+echo $GRANTED_2
+echo $GRANTED_3
+echo $GRANTED_4
+echo $GRANTED_5
+echo $GRANTED_6
+echo $GRANTED_7
+echo $GRANTED_8
+echo $GRANTED_9
+echo $GRANTED_10
+echo $GRANTED_11
 
 # # unset the exported GRANTED_ALIAS_CONFIGURED flag
 unset GRANTED_ALIAS_CONFIGURED
@@ -38,6 +53,7 @@ if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
   unset GRANTED_SSO_ACCOUNT_ID
 fi
 
+
 if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   # unset any previous vars
   unset AWS_ACCESS_KEY_ID
@@ -47,16 +63,16 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   unset AWS_REGION
   unset AWS_SESSION_EXPIRATION
 
-  # if [[ "$GRANTED_var" == "-sso"* ]]; then
   unset GRANTED_SSO
   unset GRANTED_SSO_START_URL
   unset GRANTED_SSO_ROLE_NAME
   unset GRANTED_SSO_REGION
   unset GRANTED_SSO_ACCOUNT_ID
-  # fi
 
   export GRANTED_COMMAND="$@"
 
+  export GRANTED_SSO=${GRANTED_7}
+  
   if [ ! "${GRANTED_1}" = "None" ]; then
     export AWS_ACCESS_KEY_ID=${GRANTED_1}
   fi
@@ -129,6 +145,26 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
         echo export GRANTED_SSO_ACCOUNT_ID=${GRANTED_11}
       fi      
     fi
+    # if [[ "$GRANTED_var" == "-sso"* ]]; then
+    #   if [ ! "${GRANTED_1}" = "None" ]; then
+    #     echo export AWS_ACCESS_KEY_ID=${GRANTED_1}
+    #   fi
+    #   if [ ! "${GRANTED_2}" = "None" ]; then
+    #     echo export AWS_SECRET_ACCESS_KEY=${GRANTED_2}
+    #   fi
+    #   if [ ! "${GRANTED_3}" = "None" ]; then
+    #     echo export AWS_SESSION_TOKEN=${GRANTED_3}
+    #   fi
+    #   if [ ! "${GRANTED_4}" = "None" ]; then
+    #     echo export AWS_PROFILE=${GRANTED_4}
+    #   fi
+    #   if [ ! "${GRANTED_5}" = "None" ]; then
+    #     echo export AWS_REGION=${GRANTED_5}
+    #   fi
+    #    if [ ! "${GRANTED_6}" = "None" ]; then
+    #     echo export AWS_SESSION_EXPIRATION=${GRANTED_6}
+    #   fi
+    # fi
   done
 fi
 
