@@ -135,6 +135,10 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 
 // SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token
 func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile) (*SSOToken, error) {
+	return SSODeviceCodeFlowFromStartUrl(ctx, cfg, rootProfile.AWSConfig.SSOStartURL)
+}
+
+func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*SSOToken, error) {
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
 	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
@@ -151,7 +155,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile
 
 		ClientId:     register.ClientId,
 		ClientSecret: register.ClientSecret,
-		StartUrl:     aws.String(rootProfile.AWSConfig.SSOStartURL),
+		StartUrl:     aws.String(startUrl),
 	})
 	if err != nil {
 		return nil, err
