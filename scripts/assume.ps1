@@ -4,7 +4,7 @@
 #ASSUME_n - the data from assumego
 $env:SHELL="ps"
 $env:GRANTED_ALIAS_CONFIGURED="true"
-$ASSUME_FLAG, $ASSUME_1, $ASSUME_2, $ASSUME_3, $ASSUME_4, $ASSUME_5, $ASSUME_6, $ASSUME_7, $ASSUME_8, $ASSUME_9= `
+$ASSUME_FLAG, $ASSUME_1, $ASSUME_2, $ASSUME_3, $ASSUME_4, $ASSUME_5, $ASSUME_6, $ASSUME_7, $ASSUME_8, $ASSUME_9, $ASSUME_10, $ASSUME_11= `
 $(& (Join-Path $PSScriptRoot -ChildPath "assumego") $args) -split '\s+'
 $env:ASSUME_STATUS = $LASTEXITCODE
 
