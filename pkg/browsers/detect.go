@@ -19,7 +19,7 @@ import (
 	"golang.org/x/text/language"
 )
 
-//Checks the config to see if the user has already set up their default browser
+// Checks the config to see if the user has already set up their default browser
 func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
 	//just check the config file for the default browser efield
 	conf, err := config.Load()
@@ -49,7 +49,7 @@ func HandleManualBrowserSelection() (string, error) {
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
-		Message: "Select your default browser",
+		Message: "Select one of the browsers from the list",
 		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Chromium", "Stdout", "FirefoxStdout"},
 	}
 	var selection string
@@ -62,7 +62,7 @@ func HandleManualBrowserSelection() (string, error) {
 	return selection, nil
 }
 
-//finds out which browser the user has as default
+// finds out which browser the user has as default
 func Find() (string, error) {
 	outcome := ""
 	ops := runtime.GOOS
@@ -154,27 +154,25 @@ func DetectInstallation(browserKey string) (string, bool) {
 
 func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	fmt.Fprintf(color.Error, "\nGranted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers).\n")
-
 	browserName, err := Find()
 	if err != nil {
 		return "", err
 	}
 	title := cases.Title(language.AmericanEnglish)
 	browserTitle := title.String((strings.ToLower(GetBrowserKey(browserName))))
-	fmt.Fprintf(color.Error, "\nℹ️  Granted has detected that your default browser is %s.\n", browserTitle)
-
-	in := survey.Select{
-		Message: "Use this browser with Granted?",
-		Options: []string{"Yes", "Choose a different browser"},
+	fmt.Fprintln(color.Error, "ℹ️  Thanks for using Granted!")
+	fmt.Fprintln(color.Error, "ℹ️  Start by configuring which browser to use when launching the AWS console.")
+	fmt.Fprintf(color.Error, "ℹ️  By default, Granted will open the AWS console with this browser: %s.\n", browserTitle)
+	fmt.Fprintln(color.Error, "ℹ️  Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers). You can change this setting later by running 'granted browser set'")
+	in := survey.Confirm{
+		Message: "Do you want Granted to use a different installed browser when launching the AWS console?",
 	}
-	var opt string
-	fmt.Fprintln(color.Error)
-	err = testable.AskOne(&in, &opt, withStdio)
+	var confirm bool
+	err = testable.AskOne(&in, &confirm, withStdio)
 	if err != nil {
 		return "", err
 	}
-	if opt != "Yes" {
+	if confirm {
 		browserName, err = HandleManualBrowserSelection()
 		if err != nil {
 			return "", err
@@ -184,7 +182,7 @@ func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 	return browserName, ConfigureBrowserSelection(browserName, "")
 }
 
-//ConfigureBrowserSelection will verify the existance of the browser executable and promot for a path if it cannot be found
+// ConfigureBrowserSelection will verify the existance of the browser executable and promot for a path if it cannot be found
 func ConfigureBrowserSelection(browserName string, path string) error {
 	browserKey := GetBrowserKey(browserName)
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
@@ -262,16 +260,14 @@ func GrantedIntroduction() {
 }
 
 func SSOBrowser(grantedDefaultBrowser string) error {
-	label := "Set SSO default browser as selected? (The browser you use to run through SSO flows)"
-
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-	in := &survey.Select{
-		Message: label,
-		Options: []string{"Yes", "Use computers default browser", "Pick different browser"},
+	in := &survey.Confirm{
+		Message: "Do you want to use a browser other than your default browser for SSO logins?",
+		Default: false,
+		Help:    "For example, if you normally use a password manager in Chrome for your AWS login but Chrome is not your default browser, you would choose to use Chrome for SSO logins. You can change this later by running 'granted browser set-sso'",
 	}
-	var out string
-	fmt.Fprintln(color.Error)
-	err := testable.AskOne(in, &out, withStdio)
+	var confirm bool
+	err := testable.AskOne(in, &confirm, withStdio)
 	if err != nil {
 		return err
 	}
@@ -280,58 +276,7 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 	if err != nil {
 		return err
 	}
-	if out == "Yes" {
-
-		browserKey := GetBrowserKey(grantedDefaultBrowser)
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		title := cases.Title(language.AmericanEnglish)
-		browserTitle := title.String(strings.ToLower(browserKey))
-		// We allow users to configure a custom install path is we cannot detect the installation
-		browserPath := ""
-		// detect installation
-		if browserKey != FirefoxStdoutKey && browserKey != StdoutKey {
-
-			customBrowserPath, detected := DetectInstallation(browserKey)
-			if !detected {
-				fmt.Fprintf(color.Error, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
-				validPath := false
-				for !validPath {
-					// prompt for custom path
-					bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
-					fmt.Fprintln(color.Error)
-					err := testable.AskOne(&bpIn, &customBrowserPath, withStdio)
-					if err != nil {
-						return err
-					}
-					if _, err := os.Stat(customBrowserPath); err == nil {
-						validPath = true
-					} else {
-						fmt.Fprintf(color.Error, "\n❌ The path you entered is not valid\n")
-					}
-				}
-			}
-			browserPath = customBrowserPath
-
-			if browserKey == FirefoxKey {
-				err := RunFirefoxExtensionPrompts(browserPath)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		conf.CustomSSOBrowserPath = browserPath
-		err = conf.Save()
-		if err != nil {
-			return err
-		}
-
-		alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
-
-		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s.", grantedDefaultBrowser))
-	}
-
-	if out == "Pick different browser" {
+	if confirm {
 		browserPath, err := AskAndGetBrowserPath()
 		if err != nil {
 			return err
@@ -341,10 +286,8 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 		if err != nil {
 			return err
 		}
-
 		alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
-
-		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s for SSO flows.", browserPath))
+		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will use %s for SSO login prompts.", browserPath))
 	}
 	return nil
 
