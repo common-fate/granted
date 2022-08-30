@@ -40,6 +40,8 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "sso-region", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_REGION"}, Hidden: true},
 		&cli.StringFlag{Name: "account-id", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_ACCOUNT_ID"}, Hidden: true},
 		&cli.StringFlag{Name: "role-name", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_ROLE_NAME"}, Hidden: true},
+		&cli.StringFlag{Name: "aws-config-file", Usage: "A path to the AWS config file to load", EnvVars: []string{"AWS_CONFIG_FILE"}},
+		&cli.StringFlag{Name: "aws-credentials-file", Usage: "A path to the AWS credentials file to load", EnvVars: []string{"AWS_CONFIG_FILE"}},
 	}
 }
 
