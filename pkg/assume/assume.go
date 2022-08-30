@@ -34,7 +34,7 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	var profile *cfaws.Profile
-	if c.Bool("sso") {
+	if assumeFlags.Bool("sso") {
 		profile, err = SSOProfileFromFlags(c)
 		if err != nil {
 			return err
@@ -246,8 +246,14 @@ func AssumeCommand(c *cli.Context) error {
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
 		// the shell script treats "None" as an emprty string and will not set a value for that positional output
-		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration})
-		fmt.Printf("GrantedAssume %s %s %s %s %s %s", output...)
+		if assumeFlags.Bool("sso") {
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.AWSConfig.SSORoleName, region, sessionExpiration, "true", profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
+			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+		} else {
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "false", "", "", "", ""})
+			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+		}
+
 	}
 	return nil
 }
@@ -276,7 +282,7 @@ func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) e
 	c := exec.Command(args[0], args[1:]...)
 	c.Stdout = os.Stdout
 	c.Stderr = color.Error
-	c.Env = append(c.Env, EnvKeys(creds, region)...)
+	c.Env = append(os.Environ(), EnvKeys(creds, region)...)
 	return c.Run()
 }
 

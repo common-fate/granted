@@ -9,7 +9,7 @@ set -gx GRANTED_ALIAS_CONFIGURED "true"
 
 set GRANTED_OUTPUT (assumego $argv)
 set GRANTED_STATUS $status
-echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6
+echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11
 
 
 # remove carriage return
@@ -24,6 +24,11 @@ else if test "$GRANTED_FLAG" = "GrantedDesume"
   set -e AWS_PROFILE
   set -e AWS_REGION
   set -e AWS_SESSION_EXPIRATION
+  set -e GRANTED_SSO
+  set -e GRANTED_SSO_START_URL
+  set -e GRANTED_SSO_ROLE_NAME
+  set -e GRANTED_SSO_REGION
+  set -e GRANTED_SSO_ACCOUNT_ID
 else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_ACCESS_KEY_ID
   set -e AWS_SECRET_ACCESS_KEY
@@ -31,6 +36,11 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_PROFILE
   set -e AWS_REGION
   set -e AWS_SESSION_EXPIRATION
+  set -e GRANTED_SSO
+  set -e GRANTED_SSO_START_URL
+  set -e GRANTED_SSO_ROLE_NAME
+  set -e GRANTED_SSO_REGION
+  set -e GRANTED_SSO_ACCOUNT_ID
 
   set -gx GRANTED_COMMAND $argv
   if test "$GRANTED_1" != "None"
@@ -50,6 +60,21 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   end
   if test "$GRANTED_6" != "None"
     set -gx AWS_SESSION_EXPIRATION $GRANTED_6
+  end
+  if test "$GRANTED_7" != "None"
+    set -gx GRANTED_SSO $GRANTED_7
+  end
+  if test "$GRANTED_8" != "None"
+    set -gx GRANTED_SSO_START_URL $GRANTED_8
+  end
+  if test "$GRANTED_9" != "None"
+    set -gx GRANTED_SSO_ROLE_NAME $GRANTED_9
+  end
+  if test "$GRANTED_10" != "None"
+    set -gx GRANTED_SSO_REGION $GRANTED_10
+  end
+  if test "$GRANTED_11" != "None"
+    set -gx GRANTED_SSO_ACCOUNT_ID $GRANTED_11
   end
 
   if contains -- -s $argv
@@ -72,6 +97,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
       echo set -gx AWS_SESSION_EXPIRATION $GRANTED_6
     end
   end
+
 else if test "$GRANTED_FLAG" = "GrantedOutput"
   for line in $GRANTED_OUTPUT
       if test "$line" != "GrantedOutput"
