@@ -1,4 +1,4 @@
-PREFIX?=/usr/local/
+PREFIX?=/usr/local
 
 go-binary:
 	go build -o ./bin/dgranted cmd/granted/main.go
