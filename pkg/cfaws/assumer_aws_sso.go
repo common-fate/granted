@@ -102,7 +102,11 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			stsClient := sts.New(sts.Options{Credentials: aws.NewCredentialsCache(credProvider), Region: region})
 			stsp := stscreds.NewAssumeRoleProvider(stsClient, p.AWSConfig.RoleARN, func(aro *stscreds.AssumeRoleOptions) {
 				// all configuration goes in here for this profile
-				aro.RoleSessionName = sessionName()
+				if p.AWSConfig.RoleSessionName != "" {
+					aro.RoleSessionName = p.AWSConfig.RoleSessionName
+				} else {
+					aro.RoleSessionName = sessionName()
+				}
 				if p.AWSConfig.MFASerial != "" {
 					aro.SerialNumber = &p.AWSConfig.MFASerial
 					aro.TokenProvider = MfaTokenProvider
@@ -199,7 +203,7 @@ type PollingConfig struct {
 	TimeoutAfter  time.Duration
 }
 
-//PollToken will poll for a token and return it once the authentication/authorization flow has been completed in the browser
+// PollToken will poll for a token and return it once the authentication/authorization flow has been completed in the browser
 func PollToken(ctx context.Context, c *ssooidc.Client, clientSecret string, clientID string, deviceCode string, cfg PollingConfig) (*ssooidc.CreateTokenOutput, error) {
 	start := time.Now()
 	for {
