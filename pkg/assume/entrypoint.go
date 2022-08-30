@@ -39,7 +39,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "sso-start-url", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_START_URL"}, Hidden: true},
 		&cli.StringFlag{Name: "sso-region", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_REGION"}, Hidden: true},
 		&cli.StringFlag{Name: "account-id", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_ACCOUNT_ID"}, Hidden: true},
-		&cli.StringFlag{Name: "role-name", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_ROLE_NAME"}, Hidden: true},
+		&cli.StringFlag{Name: "role-name", Usage: "Assume a profile then execute this command", EnvVars: []string{"GRANTED_SSO_ROLE_NAME"}, Hidden: true},
 	}
 }
 

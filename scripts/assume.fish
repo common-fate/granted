@@ -26,7 +26,7 @@ else if test "$GRANTED_FLAG" = "GrantedDesume"
   set -e AWS_SESSION_EXPIRATION
   set -e GRANTED_SSO
   set -e GRANTED_SSO_START_URL
-  set -e GRANTED_ROLE_NAME
+  set -e GRANTED_SSO_ROLE_NAME
   set -e GRANTED_SSO_REGION
   set -e GRANTED_SSO_ACCOUNT_ID
 else if test "$GRANTED_FLAG" = "GrantedAssume"
@@ -38,7 +38,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_SESSION_EXPIRATION
   set -e GRANTED_SSO
   set -e GRANTED_SSO_START_URL
-  set -e GRANTED_ROLE_NAME
+  set -e GRANTED_SSO_ROLE_NAME
   set -e GRANTED_SSO_REGION
   set -e GRANTED_SSO_ACCOUNT_ID
 
@@ -68,7 +68,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
     set -gx GRANTED_SSO_START_URL $GRANTED_8
   end
   if test "$GRANTED_9" != "None"
-    set -gx GRANTED_ROLE_NAME $GRANTED_9
+    set -gx GRANTED_SSO_ROLE_NAME $GRANTED_9
   end
   if test "$GRANTED_10" != "None"
     set -gx GRANTED_SSO_REGION $GRANTED_10

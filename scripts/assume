@@ -34,7 +34,7 @@ if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
 
   unset GRANTED_SSO
   unset GRANTED_SSO_START_URL
-  unset GRANTED_ROLE_NAME
+  unset GRANTED_SSO_ROLE_NAME
   unset GRANTED_SSO_REGION
   unset GRANTED_SSO_ACCOUNT_ID
 fi
@@ -51,7 +51,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
 
   unset GRANTED_SSO
   unset GRANTED_SSO_START_URL
-  unset GRANTED_ROLE_NAME
+  unset GRANTED_SSO_ROLE_NAME
   unset GRANTED_SSO_REGION
   unset GRANTED_SSO_ACCOUNT_ID
 
@@ -84,7 +84,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
     export GRANTED_SSO_START_URL=${GRANTED_8}
   fi
   if [ ! "${GRANTED_9}" = "None" ]; then
-    export GRANTED_ROLE_NAME=${GRANTED_9}
+    export GRANTED_SSO_ROLE_NAME=${GRANTED_9}
   fi
   if [ ! "${GRANTED_10}" = "None" ]; then
     export GRANTED_SSO_REGION=${GRANTED_10}
@@ -121,7 +121,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
         echo export GRANTED_SSO_START_URL=${GRANTED_8}
       fi
       if [ ! "${GRANTED_9}" = "None" ]; then
-        echo export GRANTED_ROLE_NAME=${GRANTED_9}
+        echo export GRANTED_SSO_ROLE_NAME=${GRANTED_9}
       fi      
       if [ ! "${GRANTED_10}" = "None" ]; then
         echo export GRANTED_SSO_REGION=${GRANTED_10}

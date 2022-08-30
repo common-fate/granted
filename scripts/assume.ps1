@@ -4,7 +4,7 @@
 #ASSUME_n - the data from assumego
 $env:SHELL="ps"
 $env:GRANTED_ALIAS_CONFIGURED="true"
-$ASSUME_FLAG, $ASSUME_1, $ASSUME_2, $ASSUME_3, $ASSUME_4, $ASSUME_5, $ASSUME_6, $ASSUME_7, $ASSUME_8, $ASSUME_9= `
+$ASSUME_FLAG, $ASSUME_1, $ASSUME_2, $ASSUME_3, $ASSUME_4, $ASSUME_5, $ASSUME_6, $ASSUME_7, $ASSUME_8, $ASSUME_9, $ASSUME_10, $ASSUME_11= `
 $(& (Join-Path $PSScriptRoot -ChildPath "assumego") $args) -split '\s+'
 $env:ASSUME_STATUS = $LASTEXITCODE
 
@@ -17,8 +17,10 @@ if ( $ASSUME_FLAG -eq "GrantedDesume" ) {
     $env:AWS_REGION = ""
     $env:AWS_SESSION_EXPIRATION = ""
     $env:GRANTED_SSO = ""
-    $env:GRANTED_SSO_ROLE_NAME = ""
     $env:GRANTED_SSO_START_URL = ""
+    $env:GRANTED_SSO_ROLE_NAME = ""
+    $env:GRANTED_SSO_REGION = ""
+    $env:GRANTED_SSO_ACCOUNT_ID = ""
     exit
 }
 
@@ -33,9 +35,10 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
     $env:AWS_REGION = ""
     $env:AWS_SESSION_EXPIRATION = ""
     $env:GRANTED_SSO = ""
-    $env:GRANTED_SSO_ROLE_NAME = ""
     $env:GRANTED_SSO_START_URL = ""
-
+    $env:GRANTED_SSO_ROLE_NAME = ""
+    $env:GRANTED_SSO_REGION = ""
+    $env:GRANTED_SSO_ACCOUNT_ID = ""
     $env:ASSUME_COMMAND=$args
     if ( $ASSUME_1 -ne "None" ) {
         $env:AWS_ACCESS_KEY_ID = $ASSUME_1
@@ -66,6 +69,14 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
 
     if ( $ASSUME_9 -ne "None" ) {
         $env:GRANTED_SSO_ROLE_NAME = $ASSUME_9
+    }
+
+    if ( $ASSUME_10 -ne "None" ) {
+        $env:GRANTED_SSO_REGION = $ASSUME_10
+    }
+
+    if ( $ASSUME_11 -ne "None" ) {
+        $env:GRANTED_SSO_ACCOUNT_ID = $ASSUME_11
     }
 }
 
