@@ -94,6 +94,7 @@ func AssumeCommand(c *cli.Context) error {
 			in := survey.Select{
 				Message: "Please select the profile you would like to assume:",
 				Options: profileNames,
+				Filter:  filterMultiToken,
 			}
 			if len(profileNames) == 0 {
 				fmt.Fprintln(color.Error, "ℹ️ Granted couldn't find any aws roles")
@@ -312,4 +313,15 @@ func MakeGrantedOutput(s string) string {
 		out += " "
 	}
 	return out + s
+}
+
+func filterMultiToken(filterValue string, optValue string, optIndex int) bool {
+	optValue = strings.ToLower(optValue)
+	filters := strings.Split(strings.ToLower(filterValue), " ")
+	for _, filter := range filters {
+		if !strings.Contains(optValue, filter) {
+			return false
+		}
+	}
+	return true
 }
