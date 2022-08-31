@@ -32,18 +32,21 @@ func AssumeCommand(c *cli.Context) error {
 	if assumeFlags.String("exec") != "" && runtime.GOOS == "windows" {
 		return fmt.Errorf("--exec flag is not currently supported on Windows. Let us know if you'd like support for this: https://github.com/common-fate/granted/issues/new")
 	}
-
+	activeRoleProfile := assumeFlags.String("active-aws-profile")
+	activeRoleFlag := assumeFlags.Bool("active-role")
 	var profile *cfaws.Profile
 	if assumeFlags.Bool("sso") {
 		profile, err = SSOProfileFromFlags(c)
 		if err != nil {
 			return err
 		}
+	} else if activeRoleFlag && os.Getenv("GRANTED_SSO") == "true" {
+		profile, err = SSOProfileFromEnv()
+		if err != nil {
+			return err
+		}
 	} else {
-
 		var wg sync.WaitGroup
-		activeRoleProfile := assumeFlags.String("granted-active-aws-role-profile")
-		activeRoleFlag := assumeFlags.Bool("active-role")
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		profiles, err := cfaws.LoadProfiles()

@@ -2,6 +2,7 @@ package assume
 
 import (
 	"errors"
+	"os"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -17,6 +18,30 @@ func SSOProfileFromFlags(c *cli.Context) (*cfaws.Profile, error) {
 	}
 	s := &cfaws.AwsSsoAssumer{}
 	ssoStartURL, ssoRegion, accountID, roleName := ssoFlags(c)
+	p := &cfaws.Profile{
+		Name:        roleName,
+		ProfileType: s.Type(),
+		AWSConfig: config.SharedConfig{
+			SSOAccountID: accountID,
+			SSORoleName:  roleName,
+			SSORegion:    ssoRegion,
+			SSOStartURL:  ssoStartURL,
+		},
+		Initialised: true,
+	}
+	return p, nil
+}
+
+// SSOProfileFromEnv will prepare a profile to be assumed from environment variables
+func SSOProfileFromEnv() (*cfaws.Profile, error) {
+	ssoStartURL := os.Getenv("GRANTED_SSO_START_URL")
+	ssoRegion := os.Getenv("GRANTED_SSO_REGION")
+	accountID := os.Getenv("GRANTED_SSO_ACCOUNT_ID")
+	roleName := os.Getenv("GRANTED_SSO_ROLE_NAME")
+	if ssoStartURL == "" || ssoRegion == "" || accountID == "" || roleName == "" {
+		return nil, errors.New("one of the require environment variables was not found while loading an sso profile ['GRANTED_SSO_START_URL','GRANTED_SSO_REGION','GRANTED_SSO_ACCOUNT_ID','GRANTED_SSO_ROLE_NAME']")
+	}
+	s := &cfaws.AwsSsoAssumer{}
 	p := &cfaws.Profile{
 		Name:        roleName,
 		ProfileType: s.Type(),

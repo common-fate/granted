@@ -31,16 +31,15 @@ func GlobalFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
 		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
-		&cli.StringFlag{Name: "granted-active-aws-role-profile", EnvVars: []string{"AWS_PROFILE"}, Hidden: true},
+		&cli.StringFlag{Name: "active-aws-profile", EnvVars: []string{"AWS_PROFILE"}, Hidden: true},
 		&cli.BoolFlag{Name: "auto-configure-shell", Usage: "Configure shell alias without prompts"},
 		&cli.StringFlag{Name: "exec", Usage: "Assume a profile then execute this command"},
 		&cli.StringFlag{Name: "duration", Aliases: []string{"d"}, Usage: "Set session duration for your assumed role"},
-		&cli.BoolFlag{Name: "sso", Usage: "Assume an account and role with provided SSO flags", EnvVars: []string{"GRANTED_SSO"}, Hidden: true},
-		&cli.StringFlag{Name: "sso-start-url", Usage: "Use this in conjunction with --sso, the sso-start-url", EnvVars: []string{"GRANTED_SSO_START_URL"}, Hidden: true},
-		&cli.StringFlag{Name: "sso-region", Usage: "Use this in conjunction with --sso, the sso-region", EnvVars: []string{"GRANTED_SSO_REGION"}, Hidden: true},
-		&cli.StringFlag{Name: "account-id", Usage: "Use this in conjunction with --sso, the account-id", EnvVars: []string{"GRANTED_SSO_ACCOUNT_ID"}, Hidden: true},
-		&cli.StringFlag{Name: "role-name", Usage: "Use this in conjunction with --sso, the role-name", EnvVars: []string{"GRANTED_SSO_ROLE_NAME"}, Hidden: true},
-
+		&cli.BoolFlag{Name: "sso", Usage: "Assume an account and role with provided SSO flags"},
+		&cli.StringFlag{Name: "sso-start-url", Usage: "Use this in conjunction with --sso, the sso-start-url"},
+		&cli.StringFlag{Name: "sso-region", Usage: "Use this in conjunction with --sso, the sso-region"},
+		&cli.StringFlag{Name: "account-id", Usage: "Use this in conjunction with --sso, the account-id"},
+		&cli.StringFlag{Name: "role-name", Usage: "Use this in conjunction with --sso, the role-name"},
 	}
 }
 
