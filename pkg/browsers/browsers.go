@@ -18,19 +18,23 @@ const (
 
 // A few default paths to check for the browser
 var ChromePathMac = []string{"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"}
-var ChromePathLinux = []string{`/usr/bin/google-chrome`}
+var ChromePathLinux = []string{`/usr/bin/google-chrome`, `/../../mnt/c/Program Files/Google/Chrome/Application/chrome.exe`, `/../../mnt/c/Program Files (x86)/Google/Chrome/Application/chrome.exe`}
 var ChromePathWindows = []string{`\Program Files\Google\Chrome\Application\chrome.exe`, `\Program Files (x86)\Google\Chrome\Application\chrome.exe`}
+
 var BravePathMac = []string{"/Applications/Brave Browser.app/Contents/MacOS/Brave Browser"}
-var BravePathLinux = []string{`/usr/bin/brave-browser`}
+var BravePathLinux = []string{`/usr/bin/brave-browser`, `/../../mnt/c/Program Files/BraveSoftware/Brave-Browser/Application/brave.exe`}
 var BravePathWindows = []string{`\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe`}
+
 var EdgePathMac = []string{"/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge"}
-var EdgePathLinux = []string{`/usr/bin/edge`}
+var EdgePathLinux = []string{`/usr/bin/edge`, `/../../mnt/c/Program Files (x86)/Microsoft/Edge/Application/msedge.exe`}
 var EdgePathWindows = []string{`\Program Files (x86)\Microsoft\Edge\Application\msedge.exe`}
+
 var FirefoxPathMac = []string{"/Applications/Firefox.app/Contents/MacOS/firefox"}
-var FirefoxPathLinux = []string{`/usr/bin/firefox`}
+var FirefoxPathLinux = []string{`/usr/bin/firefox`, `/../../mnt/c/Program Files/Mozilla Firefox/firefox.exe`}
 var FirefoxPathWindows = []string{`\Program Files\Mozilla Firefox\firefox.exe`}
+
 var ChromiumPathMac = []string{"/Applications/Chromium.app/Contents/MacOS/Chromium"}
-var ChromiumPathLinux = []string{`/usr/bin/chromium`}
+var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program Files/Chromium/chromium.exe`}
 var ChromiumPathWindows = []string{`\Program Files\Chromium\chromium.exe`}
 
 func ChromePathDefaults() ([]string, error) {
