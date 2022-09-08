@@ -8,7 +8,6 @@ import (
 	"os/exec"
 	"time"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/smithy-go"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/fatih/color"
@@ -48,49 +47,14 @@ var CredentialsProcess = cli.Command{
 			fmt.Fprintln(color.Error, "Unhandled exception while initializing SSO")
 		}
 		// Yes it (now) can be assumed, run standard `aws aws-sso-credential-process..`
-		out, err := exec.Command("aws-sso-util", "credential-process", "--profile", profileName).Output()
+		// out, err := exec.Command("aws-sso-credential-process", "credential-process", "--profile", profileName).Output()
+		out, err := exec.Command("aws-sso-credential-process", "credential-process", "--profile", profileName).Output()
 		if err != nil {
-			log.Fatalln("Error running native aws-sso-util with profile: "+profileName, err.Error())
+			log.Fatalln("Error running native aws-sso-credential-process with profile: "+profileName, err.Error())
 			log.Fatal(err)
 		}
 		// Export the credentials in json format
 		fmt.Print(string(out))
-
-		return nil
-	},
-}
-
-var ConfigSetup = cli.Command{
-	Name:  "setup",
-	Usage: "Alters your AWS Config credential_processs",
-	Action: func(c *cli.Context) error {
-
-		fmt.Println("This will override the `credential_process` in your config file.")
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := &survey.Confirm{
-			Message: "Would you like to proceed?",
-			Default: false,
-		}
-		var confirm bool
-		err := survey.AskOne(in, &confirm, withStdio)
-		if err != nil {
-			return err
-		}
-		if !confirm {
-			return errors.New("cancelled alias installation")
-		}
-
-		// load the default config
-
-		// Itterate over each section
-
-		// If a section contains a non-standard credential_process
-
-		// Prompt the user for confrimation
-
-		// Write to credential_process our custom script
-
-		// Done :)
 
 		return nil
 	},
