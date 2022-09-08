@@ -3,7 +3,9 @@ package granted
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
+	"os/exec"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -36,11 +38,18 @@ var CredentialsProcess = cli.Command{
 		// Check if the session can be assumed
 		err := CheckIfRequiresApproval(c, "cf-dev")
 		if err != nil {
-			fmt.Fprintln(color.Error, "Unhandled exception while initializing SSO")
 			os.Exit(1)
+			fmt.Fprintln(color.Error, "Unhandled exception while initializing SSO")
 		}
 		// Yes it can be assumed, run standard `aws aws-sso-credential-process..`
-		// err = exec.Command("aws-sso-credential-process", "--profile", "cf-dev").Run()
+		out, err := exec.Command("aws-sso-util", "credential-process", "--profile", "cf-dev").Output()
+		if err != nil {
+			log.Fatal("err1", err.Error())
+			log.Fatal(err)
+		}
+		log.Fatal("err2")
+		log.Fatal(string(out))
+		fmt.Printf(string(out))
 
 		// Export the credentials in json format
 
@@ -111,12 +120,11 @@ func CheckIfRequiresApproval(c *cli.Context, profileName string) error {
 			serr, ok := err.(*smithy.OperationError)
 			if ok {
 				if serr.ServiceID == "SSO" {
-					baseUrl, ruleId := "granted.dev", "rul_2BtW97o6jTacUuzxNJZorACn5v0"
+					baseUrl, ruleId := "internal.prod.granted.run/", "rul_2BtW97o6jTacUuzxNJZorACn5v0"
 					// Guide user to common fate if error
-					s := fmt.Sprintf("ERROR: You need to request access to this role: https://%s/access/request/%s", baseUrl, ruleId)
+					s := fmt.Sprintf(color.YellowString("\n\nYou need to request access to this role:")+"\nhttps://%s/access/request/%s\n", baseUrl, ruleId)
 
-					fmt.Println(s)
-					os.Exit(1)
+					log.Fatal(s)
 				}
 			}
 			return err
