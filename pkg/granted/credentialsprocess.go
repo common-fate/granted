@@ -46,6 +46,17 @@ var CredentialsProcess = cli.Command{
 			os.Exit(1)
 			fmt.Fprintln(color.Error, "Unhandled exception while initializing SSO")
 		}
+
+		// Note: an option here that hooks into the native aws sso workflow
+		fmt.Print(`{
+			"Version": 1,
+			"AccessKeyId": "an AWS access key",
+			"SecretAccessKey": "your AWS secret access key",
+			"SessionToken": "the AWS session token for temporary credentials", 
+			"Expiration": "ISO8601 timestamp when the credentials expire"
+		  }`)
+		return nil
+
 		// Yes it (now) can be assumed, run standard `aws aws-sso-credential-process..`
 		// out, err := exec.Command("aws-sso-credential-process", "credential-process", "--profile", profileName).Output()
 		out, err := exec.Command("aws-sso-credential-process", "credential-process", "--profile", profileName).Output()
