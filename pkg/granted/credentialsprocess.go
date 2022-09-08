@@ -35,25 +35,26 @@ var CredentialsProcess = cli.Command{
 	Flags:       []cli.Flag{&cli.StringFlag{Name: "profile"}},
 	Action: func(c *cli.Context) error {
 
+		profileName := c.String("profile")
+
+		if profileName == "" {
+			log.Fatalln("Mis-configured aws config file.\n--profile flag must be passed")
+		}
+
 		// Check if the session can be assumed
-		err := CheckIfRequiresApproval(c, "cf-dev")
+		err := CheckIfRequiresApproval(c, profileName)
 		if err != nil {
 			os.Exit(1)
 			fmt.Fprintln(color.Error, "Unhandled exception while initializing SSO")
 		}
-		// Yes it can be assumed, run standard `aws aws-sso-credential-process..`
-		out, err := exec.Command("aws-sso-util", "credential-process", "--profile", "cf-dev").Output()
+		// Yes it (now) can be assumed, run standard `aws aws-sso-credential-process..`
+		out, err := exec.Command("aws-sso-util", "credential-process", "--profile", profileName).Output()
 		if err != nil {
-			log.Fatal("err1", err.Error())
+			log.Fatalln("Error running native aws-sso-util with profile: "+profileName, err.Error())
 			log.Fatal(err)
 		}
-		log.Fatal("err2")
-		log.Fatal(string(out))
-		fmt.Printf(string(out))
-
 		// Export the credentials in json format
-
-		// Else log a message to the console
+		fmt.Print(string(out))
 
 		return nil
 	},
