@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"os"
 	"time"
 
 	"github.com/aws/smithy-go"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/config"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
@@ -30,17 +30,25 @@ var CredentialsProcess = cli.Command{
 	Usage:       "",
 	Hidden:      true,
 	Subcommands: []*cli.Command{&ConfigSetup},
-	Flags:       []cli.Flag{&cli.StringFlag{Name: "profile"}},
+	Flags:       []cli.Flag{&cli.StringFlag{Name: "profile"}, &cli.StringFlag{Name: "rule"}},
 	Action: func(c *cli.Context) error {
 
+		url := ""
 		profileName := c.String("profile")
+		// ruleId := c.String("rule")
+
+		conf, err := config.Load()
+		if err != nil {
+			log.Fatal("Failed to load Config for GrantedApprovalsUrl")
+		}
+		url = conf.GrantedApprovalsUrl
+		if url == "" {
+			log.Fatal("It looks like you haven't setup your GrantedApprovalsUrl\nTo do so please run: " + c.App.Name + " setup")
+		}
 
 		if profileName == "" {
 			log.Fatalln("Mis-configured aws config file.\n--profile flag must be passed")
 		}
-
-		// Check if the session can be assumed
-		// err := CheckIfRequiresApproval(c, profileName)
 
 		var profile *cfaws.Profile
 
@@ -61,19 +69,15 @@ var CredentialsProcess = cli.Command{
 				serr, ok := err.(*smithy.OperationError)
 				if ok {
 					if serr.ServiceID == "SSO" {
-						baseUrl, ruleId := "internal.prod.granted.run/", "rul_2BtW97o6jTacUuzxNJZorACn5v0"
+						baseUrl, ruleId := url, "rul_2BtW97o6jTacUuzxNJZorACn5v0"
 						// Guide user to common fate if error
 						s := fmt.Sprintf(color.YellowString("\n\nYou need to request access to this role:")+"\nhttps://%s/access/request/%s\n", baseUrl, ruleId)
 
 						log.Fatal(s)
 					}
+				} else {
+					log.Fatalln("\nError running credential with profile: "+profileName, err.Error())
 				}
-				return err
-			}
-
-			if err != nil {
-				os.Exit(1)
-				fmt.Fprintln(color.Error, "Unhandled exception while initializing SSO")
 			}
 
 			var out AWSCredsStdOut
@@ -86,20 +90,8 @@ var CredentialsProcess = cli.Command{
 
 			jsonOut, err := json.Marshal(out)
 			if err != nil {
-				fmt.Printf("Error: %s", err)
+				log.Fatalln("\nUnhandled error when unmarshalling json creds")
 			}
-
-			// Fetch the creds
-			// assume.AssumeCommand2(c)
-
-			// Yes it (now) can be assumed, run standard `aws aws-sso-credential-process..`
-			// out, err := exec.Command("aws-sso-credential-process", "credential-process", "--profile", profileName).Output()
-			// out, err := exec.Command("aws-sso-util", "credential-process", "--profile", profileName).Output()
-			// if err != nil {
-			// 	log.Fatalln("\nError running native aws-sso-credential-process with profile: "+profileName, err.Error())
-			// 	log.Fatal(err)
-			// }
-			// Export the credentials in json format
 			fmt.Print(string(jsonOut))
 		}
 
@@ -107,12 +99,4 @@ var CredentialsProcess = cli.Command{
 	},
 }
 
-// /**
-// * IO = return nil, log fatal error if User does not have access to the SSO role
-// * IO = return error, log nothing if unhandled exception
-//  */
-// func CheckIfRequiresApproval(c *cli.Context, profileName string) error {
-
-// }
-
-// // @TODO: we may also want to add an automated process that handles sync to ensure the config is never stale
+// @TODO: we may also want to add an automated process that handles sync to ensure the config is never stale

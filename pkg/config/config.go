@@ -25,6 +25,8 @@ type Config struct {
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
+	// This is used to generate reference URls
+	GrantedApprovalsUrl string
 }
 
 type KeyringConfig struct {
