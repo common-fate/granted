@@ -68,10 +68,15 @@ var CredentialsProcess = cli.Command{
 			if err != nil {
 				serr, ok := err.(*smithy.OperationError)
 				if ok {
+					// @TODO: this still seems to trigger when ...
+					// 1. revoke any access to cf-dev
+					// 2. request access and wait for grant = active
+					// 3. try run `aws s3 ls --profile granted.cf-dev`
+					// 4. it should auto assume the role, but instead it throws below error \/ \/
 					if serr.ServiceID == "SSO" {
 						baseUrl, ruleId := url, "rul_2BtW97o6jTacUuzxNJZorACn5v0"
 						// Guide user to common fate if error
-						s := fmt.Sprintf(color.YellowString("\n\nYou need to request access to this role:")+"\nhttps://%s/access/request/%s\n", baseUrl, ruleId)
+						s := fmt.Sprintf(color.YellowString("\n\nYou need to request access to this role:")+"\n%s/access/request/%s\n", baseUrl, ruleId)
 
 						log.Fatal(s)
 					}
