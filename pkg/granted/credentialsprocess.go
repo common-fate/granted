@@ -74,9 +74,16 @@ var CredentialsProcess = cli.Command{
 					// 3. try run `aws s3 ls --profile granted.cf-dev`
 					// 4. it should auto assume the role, but instead it throws below error \/ \/
 					if serr.ServiceID == "SSO" {
-						baseUrl, ruleId := url, "rul_2BtW97o6jTacUuzxNJZorACn5v0"
+
+						// type=aws-sso&roleName=AWSAdministratorAccess&accountId=123456789012
+						credsType := "aws-sso"
+						roleName := "AWSAdministratorAccess"
+						accountId := "123456789012"
+
+						roleUrl := fmt.Sprintf("%srequest?type=%s&roleName=%s&accountId=%s", url, credsType, roleName, accountId)
+
 						// Guide user to common fate if error
-						s := fmt.Sprintf(color.YellowString("\n\nYou need to request access to this role:")+"\n%s/access/request/%s\n", baseUrl, ruleId)
+						s := fmt.Sprintf(color.YellowString("\n\nYou need to request access to this role:")+"\n%s", roleUrl)
 
 						log.Fatal(s)
 					}

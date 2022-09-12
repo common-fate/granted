@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/aws/aws-sdk-go-v2/aws/arn"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -94,13 +95,31 @@ var ConfigSetup = cli.Command{
 				p.ProfileNames = append(p.ProfileNames, name)
 				p.Profiles[name] = &cfaws.Profile{RawConfig: rawConfig, Name: name, File: configPath}
 
+				var roleName string
+				var accountId string
+
+				// Check if SSO
+				if _, ok := rawConfig["sso_start_url"]; ok {
+					roleName = rawConfig["sso_role_name"]
+					accountId = rawConfig["sso_account_id"]
+				} else {
+					parsed, err := arn.Parse(rawConfig["role_arn"])
+					if err != nil {
+						fmt.Fprintf(color.Error, "failed to parse role_arn for profile %s: %s\n", name, err)
+						continue
+					}
+					// resource formatted like 'role/roleName', strip the role/ prefix
+					roleName = strings.TrimPrefix(parsed.Resource, "role/")
+					accountId = parsed.AccountID
+				}
+
 				// Now append this to the new config
 				s := "profile granted." + name
 				// Write to credential_process our custom script
 				// First clear the exisiting credential_process if its there
 				configFile.RemoveSection(s)
 				configFile.AddSection(s)
-				configFile.Set(s, "credential_process", "dgranted credentialsprocess --profile "+name)
+				configFile.Set(s, "credential_process", "dgranted credentialsprocess --account "+accountId+" --role "+roleName)
 			}
 		}
 		// This is just a secondary backup to +2
