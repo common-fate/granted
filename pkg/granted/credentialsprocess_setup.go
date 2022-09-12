@@ -20,27 +20,30 @@ var ConfigSetup = cli.Command{
 	Usage: "Alters your AWS Config credential_processs",
 	Action: func(c *cli.Context) error {
 
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := &survey.Input{
-			Message: "What is the base url of your Granted Approvals deployment\n",
-			Help:    "Enter a base URL without trailing slash i.e. https://commonfate.approvals.dev",
-		}
 		var url string
-		err := survey.AskOne(in, &url, withStdio)
-		if err != nil {
-			return err
-		}
-		if url == "" {
-			return errors.New("cancelled setup process")
-		}
 		gConf, err := grantedConfig.Load()
 		if err != nil {
 			return errors.New("failed to load Config for GrantedApprovalsUrl")
 		}
-		gConf.GrantedApprovalsUrl = url
-		err = gConf.Save()
-		if err != nil {
-			return err
+
+		if gConf.GrantedApprovalsUrl == "" {
+			in := &survey.Input{
+				Message: "What is the base url of your Granted Approvals deployment\n",
+				Help:    "Enter a base URL without trailing slash i.e. https://commonfate.approvals.dev",
+			}
+			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+			err := survey.AskOne(in, &url, withStdio)
+			if err != nil {
+				return err
+			}
+			if url == "" {
+				return errors.New("cancelled setup process")
+			}
+			gConf.GrantedApprovalsUrl = url
+			err = gConf.Save()
+			if err != nil {
+				return err
+			}
 		}
 
 		p := cfaws.Profiles{Profiles: make(map[string]*cfaws.Profile)}
@@ -63,7 +66,7 @@ var ConfigSetup = cli.Command{
 		}
 
 		fmt.Println("This will add new sections to your aws config")
-		withStdio = survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		confirmIn := &survey.Confirm{
 			Message: "Would you like to proceed?",
 			Default: true,
@@ -76,8 +79,6 @@ var ConfigSetup = cli.Command{
 		if !confirm {
 			return errors.New("cancelled setup process")
 		}
-
-		newConfigSections := configparser.New()
 
 		// Itterate over each section
 		for _, section := range configFile.Sections() {
@@ -95,21 +96,25 @@ var ConfigSetup = cli.Command{
 
 				// Now append this to the new config
 				s := "profile granted." + name
-				newConfigSections.AddSection(s)
-				newConfigSections.Set(s, "credential_process", "dgranted credentialsprocess --profile "+name)
 				// Write to credential_process our custom script
+				// First clear the exisiting credential_process if its there
+				configFile.RemoveSection(s)
 				configFile.AddSection(s)
 				configFile.Set(s, "credential_process", "dgranted credentialsprocess --profile "+name)
 			}
 		}
 		// This is just a secondary backup to +2
 		configFile.SaveWithDelimiter(configPath, "=")
-		newConfigSections.SaveWithDelimiter(configPath+"2", "=")
 		if err != nil {
 			fmt.Println(err.Error())
 		}
 
 		// Done :)
+		// if err != nil {
+		// 	fmt.Println(err.Error())
+		// }
+
+		// configFile.SaveWithDelimiter(configPath, "=")
 
 		return nil
 	},
