@@ -184,6 +184,27 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 	}
 	return pr, nil
 }
+
+func (p *Profiles) LoadDefaultSSOConfig(ctx context.Context, profile string) (aws.Credentials, error) {
+	cfg, err := config.LoadDefaultConfig(ctx,
+		config.WithSharedConfigProfile(profile),
+	)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+
+	if cfg.Credentials == nil {
+		return aws.Credentials{}, fmt.Errorf("Empty cred")
+	}
+
+	awsConfig, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve((ctx))
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+
+	return awsConfig, nil
+}
+
 func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error {
 	if !p.Initialised {
 		// Ensures this recursive call does not exceed a maximum depth
