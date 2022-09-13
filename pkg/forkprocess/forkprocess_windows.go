@@ -45,7 +45,7 @@ func New(args ...string) (*Process, error) {
 // In Windows we fall back to exec.Command().
 func (p *Process) Start() error {
 	cmd := exec.Command(p.Args[0], p.Args[1:]...)
-	err = cmd.Start()
+	err := cmd.Start()
 	if err != nil {
 		return errors.Wrap(err, "starting command")
 	}
