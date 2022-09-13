@@ -266,7 +266,7 @@ func AssumeCommand(c *cli.Context) error {
 		err = cmd.Start()
 		if err != nil {
 			fmt.Fprintf(color.Error, "Granted was unable to open a browser session automatically: %s", err.Error())
-			//allow them to try open the url manually
+			// allow them to try open the url manually
 			alert := color.New(color.Bold, color.FgYellow).SprintFunc()
 			fmt.Fprintf(os.Stdout, "\nOpen session manually using the following url:\n")
 			fmt.Fprintf(os.Stdout, "\n%s\n", alert("", consoleURL))
