@@ -1,3 +1,5 @@
+//go:build !windows
+
 // Package forkprocess starts a process which runs in the background.
 // In Granted we use it to launch a browser when the user requests a web console.
 // Previously, we used exec.Command from Go's stdlib for this, but is susceptible
@@ -18,15 +20,15 @@ import (
 )
 
 type Process struct {
-	UID uint32
-	GID uint32
-	Args []string
+	UID     uint32
+	GID     uint32
+	Args    []string
 	Workdir string
 }
 
 // New creates a new Process with the current user's user and group ID.
 // Call Start() on the returned process to actually it.
-func New(args... string) (*Process, error) {
+func New(args ...string) (*Process, error) {
 	u, err := user.Current()
 	if err != nil {
 		return nil, errors.Wrap(err, "getting current user")
@@ -39,15 +41,14 @@ func New(args... string) (*Process, error) {
 	if err != nil {
 		return nil, errors.Wrapf(err, "parsing gid (%s)", u.Uid)
 	}
-	
+
 	p := Process{
-		UID: uint32(uid),
-		GID: uint32(gid),
+		UID:  uint32(uid),
+		GID:  uint32(gid),
 		Args: args,
 	}
 	return &p, nil
 }
-
 
 // Start launches a detached process under the current user and group ID.
 func (p *Process) Start() error {
@@ -90,4 +91,3 @@ func (p *Process) Start() error {
 	}
 	return nil
 }
-
