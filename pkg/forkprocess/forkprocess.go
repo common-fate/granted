@@ -82,12 +82,12 @@ func (p *Process) Start() error {
 	}
 	process, err := os.StartProcess(p.Args[0], p.Args, &attr)
 	if err != nil {
-		errors.Wrap(err, "starting process")
+		return errors.Wrap(err, "starting process")
 	}
 
 	err = process.Release()
 	if err != nil {
-		errors.Wrap(err, "releasing process")
+		return errors.Wrap(err, "releasing process")
 	}
 	return nil
 }
