@@ -3,10 +3,9 @@
 package forkprocess
 
 import (
-	"os"
+	"os/exec"
 	"os/user"
 	"strconv"
-	"syscall"
 
 	"github.com/pkg/errors"
 )
