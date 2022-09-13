@@ -106,8 +106,10 @@ var PopulateCommand = cli.Command{
 			return err
 		}
 
-		config.SaveWithDelimiter(configFilename, "=")
-
+		err = config.SaveWithDelimiter(configFilename, "=")
+		if err != nil {
+			return err
+		}
 		return nil
 	},
 }
@@ -119,7 +121,7 @@ func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
 		return nil, err
 	}
 
-	if match == false {
+	if !match {
 		return nil, fmt.Errorf("--prefix flag must be alpha-numeric, underscores or hyphens")
 	}
 
@@ -238,17 +240,32 @@ func mergeSSOProfiles(config *configparser.ConfigParser, prefix string, ssoProfi
 		sectionName := "profile " + prefix + normalizeAccountName(ssoProfile.AccountName) + "-" + ssoProfile.RoleName
 
 		if config.HasSection(sectionName) {
-			config.RemoveSection(sectionName)
+			err := config.RemoveSection(sectionName)
+			if err != nil {
+				return err
+			}
 		}
 
 		if err := config.AddSection(sectionName); err != nil {
 			return err
 		}
 
-		config.Set(sectionName, "sso_start_url", ssoProfile.StartUrl)
-		config.Set(sectionName, "sso_region", ssoProfile.SSORegion)
-		config.Set(sectionName, "sso_account_id", ssoProfile.AccountId)
-		config.Set(sectionName, "sso_role_name", ssoProfile.RoleName)
+		err := config.Set(sectionName, "sso_start_url", ssoProfile.StartUrl)
+		if err != nil {
+			return err
+		}
+		err = config.Set(sectionName, "sso_region", ssoProfile.SSORegion)
+		if err != nil {
+			return err
+		}
+		err = config.Set(sectionName, "sso_account_id", ssoProfile.AccountId)
+		if err != nil {
+			return err
+		}
+		err = config.Set(sectionName, "sso_role_name", ssoProfile.RoleName)
+		if err != nil {
+			return err
+		}
 	}
 
 	return nil
