@@ -3,6 +3,7 @@ package cfaws
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -14,11 +15,8 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/browsers"
 	grantCfg "github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
-	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 )
 
@@ -174,20 +172,22 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	if err != nil {
 		return nil, err
 	}
+
+	browserCommand := "open" // we default to running 'open <URL>'
+
 	if config.CustomSSOBrowserPath != "" {
-		err = browsers.OpenUrlWithCustomBrowser(url)
-
-		if err != nil {
-			// fail silently
-			debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
-
-		}
-	} else {
-		err = browser.OpenURL(url)
-		if err != nil {
-			// fail silently
-			debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
-		}
+		// replace the 'open' command with a call to the custom browser path.
+		browserCommand = config.CustomSSOBrowserPath
+	}
+	cmd := exec.Command(browserCommand, url) // TODO:CHR why do we need the spaces around the URL?
+	err = cmd.Start()
+	if err != nil {
+		return nil, err
+	}
+	// detach from this new process because it continues to run
+	err = cmd.Process.Release()
+	if err != nil {
+		return nil, err
 	}
 
 	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
@@ -197,7 +197,6 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	}
 
 	return &SSOToken{AccessToken: *token.AccessToken, Expiry: time.Now().Add(time.Duration(token.ExpiresIn) * time.Second)}, nil
-
 }
 
 var ErrTimeout error = errors.New("polling for device authorization token timed out")

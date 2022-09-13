@@ -131,7 +131,7 @@ func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
 	}
 
 	if c.Args().Len() != 1 {
-		return nil, fmt.Errorf("Please provide an sso start url")
+		return nil, fmt.Errorf("please provide an sso start url")
 	}
 
 	startUrl := c.Args().First()

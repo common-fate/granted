@@ -1,4 +1,4 @@
-package browsers
+package browser
 
 import (
 	"fmt"
@@ -256,7 +256,6 @@ func GrantedIntroduction() {
 	fmt.Fprintf(color.Error, "\n`assume -c <PROFILE_NAME>` - open the console for the specified profile\n")
 
 	os.Exit(0)
-
 }
 
 func SSOBrowser(grantedDefaultBrowser string) error {

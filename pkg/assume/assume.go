@@ -1,8 +1,11 @@
 package assume
 
 import (
+	"errors"
 	"fmt"
+	"net/url"
 	"os/exec"
+	"path"
 	"runtime"
 	"strings"
 	"sync"
@@ -12,17 +15,28 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/common-fate/granted/pkg/browsers"
+	"github.com/common-fate/granted/pkg/assumeprint"
+	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/console"
+	"github.com/common-fate/granted/pkg/forkprocess"
+	"github.com/common-fate/granted/pkg/launcher"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
+// Launchers give a command that we need to run in order to launch a browser, such as
+// 'open <URL>' or 'firefox --new-tab <URL'. The returned command is a string slice,
+// with each element being an argument. (e.g. []string{"firefox", "--new-tab", "<URL>"})
+type Launcher interface {
+	LaunchCommand(url string, profile string) []string
+}
+
 func AssumeCommand(c *cli.Context) error {
-	// this custom behavious allows flags to be passed on either side of the role arg
+	// assumeFlags allows flags to be passed on either side of the role argument.
 	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
 	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
@@ -62,7 +76,7 @@ func AssumeCommand(c *cli.Context) error {
 			}
 		}
 
-		//set the sesh creds using the active role if we have one and the flag is set
+		//set the session creds using the active role if we have one and the flag is set
 		if activeRoleFlag && activeRoleProfile != "" {
 			if !profiles.HasProfile(activeRoleProfile) {
 				fmt.Fprintf(color.Error, "you tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files\n", activeRoleProfile)
@@ -165,43 +179,100 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	openBrower := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
 
-	if openBrower {
-		// these are just labels for the tabs so we may need to updates these for the sso role context
+	// if getConsoleURL is true, we'll use the AWS federated login to retrieve a URL to access the console.
+	// depending on how Granted is configured, this is then printed to the terminal or a browser is launched at the URL automatically.
+	getConsoleURL := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
 
-		browserOpts := browsers.BrowserOpts{Profile: profile.Name}
-		service := assumeFlags.String("service")
+	if getConsoleURL {
+		con := console.AWS{
+			Profile: profile.Name,
+			Service: assumeFlags.String("service"),
+			Region:  region,
+		}
 
-		browserOpts.Region = region
-		browserOpts.Service = service
-
-		var creds aws.Credentials
-
-		creds, err = profile.AssumeConsole(c.Context, configOpts)
+		creds, err := profile.AssumeConsole(c.Context, configOpts)
 		if err != nil {
 			return err
 		}
 
-		if assumeFlags.Bool("url") || cfg.DefaultBrowser == browsers.StdoutKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
-			url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), browserOpts, service, region)
-			if err != nil {
-				return err
-			}
-			if cfg.DefaultBrowser == browsers.FirefoxKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
-				url = browsers.MakeFirefoxContainerURL(url, browserOpts)
-				if err != nil {
-					return err
-				}
-			}
-			// return the url via stdout through the cli wrapper script
-			fmt.Print(MakeGrantedOutput(url))
-		} else {
-			browsers.PromoteUseFlags(browserOpts)
-			fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
-			return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), browserOpts, service, region)
+		consoleURL, err := con.URL(creds)
+		if err != nil {
+			return err
 		}
 
+		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
+			// tranform the URL into the Firefox Tab Container format.
+			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s", profile.Name, url.QueryEscape(consoleURL))
+		}
+
+		justPrintURL := assumeFlags.Bool("url") || cfg.DefaultBrowser == browser.StdoutKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey
+		if justPrintURL {
+			// return the url via stdout through the CLI wrapper script and return early.
+			fmt.Print(assumeprint.SafeOutput(consoleURL))
+			return nil
+		}
+
+		browserPath := cfg.CustomBrowserPath
+		if browserPath == "" {
+			return errors.New("default browser not configured. run `granted browser set` to configure")
+		}
+
+		grantedFolder, err := config.GrantedConfigFolder()
+		if err != nil {
+			return err
+		}
+
+		var l Launcher
+		switch cfg.DefaultBrowser {
+		case browser.ChromeKey:
+			l = launcher.ChromeProfile{
+				ExecutablePath: browserPath,
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "1"), // held over for backwards compatibility, "1" indicates Chrome profiles
+			}
+		case browser.BraveKey:
+			l = launcher.ChromeProfile{
+				ExecutablePath: browserPath,
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "2"), // held over for backwards compatibility, "2" indicates Brave profiles
+			}
+		case browser.EdgeKey:
+			l = launcher.ChromeProfile{
+				ExecutablePath: browserPath,
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "3"), // held over for backwards compatibility, "3" indicates Edge profiles
+			}
+		case browser.ChromiumKey:
+			l = launcher.ChromeProfile{
+				ExecutablePath: browserPath,
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "4"), // held over for backwards compatibility, "4" indicates Chromium profiles
+			}
+		case browser.FirefoxKey:
+			l = launcher.Firefox{
+				ExecutablePath: browserPath,
+			}
+		default:
+			l = launcher.Open{}
+		}
+
+		printFlagUsage(con.Region, con.Service)
+		fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
+
+		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
+		args := l.LaunchCommand(consoleURL, con.Profile)
+
+		cmd, err := forkprocess.New(args...)
+		if err != nil {
+			return err
+		}
+		err = cmd.Start()
+		if err != nil {
+			fmt.Fprintf(color.Error, "Granted was unable to open a browser session automatically: %s", err.Error())
+			//allow them to try open the url manually
+			alert := color.New(color.Bold, color.FgYellow).SprintFunc()
+			fmt.Fprintf(os.Stdout, "\nOpen session manually using the following url:\n")
+			fmt.Fprintf(os.Stdout, "\n%s\n", alert("", consoleURL))
+			return err
+		}
+		return nil
 	} else {
 		creds, err := profile.AssumeTerminal(c.Context, configOpts)
 		if err != nil {
@@ -237,9 +308,7 @@ func AssumeCommand(c *cli.Context) error {
 			} else {
 				profileName = profile.Name
 				yellow := color.New(color.FgYellow)
-
 				yellow.Fprintln(color.Error, "No credential suffix found. This can cause issues with using exported credentials if conflicting profiles exist. Run `granted settings export-suffix set` to set one.")
-
 			}
 
 			green.Fprintln(color.Error, fmt.Sprintf("Exported credentials to ~.aws/credentials file as %s successfully", profileName))
@@ -257,7 +326,6 @@ func AssumeCommand(c *cli.Context) error {
 			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "false", "", "", "", ""})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 		}
-
 	}
 	return nil
 }
@@ -281,7 +349,7 @@ func PrepareStringsForShellScript(in []string) []interface{} {
 // it splits these then runs the command with teh credentials as the environment.
 // The output of this is returned via the assume script to stdout so it may be processed further by piping
 func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) error {
-	fmt.Print(MakeGrantedOutput(""))
+	fmt.Print(assumeprint.SafeOutput(""))
 	args := strings.Split(cmd, " ")
 	c := exec.Command(args[0], args[1:]...)
 	c.Stdout = os.Stdout
@@ -298,26 +366,6 @@ func EnvKeys(creds aws.Credentials, region string) []string {
 		"AWS_REGION=" + region}
 }
 
-// MakeGrantedOutput formats a string to match the requirements of granted output in the shell script
-// Currently in windows, the grantedoutput is handled differently, as linux and mac support the exec cli flag whereas windows does not yet have support
-// this method may be changed in future if we implement support for "--exec" in windows
-func MakeGrantedOutput(s string) string {
-	// if the GRANTED_ALIAS_CONFIGURED env variable isn't set,
-	// we aren't running in the context of the `assume` shell script.
-	// If this is the case, don't add a prefix to the output as we don't have the
-	// wrapper shell script to parse it.
-	if os.Getenv("GRANTED_ALIAS_CONFIGURED") != "true" {
-		return ""
-	}
-	out := "GrantedOutput"
-	if runtime.GOOS != "windows" {
-		out += "\n"
-	} else {
-		out += " "
-	}
-	return out + s
-}
-
 func filterMultiToken(filterValue string, optValue string, optIndex int) bool {
 	optValue = strings.ToLower(optValue)
 	filters := strings.Split(strings.ToLower(filterValue), " ")
@@ -327,4 +375,20 @@ func filterMultiToken(filterValue string, optValue string, optIndex int) bool {
 		}
 	}
 	return true
+}
+
+func printFlagUsage(region, service string) {
+	var m []string
+
+	if region == "" {
+		m = append(m, "use -r to open a specific region")
+	}
+
+	if service == "" {
+		m = append(m, "use -s to open a specific service")
+	}
+
+	if region == "" || service == "" {
+		fmt.Fprintf(color.Error, "\nℹ️  %s (https://docs.commonfate.io/granted/usage/console)\n", strings.Join(m, " or "))
+	}
 }
