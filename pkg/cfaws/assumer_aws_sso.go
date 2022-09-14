@@ -53,43 +53,53 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		requiresAssuming = true
 	}
 
-	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
 	cfg := aws.NewConfig()
 	cfg.Region = rootProfile.AWSConfig.SSORegion
 
-	cachedToken := GetValidCachedToken(ssoTokenKey)
-	var err error
-	newToken := false
-	if cachedToken == nil {
-		newToken = true
-		cachedToken, err = SSODeviceCodeFlow(ctx, *cfg, rootProfile)
+	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
+	var accessToken string
+
+	var rootCreds aws.Credentials
+	var credProvider *CredProv
+
+	// skip searching for token if credentials are fetched from ~/.aws/sso/cache
+	if !rootProfile.IsDefaultCredential {
+		cachedToken := GetValidCachedToken(ssoTokenKey)
+		var err error
+		newToken := false
+		if cachedToken == nil {
+			newToken = true
+			cachedToken, err = SSODeviceCodeFlow(ctx, *cfg, rootProfile)
+			if err != nil {
+				return aws.Credentials{}, err
+			}
+			accessToken = cachedToken.AccessToken
+
+		}
+		if newToken {
+			StoreSSOToken(ssoTokenKey, *cachedToken)
+		}
+
+		// create sso client
+		ssoClient := sso.NewFromConfig(*cfg)
+
+		res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &accessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
 		if err != nil {
+			var unauthorised *ssotypes.UnauthorizedException
+			if errors.As(err, &unauthorised) {
+				// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
+				ClearSSOToken(ssoTokenKey)
+			}
 			return aws.Credentials{}, err
 		}
+		rootCreds = TypeRoleCredsToAwsCreds(*res.RoleCredentials)
+		credProvider = &CredProv{rootCreds}
 
+	} else {
+		credProvider = &CredProv{c.AWSConfig.Credentials}
 	}
-	if newToken {
-		StoreSSOToken(ssoTokenKey, *cachedToken)
-	}
-
-	// create sso client
-	ssoClient := sso.NewFromConfig(*cfg)
-	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
-	if err != nil {
-		var unauthorised *ssotypes.UnauthorizedException
-		if errors.As(err, &unauthorised) {
-			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
-			ClearSSOToken(ssoTokenKey)
-		}
-		return aws.Credentials{}, err
-
-	}
-
-	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
-	credProvider := &CredProv{rootCreds}
 
 	if requiresAssuming {
-
 		// return creds, nil
 		toAssume := append([]*Profile{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)

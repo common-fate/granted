@@ -35,6 +35,8 @@ type Profile struct {
 	AWSConfig    config.SharedConfig
 	Initialised  bool
 	LoadingError error
+	// set to true if aws temp credentails are fetched from ~/.aws/sso/cache dir.
+	IsDefaultCredential bool
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -178,14 +180,47 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 	if err != nil {
 		return nil, err
 	}
+
+	// check if we have valid credentials in `~/.aws/sso/cache`
+	awsCredentials, err := pr.LoadDefaultSSOConfig(ctx, pr.Name)
+	if awsCredentials.HasKeys() && !awsCredentials.Expired() {
+		err = pr.InitWithDefaultConfig(ctx, p, awsCredentials)
+		if err != nil {
+			return nil, err
+		}
+
+		pr.IsDefaultCredential = true
+		return pr, nil
+	}
+
 	err = pr.init(ctx, p, 0)
 	if err != nil {
 		return nil, err
 	}
+	pr.IsDefaultCredential = false
 	return pr, nil
 }
 
-func (p *Profiles) LoadDefaultSSOConfig(ctx context.Context, profile string) (aws.Credentials, error) {
+func (p *Profile) InitWithDefaultConfig(ctx context.Context, profiles *Profiles, awsCred aws.Credentials) error {
+	p.Initialised = true
+	p.ProfileType = "AWS_SSO"
+
+	cfg, err := config.LoadSharedConfigProfile(ctx, p.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{p.File} })
+	if err != nil {
+		return err
+	}
+
+	p.AWSConfig = cfg
+	p.AWSConfig.Credentials.SessionToken = awsCred.SessionToken
+	p.AWSConfig.Credentials.AccessKeyID = awsCred.AccessKeyID
+	p.AWSConfig.Credentials.SecretAccessKey = awsCred.SecretAccessKey
+	p.AWSConfig.Credentials.Expires = awsCred.Expires
+
+	return nil
+}
+
+// Make sure credentials are available and valid.
+func (p *Profile) LoadDefaultSSOConfig(ctx context.Context, profile string) (aws.Credentials, error) {
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithSharedConfigProfile(profile),
 	)
@@ -197,7 +232,11 @@ func (p *Profiles) LoadDefaultSSOConfig(ctx context.Context, profile string) (aw
 		return aws.Credentials{}, fmt.Errorf("Empty cred")
 	}
 
-	awsConfig, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve((ctx))
+	// *****
+	// FIXME: Having issue here. If there is no value in ~/.aws/sso/cache
+	// this func should just return empty credentials or some err.
+	// however, the code just breaks is there are no valid credentials here.
+	awsConfig, err := cfg.Credentials.Retrieve((ctx))
 	if err != nil {
 		return aws.Credentials{}, err
 	}
