@@ -8,6 +8,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	gconfig "github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/credstore"
 )
 
 // Implements Assumer
@@ -18,6 +20,25 @@ type AwsIamAssumer struct {
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
 func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 
+	gcfg, err := gconfig.Load()
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+
+	if *gcfg.IAMCredStore == "Keychain" {
+		//using secure keychain for creds
+		//get creds
+		provider := credstore.IAMUserProvider{ProfileName: c.Name}
+
+		creds, err := aws.NewCredentialsCache(&provider).Retrieve(ctx)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+		return creds, nil
+
+	}
+
+	//using ~/.aws/credentials file for creds
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
 		config.WithSharedConfigProfile(c.Name),
@@ -52,6 +73,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		return aws.Credentials{}, err
 	}
 	return creds, nil
+
 }
 
 // if required will get a FederationToken to be used to launch the console

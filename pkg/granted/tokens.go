@@ -11,6 +11,7 @@ import (
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/credstore"
 	"github.com/common-fate/granted/pkg/testable"
+	"github.com/common-fate/granted/pkg/tokenstore"
 	"github.com/urfave/cli/v2"
 )
 
@@ -38,7 +39,7 @@ var TokenListCommand = cli.Command{
 			}
 		}
 
-		tokens, err := credstore.ListKeys()
+		tokens, err := tokenstore.ListKeys()
 		if err != nil {
 			return err
 		}
@@ -153,7 +154,7 @@ var ClearTokensCommand = cli.Command{
 
 // clearAllTokens calls clearToken for each key in the keyring
 func clearAllTokens() error {
-	keys, err := credstore.ListKeys()
+	keys, err := tokenstore.ListKeys()
 	if err != nil {
 		return err
 	}
@@ -173,10 +174,10 @@ func clearToken(key string) error {
 	if runtime.GOOS == "darwin" {
 		fmt.Fprintf(os.Stderr, "If you are using the mac keychain, choose to 'Always Allow' when prompted to allow Granted access to the item.\nThis will allow the item to be deleted by this command.\n")
 		var t interface{}
-		err := credstore.Retrieve(key, &t)
+		err := tokenstore.Retrieve(key, &t)
 		if err != nil {
 			return err
 		}
 	}
-	return credstore.Clear(key)
+	return tokenstore.Clear(key)
 }

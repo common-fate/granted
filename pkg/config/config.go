@@ -25,6 +25,7 @@ type Config struct {
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
+	IAMCredStore           *string //Ether keychain or not set
 }
 
 type KeyringConfig struct {

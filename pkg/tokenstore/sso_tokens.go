@@ -1,4 +1,4 @@
-package credstore
+package tokenstore
 
 import (
 	"encoding/json"
