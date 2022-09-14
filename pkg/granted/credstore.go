@@ -3,6 +3,7 @@ package granted
 import (
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -112,6 +113,9 @@ var AddIAMStoreCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+
+		creds.CanExpire = true
+		creds.Expires = time.Now().Add(time.Minute * 60)
 
 		err = credstore.Store(profile, creds)
 		if err != nil {

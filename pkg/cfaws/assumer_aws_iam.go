@@ -34,45 +34,46 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		if err != nil {
 			return aws.Credentials{}, err
 		}
+
 		return creds, nil
 
-	}
+	} else {
+		//using ~/.aws/credentials file for creds
+		opts := []func(*config.LoadOptions) error{
+			// load the config profile
+			config.WithSharedConfigProfile(c.Name),
+			config.WithAssumeRoleCredentialOptions(func(aro *stscreds.AssumeRoleOptions) {
+				// set the token provider up
+				aro.TokenProvider = MfaTokenProvider
+				aro.Duration = configOpts.Duration
 
-	//using ~/.aws/credentials file for creds
-	opts := []func(*config.LoadOptions) error{
-		// load the config profile
-		config.WithSharedConfigProfile(c.Name),
-		config.WithAssumeRoleCredentialOptions(func(aro *stscreds.AssumeRoleOptions) {
-			// set the token provider up
-			aro.TokenProvider = MfaTokenProvider
-			aro.Duration = configOpts.Duration
+				// If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token
+				if len(c.Parents) > 0 {
+					if c.Parents[0].AWSConfig.MFASerial != "" {
+						aro.SerialNumber = aws.String(c.Parents[0].AWSConfig.MFASerial)
 
-			// If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token
-			if len(c.Parents) > 0 {
-				if c.Parents[0].AWSConfig.MFASerial != "" {
-					aro.SerialNumber = aws.String(c.Parents[0].AWSConfig.MFASerial)
-
+					}
 				}
-			}
-			if c.AWSConfig.RoleSessionName != "" {
-				aro.RoleSessionName = c.AWSConfig.RoleSessionName
-			} else {
-				aro.RoleSessionName = sessionName()
-			}
-		}),
-	}
+				if c.AWSConfig.RoleSessionName != "" {
+					aro.RoleSessionName = c.AWSConfig.RoleSessionName
+				} else {
+					aro.RoleSessionName = sessionName()
+				}
+			}),
+		}
 
-	//load the creds from the credentials file
-	cfg, err := config.LoadDefaultConfig(ctx, opts...)
-	if err != nil {
-		return aws.Credentials{}, err
-	}
+		//load the creds from the credentials file
+		cfg, err := config.LoadDefaultConfig(ctx, opts...)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
 
-	creds, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
-	if err != nil {
-		return aws.Credentials{}, err
+		creds, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+		return creds, nil
 	}
-	return creds, nil
 
 }
 

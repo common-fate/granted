@@ -18,16 +18,21 @@ import (
 var ErrCouldNotOpenKeyring error = errors.New("keyring not opened successfully")
 
 // returns ring.ErrKeyNotFound if not found
-func Retrieve(key string, target aws.Credentials) error {
+func Retrieve(key string) (*aws.Credentials, error) {
 	ring, err := openKeyring()
 	if err != nil {
-		return err
+		return nil, err
 	}
 	keyringItem, err := ring.Get(key)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	return json.Unmarshal(keyringItem.Data, &target)
+	var target aws.Credentials
+	err = json.Unmarshal(keyringItem.Data, &target)
+	if err != nil {
+		return nil, err
+	}
+	return &target, nil
 }
 
 func Exists(key string) (bool, error) {
@@ -176,10 +181,10 @@ type IAMUserProvider struct {
 // generates a new set of temporary credentials using the CredentialsFunc
 func (p *IAMUserProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	//try get out cached credentials
-	var creds aws.Credentials
-	err := Retrieve(p.ProfileName, creds)
 
-	if creds.Expired() || creds.SessionToken == "" || err != nil {
+	creds, err := Retrieve(p.ProfileName)
+
+	if creds.Expired() || err != nil {
 		//return session creds from the keystore
 		return aws.Credentials{
 			AccessKeyID:     creds.AccessKeyID,
@@ -189,6 +194,6 @@ func (p *IAMUserProvider) Retrieve(ctx context.Context) (aws.Credentials, error)
 			Expires:   aws.ToTime(&creds.Expires),
 		}, nil
 	}
-	return creds, nil
+	return *creds, nil
 
 }
