@@ -183,6 +183,10 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 
 	// check if we have valid credentials in `~/.aws/sso/cache`
 	awsCredentials, err := pr.LoadDefaultSSOConfig(ctx, pr.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	if awsCredentials.HasKeys() && !awsCredentials.Expired() {
 		err = pr.InitWithDefaultConfig(ctx, p, awsCredentials)
 		if err != nil {
