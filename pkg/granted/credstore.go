@@ -63,8 +63,10 @@ var SetIAMStoreCommand = cli.Command{
 		}
 		cfg.IAMCredStore = &out
 
-		cfg.Save()
-
+		err = cfg.Save()
+		if err != nil {
+			return err
+		}
 		switch out {
 		case "Default":
 			fmt.Printf("IAM creds will be saved and read from ~/.aws/credentials file")
