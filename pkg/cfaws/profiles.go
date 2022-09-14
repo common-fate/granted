@@ -187,7 +187,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		return nil, err
 	}
 
-	if awsCredentials.HasKeys() && !awsCredentials.Expired() {
+	if awsCredentials.HasKeys() {
 		err = pr.InitWithDefaultConfig(ctx, p, awsCredentials)
 		if err != nil {
 			return nil, err
@@ -236,13 +236,11 @@ func (p *Profile) LoadDefaultSSOConfig(ctx context.Context, profile string) (aws
 		return aws.Credentials{}, fmt.Errorf("Empty cred")
 	}
 
-	// *****
-	// FIXME: Having issue here. If there is no value in ~/.aws/sso/cache
-	// this func should just return empty credentials or some err.
-	// however, the code just breaks is there are no valid credentials here.
+	// Will return err if there is no SSO session or it has expired.
+	// So, returning empty aws.Credentials instead of err here.
 	awsConfig, err := cfg.Credentials.Retrieve((ctx))
 	if err != nil {
-		return aws.Credentials{}, err
+		return aws.Credentials{}, nil
 	}
 
 	return awsConfig, nil

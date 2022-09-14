@@ -56,6 +56,9 @@ var CredentialsProcess = cli.Command{
 
 		profileNameWithoutPrefix := strings.SplitAfter(profileName, ".")[1]
 		profile, err := profiles.LoadInitialisedProfile(c.Context, profileNameWithoutPrefix)
+		if err != nil {
+			log.Fatal(err)
+		}
 
 		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: time.Hour})
 		if err != nil {
