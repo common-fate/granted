@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
-	"strings"
 	"time"
 
 	"github.com/aws/smithy-go"
@@ -36,9 +35,6 @@ var CredentialsProcess = cli.Command{
 
 		url := ""
 		profileName := c.String("profile")
-		if !strings.HasPrefix(profileName, "granted.") {
-			log.Fatal("Profile name must start with 'granted.' prefix. Check your config file to verify.")
-		}
 
 		conf, err := config.Load()
 		if err != nil {
@@ -54,8 +50,7 @@ var CredentialsProcess = cli.Command{
 			log.Fatal(err)
 		}
 
-		profileNameWithoutPrefix := strings.SplitAfter(profileName, ".")[1]
-		profile, err := profiles.LoadInitialisedProfile(c.Context, profileNameWithoutPrefix)
+		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
 			log.Fatal(err)
 		}
