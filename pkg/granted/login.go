@@ -62,6 +62,7 @@ var LoginCommand = cli.Command{
 			granted_sso_account_name: profile.RawConfig["granted_sso_account_name"],
 			granted_sso_account_id:   profile.RawConfig["granted_sso_account_id"],
 			granted_sso_role_name:    profile.RawConfig["granted_sso_role_name"],
+			region:                   profile.RawConfig["region"],
 		}
 
 		awsConfig, err := convertGrantedCredToAWSConfig(c.Context, profile, grantedSSOCreds)
