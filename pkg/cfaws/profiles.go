@@ -230,7 +230,7 @@ func (p *Profile) IsValidGrantedProfile() error {
 
 	for _, value := range requiredGrantedCredentials {
 		if _, ok := p.RawConfig[value]; !ok {
-			return errors.New(fmt.Sprintf("Invalid aws config for granted login. %s is undefined but necessary \n", value))
+			return fmt.Errorf("Invalid aws config for granted login. %s is undefined but necessary \n", value)
 		}
 	}
 
