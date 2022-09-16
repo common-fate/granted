@@ -31,7 +31,12 @@ var WhichIAMStoreCommand = cli.Command{
 			return err
 		}
 
-		fmt.Printf(*cfg.IAMCredStore)
+		if cfg.UseSecureCredStorage {
+			fmt.Printf("Credentials are saved and read from a secure local keychain")
+		} else {
+			fmt.Printf("Credentials are saved and read from a `~/.aws/credentials`")
+		}
+
 		return nil
 	},
 }
@@ -43,15 +48,13 @@ var SetIAMStoreCommand = cli.Command{
 
 		fmt.Printf("You are currently storing your credentials in: ")
 
-		storeList := []string{"Default", "Keychain"}
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := survey.Select{
-			Message: "Select location to store IAM credentials",
-			Options: storeList,
+		in := &survey.Confirm{
+			Message: "Store credentials in your local keychain?",
+			Default: true,
 		}
-		fmt.Fprintln(os.Stderr)
-		var out string
-		err := testable.AskOne(&in, &out, withStdio)
+		var confirm bool
+		err := survey.AskOne(in, &confirm, withStdio)
 		if err != nil {
 			return err
 		}
@@ -61,17 +64,17 @@ var SetIAMStoreCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		cfg.IAMCredStore = &out
+		cfg.UseSecureCredStorage = confirm
 
 		err = cfg.Save()
 		if err != nil {
 			return err
 		}
-		switch out {
-		case "Default":
-			fmt.Printf("IAM creds will be saved and read from ~/.aws/credentials file")
-		case "Keychain":
+		if cfg.UseSecureCredStorage {
 			fmt.Printf("IAM creds will be saved and read from your devices keychain")
+		} else {
+			fmt.Printf("IAM creds will be saved and read from ~/.aws/credentials file")
+
 		}
 
 		return nil
@@ -82,16 +85,28 @@ var AddIAMStoreCommand = cli.Command{
 	Name:  "add",
 	Usage: "Add new set of IAM credentials to your credfile",
 	Action: func(ctx *cli.Context) error {
+
+		//only allow this functionality if cfg.
+
 		cfg, err := config.Load()
 
 		if err != nil {
 			return err
 		}
 
+		if !cfg.UseSecureCredStorage {
+			fmt.Printf("Adding IAM credentials to `~/.aws/credentials is not yet supported by granted. UseSecureCredStorage: %t", cfg.UseSecureCredStorage)
+			return nil
+		}
+
 		creds := aws.Credentials{}
 
-		fmt.Printf("You are currently storing your credentials in: %s\n", *cfg.IAMCredStore)
+		if cfg.UseSecureCredStorage {
+			fmt.Printf("IAM creds are being saved and read from your devices keychain")
+		} else {
+			fmt.Printf("IAM creds are being saved and read from ~/.aws/credentials file")
 
+		}
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 
 		var profile string
@@ -124,7 +139,7 @@ var AddIAMStoreCommand = cli.Command{
 			return err
 		}
 
-		fmt.Printf("Saved %s to Credfile: %s", profile, *cfg.IAMCredStore)
+		fmt.Printf("Saved %s to Credfile", profile)
 
 		return nil
 	},

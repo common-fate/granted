@@ -25,7 +25,7 @@ type Config struct {
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
-	IAMCredStore           *string //Ether keychain or not set
+	UseSecureCredStorage   bool //if true will store and lookup creds in credstore
 }
 
 type KeyringConfig struct {

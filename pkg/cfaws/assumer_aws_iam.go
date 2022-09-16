@@ -25,7 +25,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		return aws.Credentials{}, err
 	}
 
-	if *gcfg.IAMCredStore == "Keychain" {
+	if gcfg.UseSecureCredStorage {
 		//using secure keychain for creds
 		//get creds
 		provider := credstore.IAMUserProvider{ProfileName: c.Name}
