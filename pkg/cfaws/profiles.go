@@ -11,6 +11,8 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials/ssocreds"
+	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
@@ -173,12 +175,75 @@ func (p *Profiles) InitialiseProfilesTree(ctx context.Context) {
 	}
 }
 
+type grantedSSOCreds struct {
+	granted_sso_start_url    string
+	granted_sso_region       string
+	granted_sso_account_name string
+	granted_sso_account_id   string
+	granted_sso_role_name    string
+	region                   string
+}
+
+func convertGrantedCredToAWSConfig(ctx context.Context, p *Profile, gConfig grantedSSOCreds) (*config.SharedConfig, error) {
+	cfg, err := config.LoadSharedConfigProfile(ctx, p.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{p.File} })
+	if err != nil {
+		return nil, err
+	}
+
+	cfg.SSOAccountID = gConfig.granted_sso_account_id
+	cfg.SSORegion = gConfig.granted_sso_region
+	cfg.SSORoleName = gConfig.granted_sso_role_name
+	cfg.SSOStartURL = gConfig.granted_sso_start_url
+
+	return &cfg, nil
+}
+
 // LoadInitialisedProfile returns an initialised profile by name
 // this means that all the parents have been loaded and the profile type is defined
 func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (*Profile, error) {
 	pr, err := p.Profile(profile)
 	if err != nil {
 		return nil, err
+	}
+
+	// Check if the aws config file has granted prefix.
+	if err = pr.IsValidGrantedProfile(); err == nil {
+
+		grantedSSOCreds := grantedSSOCreds{
+			granted_sso_start_url:    pr.RawConfig["granted_sso_start_url"],
+			granted_sso_region:       pr.RawConfig["granted_sso_region"],
+			granted_sso_account_name: pr.RawConfig["granted_sso_account_name"],
+			granted_sso_account_id:   pr.RawConfig["granted_sso_account_id"],
+			granted_sso_role_name:    pr.RawConfig["granted_sso_role_name"],
+			region:                   pr.RawConfig["region"],
+		}
+
+		awsConfig, err := convertGrantedCredToAWSConfig(ctx, pr, grantedSSOCreds)
+		if err != nil {
+			return nil, err
+		}
+
+		pr.AWSConfig = *awsConfig
+
+		cfg := aws.NewConfig()
+		cfg.Region = awsConfig.SSORegion
+		client := sso.NewFromConfig(*cfg)
+		provider := ssocreds.New(client, awsConfig.SSOAccountID, awsConfig.SSORoleName, awsConfig.SSOStartURL)
+
+		credentials, err := provider.Retrieve(ctx)
+		if err != nil {
+			return nil, err
+		}
+
+		if credentials.HasKeys() {
+			err = pr.InitWithDefaultConfig(ctx, p, credentials)
+			if err != nil {
+				return nil, err
+			}
+
+			pr.IsDefaultCredential = true
+			return pr, nil
+		}
 	}
 
 	// check if we have valid credentials in `~/.aws/sso/cache`
@@ -254,6 +319,7 @@ func (p *Profile) LoadDefaultSSOConfig(ctx context.Context, profile string) (aws
 	// So, returning empty aws.Credentials instead of err here.
 	awsConfig, err := cfg.Credentials.Retrieve((ctx))
 	if err != nil {
+		// FIXME: Can't return nil here.
 		return aws.Credentials{}, nil
 	}
 
