@@ -223,6 +223,20 @@ func (p *Profile) InitWithDefaultConfig(ctx context.Context, profiles *Profiles,
 	return nil
 }
 
+// For `granted login` cmd, we have to make sure 'granted' prefix
+// is added to the aws config file.
+func (p *Profile) IsValidGrantedProfile() error {
+	requiredGrantedCredentials := []string{"granted_sso_start_url", "granted_sso_region", "granted_sso_account_id", "granted_sso_role_name", "region"}
+
+	for _, value := range requiredGrantedCredentials {
+		if _, ok := p.RawConfig[value]; !ok {
+			return fmt.Errorf("Invalid aws config for granted login. %s is undefined but necessary \n", value)
+		}
+	}
+
+	return nil
+}
+
 // Make sure credentials are available and valid.
 func (p *Profile) LoadDefaultSSOConfig(ctx context.Context, profile string) (aws.Credentials, error) {
 	cfg, err := config.LoadDefaultConfig(ctx,
