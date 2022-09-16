@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/smithy-go"
 	"github.com/common-fate/granted/pkg/cfaws"
-	"github.com/common-fate/granted/pkg/config"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
@@ -26,21 +25,22 @@ type AWSCredsStdOut struct {
 }
 
 var CredentialsProcess = cli.Command{
-	Name:        "credentialsprocess",
-	Usage:       "",
-	Hidden:      true,
-	Subcommands: []*cli.Command{&ConfigSetup},
-	Flags:       []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}, &cli.StringFlag{Name: "rule"}},
+	Name:   "credentialsprocess",
+	Usage:  "",
+	Hidden: true,
+	// Subcommands: []*cli.Command{&ConfigSetup},
+	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}},
 	Action: func(c *cli.Context) error {
 
 		url := ""
 		profileName := c.String("profile")
 
-		conf, err := config.Load()
-		if err != nil {
-			log.Fatal("Failed to load Config for GrantedApprovalsUrl")
-		}
-		url = conf.GrantedApprovalsUrl
+		// conf, err := config.Load()
+		// if err != nil {
+		// 	log.Fatal("Failed to load Config for GrantedApprovalsUrl")
+		// }
+		url = "http://localhost:3000/"
+		// url = conf.GrantedApprovalsUrl
 		if url == "" {
 			log.Fatal("It looks like you haven't setup your GrantedApprovalsUrl\nTo do so please run: " + c.App.Name + " setup")
 		}
@@ -52,24 +52,21 @@ var CredentialsProcess = cli.Command{
 
 		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
-			log.Fatal(err)
+			// if it failed to load initialised try load it from the config
+			pr, err := profiles.Profile(profileName)
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Fatal(getGrantedApprovalsUrl(url, pr))
 		}
 
 		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: time.Hour})
 		if err != nil {
 			serr, ok := err.(*smithy.OperationError)
 			if ok {
-				// @TODO: this still seems to trigger when ...
-				// 1. revoke any access to cf-dev
-				// 2. request access and wait for grant = active
-				// 3. try run `aws s3 ls --profile granted.cf-dev`
-				// 4. it should auto assume the role, but instead it throws below error \/ \/
+				// Prompt Granted-Approvals AR request
 				if serr.ServiceID == "SSO" {
-					baseUrl, ruleId := url, "rul_2BtW97o6jTacUuzxNJZorACn5v0"
-					// Guide user to common fate if error
-					s := fmt.Sprintf(color.YellowString("\n\nYou need to request access to this role:")+"\n%s/access/request/%s\n", baseUrl, ruleId)
-
-					log.Fatal(s)
+					log.Fatal(getGrantedApprovalsUrl(url, profile))
 				}
 			} else {
 				log.Fatalln("\nError running credential with profile: "+profileName, err.Error())
@@ -91,4 +88,9 @@ var CredentialsProcess = cli.Command{
 
 		return nil
 	},
+}
+
+func getGrantedApprovalsUrl(url string, profile *cfaws.Profile) string {
+	providerType := "commonfate%2Faws-sso"
+	return color.YellowString("\n\nYou need to request access to this role:"+"\n%sassume?type=%s&roleName=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
 }
