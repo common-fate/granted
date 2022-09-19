@@ -7,6 +7,7 @@ import (
 	"os"
 	"sort"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -311,16 +312,21 @@ func (p *Profile) LoadDefaultSSOConfig(ctx context.Context, profile string) (aws
 		return aws.Credentials{}, err
 	}
 
-	if cfg.Credentials == nil {
-		return aws.Credentials{}, fmt.Errorf("Empty cred")
-	}
-
 	// Will return err if there is no SSO session or it has expired.
 	// So, returning empty aws.Credentials instead of err here.
 	awsConfig, err := cfg.Credentials.Retrieve((ctx))
 	if err != nil {
-		// FIXME: Can't return nil here.
-		return aws.Credentials{}, nil
+		// If no cache file is not found then.
+		if errors.Is(err, syscall.ENOENT) {
+			return aws.Credentials{}, nil
+		}
+
+		// if the token has expired or invalid then
+		if _, ok := err.(*ssocreds.InvalidTokenError); ok {
+			return aws.Credentials{}, nil
+		}
+
+		return aws.Credentials{}, err
 	}
 
 	return awsConfig, nil
