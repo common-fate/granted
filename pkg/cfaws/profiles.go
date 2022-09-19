@@ -233,6 +233,45 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 
 		credentials, err := provider.Retrieve(ctx)
 		if err != nil {
+			// If no cache file is not found then.
+			if errors.Is(err, syscall.ENOENT) {
+				ctx = context.WithValue(ctx, "shouldSilentStdout", true)
+				token, err := SSODeviceCodeFlow(ctx, *cfg, pr)
+				if err != nil {
+					return nil, err
+				}
+
+				ssoToken := CreatePlainTextSSO(*awsConfig, token)
+
+				if err := ssoToken.DumpToCacheDirectory(); err != nil {
+					return nil, err
+				}
+
+				// recursively call the same func
+				// second run will have the necessary plain text sso token so this won't be called again.
+				return p.LoadInitialisedProfile(ctx, pr.Name)
+			}
+
+			// if the token has expired or invalid then
+			if _, ok := err.(*ssocreds.InvalidTokenError); ok {
+				// TODO: Refactor passing this flag
+				ctx = context.WithValue(ctx, "shouldSilentStdout", true)
+				token, err := SSODeviceCodeFlow(ctx, *cfg, pr)
+				if err != nil {
+					return nil, err
+				}
+
+				ssoToken := CreatePlainTextSSO(*awsConfig, token)
+
+				if err := ssoToken.DumpToCacheDirectory(); err != nil {
+					return nil, err
+				}
+
+				// recursively call the same func
+				// second run will have the necessary plain text sso token so this won't be called again.
+				return p.LoadInitialisedProfile(ctx, pr.Name)
+			}
+
 			return nil, err
 		}
 
