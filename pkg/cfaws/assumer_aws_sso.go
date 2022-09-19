@@ -63,7 +63,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	var credProvider *CredProv
 
 	// skip searching for token if credentials are fetched from ~/.aws/sso/cache
-	if !rootProfile.IsDefaultCredential {
+	if !rootProfile.HasPlainTextSSOToken {
 		cachedToken := GetValidCachedToken(ssoTokenKey)
 		var err error
 		newToken := false
@@ -151,6 +151,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile) (*SSOToken, error) {
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
+	shouldSilentStdout := ctx.Value("shouldSilentStdout")
+
 	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
 		ClientName: aws.String("granted-cli-client"),
 		ClientType: aws.String("public"),
@@ -172,10 +174,12 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile
 	}
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
+
+	if shouldSilentStdout == true {
+		fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
+	}
 
 	//check if sso browser path is set
-
 	config, err := grantCfg.Load()
 	if err != nil {
 		return nil, err
@@ -196,7 +200,10 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile
 		}
 	}
 
-	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
+	if shouldSilentStdout == true {
+		fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
+	}
+
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
 		return nil, err
