@@ -39,7 +39,7 @@ type Profile struct {
 	Initialised  bool
 	LoadingError error
 	// set to true if aws temp credentails are fetched from ~/.aws/sso/cache dir.
-	IsDefaultCredential bool
+	HasPlainTextSSOToken bool
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -176,29 +176,6 @@ func (p *Profiles) InitialiseProfilesTree(ctx context.Context) {
 	}
 }
 
-type grantedSSOCreds struct {
-	granted_sso_start_url    string
-	granted_sso_region       string
-	granted_sso_account_name string
-	granted_sso_account_id   string
-	granted_sso_role_name    string
-	region                   string
-}
-
-func convertGrantedCredToAWSConfig(ctx context.Context, p *Profile, gConfig grantedSSOCreds) (*config.SharedConfig, error) {
-	cfg, err := config.LoadSharedConfigProfile(ctx, p.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{p.File} })
-	if err != nil {
-		return nil, err
-	}
-
-	cfg.SSOAccountID = gConfig.granted_sso_account_id
-	cfg.SSORegion = gConfig.granted_sso_region
-	cfg.SSORoleName = gConfig.granted_sso_role_name
-	cfg.SSOStartURL = gConfig.granted_sso_start_url
-
-	return &cfg, nil
-}
-
 // LoadInitialisedProfile returns an initialised profile by name
 // this means that all the parents have been loaded and the profile type is defined
 func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (*Profile, error) {
@@ -207,19 +184,11 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		return nil, err
 	}
 
-	// Check if the aws config file has granted prefix.
-	if err = pr.IsValidGrantedProfile(); err == nil {
-
-		grantedSSOCreds := grantedSSOCreds{
-			granted_sso_start_url:    pr.RawConfig["granted_sso_start_url"],
-			granted_sso_region:       pr.RawConfig["granted_sso_region"],
-			granted_sso_account_name: pr.RawConfig["granted_sso_account_name"],
-			granted_sso_account_id:   pr.RawConfig["granted_sso_account_id"],
-			granted_sso_role_name:    pr.RawConfig["granted_sso_role_name"],
-			region:                   pr.RawConfig["region"],
-		}
-
-		awsConfig, err := convertGrantedCredToAWSConfig(ctx, pr, grantedSSOCreds)
+	// For config that has 'granted' prefix we need to convert the custom config to
+	// aws configuration
+	if err = IsValidGrantedProfile(pr.RawConfig); err == nil {
+		gConfig := NewGrantedConfig(pr.RawConfig)
+		awsConfig, err := gConfig.ConvertToAWSConfig(ctx, pr)
 		if err != nil {
 			return nil, err
 		}
@@ -281,7 +250,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 				return nil, err
 			}
 
-			pr.IsDefaultCredential = true
+			pr.HasPlainTextSSOToken = true
 			return pr, nil
 		}
 	}
@@ -298,7 +267,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 			return nil, err
 		}
 
-		pr.IsDefaultCredential = true
+		pr.HasPlainTextSSOToken = true
 		return pr, nil
 	}
 
@@ -306,7 +275,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 	if err != nil {
 		return nil, err
 	}
-	pr.IsDefaultCredential = false
+	pr.HasPlainTextSSOToken = false
 	return pr, nil
 }
 
@@ -324,20 +293,6 @@ func (p *Profile) InitWithDefaultConfig(ctx context.Context, profiles *Profiles,
 	p.AWSConfig.Credentials.AccessKeyID = awsCred.AccessKeyID
 	p.AWSConfig.Credentials.SecretAccessKey = awsCred.SecretAccessKey
 	p.AWSConfig.Credentials.Expires = awsCred.Expires
-
-	return nil
-}
-
-// For `granted login` cmd, we have to make sure 'granted' prefix
-// is added to the aws config file.
-func (p *Profile) IsValidGrantedProfile() error {
-	requiredGrantedCredentials := []string{"granted_sso_start_url", "granted_sso_region", "granted_sso_account_id", "granted_sso_role_name", "region"}
-
-	for _, value := range requiredGrantedCredentials {
-		if _, ok := p.RawConfig[value]; !ok {
-			return fmt.Errorf("Invalid aws config for granted login. %s is undefined but necessary \n", value)
-		}
-	}
 
 	return nil
 }
