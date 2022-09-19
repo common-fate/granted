@@ -30,6 +30,8 @@ func NewGrantedConfig(rawConfig configparser.Dict) *grantedSSOConfig {
 
 func (gConfig *grantedSSOConfig) ConvertToAWSConfig(ctx context.Context, p *Profile) (*config.SharedConfig, error) {
 	cfg, err := config.LoadSharedConfigProfile(ctx, p.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{p.File} })
+	// if required profile doesn't exist then
+	// return empty config instead of error.
 	if err != nil {
 		if _, ok := err.(config.SharedConfigProfileNotExistError); ok {
 			return &config.SharedConfig{}, nil
