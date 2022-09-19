@@ -245,7 +245,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		}
 
 		if credentials.HasKeys() {
-			err = pr.InitWithDefaultConfig(ctx, p, credentials)
+			err = pr.InitWithPlainTextSSOToken(ctx, p, credentials)
 			if err != nil {
 				return nil, err
 			}
@@ -256,13 +256,14 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 	}
 
 	// check if we have valid credentials in `~/.aws/sso/cache`
-	awsCredentials, err := pr.LoadDefaultSSOConfig(ctx, pr.Name)
+	awsCredentials, err := pr.LoadPlainTextSSOToken(ctx, pr.Name)
 	if err != nil {
 		return nil, err
 	}
 
+	// if fetched credentials are valid then initiazed profile with that.
 	if awsCredentials.HasKeys() {
-		err = pr.InitWithDefaultConfig(ctx, p, awsCredentials)
+		err = pr.InitWithPlainTextSSOToken(ctx, p, awsCredentials)
 		if err != nil {
 			return nil, err
 		}
@@ -279,7 +280,9 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 	return pr, nil
 }
 
-func (p *Profile) InitWithDefaultConfig(ctx context.Context, profiles *Profiles, awsCred aws.Credentials) error {
+// Initialize profile's AWS config by fetching credentials from plan text SSO token
+// located at default cache directory.
+func (p *Profile) InitWithPlainTextSSOToken(ctx context.Context, profiles *Profiles, awsCred aws.Credentials) error {
 	p.Initialised = true
 	p.ProfileType = "AWS_SSO"
 
@@ -298,7 +301,7 @@ func (p *Profile) InitWithDefaultConfig(ctx context.Context, profiles *Profiles,
 }
 
 // Make sure credentials are available and valid.
-func (p *Profile) LoadDefaultSSOConfig(ctx context.Context, profile string) (aws.Credentials, error) {
+func (p *Profile) LoadPlainTextSSOToken(ctx context.Context, profile string) (aws.Credentials, error) {
 	cfg, err := config.LoadDefaultConfig(ctx,
 		config.WithSharedConfigProfile(profile),
 	)
