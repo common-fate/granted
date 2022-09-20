@@ -167,7 +167,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile
 
 		ClientId:     register.ClientId,
 		ClientSecret: register.ClientSecret,
-		StartUrl:     aws.String(rootProfile.AWSConfig.SSOStartURL),
+		StartUrl:     aws.String(startUrl),
 	})
 	if err != nil {
 		return nil, err
