@@ -8,7 +8,6 @@ import (
 
 	"github.com/aws/smithy-go"
 	"github.com/common-fate/granted/pkg/cfaws"
-	"github.com/common-fate/granted/pkg/config"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
@@ -26,89 +25,66 @@ type AWSCredsStdOut struct {
 }
 
 var CredentialsProcess = cli.Command{
-	Name:        "credentialsprocess",
-	Usage:       "",
-	Hidden:      true,
-	Subcommands: []*cli.Command{&ConfigSetup},
-	Flags:       []cli.Flag{&cli.StringFlag{Name: "profile"}, &cli.StringFlag{Name: "rule"}},
+	Name:   "credentialsprocess",
+	Usage:  "",
+	Hidden: true,
+	Flags:  []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}},
 	Action: func(c *cli.Context) error {
 
 		url := ""
 		profileName := c.String("profile")
-		// ruleId := c.String("rule")
 
-		conf, err := config.Load()
-		if err != nil {
-			log.Fatal("Failed to load Config for GrantedApprovalsUrl")
-		}
-		url = conf.GrantedApprovalsUrl
+		// conf, err := config.Load()
+		// if err != nil {
+		// 	log.Fatal("Failed to load Config for GrantedApprovalsUrl")
+		// }
+		url = "http://localhost:3000/"
+		// url = conf.GrantedApprovalsUrl
 		if url == "" {
 			log.Fatal("It looks like you haven't setup your GrantedApprovalsUrl\nTo do so please run: " + c.App.Name + " setup")
 		}
 
-		if profileName == "" {
-			log.Fatalln("Mis-configured aws config file.\n--profile flag must be passed")
-		}
-
-		var profile *cfaws.Profile
-
 		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
-			return err
+			log.Fatal(err)
 		}
 
-		if profiles.HasProfile(profileName) {
-			profile, err = profiles.LoadInitialisedProfile(c.Context, profileName)
-			if err != nil {
-				return err
-			}
+		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
+		if err != nil {
+			log.Fatalf("granted credential_process error for profile '%s' with err: %s", profileName, err.Error())
+		}
 
-			creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: time.Hour})
-
-			if err != nil {
-				serr, ok := err.(*smithy.OperationError)
-				if ok {
-					// @TODO: this still seems to trigger when ...
-					// 1. revoke any access to cf-dev
-					// 2. request access and wait for grant = active
-					// 3. try run `aws s3 ls --profile granted.cf-dev`
-					// 4. it should auto assume the role, but instead it throws below error \/ \/
-					if serr.ServiceID == "SSO" {
-
-						// type=aws-sso&roleName=AWSAdministratorAccess&accountId=123456789012
-						credsType := "aws-sso"
-						roleName := "AWSAdministratorAccess"
-						accountId := "123456789012"
-
-						roleUrl := fmt.Sprintf("%srequest?type=%s&roleName=%s&accountId=%s", url, credsType, roleName, accountId)
-
-						// Guide user to common fate if error
-						s := fmt.Sprintf(color.YellowString("\n\nYou need to request access to this role:")+"\n%s", roleUrl)
-
-						log.Fatal(s)
-					}
-				} else {
-					log.Fatalln("\nError running credential with profile: "+profileName, err.Error())
+		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: time.Hour})
+		if err != nil {
+			serr, ok := err.(*smithy.OperationError)
+			if ok {
+				// Prompt Granted-Approvals AR request
+				if serr.ServiceID == "SSO" {
+					log.Fatal(getGrantedApprovalsUrl(url, profile))
 				}
+			} else {
+				log.Fatalln("\nError running credential with profile: "+profileName, err.Error())
 			}
-
-			var out AWSCredsStdOut
-
-			out.AccessKeyID = creds.AccessKeyID
-			out.Expiration = creds.Expires.Format(time.RFC3339)
-			out.SecretAccessKey = creds.SecretAccessKey
-			out.SessionToken = creds.SessionToken
-			out.Version = 1
-
-			jsonOut, err := json.Marshal(out)
-			if err != nil {
-				log.Fatalln("\nUnhandled error when unmarshalling json creds")
-			}
-			fmt.Print(string(jsonOut))
 		}
+
+		var out AWSCredsStdOut
+		out.AccessKeyID = creds.AccessKeyID
+		out.Expiration = creds.Expires.Format(time.RFC3339)
+		out.SecretAccessKey = creds.SecretAccessKey
+		out.SessionToken = creds.SessionToken
+		out.Version = 1
+
+		jsonOut, err := json.Marshal(out)
+		if err != nil {
+			log.Fatalln("\nUnhandled error when unmarshalling json creds")
+		}
+		fmt.Println(string(jsonOut))
 
 		return nil
 	},
 }
 
-// @TODO: we may also want to add an automated process that handles sync to ensure the config is never stale
+func getGrantedApprovalsUrl(url string, profile *cfaws.Profile) string {
+	providerType := "commonfate%2Faws-sso"
+	return color.YellowString("\n\nYou need to request access to this role:"+"\n%sassume?type=%s&roleName=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
+}
