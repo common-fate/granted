@@ -28,17 +28,20 @@ var CredentialsProcess = cli.Command{
 	Name:   "credentialsprocess",
 	Usage:  "",
 	Hidden: true,
-	Flags:  []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}},
+	Flags:  []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}, &cli.StringFlag{Name: "url"}},
 	Action: func(c *cli.Context) error {
 
-		url := ""
+		url := c.String("url")
 		profileName := c.String("profile")
 
+		if url == "" {
+			url = "http://localhost:3000/"
+		}
+		// In future we will support manual storing of url in config...
 		// conf, err := config.Load()
 		// if err != nil {
 		// 	log.Fatal("Failed to load Config for GrantedApprovalsUrl")
 		// }
-		url = "http://localhost:3000/"
 		// url = conf.GrantedApprovalsUrl
 		if url == "" {
 			log.Fatal("It looks like you haven't setup your GrantedApprovalsUrl\nTo do so please run: " + c.App.Name + " setup")
@@ -51,7 +54,17 @@ var CredentialsProcess = cli.Command{
 
 		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
-			log.Fatalf("granted credential_process error for profile '%s' with err: %s", profileName, err.Error())
+			_, ok := err.(*smithy.OperationError)
+			if ok {
+				// if it failed to load initialised try load it from the config
+				pr, err := profiles.Profile(profileName)
+				if err != nil {
+					log.Fatal(err)
+				}
+				log.Fatal(getGrantedApprovalsUrl(url, pr))
+			} else {
+				log.Fatalf("granted credential_process error for profile '%s' with err: %s", profileName, err.Error())
+			}
 		}
 
 		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: time.Hour})
@@ -86,5 +99,5 @@ var CredentialsProcess = cli.Command{
 
 func getGrantedApprovalsUrl(url string, profile *cfaws.Profile) string {
 	providerType := "commonfate%2Faws-sso"
-	return color.YellowString("\n\nYou need to request access to this role:"+"\n%sassume?type=%s&roleName=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
+	return color.YellowString("\n\nYou need to request access to this role:"+"\n%saccess?type=%s&roleName=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
 }
