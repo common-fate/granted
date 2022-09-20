@@ -52,12 +52,7 @@ var CredentialsProcess = cli.Command{
 
 		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
-			// if it failed to load initialised try load it from the config
-			pr, err := profiles.Profile(profileName)
-			if err != nil {
-				log.Fatal(err)
-			}
-			log.Fatal(getGrantedApprovalsUrl(url, pr))
+			log.Fatalf("granted credential_process error for profile '%s' with err: %s", profileName, err.Error())
 		}
 
 		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: time.Hour})

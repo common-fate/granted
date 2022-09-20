@@ -175,7 +175,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
 
-	if shouldSilentLogs {
+	if !shouldSilentLogs {
 		fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 	}
 
@@ -200,7 +200,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile
 		}
 	}
 
-	if shouldSilentLogs {
+	if !shouldSilentLogs {
 		fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
 	}
 
