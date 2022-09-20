@@ -28,8 +28,7 @@ var CredentialsProcess = cli.Command{
 	Name:   "credentialsprocess",
 	Usage:  "",
 	Hidden: true,
-	// Subcommands: []*cli.Command{&ConfigSetup},
-	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}},
+	Flags:  []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}},
 	Action: func(c *cli.Context) error {
 
 		url := ""
