@@ -61,3 +61,12 @@ func IsValidGrantedProfile(rawConfig configparser.Dict) error {
 
 	return nil
 }
+
+// check if the passed aws config consist of "granted-sso-start-url" key.
+func hasGrantedPrefix(rawConfig configparser.Dict) bool {
+	if _, ok := rawConfig["granted_sso_start_url"]; ok {
+		return true
+	}
+
+	return false
+}

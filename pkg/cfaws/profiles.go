@@ -186,7 +186,12 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 
 	// For config that has 'granted' prefix we need to convert the custom config to
 	// aws configuration
-	if err = IsValidGrantedProfile(pr.RawConfig); err == nil {
+	if hasGrantedPrefix(pr.RawConfig) {
+		err = IsValidGrantedProfile(pr.RawConfig)
+		if err != nil {
+			return nil, err
+		}
+
 		gConfig := NewGrantedConfig(pr.RawConfig)
 		awsConfig, err := gConfig.ConvertToAWSConfig(ctx, pr)
 		if err != nil {
