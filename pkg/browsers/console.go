@@ -30,6 +30,7 @@ var ServiceMap = map[string]string{
 	"athena":         "athena",
 	"cloudmap":       "cloudmap",
 	"c9":             "cloud9",
+	"ce":             "cost-management",
 	"cfn":            "cloudformation",
 	"cloudformation": "cloudformation",
 	"cloudwatch":     "cloudwatch",
