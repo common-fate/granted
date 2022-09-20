@@ -69,7 +69,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		newToken := false
 		if cachedToken == nil {
 			newToken = true
-			cachedToken, err = SSODeviceCodeFlow(ctx, *cfg, rootProfile, false)
+			cachedToken, err = SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL, false)
 			if err != nil {
 				return aws.Credentials{}, err
 			}
@@ -150,7 +150,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 // SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token.
 // Passing true to shouldSilentLogs skips printing logs to stdout
 // this is required for `credential_process` as only valid JSON output should be returned for native AWS CLI to work.
-func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile, shouldSilentLogs bool) (*SSOToken, error) {
+func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string, shouldSilentLogs bool) (*SSOToken, error) {
+
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
 	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{

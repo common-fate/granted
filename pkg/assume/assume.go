@@ -205,10 +205,8 @@ func AssumeCommand(c *cli.Context) error {
 
 	} else {
 		creds, err := profile.AssumeTerminal(c.Context, configOpts)
-		// @TODO: how will we set this
 		connectedToGrantedFlag := false
 		if err != nil {
-			// @FACT-CHECK: does 'SSO' only returns from non-access role assumptions
 			serr, ok := err.(*smithy.OperationError)
 			if ok && connectedToGrantedFlag {
 				if serr.ServiceID == "SSO" {

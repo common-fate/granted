@@ -279,7 +279,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 }
 
 func (pr *Profile) ssoAuthAndDumpPlainTextSSO(ctx context.Context, cfg *aws.Config) error {
-	token, err := SSODeviceCodeFlow(ctx, *cfg, pr, true)
+	token, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, pr.AWSConfig.SSOStartURL, true)
 	if err != nil {
 		return err
 	}

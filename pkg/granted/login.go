@@ -47,7 +47,7 @@ var LoginCommand = cli.Command{
 		cfg := aws.NewConfig()
 		cfg.Region = awsConfig.Region
 
-		token, err := cfaws.SSODeviceCodeFlow(c.Context, *cfg, profile, false)
+		token, err := cfaws.SSODeviceCodeFlowFromStartUrl(c.Context, *cfg, awsConfig.SSOStartURL, false)
 		if err != nil {
 			return err
 		}

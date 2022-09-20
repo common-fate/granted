@@ -170,7 +170,7 @@ func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]SSOProf
 	cfg := aws.NewConfig()
 	cfg.Region = input.SSORegion
 
-	ssoToken, err := cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, input.StartUrl)
+	ssoToken, err := cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, input.StartUrl, false)
 	if err != nil {
 		return nil, err
 	}
