@@ -274,9 +274,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 }
 
 func (pr *Profile) ssoAuthAndDumpPlainTextSSO(ctx context.Context, cfg *aws.Config) error {
-	// FIXME: Refactor passing this flag through context in better way.
-	ctx = context.WithValue(ctx, "shouldSilentStdout", true)
-	token, err := SSODeviceCodeFlow(ctx, *cfg, pr)
+	token, err := SSODeviceCodeFlow(ctx, *cfg, pr, true)
 	if err != nil {
 		return err
 	}

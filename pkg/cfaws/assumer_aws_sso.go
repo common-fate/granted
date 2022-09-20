@@ -69,7 +69,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		newToken := false
 		if cachedToken == nil {
 			newToken = true
-			cachedToken, err = SSODeviceCodeFlow(ctx, *cfg, rootProfile)
+			cachedToken, err = SSODeviceCodeFlow(ctx, *cfg, rootProfile, false)
 			if err != nil {
 				return aws.Credentials{}, err
 			}
@@ -147,11 +147,11 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 
 }
 
-// SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token
-func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile) (*SSOToken, error) {
+// SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token.
+// Passing true to shouldSilentLogs skips printing logs to stdout
+// this is required for `credential_process` as only valid JSON output should be returned for native AWS CLI to work.
+func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile, shouldSilentLogs bool) (*SSOToken, error) {
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
-
-	shouldSilentStdout := ctx.Value("shouldSilentStdout")
 
 	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
 		ClientName: aws.String("granted-cli-client"),
@@ -175,7 +175,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
 
-	if shouldSilentStdout == true {
+	if shouldSilentLogs {
 		fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 	}
 
@@ -200,7 +200,7 @@ func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile
 		}
 	}
 
-	if shouldSilentStdout == true {
+	if shouldSilentLogs {
 		fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
 	}
 
