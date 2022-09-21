@@ -138,7 +138,7 @@ fi
 # This way, the shell script can omit the first line containing the flag and return the unaltered output to the stdout
 # This is great as it works well with the -exec flag
 if [ "$GRANTED_FLAG" = "GrantedOutput" ];then
-  echo ${GRANTED_OUTPUT} | sed -n '1!p'
+  echo "${GRANTED_OUTPUT}" | sed -n '1!p'
 fi
 
 if [ "$GRANTED_RETURN_STATUS" = "true" ]; then
