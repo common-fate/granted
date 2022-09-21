@@ -25,10 +25,11 @@ type AWSCredsStdOut struct {
 }
 
 var CredentialsProcess = cli.Command{
-	Name:   "credentialsprocess",
-	Usage:  "",
-	Hidden: true,
-	Flags:  []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}, &cli.StringFlag{Name: "url"}},
+	Name:    "credentialprocess",
+	Aliases: []string{"credentialsprocess", "credprocess", "credential-process", "credential_process"},
+	Usage:   "Exports AWS session credentials for use with AWS CLI credential_process",
+	Hidden:  true,
+	Flags:   []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}, &cli.StringFlag{Name: "url"}},
 	Action: func(c *cli.Context) error {
 
 		url := c.String("url")
