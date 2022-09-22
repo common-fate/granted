@@ -43,6 +43,7 @@ var ServiceMap = map[string]string{
 	"eb":             "elasticbeanstalk",
 	"ebs":            "elasticbeanstalk",
 	"ecr":            "ecr",
+	"glue":           "glue",
 	"grafana":        "grafana",
 	"lambda":         "lambda",
 	"route53":        "route53/v2",
