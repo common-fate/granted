@@ -25,6 +25,7 @@ import (
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/fatih/color"
+	"github.com/hako/durafmt"
 	"github.com/urfave/cli/v2"
 )
 
@@ -282,8 +283,11 @@ func AssumeCommand(c *cli.Context) error {
 		green := color.New(color.FgGreen)
 		if creds.CanExpire {
 			sessionExpiration = creds.Expires.Local().Format(time.RFC3339)
+			// We add 10 seconds here as a fudge factor, the credentials will be a
+			// few seconds old already.
+			durationDescription := durafmt.Parse(time.Until(creds.Expires) + 10*time.Second).LimitFirstN(1).String()
 			if os.Getenv("GRANTED_QUIET") != "true" {
-				green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
+				green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire in %s\n", profile.Name, region, durationDescription)
 			}
 		} else if os.Getenv("GRANTED_QUIET") != "true" {
 			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
