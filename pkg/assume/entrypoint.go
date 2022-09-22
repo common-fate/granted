@@ -7,7 +7,7 @@ import (
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/banners"
-	"github.com/common-fate/granted/pkg/browsers"
+	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/updates"
@@ -80,25 +80,25 @@ func GetCliApp() *cli.App {
 				return err
 			}
 
-			hasSetup, err := browsers.UserHasDefaultBrowser(c)
+			hasSetup, err := browser.UserHasDefaultBrowser(c)
 			if err != nil {
 				return err
 			}
 			if !hasSetup {
-				browserName, err := browsers.HandleBrowserWizard(c)
+				browserName, err := browser.HandleBrowserWizard(c)
 				if err != nil {
 					return err
 				}
 
 				//see if they want to set their sso browser the same as their granted default
-				err = browsers.SSOBrowser(browserName)
+				err = browser.SSOBrowser(browserName)
 				if err != nil {
 					return err
 				}
 
 				// run instructions
 				// terminates the command with os.exit(0)
-				browsers.GrantedIntroduction()
+				browser.GrantedIntroduction()
 			}
 
 			// Setup the shell alias
