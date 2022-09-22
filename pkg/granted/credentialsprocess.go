@@ -56,11 +56,11 @@ var CredentialsProcess = cli.Command{
 			_, ok := err.(*smithy.OperationError)
 			if ok {
 				// if it failed to load initialised try load it from the config
-				pr, err := profiles.Profile(profileName)
-				if err != nil {
-					log.Fatal(err)
+				pr, loadErr := profiles.Profile(profileName)
+				if loadErr != nil {
+					log.Fatal(loadErr)
 				}
-				log.Fatal(getGrantedApprovalsUrl(url, pr))
+				log.Fatal(getGrantedApprovalsUrl(url, pr, err))
 			} else {
 				log.Fatalf("granted credential_process error for profile '%s' with err: %s", profileName, err.Error())
 			}
@@ -72,7 +72,7 @@ var CredentialsProcess = cli.Command{
 			if ok {
 				// Prompt Granted-Approvals AR request
 				if serr.ServiceID == "SSO" {
-					log.Fatal(getGrantedApprovalsUrl(url, profile))
+					log.Fatal(getGrantedApprovalsUrl(url, profile, err))
 				}
 			} else {
 				log.Fatalln("\nError running credential with profile: "+profileName, err.Error())
@@ -96,7 +96,14 @@ var CredentialsProcess = cli.Command{
 	},
 }
 
-func getGrantedApprovalsUrl(url string, profile *cfaws.Profile) string {
+func getGrantedApprovalsUrl(url string, profile *cfaws.Profile, err error) string {
 	providerType := "commonfate%2Faws-sso"
-	return color.YellowString("\n\nYou need to request access to this role:"+"\n%saccess?type=%s&roleName=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
+
+	requestMsg := color.YellowString("\n\nYou need to request access to this role:"+"\n%saccess?type=%s&roleName=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
+
+	if err == nil {
+		return requestMsg
+	}
+
+	return fmt.Sprintf("%s\nerror: %s", requestMsg, err.Error())
 }
