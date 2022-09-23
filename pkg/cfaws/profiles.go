@@ -96,7 +96,6 @@ func (p *Profiles) loadDefaultConfigFile() error {
 	// Itterate through the config sections
 	for _, section := range configFile.Sections() {
 		rawConfig, err := configFile.Items(section)
-
 		if err != nil {
 			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS config: %s Due to the following error: %s\n", section, err)
 			continue

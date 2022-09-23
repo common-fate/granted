@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -26,6 +25,11 @@ type SSOPlainTextOut struct {
 	Region      string `json:"region"`
 }
 
+// CreatePlainTextSSO is currently unused. In a future version of the Granted CLI,
+// we'll allow users to export a plaintext token from their keychain for compatibility
+// purposes with other AWS tools.
+//
+// see: https://github.com/common-fate/granted/issues/155
 func CreatePlainTextSSO(awsConfig config.SharedConfig, token *SSOToken) *SSOPlainTextOut {
 	return &SSOPlainTextOut{
 		AccessToken: token.AccessToken,
@@ -77,7 +81,7 @@ func dumpTokenFile(jsonToken []byte, url string) error {
 		}
 	}
 
-	err = ioutil.WriteFile(filepath.Join(path, key), jsonToken, USER_READ_WRITE_PERM)
+	err = os.WriteFile(filepath.Join(path, key), jsonToken, USER_READ_WRITE_PERM)
 	if err != nil {
 		return err
 	}
