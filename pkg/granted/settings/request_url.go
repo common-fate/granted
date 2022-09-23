@@ -1,14 +1,14 @@
 package settings
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
-	urlLib "net/url"
+	"net/url"
 
 	"github.com/AlecAivazis/survey/v2"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
+	"github.com/pkg/errors"
 
 	"github.com/urfave/cli/v2"
 )
@@ -21,60 +21,59 @@ var RequestURLCommand = cli.Command{
 		&cli.StringFlag{Name: "set", Usage: "Bypass the interactive prompt and set the request url"},
 	},
 	Action: func(c *cli.Context) error {
-
-		var url string
+		var approvalsURL string
 		gConf, err := grantedConfig.Load()
 		if err != nil {
-			return errors.New("failed to load Config for GrantedApprovalsURL")
+			return errors.Wrap(err, "loading Granted config")
 		}
 
 		if c.Bool("clear") {
-			gConf.GrantedApprovalsURL = ""
+			gConf.AccessRequestURL = ""
 			if err := gConf.Save(); err != nil {
-				return errors.New("failed to save Config for GrantedApprovalsURL")
+				return errors.Wrap(err, "saving config")
 			}
 			fmt.Println("Successfully cleared the request url")
 			return nil
 		}
 
-		if gConf.GrantedApprovalsURL == "" && c.String("set") == "" {
+		if gConf.AccessRequestURL == "" && c.String("set") == "" {
 			in := &survey.Input{
-				Message: "What is the base url of your Granted Approvals deployment\n",
+				Message: "What is the URL of your Granted Approvals deployment?",
 				Help:    "i.e. https://commonfate.approvals.dev",
 			}
 			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-			err := survey.AskOne(in, &url, withStdio)
+			err := survey.AskOne(in, &approvalsURL, withStdio)
 			if err != nil {
 				return err
 			}
-			if url == "" {
+			if approvalsURL == "" {
 				return errors.New("cancelled setup process")
 			}
-			_, err = urlLib.Parse(url)
+			_, err = url.Parse(approvalsURL)
 			if err != nil {
-				return errors.New("invalid url")
+				return errors.Wrap(err, "parsing URL")
 			}
 
-			gConf.GrantedApprovalsURL = url
+			gConf.AccessRequestURL = approvalsURL
 			err = gConf.Save()
 			if err != nil {
 				return err
 			}
 			fmt.Println("Successfully set the request url")
 		} else if c.String("set") != "" {
-			url = c.String("set")
-			_, err = urlLib.Parse(url)
+			approvalsURL = c.String("set")
+			_, err = url.Parse(approvalsURL)
 			if err != nil {
-				return errors.New("invalid url")
+				return errors.Wrap(err, "parsing URL")
 			}
-			gConf.GrantedApprovalsURL = url
+			gConf.AccessRequestURL = approvalsURL
 			err = gConf.Save()
 			if err != nil {
 				return err
 			}
 			fmt.Println("Successfully set the request url")
-		} else if gConf.GrantedApprovalsURL != "" {
-			fmt.Println("The current request url is:", gConf.GrantedApprovalsURL)
+		} else if gConf.AccessRequestURL != "" {
+			fmt.Println("The current request url is:", gConf.AccessRequestURL)
 		}
 		return nil
 	},

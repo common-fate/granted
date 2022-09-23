@@ -3,11 +3,12 @@ package granted
 import (
 	"encoding/json"
 	"fmt"
-	"log"
 	urlLib "net/url"
+	"os"
 	"time"
 
 	grantedConfig "github.com/common-fate/granted/pkg/config"
+	"github.com/pkg/errors"
 
 	"github.com/aws/smithy-go"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -36,37 +37,40 @@ var CredentialsProcess = cli.Command{
 		url := c.String("url")
 		profileName := c.String("profile")
 
+		if url == "" {
+			gConf, err := grantedConfig.Load()
+			if err != nil {
+				return err
+			}
+			url = gConf.AccessRequestURL
+		}
+
 		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
-			log.Fatal(err)
+			return err
 		}
 
 		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
-			_, ok := err.(*smithy.OperationError)
-			if ok {
-				// if it failed to load initialised try load it from the config
-				pr, loadErr := profiles.Profile(profileName)
-				if loadErr != nil {
-					log.Fatal(loadErr)
-				}
-				log.Fatal(getGrantedApprovalsURL(url, pr))
-			} else {
-				log.Fatalf("granted credential_process error for profile '%s' with err: %s", profileName, err.Error())
-			}
+			return err
 		}
 
 		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: time.Hour})
 		if err != nil {
+			// print the error so the user knows what went wrong.
+			fmt.Fprintln(os.Stderr, err)
+
 			serr, ok := err.(*smithy.OperationError)
-			if ok {
-				// Prompt Granted-Approvals AR request
-				if serr.ServiceID == "SSO" {
-					log.Fatal(getGrantedApprovalsURL(url, profile))
-				}
-			} else {
-				log.Fatalln("\nError running credential with profile: "+profileName, err.Error())
+			if ok && serr.ServiceID == "SSO" {
+				// The user may be able to request access to the role if
+				// they are using Granted Approvals.
+				// Display an error message with the request URL, or a prompt
+				// to set up the request URL if it's empty.
+				fmt.Fprintln(os.Stderr, getGrantedApprovalsURL(url, profile))
 			}
+
+			// exit with an error status, as we haven't been able to assume the role.
+			os.Exit(1)
 		}
 
 		var out AWSCredsStdOut
@@ -78,38 +82,30 @@ var CredentialsProcess = cli.Command{
 
 		jsonOut, err := json.Marshal(out)
 		if err != nil {
-			log.Fatalln("\nUnhandled error when unmarshalling json creds")
+			return errors.Wrap(err, "marshalling session credentials")
 		}
-		fmt.Println(string(jsonOut))
 
+		fmt.Println(string(jsonOut))
 		return nil
 	},
 }
 
 func getGrantedApprovalsURL(url string, profile *cfaws.Profile) string {
 	if url == "" {
-		gConf, err := grantedConfig.Load()
-		if err != nil {
-			log.Fatal("no url passed, failed to load Config for GrantedApprovalsURL")
-		}
-		if gConf.GrantedApprovalsURL == "" {
-			log.Fatal("\nIf you're using Granted Approvals, set up a URL to request access to this role with 'granted settings request-url set <Your Granted Approvals URL>'")
-		} else {
-			url = gConf.GrantedApprovalsURL
-		}
+		return "If you're using Granted Approvals, set up a URL to request access to this role with 'granted settings request-url set <Your Granted Approvals URL>'"
 	}
 	u, err := urlLib.Parse(url)
 	if err != nil {
-		log.Fatal("Error when generating Granted Approvals URL: ", err)
+		return fmt.Sprintf("error building access request URL: %s", err.Error())
 	}
 	u.Path = "access"
 	q := u.Query()
-	q.Add("type", "commonfate/aws-sso") // hardcoded to begin with (only supporting aws sso)
+	q.Add("type", "commonfate/aws-sso")
 	q.Add("permissionSetArn.label", profile.AWSConfig.SSORoleName)
 	q.Add("accountId", profile.AWSConfig.SSOAccountID)
 	u.RawQuery = q.Encode()
 
-	requestMsg := color.YellowString("\n\nYou need to request access to this role:\n" + u.String() + "\n")
+	msg := color.YellowString("You need to request access to this role:\n" + u.String())
 
-	return requestMsg
+	return msg
 }
