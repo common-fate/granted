@@ -7,6 +7,8 @@ import (
 	urlLib "net/url"
 	"time"
 
+	grantedConfig "github.com/common-fate/granted/pkg/config"
+
 	"github.com/aws/smithy-go"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/fatih/color"
@@ -86,7 +88,15 @@ var CredentialsProcess = cli.Command{
 
 func getGrantedApprovalsURL(url string, profile *cfaws.Profile) string {
 	if url == "" {
-		log.Fatal("Error when generating Granted Approvals URL: url flag is required")
+		gConf, err := grantedConfig.Load()
+		if err != nil {
+			log.Fatal("no url passed, failed to load Config for GrantedApprovalsURL")
+		}
+		if gConf.GrantedApprovalsURL == "" {
+			log.Fatal("\nIf you're using Granted Approvals, set up a URL to request access to this role with 'granted settings request-url set <Your Granted Approvals URL>'")
+		} else {
+			url = gConf.GrantedApprovalsURL
+		}
 	}
 	u, err := urlLib.Parse(url)
 	if err != nil {
