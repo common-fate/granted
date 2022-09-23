@@ -31,13 +31,13 @@ var AddIAMStoreCommand = cli.Command{
 		args := ctx.Args()
 
 		//check if first argument is passed as a cred name
-		if args.First() != "add" {
+		if args.First() != "" {
 			profile = args.First()
 		}
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 
-		if profile != "" {
+		if profile == "" {
 			in := survey.Input{Message: "Profile Name: "}
 			fmt.Fprintln(color.Error)
 			err := testable.AskOne(&in, &profile, withStdio)

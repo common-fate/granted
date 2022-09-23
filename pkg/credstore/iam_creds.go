@@ -182,11 +182,8 @@ type IAMUserProvider struct {
 func (p *IAMUserProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	//try get out cached credentials
 
-	exists, err := Exists(p.ProfileName)
-	if err != nil {
-		//silent err here
+	exists, _ := Exists(p.ProfileName)
 
-	}
 	if exists {
 		creds, err := Retrieve(p.ProfileName)
 
