@@ -110,6 +110,12 @@ var ImportIAMStoreCommand = cli.Command{
 			return err
 		}
 
+		//remove creds from credfile
+		err = profiles.RemoveProfileFromCredentials(profile)
+		if err != nil {
+			return err
+		}
+
 		fmt.Printf("Saved %s to keychain", profile)
 
 		return nil
