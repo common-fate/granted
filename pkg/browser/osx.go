@@ -1,4 +1,4 @@
-package browsers
+package browser
 
 import (
 	"encoding/xml"
