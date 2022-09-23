@@ -14,6 +14,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 )
 
+const (
+	// permission for user to read/write/execute.
+	USER_READ_WRITE_PERM = 0700
+)
+
 type SSOPlainTextOut struct {
 	AccessToken string `json:"accessToken"`
 	ExpiresAt   string `json:"expiresAt"`
@@ -65,7 +70,14 @@ func dumpTokenFile(jsonToken []byte, url string) error {
 		return err
 	}
 
-	err = ioutil.WriteFile(filepath.Join(path, key), jsonToken, 0644)
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		err := os.MkdirAll(path, USER_READ_WRITE_PERM)
+		if err != nil {
+			return fmt.Errorf("unable to create sso cache directory with err: %s", err)
+		}
+	}
+
+	err = ioutil.WriteFile(filepath.Join(path, key), jsonToken, USER_READ_WRITE_PERM)
 	if err != nil {
 		return err
 	}
