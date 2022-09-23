@@ -2,14 +2,15 @@ package cfaws
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
-	gconfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/credstore"
+	"github.com/fatih/color"
 )
 
 // Implements Assumer
@@ -20,60 +21,65 @@ type AwsIamAssumer struct {
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
 func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 
-	gcfg, err := gconfig.Load()
+	//try use creds from keychain
+
+	//using secure keychain for creds
+	//get creds
+	provider := credstore.IAMUserProvider{ProfileName: c.Name}
+
+	creds, err := aws.NewCredentialsCache(&provider).Retrieve(ctx)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
 
-	if gcfg.UseSecureCredStorage {
-		//using secure keychain for creds
-		//get creds
-		provider := credstore.IAMUserProvider{ProfileName: c.Name}
-
-		creds, err := aws.NewCredentialsCache(&provider).Retrieve(ctx)
-		if err != nil {
-			return aws.Credentials{}, err
-		}
-
-		return creds, nil
-
-	} else {
-		//using ~/.aws/credentials file for creds
-		opts := []func(*config.LoadOptions) error{
-			// load the config profile
-			config.WithSharedConfigProfile(c.Name),
-			config.WithAssumeRoleCredentialOptions(func(aro *stscreds.AssumeRoleOptions) {
-				// set the token provider up
-				aro.TokenProvider = MfaTokenProvider
-				aro.Duration = configOpts.Duration
-
-				// If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token
-				if len(c.Parents) > 0 {
-					if c.Parents[0].AWSConfig.MFASerial != "" {
-						aro.SerialNumber = aws.String(c.Parents[0].AWSConfig.MFASerial)
-
-					}
-				}
-				if c.AWSConfig.RoleSessionName != "" {
-					aro.RoleSessionName = c.AWSConfig.RoleSessionName
-				} else {
-					aro.RoleSessionName = sessionName()
-				}
-			}),
-		}
-
-		//load the creds from the credentials file
-		cfg, err := config.LoadDefaultConfig(ctx, opts...)
-		if err != nil {
-			return aws.Credentials{}, err
-		}
-
-		creds, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
-		if err != nil {
-			return aws.Credentials{}, err
-		}
+	if creds.AccessKeyID != "" {
+		//found creds so we return them
 		return creds, nil
 	}
+
+	//else we check plaintext iam users
+
+	//using ~/.aws/credentials file for creds
+	opts := []func(*config.LoadOptions) error{
+		// load the config profile
+		config.WithSharedConfigProfile(c.Name),
+		config.WithAssumeRoleCredentialOptions(func(aro *stscreds.AssumeRoleOptions) {
+			// set the token provider up
+			aro.TokenProvider = MfaTokenProvider
+			aro.Duration = configOpts.Duration
+
+			// If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token
+			if len(c.Parents) > 0 {
+				if c.Parents[0].AWSConfig.MFASerial != "" {
+					aro.SerialNumber = aws.String(c.Parents[0].AWSConfig.MFASerial)
+
+				}
+			}
+			if c.AWSConfig.RoleSessionName != "" {
+				aro.RoleSessionName = c.AWSConfig.RoleSessionName
+			} else {
+				aro.RoleSessionName = sessionName()
+			}
+		}),
+	}
+
+	//load the creds from the credentials file
+	cfg, err := config.LoadDefaultConfig(ctx, opts...)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+
+	creds, err = aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+
+	//inform the user about securely securing iam users
+	fmt.Fprintf(color.Error, "Profile %s has plaintext credentials stored in ~/.aws/credentials.\n", c.Name)
+	fmt.Fprintf(color.Error, "It's more secure to store these in your system's keychain.\n")
+	fmt.Fprintf(color.Error, "Move the credentials to your keychain with `granted credstore import %s`.\n", c.Name)
+
+	return creds, nil
 
 }
 

@@ -182,18 +182,26 @@ type IAMUserProvider struct {
 func (p *IAMUserProvider) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	//try get out cached credentials
 
-	creds, err := Retrieve(p.ProfileName)
+	exists, err := Exists(p.ProfileName)
+	if err != nil {
+		//silent err here
 
-	if creds.Expired() || err != nil {
-		//return session creds from the keystore
-		return aws.Credentials{
-			AccessKeyID:     creds.AccessKeyID,
-			SecretAccessKey: creds.SecretAccessKey,
-
-			CanExpire: true,
-			Expires:   aws.ToTime(&creds.Expires),
-		}, nil
 	}
-	return *creds, nil
+	if exists {
+		creds, err := Retrieve(p.ProfileName)
+
+		if creds.Expired() || err != nil {
+			//return session creds from the keystore
+			return aws.Credentials{
+				AccessKeyID:     creds.AccessKeyID,
+				SecretAccessKey: creds.SecretAccessKey,
+
+				CanExpire: true,
+				Expires:   aws.ToTime(&creds.Expires),
+			}, nil
+		}
+		return *creds, nil
+	}
+	return aws.Credentials{}, nil
 
 }

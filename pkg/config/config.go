@@ -25,7 +25,6 @@ type Config struct {
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
-	UseSecureCredStorage   bool //if true will store and lookup creds in credstore
 }
 
 type KeyringConfig struct {
