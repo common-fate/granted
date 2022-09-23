@@ -99,7 +99,7 @@ var CredentialsProcess = cli.Command{
 func getGrantedApprovalsUrl(url string, profile *cfaws.Profile, err error) string {
 	providerType := "commonfate%2Faws-sso"
 
-	requestMsg := color.YellowString("\n\nYou need to request access to this role:"+"\n%saccess?type=%s&roleName=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
+	requestMsg := color.YellowString("\n\nYou need to request access to this role:"+"\n%saccess?type=%s&permissionSetArn.label=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
 
 	if err == nil {
 		return requestMsg
