@@ -33,19 +33,6 @@ var CredentialsProcess = cli.Command{
 		url := c.String("url")
 		profileName := c.String("profile")
 
-		if url == "" {
-			url = "http://localhost:3000/"
-		}
-		// In future we will support manual storing of url in config...
-		// conf, err := config.Load()
-		// if err != nil {
-		// 	log.Fatal("Failed to load Config for GrantedApprovalsUrl")
-		// }
-		// url = conf.GrantedApprovalsUrl
-		if url == "" {
-			log.Fatal("It looks like you haven't setup your GrantedApprovalsUrl\nTo do so please run: " + c.App.Name + " setup")
-		}
-
 		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			log.Fatal(err)
@@ -60,7 +47,7 @@ var CredentialsProcess = cli.Command{
 				if loadErr != nil {
 					log.Fatal(loadErr)
 				}
-				log.Fatal(getGrantedApprovalsUrl(url, pr, err))
+				log.Fatal(getGrantedApprovalsURL(url, pr, err))
 			} else {
 				log.Fatalf("granted credential_process error for profile '%s' with err: %s", profileName, err.Error())
 			}
@@ -72,7 +59,7 @@ var CredentialsProcess = cli.Command{
 			if ok {
 				// Prompt Granted-Approvals AR request
 				if serr.ServiceID == "SSO" {
-					log.Fatal(getGrantedApprovalsUrl(url, profile, err))
+					log.Fatal(getGrantedApprovalsURL(url, profile, err))
 				}
 			} else {
 				log.Fatalln("\nError running credential with profile: "+profileName, err.Error())
@@ -96,8 +83,13 @@ var CredentialsProcess = cli.Command{
 	},
 }
 
-func getGrantedApprovalsUrl(url string, profile *cfaws.Profile, err error) string {
+func getGrantedApprovalsURL(url string, profile *cfaws.Profile, err error) string {
+	// hardcoded to begin with (only supporting aws sso)
 	providerType := "commonfate%2Faws-sso"
+
+	if url == "" {
+		log.Fatal("Error when generating Granted Approvals URL: url flag is required")
+	}
 
 	requestMsg := color.YellowString("\n\nYou need to request access to this role:"+"\n%saccess?type=%s&permissionSetArn.label=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
 

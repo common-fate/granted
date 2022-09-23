@@ -26,7 +26,7 @@ type Config struct {
 	Ordering               string
 	ExportCredentialSuffix string
 	// This is used to generate reference URls
-	GrantedApprovalsUrl string
+	GrantedApprovalsURL string
 }
 
 type KeyringConfig struct {
