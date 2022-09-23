@@ -15,7 +15,6 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/smithy-go"
 	"github.com/common-fate/granted/pkg/assumeprint"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -277,19 +276,7 @@ func AssumeCommand(c *cli.Context) error {
 		return nil
 	} else {
 		creds, err := profile.AssumeTerminal(c.Context, configOpts)
-		connectedToGrantedFlag := false
 		if err != nil {
-			serr, ok := err.(*smithy.OperationError)
-			if ok && connectedToGrantedFlag {
-				if serr.ServiceID == "SSO" {
-					baseUrl, ruleId := "granted.dev", "rul_2BtW97o6jTacUuzxNJZorACn5v0"
-					// Guide user to common fate if error
-					s := fmt.Sprintf("ERROR: You need to request access to this role: https://%s/access/request/%s", baseUrl, ruleId)
-
-					fmt.Println(s)
-					os.Exit(1)
-				}
-			}
 			return err
 		}
 		sessionExpiration := ""
