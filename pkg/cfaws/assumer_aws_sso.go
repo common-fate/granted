@@ -51,13 +51,9 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		requiresAssuming = true
 	}
 
+	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
 	cfg := aws.NewConfig()
 	cfg.Region = rootProfile.AWSConfig.SSORegion
-
-	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
-
-	var rootCreds aws.Credentials
-	var credProvider *CredProv
 
 	cachedToken := GetValidCachedToken(ssoTokenKey)
 	var accessToken *string
@@ -84,8 +80,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		}
 		return aws.Credentials{}, err
 	}
-	rootCreds = TypeRoleCredsToAwsCreds(*res.RoleCredentials)
-	credProvider = &CredProv{rootCreds}
+	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
+	credProvider := &CredProv{rootCreds}
 
 	if requiresAssuming {
 		// return creds, nil
@@ -135,11 +131,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 
 }
 
-// SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token.
-// Passing true to shouldSilentLogs skips printing logs to stdout
-// this is required for `credential_process` as only valid JSON output should be returned for native AWS CLI to work.
+// SSODeviceCodeFlowFromStartUrl contains all the steps to complete a device code flow to retrieve an SSO token
 func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*SSOToken, error) {
-
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
 	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
@@ -163,7 +156,6 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	}
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
-
 	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 
 	//check if sso browser path is set
@@ -190,7 +182,6 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	}
 
 	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
-
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
 		return nil, err
