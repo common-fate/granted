@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/ssocreds"
-	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
@@ -38,8 +37,6 @@ type Profile struct {
 	AWSConfig    config.SharedConfig
 	Initialised  bool
 	LoadingError error
-	// set to true if aws temp credentails are fetched from ~/.aws/sso/cache dir.
-	HasPlainTextSSOToken bool
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -200,72 +197,8 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 
 		pr.AWSConfig = *awsConfig
 
-		cfg := aws.NewConfig()
-		cfg.Region = awsConfig.SSORegion
-		client := sso.NewFromConfig(*cfg)
-
-		// granted-prefix config can't be used to fetch temporary credentials from sso cache dir
-		// that will return with error as it doesn't have required default keys.
-		// so instead create a new credential provider by passing the parsed aws config keys.
-		grantedProvider := ssocreds.New(client, awsConfig.SSOAccountID, awsConfig.SSORoleName, awsConfig.SSOStartURL)
-		credentials, err := grantedProvider.Retrieve(ctx)
-
-		// the credential will throw error if there is no valid file in sso cache dir
-		// or if the token in invalid or expired.
-		// we need to handle those error condition and ask users to authenticate
-		// so redirect that to sso code flow and dump the sso token in default cache dir.
-		if err != nil {
-			// If no cache file is not found then.
-			if errors.Is(err, syscall.ENOENT) {
-				if err := pr.ssoAuthAndDumpPlainTextSSO(ctx, cfg); err != nil {
-					return nil, err
-				}
-
-				// recursively call the same func
-				// second run will have the necessary plain-text-sso-token or err so this won't be called again.
-				return p.LoadInitialisedProfile(ctx, pr.Name)
-			}
-
-			// if the token has expired or invalid then
-			if _, ok := err.(*ssocreds.InvalidTokenError); ok {
-				if err := pr.ssoAuthAndDumpPlainTextSSO(ctx, cfg); err != nil {
-					return nil, err
-				}
-
-				return p.LoadInitialisedProfile(ctx, pr.Name)
-			}
-
-			return nil, err
-		}
-
-		// if the retrived credentials are valid token then
-		// initialized profile with plan-text-SS0-token
-		if credentials.HasKeys() {
-			err = pr.InitWithPlainTextSSOToken(ctx, p, credentials)
-			if err != nil {
-				return nil, err
-			}
-
-			pr.HasPlainTextSSOToken = true
-			return pr, nil
-		}
-	}
-
-	// case when users has valid token through `aws sso login --profile NAME` and use granted.
-	// check if we have valid credentials in `~/.aws/sso/cache`
-	awsCredentials, err := pr.LoadPlainTextSSOToken(ctx, pr.Name)
-	if err != nil {
-		return nil, err
-	}
-
-	// if retrieved SSO credentials are valid then initialize profile with that.
-	if awsCredentials.HasKeys() {
-		err = pr.InitWithPlainTextSSOToken(ctx, p, awsCredentials)
-		if err != nil {
-			return nil, err
-		}
-
-		pr.HasPlainTextSSOToken = true
+		pr.Initialised = true
+		pr.ProfileType = "AWS_SSO"
 		return pr, nil
 	}
 
@@ -274,28 +207,12 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 	if err != nil {
 		return nil, err
 	}
-	pr.HasPlainTextSSOToken = false
 	return pr, nil
-}
-
-func (pr *Profile) ssoAuthAndDumpPlainTextSSO(ctx context.Context, cfg *aws.Config) error {
-	token, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, pr.AWSConfig.SSOStartURL, true)
-	if err != nil {
-		return err
-	}
-
-	ssoToken := CreatePlainTextSSO(pr.AWSConfig, token)
-
-	if err := ssoToken.DumpToCacheDirectory(); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 // Initialize profile's AWS config by fetching credentials from plain-text-SSO-token
 // located at default cache directory.
-func (p *Profile) InitWithPlainTextSSOToken(ctx context.Context, profiles *Profiles, awsCred aws.Credentials) error {
+func (p *Profile) InitWithPlainTextSSOToken(ctx context.Context, awsCred aws.Credentials) error {
 	p.Initialised = true
 	p.ProfileType = "AWS_SSO"
 
