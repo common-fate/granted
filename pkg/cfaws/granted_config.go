@@ -51,11 +51,11 @@ func (gConfig *grantedSSOConfig) ConvertToAWSConfig(ctx context.Context, p *Prof
 // For `granted login` cmd, we have to make sure 'granted' prefix
 // is added to the aws config file.
 func IsValidGrantedProfile(rawConfig configparser.Dict) error {
-	requiredGrantedCredentials := []string{"granted_sso_start_url", "granted_sso_region", "granted_sso_account_id", "granted_sso_role_name", "region"}
+	requiredGrantedCredentials := []string{"granted_sso_start_url", "granted_sso_region", "granted_sso_account_id", "granted_sso_role_name"}
 
 	for _, value := range requiredGrantedCredentials {
 		if _, ok := rawConfig[value]; !ok {
-			return fmt.Errorf("invalid aws config for granted login. %s is undefined but necessary", value)
+			return fmt.Errorf("invalid aws config for granted login. '%s' field must be provided", value)
 		}
 	}
 
