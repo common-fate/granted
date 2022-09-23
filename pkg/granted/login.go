@@ -17,7 +17,7 @@ type SSOPlainTextOut struct {
 
 var LoginCommand = cli.Command{
 	Name:  "login",
-	Usage: "authenticate with AWS SSO for provided profile name",
+	Usage: "Authenticate with AWS SSO for provided profile name",
 	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}},
 	Action: func(c *cli.Context) error {
 
@@ -45,9 +45,9 @@ var LoginCommand = cli.Command{
 
 		profile.AWSConfig = *awsConfig
 		cfg := aws.NewConfig()
-		cfg.Region = awsConfig.Region
+		cfg.Region = awsConfig.SSORegion
 
-		token, err := cfaws.SSODeviceCodeFlowFromStartUrl(c.Context, *cfg, awsConfig.SSOStartURL, false)
+		token, err := cfaws.SSODeviceCodeFlowFromStartUrl(c.Context, *cfg, awsConfig.SSOStartURL)
 		if err != nil {
 			return err
 		}

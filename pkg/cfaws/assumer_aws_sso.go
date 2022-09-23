@@ -57,47 +57,37 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	cfg.Region = rootProfile.AWSConfig.SSORegion
 
 	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
-	var accessToken string
 
 	var rootCreds aws.Credentials
 	var credProvider *CredProv
 
-	// skip searching for token if credentials are fetched from ~/.aws/sso/cache
-	if !rootProfile.HasPlainTextSSOToken {
-		cachedToken := GetValidCachedToken(ssoTokenKey)
-		var err error
-		newToken := false
-		if cachedToken == nil {
-			newToken = true
-			cachedToken, err = SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL, false)
-			if err != nil {
-				return aws.Credentials{}, err
-			}
-			accessToken = cachedToken.AccessToken
-
-		}
-		if newToken {
-			StoreSSOToken(ssoTokenKey, *cachedToken)
-		}
-
-		// create sso client
-		ssoClient := sso.NewFromConfig(*cfg)
-
-		res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &accessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
+	cachedToken := GetValidCachedToken(ssoTokenKey)
+	var accessToken *string
+	if cachedToken == nil {
+		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
 		if err != nil {
-			var unauthorised *ssotypes.UnauthorizedException
-			if errors.As(err, &unauthorised) {
-				// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
-				ClearSSOToken(ssoTokenKey)
-			}
 			return aws.Credentials{}, err
 		}
-		rootCreds = TypeRoleCredsToAwsCreds(*res.RoleCredentials)
-		credProvider = &CredProv{rootCreds}
 
+		StoreSSOToken(ssoTokenKey, *newSSOToken)
+		accessToken = &newSSOToken.AccessToken
 	} else {
-		credProvider = &CredProv{c.AWSConfig.Credentials}
+		accessToken = &cachedToken.AccessToken
 	}
+
+	// create sso client
+	ssoClient := sso.NewFromConfig(*cfg)
+	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: accessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
+	if err != nil {
+		var unauthorised *ssotypes.UnauthorizedException
+		if errors.As(err, &unauthorised) {
+			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
+			ClearSSOToken(ssoTokenKey)
+		}
+		return aws.Credentials{}, err
+	}
+	rootCreds = TypeRoleCredsToAwsCreds(*res.RoleCredentials)
+	credProvider = &CredProv{rootCreds}
 
 	if requiresAssuming {
 		// return creds, nil
@@ -150,7 +140,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 // SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token.
 // Passing true to shouldSilentLogs skips printing logs to stdout
 // this is required for `credential_process` as only valid JSON output should be returned for native AWS CLI to work.
-func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string, shouldSilentLogs bool) (*SSOToken, error) {
+func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*SSOToken, error) {
 
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
@@ -176,9 +166,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
 
-	if !shouldSilentLogs {
-		fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
-	}
+	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 
 	//check if sso browser path is set
 	config, err := grantCfg.Load()
@@ -201,9 +189,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 		}
 	}
 
-	if !shouldSilentLogs {
-		fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
-	}
+	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
 
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
