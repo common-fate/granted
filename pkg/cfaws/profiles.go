@@ -46,23 +46,23 @@ var ErrProfileNotFound error = errors.New("profile not found")
 type Profiles struct {
 	// alphabetically sorted after first load
 	ProfileNames []string
-	Profiles     map[string]*Profile
+	profiles     map[string]*Profile
 }
 
 func (p *Profiles) HasProfile(profile string) bool {
-	_, ok := p.Profiles[profile]
+	_, ok := p.profiles[profile]
 	return ok
 }
 
 func (p *Profiles) Profile(profile string) (*Profile, error) {
-	if c, ok := p.Profiles[profile]; ok {
+	if c, ok := p.profiles[profile]; ok {
 		return c, nil
 	}
 	return nil, ErrProfileNotFound
 }
 
 func LoadProfiles() (*Profiles, error) {
-	p := Profiles{Profiles: make(map[string]*Profile)}
+	p := Profiles{profiles: make(map[string]*Profile)}
 	err := p.loadDefaultConfigFile()
 	if err != nil {
 		return nil, err
@@ -101,10 +101,10 @@ func (p *Profiles) loadDefaultConfigFile() error {
 			continue
 		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
-		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && IsLegalProfileName(section) {
+		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(section) {
 			name := strings.TrimPrefix(section, "profile ")
 			p.ProfileNames = append(p.ProfileNames, name)
-			p.Profiles[name] = &Profile{RawConfig: rawConfig, Name: name, File: configPath}
+			p.profiles[name] = &Profile{RawConfig: rawConfig, Name: name, File: configPath}
 		}
 	}
 	return nil
@@ -138,22 +138,22 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 			continue
 		}
 		// We only care about the non default sections for the credentials file (no profile prefix either)
-		if section != "default" && IsLegalProfileName(section) {
+		if section != "default" && isLegalProfileName(section) {
 			// check for a duplicate profile in the map and skip if present (config file should take precedence)
-			_, exists := p.Profiles[section]
+			_, exists := p.profiles[section]
 			if exists {
 				debug.Fprintf(debug.VerbosityDebug, color.Output, "skipping profile with name %s - profile already defined in config", section)
 				continue
 			}
 			p.ProfileNames = append(p.ProfileNames, section)
-			p.Profiles[section] = &Profile{RawConfig: rawConfig, Name: section, File: credsPath}
+			p.profiles[section] = &Profile{RawConfig: rawConfig, Name: section, File: credsPath}
 		}
 	}
 	return nil
 }
 
 // Helper function which returns true if provided profile name string does not contain illegal characters
-func IsLegalProfileName(name string) bool {
+func isLegalProfileName(name string) bool {
 	illegalChars := "\\][;'\"" // These characters break the config file format and should not be usable for profile names
 	if strings.ContainsAny(name, illegalChars) {
 		fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains one or more of: '%s' in the name, try replacing these with '-'\n", name, illegalChars)
@@ -167,7 +167,7 @@ func IsLegalProfileName(name string) bool {
 // use this if you need to know the type of every profile in the config
 // for large configuations, this may be expensive
 func (p *Profiles) InitialiseProfilesTree(ctx context.Context) {
-	for _, v := range p.Profiles {
+	for _, v := range p.profiles {
 		_ = v.init(ctx, p, 0)
 	}
 }
@@ -279,7 +279,7 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 					}
 				}
 			} else {
-				sourceProfile, ok := profiles.Profiles[p.AWSConfig.SourceProfileName]
+				sourceProfile, ok := profiles.profiles[p.AWSConfig.SourceProfileName]
 				if ok {
 					p.LoadingError = sourceProfile.init(ctx, profiles, depth+1)
 					if p.LoadingError != nil {
