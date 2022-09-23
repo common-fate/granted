@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"log"
+	urlLib "net/url"
 	"time"
 
 	"github.com/aws/smithy-go"
@@ -47,7 +48,7 @@ var CredentialsProcess = cli.Command{
 				if loadErr != nil {
 					log.Fatal(loadErr)
 				}
-				log.Fatal(getGrantedApprovalsURL(url, pr, err))
+				log.Fatal(getGrantedApprovalsURL(url, pr))
 			} else {
 				log.Fatalf("granted credential_process error for profile '%s' with err: %s", profileName, err.Error())
 			}
@@ -59,7 +60,7 @@ var CredentialsProcess = cli.Command{
 			if ok {
 				// Prompt Granted-Approvals AR request
 				if serr.ServiceID == "SSO" {
-					log.Fatal(getGrantedApprovalsURL(url, profile, err))
+					log.Fatal(getGrantedApprovalsURL(url, profile))
 				}
 			} else {
 				log.Fatalln("\nError running credential with profile: "+profileName, err.Error())
@@ -83,19 +84,22 @@ var CredentialsProcess = cli.Command{
 	},
 }
 
-func getGrantedApprovalsURL(url string, profile *cfaws.Profile, err error) string {
-	// hardcoded to begin with (only supporting aws sso)
-	providerType := "commonfate%2Faws-sso"
-
+func getGrantedApprovalsURL(url string, profile *cfaws.Profile) string {
 	if url == "" {
 		log.Fatal("Error when generating Granted Approvals URL: url flag is required")
 	}
-
-	requestMsg := color.YellowString("\n\nYou need to request access to this role:"+"\n%saccess?type=%s&permissionSetArn.label=%s&accountId=%s\n", url, providerType, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSOAccountID)
-
-	if err == nil {
-		return requestMsg
+	u, err := urlLib.Parse(url)
+	if err != nil {
+		log.Fatal("Error when generating Granted Approvals URL: ", err)
 	}
+	u.Path = "access"
+	q := u.Query()
+	q.Add("type", "commonfate/aws-sso") // hardcoded to begin with (only supporting aws sso)
+	q.Add("permissionSetArn.label", profile.AWSConfig.SSORoleName)
+	q.Add("accountId", profile.AWSConfig.SSOAccountID)
+	u.RawQuery = q.Encode()
 
-	return fmt.Sprintf("%s\nerror: %s", requestMsg, err.Error())
+	requestMsg := color.YellowString("\n\nYou need to request access to this role:\n" + u.String() + "\n")
+
+	return requestMsg
 }
