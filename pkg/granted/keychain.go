@@ -7,22 +7,24 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+
+	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/credstore"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
-var CredstoreCommand = cli.Command{
-	Name:        "credstore",
+var KeychainCommand = cli.Command{
+	Name:        "keychain",
 	Usage:       "Manage where IAM credentials are stored",
-	Subcommands: []*cli.Command{&AddIAMStoreCommand},
+	Subcommands: []*cli.Command{&AddIAMStoreCommand, &ImportIAMStoreCommand},
 	Action:      TokenListCommand.Action,
 }
 
 var AddIAMStoreCommand = cli.Command{
 	Name:  "add",
-	Usage: "Add new set of IAM credentials to your credfile",
+	Usage: "Add new set of IAM credentials to your keychain",
 	Action: func(ctx *cli.Context) error {
 		var profile string
 
@@ -68,7 +70,47 @@ var AddIAMStoreCommand = cli.Command{
 			return err
 		}
 
-		fmt.Printf("Saved %s to Credfile", profile)
+		fmt.Printf("Saved %s to keychain", profile)
+
+		return nil
+	},
+}
+
+var ImportIAMStoreCommand = cli.Command{
+	Name:  "import",
+	Usage: "Import credentials from ~/.credentials file into keychain",
+	Action: func(ctx *cli.Context) error {
+		var profile string
+		//read the credentials file
+
+		args := ctx.Args()
+
+		if args.First() != "" {
+			profile = args.First()
+		}
+
+		profiles, err := cfaws.LoadProfiles()
+		if err != nil {
+			return err
+		}
+
+		//find the profile
+		iamProfile, err := profiles.LoadInitialisedProfile(ctx.Context, profile)
+		if err != nil {
+			return err
+		}
+		//add creds to the keychain
+		creds := iamProfile.AWSConfig.Credentials
+
+		creds.CanExpire = true
+		creds.Expires = time.Now().Add(time.Minute * 60)
+
+		err = credstore.Store(profile, creds)
+		if err != nil {
+			return err
+		}
+
+		fmt.Printf("Saved %s to keychain", profile)
 
 		return nil
 	},
