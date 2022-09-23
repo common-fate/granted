@@ -64,7 +64,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	cachedToken := GetValidCachedToken(ssoTokenKey)
 	var accessToken *string
 	if cachedToken == nil {
-		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL, false)
+		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
 		if err != nil {
 			return aws.Credentials{}, err
 		}
@@ -140,7 +140,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 // SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token.
 // Passing true to shouldSilentLogs skips printing logs to stdout
 // this is required for `credential_process` as only valid JSON output should be returned for native AWS CLI to work.
-func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string, shouldSilentLogs bool) (*SSOToken, error) {
+func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*SSOToken, error) {
 
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
@@ -166,9 +166,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
 
-	if !shouldSilentLogs {
-		fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
-	}
+	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 
 	//check if sso browser path is set
 	config, err := grantCfg.Load()
@@ -191,9 +189,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 		}
 	}
 
-	if !shouldSilentLogs {
-		fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
-	}
+	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
 
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
