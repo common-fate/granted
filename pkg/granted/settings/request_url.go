@@ -15,7 +15,7 @@ import (
 
 var RequestURLCommand = cli.Command{
 	Name:  "request-url",
-	Usage: "Set the request url for credential_process command (connection to Grante dApprovals)",
+	Usage: "Set the request url for credential_process command (connection to Granted Approvals)",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "clear", Usage: "Clears the current request url"},
 		&cli.StringFlag{Name: "set", Usage: "Bypass the interactive prompt and set the request url"},
