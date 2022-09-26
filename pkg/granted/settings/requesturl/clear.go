@@ -10,7 +10,7 @@ import (
 
 var clearRequestURLCommand = cli.Command{
 	Name:  "clear",
-	Usage: "Clears the current request url",
+	Usage: "Clears the current request URL",
 	Action: func(c *cli.Context) error {
 		gConf, err := grantedConfig.Load()
 		if err != nil {
@@ -22,7 +22,7 @@ var clearRequestURLCommand = cli.Command{
 			return errors.Wrap(err, "saving config")
 		}
 
-		fmt.Println("Successfully cleared the request url")
+		fmt.Println("Successfully cleared the request URL")
 		return nil
 
 	},

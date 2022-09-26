@@ -50,7 +50,7 @@ var setRequestURLCommand = cli.Command{
 			return err
 		}
 
-		fmt.Printf("Request url for Granted Approvals has been set to '%s'\n", approvalsURL)
+		fmt.Printf("Request URL for Granted Approvals has been set to '%s'\n", approvalsURL)
 		return nil
 	},
 }
