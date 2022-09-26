@@ -25,7 +25,7 @@ var setRequestURLCommand = cli.Command{
 		if approvalsURL == "" {
 			in := &survey.Input{
 				Message: "What is the URL of your Granted Approvals deployment?",
-				Help:    "URL for your Granted Approvals webapp from where users can request access \n for e.g: https://example.com",
+				Help:    "URL for your Granted Approvals dashboard from where users can request access \n for e.g: https://example.com",
 			}
 			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 			err := survey.AskOne(in, &approvalsURL, withStdio)
