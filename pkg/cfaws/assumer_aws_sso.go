@@ -19,7 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 	"github.com/bigkevmcd/go-configparser"
-	grantCfg "github.com/common-fate/granted/pkg/config"
+	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 )
@@ -86,7 +86,12 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
 				if httpErr.HTTPStatusCode() == http.StatusForbidden {
 					if hasGrantedPrefix(c.RawConfig) {
-						requestURLMsg, err := GetGrantedApprovalsURL(c.RawConfig, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
+						gConf, loadErr := grantedConfig.Load()
+						if loadErr != nil {
+							return aws.Credentials{}, errors.Wrapf(err, "loading Granted config: %s", loadErr.Error())
+						}
+
+						requestURLMsg, err := GetGrantedApprovalsURL(c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
 						if err != nil {
 							return aws.Credentials{}, err
 						}
@@ -183,7 +188,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 
 	//check if sso browser path is set
-	config, err := grantCfg.Load()
+	config, err := grantedConfig.Load()
 	if err != nil {
 		return nil, err
 	}

@@ -3,13 +3,9 @@ package cfaws
 import (
 	"context"
 	"fmt"
-	"net/url"
-	"regexp"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
-	grantedConfig "github.com/common-fate/granted/pkg/config"
-	"github.com/fatih/color"
 )
 
 type grantedSSOConfig struct {
@@ -73,47 +69,4 @@ func hasGrantedPrefix(rawConfig configparser.Dict) bool {
 	}
 
 	return false
-}
-
-func GetGrantedApprovalsURL(rawConfig configparser.Dict, SSORoleName string, SSOAccountId string) (string, error) {
-	gConf, err := grantedConfig.Load()
-	if err != nil {
-		return "", err
-	}
-
-	url := gConf.AccessRequestURL
-	if url != "" {
-		requestURL := buildRequestURL(url, SSORoleName, SSOAccountId)
-
-		return color.YellowString("You need to request access to this role:\n" + requestURL), nil
-	}
-
-	if value, ok := rawConfig["credential_process"]; ok {
-		re := regexp.MustCompile(`--url\s+(\S+)`)
-		matchedValues := re.FindStringSubmatch(value)
-		if len(matchedValues) > 1 {
-			url := matchedValues[1]
-			requestURL := buildRequestURL(url, SSORoleName, SSOAccountId)
-
-			return color.YellowString("You need to request access to this role:\n" + requestURL), nil
-		}
-
-	}
-
-	return color.YellowString("Granted Approvals URL not configured. \nSet up a URL to request access to this role with 'granted settings request-url set <YOUR_GRANTED_APPROVALS_URL'"), nil
-}
-
-func buildRequestURL(grantedUrl string, SSORoleName string, SSOAccountId string) string {
-	u, err := url.Parse(grantedUrl)
-	if err != nil {
-		return fmt.Sprintf("error building access request URL: %s", err.Error())
-	}
-	u.Path = "access"
-	q := u.Query()
-	q.Add("type", "commonfate/aws-sso")
-	q.Add("permissionSetArn.label", SSORoleName)
-	q.Add("accountId", SSOAccountId)
-	u.RawQuery = q.Encode()
-
-	return u.String()
 }
