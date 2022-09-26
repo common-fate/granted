@@ -20,14 +20,14 @@ var Commands = cli.Command{
 		}
 
 		if gConf.AccessRequestURL == "" {
-			fmt.Println("Request URL is not configured. You can configure by using 'granted settings request-url set <YOUR_URL>")
+			fmt.Println("Request URL is not configured. You can configure by using 'granted settings request-url set <YOUR_URL>'")
 
 			return nil
 		}
 
 		fmt.Printf("The current request url is '%s' \n", gConf.AccessRequestURL)
-		fmt.Println("You can clear the value using 'granted settings request-url clear")
-		fmt.Println("Or you can reset to another value using 'granted settings request-url set <NEW_URL>")
+		fmt.Println("You can clear the value using 'granted settings request-url clear'")
+		fmt.Println("Or you can reset to another value using 'granted settings request-url set <NEW_URL>'")
 		return nil
 	},
 }
