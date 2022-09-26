@@ -54,6 +54,9 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   unset GRANTED_SSO_REGION
   unset GRANTED_SSO_ACCOUNT_ID
 
+  # shellcheck disable=SC2124
+  export GRANTED_COMMAND="$@"
+
   export GRANTED_SSO=${GRANTED_7}
   
   if [ ! "${GRANTED_1}" = "None" ]; then

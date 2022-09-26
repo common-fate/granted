@@ -42,6 +42,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e GRANTED_SSO_REGION
   set -e GRANTED_SSO_ACCOUNT_ID
 
+  set -gx GRANTED_COMMAND $argv
   if test "$GRANTED_1" != "None"
     set -gx AWS_ACCESS_KEY_ID $GRANTED_1
   end
