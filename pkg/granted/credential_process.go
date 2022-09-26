@@ -39,7 +39,12 @@ var CredentialProcess = cli.Command{
 			return err
 		}
 
-		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: time.Hour})
+		duration := time.Hour
+		if profile.AWSConfig.RoleDurationSeconds != nil {
+			duration = *profile.AWSConfig.RoleDurationSeconds
+		}
+
+		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration})
 		if err != nil {
 			// print the error so the user knows what went wrong.
 			fmt.Fprintln(os.Stderr, err)
