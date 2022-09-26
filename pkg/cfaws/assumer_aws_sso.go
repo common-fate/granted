@@ -3,10 +3,13 @@ package cfaws
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
 	"os/exec"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
@@ -14,6 +17,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/smithy-go"
 	"github.com/bigkevmcd/go-configparser"
 	grantCfg "github.com/common-fate/granted/pkg/config"
 	"github.com/fatih/color"
@@ -73,6 +77,26 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	ssoClient := sso.NewFromConfig(*cfg)
 	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: accessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
 	if err != nil {
+		serr, ok := err.(*smithy.OperationError)
+		if ok {
+			// If the err is of type ForbiddenRequest then user may be able
+			// to request access to the role if they are using Granted Approvals.
+			// Display an error message with the request URL, or a prompt
+			// to set up the request URL if it's empty.
+			if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
+				if httpErr.HTTPStatusCode() == http.StatusForbidden {
+					if hasGrantedPrefix(c.RawConfig) {
+						requestURLMsg, err := GetGrantedApprovalsURL(c.RawConfig, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
+						if err != nil {
+							return aws.Credentials{}, err
+						}
+						fmt.Fprintln(os.Stderr, requestURLMsg)
+					}
+				}
+			}
+
+		}
+
 		var unauthorised *ssotypes.UnauthorizedException
 		if errors.As(err, &unauthorised) {
 			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
