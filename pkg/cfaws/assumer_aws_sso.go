@@ -19,6 +19,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/pkg/browser"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
@@ -193,13 +194,13 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 		return nil, err
 	}
 
-	browserCommand := "open" // we default to running 'open <URL>'
+	browserCommand := browser.OpenCommand() // we default to running 'open <URL>'
 
 	if config.CustomSSOBrowserPath != "" {
 		// replace the 'open' command with a call to the custom browser path.
 		browserCommand = config.CustomSSOBrowserPath
 	}
-	cmd := exec.Command(browserCommand, url) // TODO:CHR why do we need the spaces around the URL?
+	cmd := exec.Command(browserCommand, url)
 	err = cmd.Start()
 	if err != nil {
 		return nil, err
