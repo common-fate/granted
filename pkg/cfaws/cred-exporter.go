@@ -12,15 +12,16 @@ import (
 	"github.com/fatih/color"
 )
 
-// ExportCredsToProfile will write assumed credentials to ~/.aws/credentials with a specified profile name header
-func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
-	// fetch the parsed cred file
-	credPath := config.DefaultSharedCredentialsFilename()
+func WriteProfileToDefaultCredentialsFile(profileName string, creds aws.Credentials) error {
+	return WriteProfileToCredentialsFile(profileName, creds, config.DefaultSharedCredentialsFilename())
+}
 
+// WriteProfileToCredentialsFile will write assumed credentials to the credentials file at the specified path with a specified profile name header
+func WriteProfileToCredentialsFile(profileName string, creds aws.Credentials, path string) error {
 	//create it if it doesn't exist
-	if _, err := os.Stat(credPath); os.IsNotExist(err) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
 
-		f, err := os.Create(credPath)
+		f, err := os.Create(path)
 		if err != nil {
 			return err
 		}
@@ -32,7 +33,7 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 
 	}
 
-	credFile, err := configparser.NewConfigParserFromFile(credPath)
+	credFile, err := configparser.NewConfigParserFromFile(path)
 	if err != nil {
 		return err
 	}
@@ -69,7 +70,7 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 	if err != nil {
 		return err
 	}
-	err = credFile.SaveWithDelimiter(credPath, "=")
+	err = credFile.SaveWithDelimiter(path, "=")
 	if err != nil {
 		return err
 	}

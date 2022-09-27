@@ -61,13 +61,41 @@ func (p *Profiles) Profile(profile string) (*Profile, error) {
 	return nil, ErrProfileNotFound
 }
 
-func LoadProfiles() (*Profiles, error) {
+type LoadProfilesOpts struct {
+	ConfigFilePath      string
+	CredentialsFilePath string
+}
+
+type LoadProfilesOptsFunc func(*LoadProfilesOpts)
+
+func WithConfigFilePath(p string) LoadProfilesOptsFunc {
+	return func(lpo *LoadProfilesOpts) {
+		lpo.ConfigFilePath = p
+	}
+}
+func WithCredentialsFilePath(p string) LoadProfilesOptsFunc {
+	return func(lpo *LoadProfilesOpts) {
+		lpo.CredentialsFilePath = p
+	}
+}
+
+// Supply a custom config or credentials path with the options function
+func LoadProfiles(opts ...LoadProfilesOptsFunc) (*Profiles, error) {
+	cfg := LoadProfilesOpts{
+		ConfigFilePath:      config.DefaultSharedConfigFilename(),
+		CredentialsFilePath: config.DefaultSharedCredentialsFilename(),
+	}
+	for _, opt := range opts {
+		opt(&cfg)
+	}
 	p := Profiles{profiles: make(map[string]*Profile)}
-	err := p.loadDefaultConfigFile()
+
+	err := p.loadConfigFile(cfg.ConfigFilePath)
 	if err != nil {
 		return nil, err
 	}
-	err = p.loadDefaultCredentialsFile()
+
+	err = p.loadCredentialsFile(cfg.CredentialsFilePath)
 	if err != nil {
 		return nil, err
 	}
@@ -83,9 +111,8 @@ func LoadProfiles() (*Profiles, error) {
 // [profile cf-prod]
 // sso_region=ap-southeast-2
 // ...
-func (p *Profiles) loadDefaultConfigFile() error {
-	configPath := config.DefaultSharedConfigFilename()
-	configFile, err := configparser.NewConfigParserFromFile(configPath)
+func (p *Profiles) loadConfigFile(path string) error {
+	configFile, err := configparser.NewConfigParserFromFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -104,7 +131,7 @@ func (p *Profiles) loadDefaultConfigFile() error {
 		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(section) {
 			name := strings.TrimPrefix(section, "profile ")
 			p.ProfileNames = append(p.ProfileNames, name)
-			p.profiles[name] = &Profile{RawConfig: rawConfig, Name: name, File: configPath}
+			p.profiles[name] = &Profile{RawConfig: rawConfig, Name: name, File: path}
 		}
 	}
 	return nil
@@ -120,10 +147,9 @@ func (p *Profiles) loadDefaultConfigFile() error {
 // aws_access_key_id = xxxxxx
 // aws_secret_access_key = xxxxxx
 // ...
-func (p *Profiles) loadDefaultCredentialsFile() error {
+func (p *Profiles) loadCredentialsFile(path string) error {
 	//fetch parsed credentials file
-	credsPath := config.DefaultSharedCredentialsFilename()
-	credsFile, err := configparser.NewConfigParserFromFile(credsPath)
+	credsFile, err := configparser.NewConfigParserFromFile(path)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -146,7 +172,7 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 				continue
 			}
 			p.ProfileNames = append(p.ProfileNames, section)
-			p.profiles[section] = &Profile{RawConfig: rawConfig, Name: section, File: credsPath}
+			p.profiles[section] = &Profile{RawConfig: rawConfig, Name: section, File: path}
 		}
 	}
 	return nil

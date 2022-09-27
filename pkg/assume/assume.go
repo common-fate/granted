@@ -64,7 +64,10 @@ func AssumeCommand(c *cli.Context) error {
 		var wg sync.WaitGroup
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		profiles, err := cfaws.LoadProfiles()
+
+		var opts []cfaws.LoadProfilesOptsFunc
+
+		profiles, err := cfaws.LoadProfiles(opts...)
 		if err != nil {
 			return err
 		}
@@ -301,10 +304,18 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		if assumeFlags.Bool("export") {
-			err = cfaws.ExportCredsToProfile(profile.Name, creds)
-			if err != nil {
-				return err
+			if assumeFlags.String("aws-credentials-file") != "" {
+				err = cfaws.WriteProfileToCredentialsFile(profile.Name, creds, assumeFlags.String("aws-credentials-file"))
+				if err != nil {
+					return err
+				}
+			} else {
+				err = cfaws.WriteProfileToDefaultCredentialsFile(profile.Name, creds)
+				if err != nil {
+					return err
+				}
 			}
+
 			var profileName string
 			if cfg.ExportCredentialSuffix != "" {
 				profileName = profile.Name + "-" + cfg.ExportCredentialSuffix
