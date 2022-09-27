@@ -67,6 +67,14 @@ jobs:
           version: latest
           args: --timeout 5m
 
+  shellcheck:
+    name: Shellcheck
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - name: Run ShellCheck
+        uses: ludeeus/action-shellcheck@94e0aab03ca135d11a35e5bfc14e6746dc56e7e9
+
   linux-installs:
     needs: test
     name: Smoke Test (Linux)
