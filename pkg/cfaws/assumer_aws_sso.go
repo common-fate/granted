@@ -19,9 +19,10 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/browser"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
+	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 )
 
@@ -194,21 +195,26 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 		return nil, err
 	}
 
-	browserCommand := browser.OpenCommand() // we default to running 'open <URL>'
-
 	if config.CustomSSOBrowserPath != "" {
-		// replace the 'open' command with a call to the custom browser path.
-		browserCommand = config.CustomSSOBrowserPath
-	}
-	cmd := exec.Command(browserCommand, url)
-	err = cmd.Start()
-	if err != nil {
-		return nil, err
-	}
-	// detach from this new process because it continues to run
-	err = cmd.Process.Release()
-	if err != nil {
-		return nil, err
+		cmd := exec.Command(config.CustomSSOBrowserPath, url)
+		err = cmd.Start()
+		if err != nil {
+			// fail silently
+			debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+		} else {
+			// detatch from this new process because it continues to run
+			err = cmd.Process.Release()
+			if err != nil {
+				// fail silently
+				debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+			}
+		}
+	} else {
+		err = browser.OpenURL(url)
+		if err != nil {
+			// fail silently
+			debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+		}
 	}
 
 	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
