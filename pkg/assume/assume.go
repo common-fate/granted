@@ -259,7 +259,6 @@ func AssumeCommand(c *cli.Context) error {
 
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
 		args := l.LaunchCommand(consoleURL, con.Profile)
-
 		cmd, err := forkprocess.New(args...)
 		if err != nil {
 			return err
