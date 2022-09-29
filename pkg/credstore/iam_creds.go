@@ -167,6 +167,7 @@ func List() ([]keyring.Item, error) {
 
 func ListKeys() ([]string, error) {
 	ring, err := openKeyring()
+
 	if err != nil {
 		return nil, err
 	}
