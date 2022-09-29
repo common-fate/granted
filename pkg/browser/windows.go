@@ -1,6 +1,6 @@
 //go:build windows
 
-package browsers
+package browser
 
 import (
 	"github.com/common-fate/granted/pkg/debug"

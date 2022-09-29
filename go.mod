@@ -50,7 +50,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.3.0 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.7.0 // indirect
-	github.com/aws/smithy-go v1.11.0 // indirect
+	github.com/aws/smithy-go v1.11.0
 	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
@@ -58,6 +58,7 @@ require (
 	github.com/fatih/structs v1.1.0
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
 	github.com/gsterjov/go-libsecret v0.0.0-20161001094733-a6f4afe4910c // indirect
+	github.com/hako/durafmt v0.0.0-20210608085754-5c1018a4e16b
 	github.com/joho/godotenv v1.4.0
 	github.com/kballard/go-shellquote v0.0.0-20180428030007-95032a82bc51 // indirect
 	github.com/mattn/go-colorable v0.1.12 // indirect

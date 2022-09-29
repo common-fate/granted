@@ -6,6 +6,7 @@ import (
 
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/granted"
+	"github.com/fatih/color"
 
 	"github.com/urfave/cli/v2"
 )
@@ -17,7 +18,7 @@ func main() {
 	app := granted.GetCliApp()
 	err := app.Run(os.Args)
 	if err != nil {
-		fmt.Printf("%s\n", err)
+		fmt.Fprintf(color.Error, "%s\n", err)
 		os.Exit(1)
 	}
 }

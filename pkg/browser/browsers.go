@@ -1,4 +1,4 @@
-package browsers
+package browser
 
 import (
 	"errors"
@@ -6,6 +6,7 @@ import (
 	"runtime"
 )
 
+// A browser supported by Granted.
 const (
 	ChromeKey        string = "CHROME"
 	FirefoxKey       string = "FIREFOX"
@@ -60,6 +61,7 @@ func ChromePathDefaults() ([]string, error) {
 		return nil, errors.New("os not supported")
 	}
 }
+
 func BravePathDefaults() ([]string, error) {
 	//check linuxpath for binary install
 	path, err := exec.LookPath("brave")
@@ -77,6 +79,7 @@ func BravePathDefaults() ([]string, error) {
 		return nil, errors.New("os not supported")
 	}
 }
+
 func EdgePathDefaults() ([]string, error) {
 	//check linuxpath for binary install
 	path, err := exec.LookPath("edge")
@@ -94,6 +97,7 @@ func EdgePathDefaults() ([]string, error) {
 		return nil, errors.New("os not supported")
 	}
 }
+
 func FirefoxPathDefaults() ([]string, error) {
 	//check linuxpath for binary install
 	path, err := exec.LookPath("firefox")

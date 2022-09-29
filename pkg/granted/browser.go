@@ -3,7 +3,7 @@ package granted
 import (
 	"fmt"
 
-	"github.com/common-fate/granted/pkg/browsers"
+	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
@@ -38,13 +38,13 @@ var SetBrowserCommand = cli.Command{
 			if path != "" {
 				fmt.Fprintln(color.Error, "-path flag must be used with -browser flag, provided path will be ignored.")
 			}
-			outcome, err = browsers.HandleManualBrowserSelection()
+			outcome, err = browser.HandleManualBrowserSelection()
 			if err != nil {
 				return err
 			}
 		}
 
-		return browsers.ConfigureBrowserSelection(outcome, path)
+		return browser.ConfigureBrowserSelection(outcome, path)
 	},
 }
 
@@ -67,7 +67,7 @@ var SetSSOBrowserCommand = cli.Command{
 			if path != "" {
 				fmt.Fprintln(color.Error, "-path flag must be used with -browser flag, provided path will be ignored.")
 			}
-			customBrowserPath, err := browsers.AskAndGetBrowserPath()
+			customBrowserPath, err := browser.AskAndGetBrowserPath()
 			if err != nil {
 				return err
 			}

@@ -3,9 +3,13 @@ package cfaws
 import (
 	"context"
 	"fmt"
+	"net/http"
+	"os"
+	"os/exec"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awshttp "github.com/aws/aws-sdk-go-v2/aws/transport/http"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
@@ -13,9 +17,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/smithy-go"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/browsers"
-	grantCfg "github.com/common-fate/granted/pkg/config"
+	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
@@ -58,38 +62,59 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	cfg.Region = rootProfile.AWSConfig.SSORegion
 
 	cachedToken := GetValidCachedToken(ssoTokenKey)
-	var err error
-	newToken := false
+	var accessToken *string
 	if cachedToken == nil {
-		newToken = true
-		cachedToken, err = SSODeviceCodeFlow(ctx, *cfg, rootProfile)
+		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
 		if err != nil {
 			return aws.Credentials{}, err
 		}
 
-	}
-	if newToken {
-		StoreSSOToken(ssoTokenKey, *cachedToken)
+		StoreSSOToken(ssoTokenKey, *newSSOToken)
+		accessToken = &newSSOToken.AccessToken
+	} else {
+		accessToken = &cachedToken.AccessToken
 	}
 
 	// create sso client
 	ssoClient := sso.NewFromConfig(*cfg)
-	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: &cachedToken.AccessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
+	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: accessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
 	if err != nil {
+		serr, ok := err.(*smithy.OperationError)
+		if ok {
+			// If the err is of type ForbiddenRequest then user may be able
+			// to request access to the role if they are using Granted Approvals.
+			// Display an error message with the request URL, or a prompt
+			// to set up the request URL if it's empty.
+			if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
+				if httpErr.HTTPStatusCode() == http.StatusForbidden {
+					if hasGrantedPrefix(c.RawConfig) {
+						gConf, loadErr := grantedConfig.Load()
+						if loadErr != nil {
+							return aws.Credentials{}, errors.Wrapf(err, "loading Granted config: %s", loadErr.Error())
+						}
+
+						requestURLMsg, err := GetGrantedApprovalsURL(c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
+						if err != nil {
+							return aws.Credentials{}, err
+						}
+						fmt.Fprintln(os.Stderr, requestURLMsg)
+					}
+				}
+			}
+
+		}
+
 		var unauthorised *ssotypes.UnauthorizedException
 		if errors.As(err, &unauthorised) {
 			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
 			ClearSSOToken(ssoTokenKey)
 		}
 		return aws.Credentials{}, err
-
 	}
-
 	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
 	credProvider := &CredProv{rootCreds}
 
 	if requiresAssuming {
-
 		// return creds, nil
 		toAssume := append([]*Profile{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
@@ -137,11 +162,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 
 }
 
-// SSODeviceCodeFlow contains all the steps to complete a device code flow to retrieve an sso token
-func SSODeviceCodeFlow(ctx context.Context, cfg aws.Config, rootProfile *Profile) (*SSOToken, error) {
-	return SSODeviceCodeFlowFromStartUrl(ctx, cfg, rootProfile.AWSConfig.SSOStartURL)
-}
-
+// SSODeviceCodeFlowFromStartUrl contains all the steps to complete a device code flow to retrieve an SSO token
 func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*SSOToken, error) {
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
@@ -169,18 +190,24 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
 
 	//check if sso browser path is set
-
-	config, err := grantCfg.Load()
+	config, err := grantedConfig.Load()
 	if err != nil {
 		return nil, err
 	}
-	if config.CustomSSOBrowserPath != "" {
-		err = browsers.OpenUrlWithCustomBrowser(url)
 
+	if config.CustomSSOBrowserPath != "" {
+		cmd := exec.Command(config.CustomSSOBrowserPath, url)
+		err = cmd.Start()
 		if err != nil {
 			// fail silently
 			debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
-
+		} else {
+			// detatch from this new process because it continues to run
+			err = cmd.Process.Release()
+			if err != nil {
+				// fail silently
+				debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+			}
 		}
 	} else {
 		err = browser.OpenURL(url)
@@ -197,7 +224,6 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	}
 
 	return &SSOToken{AccessToken: *token.AccessToken, Expiry: time.Now().Add(time.Duration(token.ExpiresIn) * time.Second)}, nil
-
 }
 
 var ErrTimeout error = errors.New("polling for device authorization token timed out")

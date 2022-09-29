@@ -25,6 +25,10 @@ type Config struct {
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
+	// AccessRequestURL is a Granted Approvals URL that users can visit
+	// to request access, in the event that we receive a ForbiddenException
+	// denying access to assume a particular role.
+	AccessRequestURL string `toml:",omitempty"`
 }
 
 type KeyringConfig struct {

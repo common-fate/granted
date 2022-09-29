@@ -3,8 +3,6 @@
 #GRANTED_FLAG - what assumego told the shell to do
 #GRANTED_n - the data from assumego
 
-red=$(tput setaf 1)
-normal=$(tput sgr0)
 # pass an environment variable to the Go binary if the Granted alias hasn't been configured
 if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
   GRANTED_RETURN_STATUS="true"
@@ -12,11 +10,12 @@ if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
 fi
 
 # in some cases such as github actions, the SHELL env var is not available to the program
-# so here we set it explicitly 
+# so here we set it explicitly
 GRANTED_OUTPUT=$(assumego "$@")
 
 GRANTED_STATUS=$?
-read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11<<< $(echo $GRANTED_OUTPUT)
+# shellcheck disable=SC2162
+read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11<<< "${GRANTED_OUTPUT}"
 
 # # unset the exported GRANTED_ALIAS_CONFIGURED flag
 unset GRANTED_ALIAS_CONFIGURED
@@ -55,90 +54,129 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   unset GRANTED_SSO_REGION
   unset GRANTED_SSO_ACCOUNT_ID
 
+  # shellcheck disable=SC2124
   export GRANTED_COMMAND="$@"
 
   export GRANTED_SSO=${GRANTED_7}
   
   if [ ! "${GRANTED_1}" = "None" ]; then
-    export AWS_ACCESS_KEY_ID=${GRANTED_1}
+    export AWS_ACCESS_KEY_ID="${GRANTED_1}"
   fi
   if [ ! "${GRANTED_2}" = "None" ]; then
-    export AWS_SECRET_ACCESS_KEY=${GRANTED_2}
+    export AWS_SECRET_ACCESS_KEY="${GRANTED_2}"
   fi
   if [ ! "${GRANTED_3}" = "None" ]; then
-    export AWS_SESSION_TOKEN=${GRANTED_3}
+    export AWS_SESSION_TOKEN="${GRANTED_3}"
   fi
   if [ ! "${GRANTED_4}" = "None" ]; then
-    export AWS_PROFILE=${GRANTED_4}
+    export AWS_PROFILE="${GRANTED_4}"
   fi
   if [ ! "${GRANTED_5}" = "None" ]; then
-    export AWS_REGION=${GRANTED_5}
+    export AWS_REGION="${GRANTED_5}"
   fi
   if [ ! "${GRANTED_6}" = "None" ]; then
-    export AWS_SESSION_EXPIRATION=${GRANTED_6}
+    export AWS_SESSION_EXPIRATION="${GRANTED_6}"
   fi
   if [ ! "${GRANTED_7}" = "None" ]; then
-    export GRANTED_SSO=${GRANTED_7}
+    export GRANTED_SSO="${GRANTED_7}"
   fi
   if [ ! "${GRANTED_8}" = "None" ]; then
-    export GRANTED_SSO_START_URL=${GRANTED_8}
+    export GRANTED_SSO_START_URL="${GRANTED_8}"
   fi
   if [ ! "${GRANTED_9}" = "None" ]; then
-    export GRANTED_SSO_ROLE_NAME=${GRANTED_9}
+    export GRANTED_SSO_ROLE_NAME="${GRANTED_9}"
   fi
   if [ ! "${GRANTED_10}" = "None" ]; then
-    export GRANTED_SSO_REGION=${GRANTED_10}
+    export GRANTED_SSO_REGION="${GRANTED_10}"
   fi
   if [ ! "${GRANTED_11}" = "None" ]; then
-    export GRANTED_SSO_ACCOUNT_ID=${GRANTED_11}
+    export GRANTED_SSO_ACCOUNT_ID="${GRANTED_11}"
   fi
 
   for GRANTED_var in "$@"
   do
     if [[ "$GRANTED_var" == "-s"* ]]; then
       if [ ! "${GRANTED_1}" = "None" ]; then
-        echo export AWS_ACCESS_KEY_ID=${GRANTED_1}
+        echo export AWS_ACCESS_KEY_ID="${GRANTED_1}"
       fi
       if [ ! "${GRANTED_2}" = "None" ]; then
-        echo export AWS_SECRET_ACCESS_KEY=${GRANTED_2}
+        echo export AWS_SECRET_ACCESS_KEY="${GRANTED_2}"
       fi
       if [ ! "${GRANTED_3}" = "None" ]; then
-        echo export AWS_SESSION_TOKEN=${GRANTED_3}
+        echo export AWS_SESSION_TOKEN="${GRANTED_3}"
       fi
       if [ ! "${GRANTED_4}" = "None" ]; then
-        echo export AWS_PROFILE=${GRANTED_4}
+        echo export AWS_PROFILE="${GRANTED_4}"
       fi
       if [ ! "${GRANTED_5}" = "None" ]; then
-        echo export AWS_REGION=${GRANTED_5}
+        echo export AWS_REGION="${GRANTED_5}"
       fi
        if [ ! "${GRANTED_6}" = "None" ]; then
-        echo export AWS_SESSION_EXPIRATION=${GRANTED_6}
+        echo export AWS_SESSION_EXPIRATION="${GRANTED_6}"
       fi
       if [ ! "${GRANTED_7}" = "None" ]; then
-        echo export GRANTED_SSO=${GRANTED_7}
+        echo export GRANTED_SSO="${GRANTED_7}"
       fi
       if [ ! "${GRANTED_8}" = "None" ]; then
-        echo export GRANTED_SSO_START_URL=${GRANTED_8}
+        echo export GRANTED_SSO_START_URL="${GRANTED_8}"
       fi
       if [ ! "${GRANTED_9}" = "None" ]; then
-        echo export GRANTED_SSO_ROLE_NAME=${GRANTED_9}
+        echo export GRANTED_SSO_ROLE_NAME="${GRANTED_9}"
       fi      
       if [ ! "${GRANTED_10}" = "None" ]; then
-        echo export GRANTED_SSO_REGION=${GRANTED_10}
+        echo export GRANTED_SSO_REGION="${GRANTED_10}"
       fi      
       if [ ! "${GRANTED_11}" = "None" ]; then
-        echo export GRANTED_SSO_ACCOUNT_ID=${GRANTED_11}
+        echo export GRANTED_SSO_ACCOUNT_ID="${GRANTED_11}"
       fi      
     fi
   done
 fi
 
+# Mark: Automatically re-assume when credentials expire.
+_is_assume_expired() {
+  if [[ -z "${AWS_PROFILE}" ]]; then return 1; fi
 
-# The GrantedOutput flag should be followed by a newline, then the output. 
+  # Note: this must remain compatible with both BSD and GNU date.
+  # TODO: This should probably run a few minutes (configurable) before it expires.
+  local current_time expiry
+  current_time="$(date -Iseconds)"
+  expiry="$AWS_SESSION_EXPIRATION"
+  [[ "${current_time}" > "${expiry}" ]]
+}
+
+granted_auto_reassume() {
+  # Nothing to do, we can't reassume a profile that we don't know.
+  if [[ -z "${AWS_PROFILE}" ]]; then return 0; fi
+
+  if ! _is_assume_expired; then return 0; fi
+
+  if [[ "${GRANTED_QUIET}" != "true" ]]
+  then
+    echo "granted session expired; reassuming ${AWS_PROFILE}." >&2
+  fi
+  assume "${AWS_PROFILE}"
+}
+
+if [[ -n "${ZSH_NAME}" ]]
+then
+  if [[ "${GRANTED_ENABLE_AUTO_REASSUME}" = "true" ]]
+  then
+    # shellcheck disable=SC2154
+    if ! [[ " ${preexec_functions[*]} " =~ " granted_auto_reassume " ]]
+    then
+      autoload -Uz add-zsh-hook
+      add-zsh-hook preexec granted_auto_reassume
+    fi
+  fi
+fi
+
+
+# The GrantedOutput flag should be followed by a newline, then the output.
 # This way, the shell script can omit the first line containing the flag and return the unaltered output to the stdout
 # This is great as it works well with the -exec flag
 if [ "$GRANTED_FLAG" = "GrantedOutput" ];then
-  echo ${GRANTED_OUTPUT} | sed -n '1!p'
+  echo "${GRANTED_OUTPUT}" | sed -n '1!p'
 fi
 
 if [ "$GRANTED_RETURN_STATUS" = "true" ]; then

@@ -1,6 +1,6 @@
 //go:build !windows
 
-package browsers
+package browser
 
 func HandleWindowsBrowserSearch() (string, error) {
 	return "", nil
