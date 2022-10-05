@@ -28,7 +28,8 @@ type Config struct {
 	// AccessRequestURL is a Granted Approvals URL that users can visit
 	// to request access, in the event that we receive a ForbiddenException
 	// denying access to assume a particular role.
-	AccessRequestURL string `toml:",omitempty"`
+	AccessRequestURL string           `toml:",omitempty"`
+	Workspaces       *WorkspaceConfig `toml:",omitempty"`
 }
 
 type KeyringConfig struct {
@@ -36,6 +37,19 @@ type KeyringConfig struct {
 	KeychainName            *string `toml:",omitempty"`
 	FileDir                 *string `toml:",omitempty"`
 	LibSecretCollectionName *string `toml:",omitempty"`
+}
+
+type WorkspaceSession struct {
+	Name string
+}
+type Workspace struct {
+	ID       string
+	URL      string
+	Sessions []WorkspaceSession
+}
+
+type WorkspaceConfig struct {
+	Workspaces []Workspace
 }
 
 // NewDefaultConfig returns a config with OS specific defaults populated
