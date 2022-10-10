@@ -9,15 +9,14 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/granted/pkg/cfaws"
-	"github.com/common-fate/granted/pkg/credstore"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/granted/pkg/testable"
-	"github.com/common-fate/granted/pkg/tokenstore"
 	"github.com/urfave/cli/v2"
 )
 
 var TokenCommand = cli.Command{
-	Name:        "token",
-	Usage:       "Manage aws access tokens",
+	Name:        "sso-tokens",
+	Usage:       "Manage AWS SSO tokens",
 	Subcommands: []*cli.Command{&TokenListCommand, &ClearTokensCommand},
 	Action:      TokenListCommand.Action,
 }
@@ -38,14 +37,14 @@ var TokenListCommand = cli.Command{
 				max = len(k)
 			}
 		}
-
-		tokens, err := tokenstore.ListKeys()
+		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+		keys, err := secureSSOTokenStorage.SecureStorage.ListKeys()
 		if err != nil {
 			return err
 		}
 
-		for _, token := range tokens {
-			fmt.Fprintf(os.Stderr, "%s\n", fmt.Sprintf("%-*s (%s)", max, token, strings.Join(startUrlMap[token], ", ")))
+		for _, key := range keys {
+			fmt.Fprintf(os.Stderr, "%s\n", fmt.Sprintf("%-*s (%s)", max, key, strings.Join(startUrlMap[key], ", ")))
 		}
 		return nil
 	},
@@ -59,7 +58,8 @@ var TokenListCommand = cli.Command{
 // granted token clear profilename --confirm -> skip confirm prompt
 
 func MapTokens(ctx context.Context) (map[string][]string, error) {
-	keys, err := credstore.ListKeys()
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	keys, err := secureSSOTokenStorage.SecureStorage.ListKeys()
 	if err != nil {
 		return nil, err
 	}
@@ -154,7 +154,8 @@ var ClearTokensCommand = cli.Command{
 
 // clearAllTokens calls clearToken for each key in the keyring
 func clearAllTokens() error {
-	keys, err := tokenstore.ListKeys()
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	keys, err := secureSSOTokenStorage.SecureStorage.ListKeys()
 	if err != nil {
 		return err
 	}
@@ -169,15 +170,16 @@ func clearAllTokens() error {
 
 // clearToken has some specific behaviour for darwin systems
 func clearToken(key string) error {
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	// Specific to the mac keychain, the granted binary will not have access to delete the items set by the assume binary without the user granting access.
 	// So, first ask the user to allow access, then attempt to delete the item.
 	if runtime.GOOS == "darwin" {
 		fmt.Fprintf(os.Stderr, "If you are using the mac keychain, choose to 'Always Allow' when prompted to allow Granted access to the item.\nThis will allow the item to be deleted by this command.\n")
 		var t interface{}
-		err := tokenstore.Retrieve(key, &t)
+		err := secureSSOTokenStorage.SecureStorage.Retrieve(key, &t)
 		if err != nil {
 			return err
 		}
 	}
-	return tokenstore.Clear(key)
+	return secureSSOTokenStorage.SecureStorage.Clear(key)
 }

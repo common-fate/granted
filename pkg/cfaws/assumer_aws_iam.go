@@ -9,7 +9,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/credstore"
 	"github.com/fatih/color"
 )
 
@@ -25,17 +24,17 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 
 	//using secure keychain for creds
 	//get creds
-	provider := credstore.IAMUserProvider{ProfileName: c.Name}
+	// provider := credstore.IAMUserProvider{ProfileName: c.Name}
 
-	creds, err := aws.NewCredentialsCache(&provider).Retrieve(ctx)
-	if err != nil {
-		return aws.Credentials{}, err
-	}
+	// creds, err := aws.NewCredentialsCache(&provider).Retrieve(ctx)
+	// if err != nil {
+	// 	return aws.Credentials{}, err
+	// }
 
-	if creds.AccessKeyID != "" {
-		//found creds so we return them
-		return creds, nil
-	}
+	// if creds.AccessKeyID != "" {
+	// 	//found creds so we return them
+	// 	return creds, nil
+	// }
 
 	//else we check plaintext iam users
 
@@ -69,7 +68,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		return aws.Credentials{}, err
 	}
 
-	creds, err = aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	creds, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
 	if err != nil {
 		return aws.Credentials{}, err
 	}

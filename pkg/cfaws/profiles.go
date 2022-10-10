@@ -300,8 +300,8 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 	return nil
 }
 
-// removes a profile from credentials
-func (p *Profiles) RemoveProfileFromCredentials(profile string) error {
+// removes a profile from the default credentials file
+func RemoveProfileFromCredentialsFile(profile string) error {
 	//fetch parsed credentials file
 	credsPath := config.DefaultSharedCredentialsFilename()
 	credsFile, err := configparser.NewConfigParserFromFile(credsPath)

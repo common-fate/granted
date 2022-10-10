@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/common-fate/granted/pkg/securestorage"
 )
 
 const (
@@ -30,7 +31,7 @@ type SSOPlainTextOut struct {
 // purposes with other AWS tools.
 //
 // see: https://github.com/common-fate/granted/issues/155
-func CreatePlainTextSSO(awsConfig config.SharedConfig, token *SSOToken) *SSOPlainTextOut {
+func CreatePlainTextSSO(awsConfig config.SharedConfig, token *securestorage.SSOToken) *SSOPlainTextOut {
 	return &SSOPlainTextOut{
 		AccessToken: token.AccessToken,
 		ExpiresAt:   token.Expiry.Format(time.RFC3339),
