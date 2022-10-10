@@ -19,13 +19,13 @@ import (
 
 var SSOCommand = cli.Command{
 	Name:        "sso",
-	Usage:       "Manage AWS Config from information available in AWS SSO",
+	Usage:       "Manage your local AWS configuration file from information available in AWS SSO",
 	Subcommands: []*cli.Command{&GenerateCommand, &PopulateCommand},
 }
 
 var GenerateCommand = cli.Command{
 	Name:      "generate",
-	Usage:     "Outputs an AWS Config with profiles from accounts and roles available in AWS SSO",
+	Usage:     "Prints an AWS configuration file to stdout with profiles from accounts and roles available in AWS SSO",
 	UsageText: "granted [global options] sso generate [command options] [sso-start-url]",
 	Flags:     []cli.Flag{&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"}, &cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"}},
 	Action: func(c *cli.Context) error {
@@ -74,7 +74,7 @@ var GenerateCommand = cli.Command{
 
 var PopulateCommand = cli.Command{
 	Name:      "populate",
-	Usage:     "Populate your AWS Config with profiles from accounts and roles available in AWS SSO",
+	Usage:     "Populate your local AWS configuration file with profiles from accounts and roles available in AWS SSO",
 	UsageText: "granted [global options] sso populate [command options] [sso-start-url]",
 	Flags:     []cli.Flag{&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"}, &cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"}},
 	Action: func(c *cli.Context) error {
