@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/pkg/errors"
 
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -19,7 +20,7 @@ import (
 var CredentialsCommand = cli.Command{
 	Name:        "credentials",
 	Usage:       "Manage secure IAM credentials",
-	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand},
+	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand},
 }
 
 var AddCredentialsCommand = cli.Command{
@@ -166,11 +167,65 @@ var ImportCredentialsCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+
+		// @TODO: I need to do a full clone of the profile both from credentials file and config, need to investigate how attributes are merged by the aws cli
+		// for k,v := range profile.RawConfig{
+
+		// }
+		if profile.AWSConfig.Region != "" {
+			err = configFile.Set(sectionName, "region", profile.AWSConfig.Region)
+			if err != nil {
+				return err
+			}
+		}
 		err = configFile.SaveWithDelimiter(configPath, "=")
 		if err != nil {
 			return err
 		}
 		fmt.Printf("Saved %s to secure storage", profileName)
+
+		return nil
+	},
+}
+
+var UpdateCredentialsCommand = cli.Command{
+	Name:  "update",
+	Usage: "Update existing credentials in secure storage",
+	Action: func(c *cli.Context) error {
+		profileName := c.Args().First()
+		if profileName == "" {
+			in := survey.Input{Message: "Profile Name: "}
+			fmt.Println()
+			err := testable.AskOne(&in, &profileName)
+			if err != nil {
+				return err
+			}
+		}
+
+		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+		_, err := secureIAMCredentialStorage.GetCredentials(profileName)
+		if err != nil {
+			return errors.Wrap(err, "error while looking up existing profile in secure storage")
+		}
+		var credentials aws.Credentials
+		in1 := survey.Input{Message: "Access Key Id: "}
+		fmt.Println()
+		err = testable.AskOne(&in1, &credentials.AccessKeyID)
+		if err != nil {
+			return err
+		}
+
+		in2 := survey.Password{Message: "Secret Access Key: "}
+		fmt.Println()
+		err = testable.AskOne(&in2, &credentials.SecretAccessKey)
+		if err != nil {
+			return err
+		}
+		err = secureIAMCredentialStorage.StoreCredentials(profileName, credentials)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Updated %s in secure storage", profileName)
 
 		return nil
 	},
