@@ -321,32 +321,6 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 	return nil
 }
 
-// removes a profile from the default credentials file
-func RemoveProfileFromCredentialsFile(profile string) error {
-	//fetch parsed credentials file
-	credsPath := config.DefaultSharedCredentialsFilename()
-	credsFile, err := configparser.NewConfigParserFromFile(credsPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-
-	err = credsFile.RemoveSection(profile)
-	if err != nil {
-		return err
-	}
-	configFilename := config.DefaultSharedCredentialsFilename()
-
-	err = credsFile.SaveWithDelimiter(configFilename, "=")
-	if err != nil {
-		return err
-	}
-
-	return nil
-}
-
 // Region will attempt to load the reason on this profile, if it is not set,
 // attempt to load the parent if it exists
 // else attempts to use the sso-region

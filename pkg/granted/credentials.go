@@ -1,7 +1,6 @@
 package granted
 
 import (
-	"errors"
 	"fmt"
 	"os"
 
@@ -67,7 +66,6 @@ var AddCredentialsCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Printf("creds: %v\n", creds)
 		configPath := config.DefaultSharedConfigFilename()
 		configFile, err := configparser.NewConfigParserFromFile(configPath)
 		if err != nil {
@@ -100,31 +98,79 @@ var ImportCredentialsCommand = cli.Command{
 	Usage: "Import credentials from ~/.credentials file into secure storage",
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
-		// profiles, err := cfaws.LoadProfiles()
-		// if err != nil {
-		// 	return err
-		// }
-
-		profile, err := config.LoadSharedConfigProfile(c.Context, profileName, func(lsco *config.LoadSharedConfigOptions) {
-			// Don't load from the config file
-			lsco.ConfigFiles = []string{}
-		})
-		if !(profile.Credentials.HasKeys() && profile.Credentials.SessionToken == "") {
-			return errors.New("profile is not valid")
+		if profileName == "" {
+			in := survey.Input{Message: "Profile Name: "}
+			fmt.Println()
+			err := testable.AskOne(&in, &profileName)
+			if err != nil {
+				return err
+			}
+		}
+		profiles, err := cfaws.LoadProfiles()
+		if err != nil {
+			return err
+		}
+		if !profiles.HasProfile(profileName) {
+			return fmt.Errorf("profile with name %s does not exist", profileName)
+		}
+		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
+		if err != nil {
+			return err
+		}
+		// @TODO: we can provide some better messaging here by checking for parent profiles etc, if the root profile in this profiles chain is an IAM profile with plain text keys, we shoudl promote adding that one instead
+		if !profile.AWSConfig.Credentials.HasKeys() {
+			return fmt.Errorf("profile %s does not have IAM credentials", profileName)
 		}
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
-		err = secureIAMCredentialStorage.StoreCredentials(profileName, profile.Credentials)
+		err = secureIAMCredentialStorage.StoreCredentials(profileName, profile.AWSConfig.Credentials)
 		if err != nil {
 			return err
 		}
 
-		//remove creds from credfile
-		err = cfaws.RemoveProfileFromCredentialsFile(profileName)
+		//fetch parsed credentials file
+		credsPath := config.DefaultSharedCredentialsFilename()
+		credsFile, err := configparser.NewConfigParserFromFile(credsPath)
 		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
 			return err
 		}
 
-		fmt.Printf("Saved %s to keychain", profile)
+		err = credsFile.RemoveSection(profileName)
+		if err != nil {
+			return err
+		}
+		configFilename := config.DefaultSharedCredentialsFilename()
+
+		err = credsFile.SaveWithDelimiter(configFilename, "=")
+		if err != nil {
+			return err
+		}
+		configPath := config.DefaultSharedConfigFilename()
+		configFile, err := configparser.NewConfigParserFromFile(configPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		sectionName := "profile " + profileName
+		if !configFile.HasSection(sectionName) {
+			if err := configFile.AddSection(sectionName); err != nil {
+				return err
+			}
+		}
+
+		err = configFile.Set(sectionName, "credential_process", fmt.Sprintf("%s credential-process --profile=%s", build.GrantedBinaryName(), profileName))
+		if err != nil {
+			return err
+		}
+		err = configFile.SaveWithDelimiter(configPath, "=")
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Saved %s to secure storage", profileName)
 
 		return nil
 	},
