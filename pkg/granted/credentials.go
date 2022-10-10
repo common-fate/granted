@@ -3,11 +3,14 @@ package granted
 import (
 	"errors"
 	"fmt"
+	"os"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/bigkevmcd/go-configparser"
 
+	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/granted/pkg/testable"
@@ -24,20 +27,27 @@ var AddCredentialsCommand = cli.Command{
 	Name:  "add",
 	Usage: "Add IAM credentials to secure storage",
 	Action: func(c *cli.Context) error {
-		profile := c.Args().First()
-		if profile == "" {
+		profileName := c.Args().First()
+		if profileName == "" {
 			in := survey.Input{Message: "Profile Name: "}
 			fmt.Println()
-			err := testable.AskOne(&in, &profile)
+			err := testable.AskOne(&in, &profileName)
 			if err != nil {
 				return err
 			}
 		}
+		profiles, err := cfaws.LoadProfiles()
+		if err != nil {
+			return err
+		}
 
+		if profiles.HasProfile(profileName) {
+			return fmt.Errorf("profile with name %s already exists", profileName)
+		}
 		var creds aws.Credentials
 		in1 := survey.Input{Message: "Access Key Id: "}
 		fmt.Println()
-		err := testable.AskOne(&in1, &creds.AccessKeyID)
+		err = testable.AskOne(&in1, &creds.AccessKeyID)
 		if err != nil {
 			return err
 		}
@@ -49,12 +59,37 @@ var AddCredentialsCommand = cli.Command{
 			return err
 		}
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
-		err = secureIAMCredentialStorage.StoreCredentials(profile, creds)
+		err = secureIAMCredentialStorage.StoreCredentials(profileName, creds)
 		if err != nil {
 			return err
 		}
+		creds, err = secureIAMCredentialStorage.GetCredentials(profileName)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("creds: %v\n", creds)
+		configPath := config.DefaultSharedConfigFilename()
+		configFile, err := configparser.NewConfigParserFromFile(configPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		sectionName := "profile " + profileName
+		if err := configFile.AddSection(sectionName); err != nil {
+			return err
+		}
 
-		fmt.Printf("Saved %s to secure storage", profile)
+		err = configFile.Set(sectionName, "credential_process", fmt.Sprintf("%s credential-process --profile=%s", build.GrantedBinaryName(), profileName))
+		if err != nil {
+			return err
+		}
+		err = configFile.SaveWithDelimiter(configPath, "=")
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Saved %s to secure storage", profileName)
 
 		return nil
 	},

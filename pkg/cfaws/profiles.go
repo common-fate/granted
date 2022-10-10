@@ -14,7 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/ssocreds"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/fatih/color"
 )
 
@@ -180,7 +182,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		return nil, err
 	}
 
-	// For config that has 'granted' prefix we need to convert the custom config to
+	// For config that has 'granted' prefix we need to convert this to AWS config fields
 	// aws configuration
 	if hasGrantedPrefix(pr.RawConfig) {
 		err = IsValidGrantedProfile(pr.RawConfig)
@@ -199,6 +201,25 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		pr.Initialised = true
 		pr.ProfileType = "AWS_SSO"
 		return pr, nil
+	} else {
+		for k, v := range pr.RawConfig {
+			if k == "credential_process" && strings.HasPrefix(v, build.GrantedBinaryName()) {
+				// this profile is using a granted credential process
+				// if it's not an sso profile, then it should be an IAM profile with credentials stored in the secure storage
+				secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+				credentials, err := secureIAMCredentialStorage.GetCredentials(profile)
+				if err != nil {
+					return nil, err
+				}
+				// set the credentials from secure storage so that this profile is treated as an IAM profile
+				// rather than credential process
+				pr.AWSConfig.Credentials = credentials
+				pr.AWSConfig.CredentialProcess = ""
+				pr.Initialised = true
+				pr.ProfileType = "AWS_IAM"
+				return pr, nil
+			}
+		}
 	}
 
 	// default initializaton flow

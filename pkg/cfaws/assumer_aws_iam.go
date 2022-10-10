@@ -19,24 +19,12 @@ type AwsIamAssumer struct {
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
 func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
-
-	//try use creds from keychain
-
-	//using secure keychain for creds
-	//get creds
-	// provider := credstore.IAMUserProvider{ProfileName: c.Name}
-
-	// creds, err := aws.NewCredentialsCache(&provider).Retrieve(ctx)
-	// if err != nil {
-	// 	return aws.Credentials{}, err
-	// }
-
-	// if creds.AccessKeyID != "" {
-	// 	//found creds so we return them
-	// 	return creds, nil
-	// }
-
-	//else we check plaintext iam users
+	// If iam credentials have been stored in the secure storage via Granted, they will be prefilled here.
+	// if not, attempt to load the profile
+	credentials := c.AWSConfig.Credentials
+	if credentials.HasKeys() {
+		return credentials, nil
+	}
 
 	//using ~/.aws/credentials file for creds
 	opts := []func(*config.LoadOptions) error{
@@ -62,13 +50,13 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		}),
 	}
 
-	//load the creds from the credentials file
+	// load the creds from the credentials file
 	cfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
 
-	creds, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	credentials, err = aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
@@ -76,10 +64,10 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 	//inform the user about using the keychain to securely store IAM user credentials
 
 	fmt.Fprintf(color.Error, "Profile %s has plaintext credentials stored in ~/.aws/credentials.\n", c.Name)
-	fmt.Fprintf(color.Error, "With Granted you can store these credentials more securely in your system's keychain.\n")
-	fmt.Fprintf(color.Error, "Move the credentials to your keychain with `granted keychain import %s`.\n", c.Name)
+	fmt.Fprintf(color.Error, "With Granted you can store these credentials in secure storage.\n")
+	fmt.Fprintf(color.Error, "To move the credentials to secure storage, run `granted keychain import %s`.\n", c.Name)
 
-	return creds, nil
+	return credentials, nil
 
 }
 
