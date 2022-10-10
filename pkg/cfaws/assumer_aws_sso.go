@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"time"
 
@@ -97,7 +96,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 						if err != nil {
 							return aws.Credentials{}, err
 						}
-						fmt.Fprintln(os.Stderr, requestURLMsg)
+						return aws.Credentials{}, errors.New(serr.Error() + "\n" + requestURLMsg)
 					}
 				}
 			}
