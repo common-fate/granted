@@ -20,7 +20,7 @@ import (
 var CredentialsCommand = cli.Command{
 	Name:        "credentials",
 	Usage:       "Manage secure IAM credentials",
-	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand, &ListCredentialsCommand, &ClearCredentialsCommand},
+	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand, &ListCredentialsCommand, &ClearCredentialsCommand, &ExportCredentialsCommand},
 }
 
 var AddCredentialsCommand = cli.Command{
@@ -129,8 +129,8 @@ var ImportCredentialsCommand = cli.Command{
 		}
 
 		//fetch parsed credentials file
-		credsPath := config.DefaultSharedCredentialsFilename()
-		credsFile, err := configparser.NewConfigParserFromFile(credsPath)
+		credentialsFilePath := config.DefaultSharedCredentialsFilename()
+		credentialsFile, err := configparser.NewConfigParserFromFile(credentialsFilePath)
 		if err != nil {
 			if os.IsNotExist(err) {
 				return nil
@@ -138,13 +138,13 @@ var ImportCredentialsCommand = cli.Command{
 			return err
 		}
 
-		err = credsFile.RemoveSection(profileName)
+		err = credentialsFile.RemoveSection(profileName)
 		if err != nil {
 			return err
 		}
 		configFilename := config.DefaultSharedCredentialsFilename()
 
-		err = credsFile.SaveWithDelimiter(configFilename, "=")
+		err = credentialsFile.SaveWithDelimiter(configFilename, "=")
 		if err != nil {
 			return err
 		}
@@ -263,22 +263,13 @@ var ClearCredentialsCommand = cli.Command{
 			}
 			return err
 		}
+		var profileNames []string
 		if c.Bool("all") {
-			profiles, err := secureIAMCredentialStorage.SecureStorage.List()
+			profiles, err := secureIAMCredentialStorage.SecureStorage.ListKeys()
 			if err != nil {
 				return err
 			}
-			for _, profile := range profiles {
-				fmt.Printf("Removing profile %s\n", profile.Key)
-				secureIAMCredentialStorage.SecureStorage.Clear(profile.Key)
-				sectionName := "profile " + profile.Key
-				if configFile.HasSection(sectionName) {
-					err = configFile.RemoveSection(sectionName)
-					if err != nil {
-						return err
-					}
-				}
-			}
+			profileNames = append(profileNames, profiles...)
 		} else {
 			profileName := c.Args().First()
 			if profileName == "" {
@@ -289,6 +280,10 @@ var ClearCredentialsCommand = cli.Command{
 					return err
 				}
 			}
+			profileNames = append(profileNames, profileName)
+		}
+
+		for _, profileName := range profileNames {
 			fmt.Printf("Removing profile %s\n", profileName)
 			secureIAMCredentialStorage.SecureStorage.Clear(profileName)
 			sectionName := "profile " + profileName
@@ -304,6 +299,104 @@ var ClearCredentialsCommand = cli.Command{
 			return err
 		}
 		fmt.Printf("Cleared credentials from secure storage")
+		return nil
+	},
+}
+
+var ExportCredentialsCommand = cli.Command{
+	Name:  "export-plaintext",
+	Usage: "Export credentials from the secure storage to ~/.credentials file in plaintext",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "export all credentials from secure storage in plaintext"},
+	},
+	Action: func(c *cli.Context) error {
+		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+		var profileNames []string
+		if c.Bool("all") {
+			profiles, err := secureIAMCredentialStorage.SecureStorage.ListKeys()
+			if err != nil {
+				return err
+			}
+			profileNames = append(profileNames, profiles...)
+		} else {
+			profileName := c.Args().First()
+			if profileName == "" {
+				in := survey.Input{Message: "Profile Name: "}
+				fmt.Println()
+				err := testable.AskOne(&in, &profileName)
+				if err != nil {
+					return err
+				}
+			}
+			profileNames = append(profileNames, profileName)
+		}
+
+		for _, profileName := range profileNames {
+
+			credentials, err := secureIAMCredentialStorage.GetCredentials(profileName)
+			if err != nil {
+				return err
+			}
+
+			//fetch parsed credentials file
+			credentialsFilePath := config.DefaultSharedCredentialsFilename()
+			credentialsFile, err := configparser.NewConfigParserFromFile(credentialsFilePath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return nil
+				}
+				return err
+			}
+
+			err = credentialsFile.AddSection(profileName)
+			if err != nil {
+				return err
+			}
+
+			if credentials.AccessKeyID != "" {
+				if err := credentialsFile.AddSection("aws_access_key_id"); err != nil {
+					return err
+				}
+			}
+			if credentials.SecretAccessKey != "" {
+				if err := credentialsFile.AddSection("aws_secret_access_key"); err != nil {
+					return err
+				}
+			}
+			if credentials.SessionToken != "" {
+				if err := credentialsFile.AddSection("aws_session_token"); err != nil {
+					return err
+				}
+			}
+
+			err = credentialsFile.SaveWithDelimiter(credentialsFilePath, "=")
+			if err != nil {
+				return err
+			}
+			configPath := config.DefaultSharedConfigFilename()
+			configFile, err := configparser.NewConfigParserFromFile(configPath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					return nil
+				}
+				return err
+			}
+			sectionName := "profile " + profileName
+			if configFile.HasSection(sectionName) {
+				has, err := configFile.HasOption(sectionName, "credential_process")
+				if err != nil {
+					return err
+				}
+				if has {
+					err = configFile.RemoveOption(sectionName, "credential_process")
+					if err != nil {
+						return err
+					}
+				}
+			}
+
+			fmt.Printf("Exported %s in plaintext from secure storage to %s", profileName, credentialsFilePath)
+		}
 		return nil
 	},
 }
