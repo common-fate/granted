@@ -20,7 +20,7 @@ import (
 var CredentialsCommand = cli.Command{
 	Name:        "credentials",
 	Usage:       "Manage secure IAM credentials",
-	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand},
+	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand, &ListCredentialsCommand, &ClearCredentialsCommand},
 }
 
 var AddCredentialsCommand = cli.Command{
@@ -227,6 +227,83 @@ var UpdateCredentialsCommand = cli.Command{
 		}
 		fmt.Printf("Updated %s in secure storage", profileName)
 
+		return nil
+	},
+}
+
+var ListCredentialsCommand = cli.Command{
+	Name:  "list",
+	Usage: "Lists the profiles in secure storage",
+	Action: func(c *cli.Context) error {
+		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+		profiles, err := secureIAMCredentialStorage.SecureStorage.List()
+		if err != nil {
+			return err
+		}
+		for _, profile := range profiles {
+			fmt.Printf("%s\n", profile.Key)
+		}
+		return nil
+	},
+}
+
+var ClearCredentialsCommand = cli.Command{
+	Name:  "clear",
+	Usage: "Remove credentials from secure storage",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "Remove all credentials from secure storage"},
+	},
+	Action: func(c *cli.Context) error {
+		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+		configPath := config.DefaultSharedConfigFilename()
+		configFile, err := configparser.NewConfigParserFromFile(configPath)
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return err
+		}
+		if c.Bool("all") {
+			profiles, err := secureIAMCredentialStorage.SecureStorage.List()
+			if err != nil {
+				return err
+			}
+			for _, profile := range profiles {
+				fmt.Printf("Removing profile %s\n", profile.Key)
+				secureIAMCredentialStorage.SecureStorage.Clear(profile.Key)
+				sectionName := "profile " + profile.Key
+				if configFile.HasSection(sectionName) {
+					err = configFile.RemoveSection(sectionName)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		} else {
+			profileName := c.Args().First()
+			if profileName == "" {
+				in := survey.Input{Message: "Profile Name: "}
+				fmt.Println()
+				err := testable.AskOne(&in, &profileName)
+				if err != nil {
+					return err
+				}
+			}
+			fmt.Printf("Removing profile %s\n", profileName)
+			secureIAMCredentialStorage.SecureStorage.Clear(profileName)
+			sectionName := "profile " + profileName
+			if configFile.HasSection(sectionName) {
+				err = configFile.RemoveSection(sectionName)
+				if err != nil {
+					return err
+				}
+			}
+		}
+		err = configFile.SaveWithDelimiter(configPath, "=")
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Cleared credentials from secure storage")
 		return nil
 	},
 }
