@@ -180,12 +180,18 @@ var ImportCredentialsCommand = cli.Command{
 		// Merge options from the credentials profile to the config file profile.
 		// if the same option is configured in the config file profile it takes precedence
 		for k, v := range items {
-			has, err := configFile.HasOption(sectionName, k)
-			if err != nil {
-				return err
-			}
-			if !has {
-				configFile.Set(sectionName, k, v)
+			// omit sensitive values from the merge
+			if !(k == "aws_access_key_id" || k == "aws_secret_access_key" || k == "aws_session_token") {
+				has, err := configFile.HasOption(sectionName, k)
+				if err != nil {
+					return err
+				}
+				if !has {
+					err = configFile.Set(sectionName, k, v)
+					if err != nil {
+						return err
+					}
+				}
 			}
 		}
 		// save the updated config file after merging
@@ -316,7 +322,10 @@ var ClearCredentialsCommand = cli.Command{
 		}
 		for _, profileName := range profileNames {
 			fmt.Printf("Removing profile %s\n", profileName)
-			secureIAMCredentialStorage.SecureStorage.Clear(profileName)
+			err = secureIAMCredentialStorage.SecureStorage.Clear(profileName)
+			if err != nil {
+				return err
+			}
 			sectionName := "profile " + profileName
 			if configFile.HasSection(sectionName) {
 				err = configFile.RemoveSection(sectionName)
@@ -380,17 +389,17 @@ var ExportCredentialsCommand = cli.Command{
 			}
 
 			if credentials.AccessKeyID != "" {
-				if err := credentialsFile.AddSection("aws_access_key_id"); err != nil {
+				if err := credentialsFile.Set(profileName, "aws_access_key_id", credentials.AccessKeyID); err != nil {
 					return err
 				}
 			}
 			if credentials.SecretAccessKey != "" {
-				if err := credentialsFile.AddSection("aws_secret_access_key"); err != nil {
+				if err := credentialsFile.Set(profileName, "aws_secret_access_key", credentials.SecretAccessKey); err != nil {
 					return err
 				}
 			}
 			if credentials.SessionToken != "" {
-				if err := credentialsFile.AddSection("aws_session_token"); err != nil {
+				if err := credentialsFile.Set(profileName, "aws_session_token", credentials.SessionToken); err != nil {
 					return err
 				}
 			}
@@ -415,6 +424,10 @@ var ExportCredentialsCommand = cli.Command{
 				}
 				if has {
 					err = configFile.RemoveOption(sectionName, "credential_process")
+					if err != nil {
+						return err
+					}
+					err = configFile.SaveWithDelimiter(configPath, "=")
 					if err != nil {
 						return err
 					}
