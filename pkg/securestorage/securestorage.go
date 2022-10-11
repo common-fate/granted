@@ -17,7 +17,23 @@ type SecureStorage struct {
 	StorageSuffix string
 }
 
-// returns ring.ErrKeyNotFound if not found
+// returns false if the key is not found, true if it is found, or false and an error if there was a keyring related error
+func (s *SecureStorage) HasKey(key string) (bool, error) {
+	ring, err := s.openKeyring()
+	if err != nil {
+		return false, err
+	}
+	_, err = ring.Get(key)
+	if err == keyring.ErrKeyNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// returns keyring.ErrKeyNotFound if not found
 func (s *SecureStorage) Retrieve(key string, target interface{}) error {
 	ring, err := s.openKeyring()
 	if err != nil {

@@ -8,7 +8,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/pkg/errors"
 
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -23,68 +22,49 @@ var CredentialsCommand = cli.Command{
 	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand, &ListCredentialsCommand, &ClearCredentialsCommand, &ExportCredentialsCommand},
 }
 
+// promptProfileName checks the first argument for a profile name else prompts for a name
+func promptProfileName(c *cli.Context) (string, error) {
+	profileName := c.Args().First()
+	if profileName == "" {
+		in := survey.Input{Message: "Profile name: "}
+		err := testable.AskOne(&in, &profileName)
+		if err != nil {
+			return "", err
+		}
+	}
+	return profileName, nil
+}
+
 var AddCredentialsCommand = cli.Command{
 	Name:  "add",
 	Usage: "Add IAM credentials to secure storage",
 	Action: func(c *cli.Context) error {
-		profileName := c.Args().First()
-		if profileName == "" {
-			in := survey.Input{Message: "Profile Name: "}
-			fmt.Println()
-			err := testable.AskOne(&in, &profileName)
-			if err != nil {
-				return err
-			}
+		profileName, err := promptProfileName(c)
+		if err != nil {
+			return err
 		}
+
+		// validate the the profile does not already exist
 		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
 		}
-
 		if profiles.HasProfile(profileName) {
-			return fmt.Errorf("profile with name %s already exists", profileName)
+			return fmt.Errorf("a profile with name %s already exists", profileName)
 		}
-		var creds aws.Credentials
-		in1 := survey.Input{Message: "Access Key Id: "}
-		fmt.Println()
-		err = testable.AskOne(&in1, &creds.AccessKeyID)
+
+		credentials, err := promptCredentials()
 		if err != nil {
 			return err
 		}
 
-		in2 := survey.Password{Message: "Secret Access Key: "}
-		fmt.Println()
-		err = testable.AskOne(&in2, &creds.SecretAccessKey)
-		if err != nil {
-			return err
-		}
+		// store the credentials in secure storage
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
-		err = secureIAMCredentialStorage.StoreCredentials(profileName, creds)
+		err = secureIAMCredentialStorage.StoreCredentials(profileName, credentials)
 		if err != nil {
 			return err
 		}
-		creds, err = secureIAMCredentialStorage.GetCredentials(profileName)
-		if err != nil {
-			return err
-		}
-		configPath := config.DefaultSharedConfigFilename()
-		configFile, err := configparser.NewConfigParserFromFile(configPath)
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			return err
-		}
-		sectionName := "profile " + profileName
-		if err := configFile.AddSection(sectionName); err != nil {
-			return err
-		}
-
-		err = configFile.Set(sectionName, "credential_process", fmt.Sprintf("%s credential-process --profile=%s", build.GrantedBinaryName(), profileName))
-		if err != nil {
-			return err
-		}
-		err = configFile.SaveWithDelimiter(configPath, "=")
+		err = updateOrCreateProfileWithCredentialProcess(profileName)
 		if err != nil {
 			return err
 		}
@@ -94,18 +74,40 @@ var AddCredentialsCommand = cli.Command{
 	},
 }
 
+// addCredentialProcessToConfigfileProfile creates or updates a profile entry in the aws config file withs a granted credential_process entry
+// this allows the profile to still work as expected with the AWS cli or other tools using the --profile flag
+//
+//	[profile my-profile]
+//	credential_process = granted credential-process --profile=my-profile
+func updateOrCreateProfileWithCredentialProcess(profileName string) error {
+	configPath := config.DefaultSharedConfigFilename()
+	configFile, err := configparser.NewConfigParserFromFile(configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+	sectionName := "profile " + profileName
+	if !configFile.HasSection(sectionName) {
+		if err := configFile.AddSection(sectionName); err != nil {
+			return err
+		}
+	}
+	err = configFile.Set(sectionName, "credential_process", fmt.Sprintf("%s credential-process --profile=%s", build.GrantedBinaryName(), profileName))
+	if err != nil {
+		return err
+	}
+	return configFile.SaveWithDelimiter(configPath, "=")
+}
+
 var ImportCredentialsCommand = cli.Command{
 	Name:  "import",
 	Usage: "Import credentials from ~/.credentials file into secure storage",
 	Action: func(c *cli.Context) error {
-		profileName := c.Args().First()
-		if profileName == "" {
-			in := survey.Input{Message: "Profile Name: "}
-			fmt.Println()
-			err := testable.AskOne(&in, &profileName)
-			if err != nil {
-				return err
-			}
+		profileName, err := promptProfileName(c)
+		if err != nil {
+			return err
 		}
 		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
@@ -114,21 +116,43 @@ var ImportCredentialsCommand = cli.Command{
 		if !profiles.HasProfile(profileName) {
 			return fmt.Errorf("profile with name %s does not exist", profileName)
 		}
+
 		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
 			return err
 		}
-		// @TODO: we can provide some better messaging here by checking for parent profiles etc, if the root profile in this profiles chain is an IAM profile with plain text keys, we shoudl promote adding that one instead
-		if !profile.AWSConfig.Credentials.HasKeys() {
-			return fmt.Errorf("profile %s does not have IAM credentials", profileName)
-		}
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+		// ensure that the profile is an IAM profile
+		if profile.ProfileType != "AWS_IAM" {
+			return fmt.Errorf("profile %s does not have related IAM credentials", profileName)
+		}
+		// ensure that it is a root profile
+		if len(profile.Parents) != 0 {
+			return fmt.Errorf("profile %s uses a source_profile you should import the root profile '%s' instead. '%s credentials import %s'", profileName, profile.Parents[0].Name, build.GrantedBinaryName(), profile.Parents[0].Name)
+		}
+		// ensure it does not already exist in the secure storage
+		existsInSecureStorage, err := secureIAMCredentialStorage.SecureStorage.HasKey(profileName)
+		if err != nil {
+			return err
+		}
+		if existsInSecureStorage {
+			return fmt.Errorf("profile %s is already stored in secure storage.\nIf you were trying to update the credentials in secure storage, you can use '%s credentials update %s'", profileName, build.GrantedBinaryName(), profileName)
+		}
+		if !profile.AWSConfig.Credentials.HasKeys() {
+			return fmt.Errorf("profile %s does not have IAM credentials configured", profileName)
+		}
+
 		err = secureIAMCredentialStorage.StoreCredentials(profileName, profile.AWSConfig.Credentials)
 		if err != nil {
 			return err
 		}
+		// configure a profile in the config file with a credential process so the secure IAM credentials can be used
+		err = updateOrCreateProfileWithCredentialProcess(profileName)
+		if err != nil {
+			return err
+		}
 
-		//fetch parsed credentials file
+		// remove the profile from the credentials file
 		credentialsFilePath := config.DefaultSharedCredentialsFilename()
 		credentialsFile, err := configparser.NewConfigParserFromFile(credentialsFilePath)
 		if err != nil {
@@ -138,16 +162,11 @@ var ImportCredentialsCommand = cli.Command{
 			return err
 		}
 
-		err = credentialsFile.RemoveSection(profileName)
+		items, err := credentialsFile.Items(profileName)
 		if err != nil {
 			return err
 		}
-		configFilename := config.DefaultSharedCredentialsFilename()
 
-		err = credentialsFile.SaveWithDelimiter(configFilename, "=")
-		if err != nil {
-			return err
-		}
 		configPath := config.DefaultSharedConfigFilename()
 		configFile, err := configparser.NewConfigParserFromFile(configPath)
 		if err != nil {
@@ -157,28 +176,30 @@ var ImportCredentialsCommand = cli.Command{
 			return err
 		}
 		sectionName := "profile " + profileName
-		if !configFile.HasSection(sectionName) {
-			if err := configFile.AddSection(sectionName); err != nil {
+
+		// Merge options from the credentials profile to the config file profile.
+		// if the same option is configured in the config file profile it takes precedence
+		for k, v := range items {
+			has, err := configFile.HasOption(sectionName, k)
+			if err != nil {
 				return err
 			}
+			if !has {
+				configFile.Set(sectionName, k, v)
+			}
 		}
-
-		err = configFile.Set(sectionName, "credential_process", fmt.Sprintf("%s credential-process --profile=%s", build.GrantedBinaryName(), profileName))
+		// save the updated config file after merging
+		err = configFile.SaveWithDelimiter(configPath, "=")
 		if err != nil {
 			return err
 		}
 
-		// @TODO: I need to do a full clone of the profile both from credentials file and config, need to investigate how attributes are merged by the aws cli
-		// for k,v := range profile.RawConfig{
-
-		// }
-		if profile.AWSConfig.Region != "" {
-			err = configFile.Set(sectionName, "region", profile.AWSConfig.Region)
-			if err != nil {
-				return err
-			}
+		// remove the plaintext profile from the credentials file
+		err = credentialsFile.RemoveSection(profileName)
+		if err != nil {
+			return err
 		}
-		err = configFile.SaveWithDelimiter(configPath, "=")
+		err = credentialsFile.SaveWithDelimiter(credentialsFilePath, "=")
 		if err != nil {
 			return err
 		}
@@ -188,36 +209,38 @@ var ImportCredentialsCommand = cli.Command{
 	},
 }
 
+func promptCredentials() (credentials aws.Credentials, err error) {
+	in1 := survey.Input{Message: "Access key id: "}
+	err = testable.AskOne(&in1, &credentials.AccessKeyID)
+	if err != nil {
+		return
+	}
+	in2 := survey.Password{Message: "Secret access key: "}
+	err = testable.AskOne(&in2, &credentials.SecretAccessKey)
+	if err != nil {
+		return
+	}
+	return
+}
+
 var UpdateCredentialsCommand = cli.Command{
 	Name:  "update",
 	Usage: "Update existing credentials in secure storage",
 	Action: func(c *cli.Context) error {
-		profileName := c.Args().First()
-		if profileName == "" {
-			in := survey.Input{Message: "Profile Name: "}
-			fmt.Println()
-			err := testable.AskOne(&in, &profileName)
-			if err != nil {
-				return err
-			}
-		}
-
-		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
-		_, err := secureIAMCredentialStorage.GetCredentials(profileName)
-		if err != nil {
-			return errors.Wrap(err, "error while looking up existing profile in secure storage")
-		}
-		var credentials aws.Credentials
-		in1 := survey.Input{Message: "Access Key Id: "}
-		fmt.Println()
-		err = testable.AskOne(&in1, &credentials.AccessKeyID)
+		profileName, err := promptProfileName(c)
 		if err != nil {
 			return err
 		}
 
-		in2 := survey.Password{Message: "Secret Access Key: "}
-		fmt.Println()
-		err = testable.AskOne(&in2, &credentials.SecretAccessKey)
+		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+		has, err := secureIAMCredentialStorage.SecureStorage.HasKey(profileName)
+		if err != nil {
+			return err
+		}
+		if !has {
+			return fmt.Errorf("no credentials exist for %s in secure storage. If you wanted to add a new profile, run '%s credentials add'", profileName, build.GrantedBinaryName())
+		}
+		credentials, err := promptCredentials()
 		if err != nil {
 			return err
 		}
@@ -249,9 +272,9 @@ var ListCredentialsCommand = cli.Command{
 
 var ClearCredentialsCommand = cli.Command{
 	Name:  "clear",
-	Usage: "Remove credentials from secure storage",
+	Usage: "Remove credentials from secure storage, this also removes the associated profile entry from the AWS config file",
 	Flags: []cli.Flag{
-		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "Remove all credentials from secure storage"},
+		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "Remove all credentials from secure storage and their profile entries in the AWS config file"},
 	},
 	Action: func(c *cli.Context) error {
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
@@ -271,18 +294,26 @@ var ClearCredentialsCommand = cli.Command{
 			}
 			profileNames = append(profileNames, profiles...)
 		} else {
-			profileName := c.Args().First()
-			if profileName == "" {
-				in := survey.Input{Message: "Profile Name: "}
-				fmt.Println()
-				err := testable.AskOne(&in, &profileName)
-				if err != nil {
-					return err
-				}
+			profileName, err := promptProfileName(c)
+			if err != nil {
+				return err
 			}
 			profileNames = append(profileNames, profileName)
 		}
-
+		var confirm bool
+		s := &survey.Confirm{
+			Message: "Are you sure you want to remove this profile and credentials from your AWS config?",
+			Default: true,
+			Help:    fmt.Sprintf("If you just wanted to export the credentials back to plain-text, use '%s credentials export-plaintext'", build.GrantedBinaryName()),
+		}
+		err = survey.AskOne(s, &confirm)
+		if err != nil {
+			return err
+		}
+		if !confirm {
+			fmt.Printf("Cancelled clearing credentials")
+			return nil
+		}
 		for _, profileName := range profileNames {
 			fmt.Printf("Removing profile %s\n", profileName)
 			secureIAMCredentialStorage.SecureStorage.Clear(profileName)
@@ -305,7 +336,7 @@ var ClearCredentialsCommand = cli.Command{
 
 var ExportCredentialsCommand = cli.Command{
 	Name:  "export-plaintext",
-	Usage: "Export credentials from the secure storage to ~/.credentials file in plaintext",
+	Usage: "Export credentials from the secure storage to ~/.aws/credentials file in plaintext",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "export all credentials from secure storage in plaintext"},
 	},
@@ -319,14 +350,9 @@ var ExportCredentialsCommand = cli.Command{
 			}
 			profileNames = append(profileNames, profiles...)
 		} else {
-			profileName := c.Args().First()
-			if profileName == "" {
-				in := survey.Input{Message: "Profile Name: "}
-				fmt.Println()
-				err := testable.AskOne(&in, &profileName)
-				if err != nil {
-					return err
-				}
+			profileName, err := promptProfileName(c)
+			if err != nil {
+				return err
 			}
 			profileNames = append(profileNames, profileName)
 		}
