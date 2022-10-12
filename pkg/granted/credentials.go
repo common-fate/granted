@@ -103,7 +103,7 @@ func updateOrCreateProfileWithCredentialProcess(profileName string) error {
 
 var ImportCredentialsCommand = cli.Command{
 	Name:  "import",
-	Usage: "Import credentials from ~/.credentials file into secure storage",
+	Usage: "Import plaintext IAM user credentials from AWS credentials file into secure storage",
 	Action: func(c *cli.Context) error {
 		profileName, err := promptProfileName(c)
 		if err != nil {
