@@ -26,7 +26,7 @@ var CredentialsCommand = cli.Command{
 func promptProfileName(c *cli.Context) (string, error) {
 	profileName := c.Args().First()
 	if profileName == "" {
-		in := survey.Input{Message: "Profile name: "}
+		in := survey.Input{Message: "Profile Name:"}
 		err := testable.AskOne(&in, &profileName)
 		if err != nil {
 			return "", err
@@ -216,12 +216,12 @@ var ImportCredentialsCommand = cli.Command{
 }
 
 func promptCredentials() (credentials aws.Credentials, err error) {
-	in1 := survey.Input{Message: "Access key id: "}
+	in1 := survey.Input{Message: "Access Key ID:"}
 	err = testable.AskOne(&in1, &credentials.AccessKeyID)
 	if err != nil {
 		return
 	}
-	in2 := survey.Password{Message: "Secret access key: "}
+	in2 := survey.Password{Message: "Secret Sccess Key:"}
 	err = testable.AskOne(&in2, &credentials.SecretAccessKey)
 	if err != nil {
 		return
@@ -310,7 +310,7 @@ var ClearCredentialsCommand = cli.Command{
 		s := &survey.Confirm{
 			Message: "Are you sure you want to remove this profile and credentials from your AWS config?",
 			Default: true,
-			Help:    fmt.Sprintf("If you just wanted to export the credentials back to plain-text, use '%s credentials export-plaintext'", build.GrantedBinaryName()),
+			Help:    fmt.Sprintf("If you just wanted to export the credentials back to plaintext, use '%s credentials export-plaintext'", build.GrantedBinaryName()),
 		}
 		err = survey.AskOne(s, &confirm)
 		if err != nil {
