@@ -39,10 +39,13 @@ var ServiceMap = map[string]string{
 	"redshift":       "redshiftv2",
 	"sagemaker":      "sagemaker",
 	"ssm":            "systems-manager",
+	"vpc":            "vpc",
+	"dx":             "directconnect/v2"
 }
 
 var globalServiceMap = map[string]bool{
 	"iam":     true,
 	"route53": true,
 	"r53":     true,
+	"dx":	   true
 }
