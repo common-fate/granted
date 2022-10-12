@@ -14,14 +14,24 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// TokenCommand has been deprecated in favour of 'sso-tokens'
+// @TODO: remove this when suitable after deprecation
 var TokenCommand = cli.Command{
+	Name:  "token",
+	Usage: "Deprecated: Use 'sso-tokens' instead",
+	Action: func(ctx *cli.Context) error {
+		fmt.Println("The 'token' command has been deprecated and will be removed in a future release, it has been renamed to 'sso-tokens'")
+		return SSOTokensCommand.Run(ctx)
+	},
+}
+var SSOTokensCommand = cli.Command{
 	Name:        "sso-tokens",
 	Usage:       "Manage AWS SSO tokens",
-	Subcommands: []*cli.Command{&TokenListCommand, &ClearTokensCommand},
-	Action:      TokenListCommand.Action,
+	Subcommands: []*cli.Command{&ListSSOTokensCommand, &ClearSSOTokensCommand},
+	Action:      ListSSOTokensCommand.Action,
 }
 
-var TokenListCommand = cli.Command{
+var ListSSOTokensCommand = cli.Command{
 	Name:  "list",
 	Usage: "Lists all access tokens saved in the keyring",
 	Action: func(ctx *cli.Context) error {
@@ -89,7 +99,7 @@ func MapTokens(ctx context.Context) (map[string][]string, error) {
 	return startUrlMap, nil
 }
 
-var ClearTokensCommand = cli.Command{
+var ClearSSOTokensCommand = cli.Command{
 	Name:  "clear",
 	Usage: "Remove a selected token from the keyring",
 	Flags: []cli.Flag{
