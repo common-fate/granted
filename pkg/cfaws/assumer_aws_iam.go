@@ -61,11 +61,11 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		return aws.Credentials{}, err
 	}
 
-	//inform the user about using the keychain to securely store IAM user credentials
+	//inform the user about using the secure storage to securely store IAM user credentials
 
-	fmt.Fprintf(color.Error, "Profile %s has plaintext credentials stored in ~/.aws/credentials.\n", c.Name)
+	fmt.Fprintf(color.Error, "Profile %s has plaintext credentials stored in the AWS credentials file.\n", c.Name)
 	fmt.Fprintf(color.Error, "With Granted you can store these credentials in secure storage.\n")
-	fmt.Fprintf(color.Error, "To move the credentials to secure storage, run `granted keychain import %s`.\n", c.Name)
+	fmt.Fprintf(color.Error, "To move the credentials to secure storage, run `granted credentials import %s`.\n", c.Name)
 
 	return credentials, nil
 
