@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/AlecAivazis/survey/v2/core"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
@@ -138,8 +139,9 @@ var ImportCredentialsCommand = cli.Command{
 		if profileName == "" {
 			in := survey.Select{Message: "Profile Name:", Options: profiles.ProfileNames}
 			err := testable.AskOne(&in, &profileName, survey.WithValidator(func(ans interface{}) error {
+				option := ans.(core.OptionAnswer)
 				// Not all profiles are valid for importing, so ensure this profile is suitable, and inform the user if it is not + the reason
-				return validateProfileForImport(c.Context, profiles, ans.(string))
+				return validateProfileForImport(c.Context, profiles, option.Value)
 			}))
 			if err != nil {
 				return err
@@ -321,7 +323,7 @@ var RemoveCredentialsCommand = cli.Command{
 			profileNames = append(profileNames, secureProfileKeys...)
 		} else {
 			if profileName == "" {
-				in := survey.Select{Message: "Profile Name:", Options: profileNames}
+				in := survey.Select{Message: "Profile Name:", Options: secureProfileKeys}
 				err = testable.AskOne(&in, &profileName)
 				if err != nil {
 					return err
@@ -329,11 +331,12 @@ var RemoveCredentialsCommand = cli.Command{
 			}
 			profileNames = append(profileNames, profileName)
 		}
-		fmt.Println(`Removing credentials from secure storage will cause them to be permanently deleted.
+		fmt.Printf(`Removing credentials from secure storage will cause them to be permanently deleted.
 To avoid losing your credentials you may first want to export them to plaintext using 'granted credentials export-plaintext <profile name>'
-
 This command will remove a profile with the same name from the AWS config file if it has a 'credential_process = granted credential-process --profile=<profile name>'
-If you have already used 'granted credentials export-plaintext <profile name>' to export the credentials, the profile will not be removed by this command.`)
+If you have already used 'granted credentials export-plaintext <profile name>' to export the credentials, the profile will not be removed by this command.
+
+`)
 		var confirm bool
 		s := &survey.Confirm{
 			Message: "Are you sure you want to remove these credentials and profile from your AWS config?",
@@ -403,7 +406,7 @@ var ExportCredentialsCommand = cli.Command{
 			profileNames = append(profileNames, secureProfileKeys...)
 		} else {
 			if profileName == "" {
-				in := survey.Select{Message: "Profile Name:", Options: profileNames}
+				in := survey.Select{Message: "Profile Name:", Options: secureProfileKeys}
 				err = testable.AskOne(&in, &profileName)
 				if err != nil {
 					return err
@@ -461,19 +464,35 @@ var ExportCredentialsCommand = cli.Command{
 					return err
 				}
 				if has {
-					err = configFile.RemoveOption(sectionName, "credential_process")
+					items, err := configFile.Items(sectionName)
 					if err != nil {
 						return err
+					}
+					// if the result of removing the credential process is that the profile has not configuration, then just remove it completely.
+					// the profile in the credential file will suffice
+					// else just remove teh credential process line.
+					// this avoids leaving the config file with an empty profile, which appears to be some kind of error when its not
+					if len(items) > 1 {
+						err = configFile.RemoveOption(sectionName, "credential_process")
+						if err != nil {
+							return err
+						}
+					} else {
+						err = configFile.RemoveSection(sectionName)
+						if err != nil {
+							return err
+						}
 					}
 					err = configFile.SaveWithDelimiter(configPath, "=")
 					if err != nil {
 						return err
 					}
+
 				}
 			}
 
 			fmt.Printf("Exported %s in plaintext from secure storage to %s\n", profileName, credentialsFilePath)
-			fmt.Printf("The %s credentials have not been removed from secure storage. If you'd like to delete them, you can run granted credentials remove %s\n", profileName, credentialsFilePath)
+			fmt.Printf("The %s credentials have not been removed from secure storage. If you'd like to delete them, you can run granted credentials remove %s\n", profileName, profileName)
 
 		}
 		return nil
