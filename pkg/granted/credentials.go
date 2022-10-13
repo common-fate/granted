@@ -124,7 +124,7 @@ func validateProfileForImport(ctx context.Context, profiles *cfaws.Profiles, pro
 
 var ImportCredentialsCommand = cli.Command{
 	Name:  "import",
-	Usage: "Import credentials from ~/.credentials file into secure storage",
+	Usage: "Import plaintext IAM user credentials from AWS credentials file into secure storage",
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
 		profiles, err := cfaws.LoadProfiles()
