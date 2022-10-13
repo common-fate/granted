@@ -3,6 +3,8 @@ package granted
 import (
 	"context"
 	"fmt"
+	"os"
+	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -277,12 +279,16 @@ var UpdateCredentialsCommand = cli.Command{
 
 var ListCredentialsCommand = cli.Command{
 	Name:  "list",
-	Usage: "Lists the profiles in secure storage",
+	Usage: "Lists the profile names for credentials in secure storage",
 	Action: func(c *cli.Context) error {
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
 		profiles, err := secureIAMCredentialStorage.SecureStorage.List()
 		if err != nil {
 			return err
+		}
+		if len(profiles) == 0 {
+			fmt.Fprintln(os.Stderr, "No IAM user credentials stored in secure storage")
+			return nil
 		}
 		for _, profile := range profiles {
 			fmt.Printf("%s\n", profile.Key)
@@ -293,10 +299,10 @@ var ListCredentialsCommand = cli.Command{
 
 var RemoveCredentialsCommand = cli.Command{
 	Name:      "remove",
-	Usage:     "Remove credentials from secure storage, this also removes the associated profile entry from the AWS config file",
+	Usage:     "Remove credentials from secure storage and an associated profile if it exists in the AWS config file",
 	ArgsUsage: "[<profile>]",
 	Flags: []cli.Flag{
-		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "Remove all credentials from secure storage and their profile entries in the AWS config file"},
+		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "Remove all credentials from secure storage and an associated profile if it exists in the AWS config file"},
 	},
 	Action: func(c *cli.Context) error {
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
@@ -323,12 +329,15 @@ var RemoveCredentialsCommand = cli.Command{
 			}
 			profileNames = append(profileNames, profileName)
 		}
+		fmt.Println(`Removing credentials from secure storage will cause them to be permanently deleted.
+To avoid losing your credentials you may first want to export them to plaintext using 'granted credentials export-plaintext <profile name>'
 
+This command will remove a profile with the same name from the AWS config file if it has a 'credential_process = granted credential-process --profile=<profile name>'
+If you have already used 'granted credentials export-plaintext <profile name>' to export the credentials, the profile will not be removed by this command.`)
 		var confirm bool
 		s := &survey.Confirm{
-			Message: "Are you sure you want to remove this profile and credentials from your AWS config?",
+			Message: "Are you sure you want to remove these credentials and profile from your AWS config?",
 			Default: true,
-			Help:    fmt.Sprintf("If you just wanted to export the credentials back to plaintext, use '%s credentials export-plaintext'\n", build.GrantedBinaryName()),
 		}
 		err = survey.AskOne(s, &confirm)
 		if err != nil {
@@ -340,16 +349,29 @@ var RemoveCredentialsCommand = cli.Command{
 		}
 
 		for _, profileName := range profileNames {
-			fmt.Printf("Removing profile %s\n", profileName)
+			fmt.Printf("Removing %s credentials from secure storage\n", profileName)
 			err = secureIAMCredentialStorage.SecureStorage.Clear(profileName)
 			if err != nil {
 				return err
 			}
 			sectionName := "profile " + profileName
 			if configFile.HasSection(sectionName) {
-				err = configFile.RemoveSection(sectionName)
+				hasCredentialProcess, err := configFile.HasOption(sectionName, "credential_process")
 				if err != nil {
 					return err
+				}
+				if hasCredentialProcess {
+					credentialProcessOption, err := configFile.Get(sectionName, "credential_process")
+					if err != nil {
+						return err
+					}
+					if strings.HasPrefix(credentialProcessOption, fmt.Sprintf("%s credential-process", build.GrantedBinaryName())) {
+						fmt.Printf("Removing profile %s AWS config file\n", profileName)
+						err = configFile.RemoveSection(sectionName)
+						if err != nil {
+							return err
+						}
+					}
 				}
 			}
 		}
@@ -451,6 +473,8 @@ var ExportCredentialsCommand = cli.Command{
 			}
 
 			fmt.Printf("Exported %s in plaintext from secure storage to %s\n", profileName, credentialsFilePath)
+			fmt.Printf("The %s credentials have not been removed from secure storage. If you'd like to delete them, you can run granted credentials remove %s\n", profileName, credentialsFilePath)
+
 		}
 		return nil
 	},
