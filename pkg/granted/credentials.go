@@ -23,13 +23,14 @@ var CredentialsCommand = cli.Command{
 }
 
 var AddCredentialsCommand = cli.Command{
-	Name:  "add",
-	Usage: "Add IAM credentials to secure storage",
+	Name:      "add",
+	Usage:     "Add IAM credentials to secure storage",
+	ArgsUsage: "[<profile>]",
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
 		if profileName == "" {
 			in := survey.Input{Message: "Profile Name:"}
-			err := testable.AskOne(&in, &profileName)
+			err := testable.AskOne(&in, &profileName, survey.WithValidator(survey.MinLength(1)))
 			if err != nil {
 				return err
 			}
@@ -41,7 +42,7 @@ var AddCredentialsCommand = cli.Command{
 			return err
 		}
 		if profiles.HasProfile(profileName) {
-			return fmt.Errorf("a profile with name %s already exists", profileName)
+			return fmt.Errorf("a profile with name %s already exists, you can import an existing profile using '%s credentials import %s", profileName, build.GrantedBinaryName(), profileName)
 		}
 
 		credentials, err := promptCredentials()
@@ -123,8 +124,9 @@ func validateProfileForImport(ctx context.Context, profiles *cfaws.Profiles, pro
 }
 
 var ImportCredentialsCommand = cli.Command{
-	Name:  "import",
-	Usage: "Import plaintext IAM user credentials from AWS credentials file into secure storage",
+	Name:      "import",
+	Usage:     "Import plaintext IAM user credentials from AWS credentials file into secure storage",
+	ArgsUsage: "[<profile>]",
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
 		profiles, err := cfaws.LoadProfiles()
@@ -234,8 +236,9 @@ func promptCredentials() (credentials aws.Credentials, err error) {
 }
 
 var UpdateCredentialsCommand = cli.Command{
-	Name:  "update",
-	Usage: "Update existing credentials in secure storage",
+	Name:      "update",
+	Usage:     "Update existing credentials in secure storage",
+	ArgsUsage: "[<profile>]",
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
@@ -289,8 +292,9 @@ var ListCredentialsCommand = cli.Command{
 }
 
 var RemoveCredentialsCommand = cli.Command{
-	Name:  "remove",
-	Usage: "Remove credentials from secure storage, this also removes the associated profile entry from the AWS config file",
+	Name:      "remove",
+	Usage:     "Remove credentials from secure storage, this also removes the associated profile entry from the AWS config file",
+	ArgsUsage: "[<profile>]",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "Remove all credentials from secure storage and their profile entries in the AWS config file"},
 	},
@@ -359,8 +363,9 @@ var RemoveCredentialsCommand = cli.Command{
 }
 
 var ExportCredentialsCommand = cli.Command{
-	Name:  "export-plaintext",
-	Usage: "Export credentials from the secure storage to ~/.aws/credentials file in plaintext",
+	Name:      "export-plaintext",
+	Usage:     "Export credentials from the secure storage to ~/.aws/credentials file in plaintext",
+	ArgsUsage: "[<profile>]",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "all", Aliases: []string{"a"}, Usage: "export all credentials from secure storage in plaintext"},
 	},
