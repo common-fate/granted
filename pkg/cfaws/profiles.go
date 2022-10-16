@@ -211,6 +211,12 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 				if err != nil {
 					return nil, err
 				}
+
+				awsConfig, err := config.LoadSharedConfigProfile(ctx, pr.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{pr.File} })
+				if err != nil {
+					return nil, err
+				}
+				pr.AWSConfig = awsConfig
 				// set the credentials from secure storage so that this profile is treated as an IAM profile
 				// rather than credential process
 				pr.AWSConfig.Credentials = credentials
@@ -285,6 +291,7 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 		// potentially triggered by bad config files with cycles in source_profile
 		// In simple cases this seems to be picked up by the AWS sdk before the profiles are initialised which would log a debug message instead
 		p.Initialised = true
+
 		cfg, err := config.LoadSharedConfigProfile(ctx, p.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{p.File} })
 		if err != nil {
 			return err
