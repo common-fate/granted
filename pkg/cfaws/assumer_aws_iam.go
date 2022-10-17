@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/fatih/color"
 )
 
@@ -19,11 +20,9 @@ type AwsIamAssumer struct {
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
 func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
-	// If iam credentials have been stored in the secure storage via Granted, they will be prefilled here.
-	// if not, attempt to load the profile
-	credentials := c.AWSConfig.Credentials
-	if credentials.HasKeys() {
-		return credentials, nil
+	if c.HasSecureStorageIAMCredentials {
+		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+		return secureIAMCredentialStorage.GetCredentials(c.Name)
 	}
 
 	//using ~/.aws/credentials file for creds
@@ -56,16 +55,19 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		return aws.Credentials{}, err
 	}
 
-	credentials, err = aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	credentials, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
 
 	//inform the user about using the secure storage to securely store IAM user credentials
-
-	fmt.Fprintf(color.Error, "Profile %s has plaintext credentials stored in the AWS credentials file.\n", c.Name)
-	fmt.Fprintf(color.Error, "With Granted you can store these credentials in secure storage.\n")
-	fmt.Fprintf(color.Error, "To move the credentials to secure storage, run `granted credentials import %s`.\n", c.Name)
+	// if it has no parents and it reached this point, it must have had plain text credentials
+	// if it has parents, and the root is not a secure storage iam profile, then it has plain text credentials
+	if len(c.Parents) == 0 || !c.Parents[0].HasSecureStorageIAMCredentials {
+		fmt.Fprintf(color.Error, "Profile %s has plaintext credentials stored in the AWS credentials file.\n", c.Name)
+		fmt.Fprintf(color.Error, "With Granted you can store these credentials in secure storage.\n")
+		fmt.Fprintf(color.Error, "To move the credentials to secure storage, run `granted credentials import %s`.\n", c.Name)
+	}
 
 	return credentials, nil
 

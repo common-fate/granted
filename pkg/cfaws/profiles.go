@@ -16,7 +16,6 @@ import (
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/debug"
-	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/fatih/color"
 )
 
@@ -36,9 +35,10 @@ type Profile struct {
 	// ordered from root to direct parent profile
 	Parents []*Profile
 	// the original config, some values may be empty strings depending on the type or profile
-	AWSConfig    config.SharedConfig
-	Initialised  bool
-	LoadingError error
+	AWSConfig                      config.SharedConfig
+	Initialised                    bool
+	LoadingError                   error
+	HasSecureStorageIAMCredentials bool
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -204,25 +204,15 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 	} else {
 		for k, v := range pr.RawConfig {
 			if k == "credential_process" && strings.HasPrefix(v, build.GrantedBinaryName()) {
-				// this profile is using a granted credential process
-				// if it's not an sso profile, then it should be an IAM profile with credentials stored in the secure storage
-				secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
-				credentials, err := secureIAMCredentialStorage.GetCredentials(profile)
-				if err != nil {
-					return nil, err
-				}
-
 				awsConfig, err := config.LoadSharedConfigProfile(ctx, pr.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{pr.File} })
 				if err != nil {
 					return nil, err
 				}
 				pr.AWSConfig = awsConfig
-				// set the credentials from secure storage so that this profile is treated as an IAM profile
-				// rather than credential process
-				pr.AWSConfig.Credentials = credentials
 				pr.AWSConfig.CredentialProcess = ""
 				pr.Initialised = true
 				pr.ProfileType = "AWS_IAM"
+				pr.HasSecureStorageIAMCredentials = true
 				return pr, nil
 			}
 		}
