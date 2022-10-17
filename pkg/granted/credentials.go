@@ -93,7 +93,7 @@ func updateOrCreateProfileWithCredentialProcess(profileName string) error {
 	return configFile.SaveWithDelimiter(configPath, "=")
 }
 
-func validateProfileForImport(ctx context.Context, profiles *cfaws.Profiles, profileName string) error {
+func validateProfileForImport(ctx context.Context, profiles *cfaws.Profiles, profileName string, overwrite bool) error {
 	secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
 	if !profiles.HasProfile(profileName) {
 		return fmt.Errorf("profile with name %s does not exist", profileName)
@@ -117,8 +117,8 @@ func validateProfileForImport(ctx context.Context, profiles *cfaws.Profiles, pro
 	if err != nil {
 		return err
 	}
-	if existsInSecureStorage {
-		return fmt.Errorf("profile %s is already stored in secure storage.\nIf you were trying to update the credentials in secure storage, you can use '%s credentials update %s'", profileName, build.GrantedBinaryName(), profileName)
+	if existsInSecureStorage && !overwrite {
+		return fmt.Errorf("profile %s is already stored in secure storage.\nIf you were trying to update the credentials in secure storage, you can use '%s credentials update %s', or to overwrite the credentials in secure storage, run '%s credentials import %s --overwrite'", profileName, build.GrantedBinaryName(), profileName, build.GrantedBinaryName(), profileName)
 	}
 	if !profile.AWSConfig.Credentials.HasKeys() {
 		return fmt.Errorf("profile %s does not have IAM credentials configured", profileName)
@@ -130,24 +130,28 @@ var ImportCredentialsCommand = cli.Command{
 	Name:      "import",
 	Usage:     "Import plaintext IAM user credentials from AWS credentials file into secure storage",
 	ArgsUsage: "[<profile>]",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "overwrite", Usage: "Overwrite an existing profile saved in secure storage with values from the AWS credentials file"},
+	},
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
 		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
 		}
+
 		if profileName == "" {
 			in := survey.Select{Message: "Profile Name:", Options: profiles.ProfileNames}
 			err := testable.AskOne(&in, &profileName, survey.WithValidator(func(ans interface{}) error {
 				option := ans.(core.OptionAnswer)
 				// Not all profiles are valid for importing, so ensure this profile is suitable, and inform the user if it is not + the reason
-				return validateProfileForImport(c.Context, profiles, option.Value)
+				return validateProfileForImport(c.Context, profiles, option.Value, c.Bool("overwrite"))
 			}))
 			if err != nil {
 				return err
 			}
 		} else {
-			err = validateProfileForImport(c.Context, profiles, profileName)
+			err = validateProfileForImport(c.Context, profiles, profileName, c.Bool("overwrite"))
 			if err != nil {
 				return err
 			}
