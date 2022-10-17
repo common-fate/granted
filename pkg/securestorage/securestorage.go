@@ -1,4 +1,4 @@
-package credstore
+package securestorage
 
 import (
 	"encoding/json"
@@ -13,11 +13,29 @@ import (
 	"github.com/pkg/errors"
 )
 
-var ErrCouldNotOpenKeyring error = errors.New("keyring not opened successfully")
+type SecureStorage struct {
+	StorageSuffix string
+}
 
-// returns ring.ErrKeyNotFound if not found
-func Retrieve(key string, target interface{}) error {
-	ring, err := openKeyring()
+// returns false if the key is not found, true if it is found, or false and an error if there was a keyring related error
+func (s *SecureStorage) HasKey(key string) (bool, error) {
+	ring, err := s.openKeyring()
+	if err != nil {
+		return false, err
+	}
+	_, err = ring.Get(key)
+	if err == keyring.ErrKeyNotFound {
+		return false, nil
+	}
+	if err != nil {
+		return false, err
+	}
+	return true, nil
+}
+
+// returns keyring.ErrKeyNotFound if not found
+func (s *SecureStorage) Retrieve(key string, target interface{}) error {
+	ring, err := s.openKeyring()
 	if err != nil {
 		return err
 	}
@@ -28,8 +46,8 @@ func Retrieve(key string, target interface{}) error {
 	return json.Unmarshal(keyringItem.Data, &target)
 }
 
-func Store(key string, payload interface{}) error {
-	ring, err := openKeyring()
+func (s *SecureStorage) Store(key string, payload interface{}) error {
+	ring, err := s.openKeyring()
 	if err != nil {
 		return err
 	}
@@ -44,15 +62,44 @@ func Store(key string, payload interface{}) error {
 	})
 }
 
-func Clear(key string) error {
-	ring, err := openKeyring()
+func (s *SecureStorage) Clear(key string) error {
+	ring, err := s.openKeyring()
 	if err != nil {
 		return err
 	}
 	return ring.Remove(key)
 }
 
-func openKeyring() (keyring.Keyring, error) {
+func (s *SecureStorage) List() ([]keyring.Item, error) {
+	tokenList := []keyring.Item{}
+	ring, err := s.openKeyring()
+	if err != nil {
+		return nil, err
+	}
+	keys, err := ring.Keys()
+	if err != nil {
+		return nil, err
+	}
+	for _, k := range keys {
+		item, err := ring.Get(k)
+		if err != nil {
+			return nil, err
+		}
+		tokenList = append(tokenList, item)
+
+	}
+	return tokenList, nil
+}
+
+func (s *SecureStorage) ListKeys() ([]string, error) {
+	ring, err := s.openKeyring()
+	if err != nil {
+		return nil, err
+	}
+	return ring.Keys()
+}
+
+func (s *SecureStorage) openKeyring() (keyring.Keyring, error) {
 	cfg, err := config.Load()
 	if err != nil {
 		return nil, err
@@ -63,30 +110,30 @@ func openKeyring() (keyring.Keyring, error) {
 		return nil, err
 	}
 
-	credStorePath := path.Join(grantedFolder, "cred-store")
-
+	secureStoragePath := path.Join(grantedFolder, "secure-storage-"+s.StorageSuffix)
+	name := "granted-" + s.StorageSuffix
 	c := keyring.Config{
-		ServiceName: "granted",
+		ServiceName: name,
 
 		// MacOS keychain
 		KeychainName:             "login",
 		KeychainTrustApplication: true,
 
 		// KDE Wallet
-		KWalletAppID:  "granted",
-		KWalletFolder: "granted",
+		KWalletAppID:  name,
+		KWalletFolder: name,
 
 		// Windows
-		WinCredPrefix: "granted",
+		WinCredPrefix: name,
 
 		// freedesktop.org's Secret Service
-		LibSecretCollectionName: "granted",
+		LibSecretCollectionName: name,
 
 		// Pass (https://www.passwordstore.org/)
-		PassPrefix: "granted",
+		PassPrefix: name,
 
 		// Fallback encrypted file
-		FileDir: credStorePath,
+		FileDir: secureStoragePath,
 		FilePasswordFunc: func(s string) (string, error) {
 			in := survey.Password{Message: s}
 			var out string
@@ -122,33 +169,4 @@ func openKeyring() (keyring.Keyring, error) {
 	}
 
 	return k, nil
-}
-
-func List() ([]keyring.Item, error) {
-	tokenList := []keyring.Item{}
-	ring, err := openKeyring()
-	if err != nil {
-		return nil, err
-	}
-	keys, err := ring.Keys()
-	if err != nil {
-		return nil, err
-	}
-	for _, k := range keys {
-		item, err := ring.Get(k)
-		if err != nil {
-			return nil, err
-		}
-		tokenList = append(tokenList, item)
-
-	}
-	return tokenList, nil
-}
-
-func ListKeys() ([]string, error) {
-	ring, err := openKeyring()
-	if err != nil {
-		return nil, err
-	}
-	return ring.Keys()
 }

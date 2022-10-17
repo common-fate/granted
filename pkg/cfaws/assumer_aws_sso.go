@@ -20,6 +20,7 @@ import (
 	"github.com/bigkevmcd/go-configparser"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/fatih/color"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
@@ -60,7 +61,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	cfg := aws.NewConfig()
 	cfg.Region = rootProfile.AWSConfig.SSORegion
 
-	cachedToken := GetValidCachedToken(ssoTokenKey)
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
 	var accessToken *string
 	if cachedToken == nil {
 		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
@@ -68,7 +70,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			return aws.Credentials{}, err
 		}
 
-		StoreSSOToken(ssoTokenKey, *newSSOToken)
+		secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *newSSOToken)
 		accessToken = &newSSOToken.AccessToken
 	} else {
 		accessToken = &cachedToken.AccessToken
@@ -106,7 +108,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		var unauthorised *ssotypes.UnauthorizedException
 		if errors.As(err, &unauthorised) {
 			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
-			ClearSSOToken(ssoTokenKey)
+			secureSSOTokenStorage.ClearSSOToken(ssoTokenKey)
 		}
 		return aws.Credentials{}, err
 	}
@@ -162,7 +164,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 }
 
 // SSODeviceCodeFlowFromStartUrl contains all the steps to complete a device code flow to retrieve an SSO token
-func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*SSOToken, error) {
+func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*securestorage.SSOToken, error) {
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
 	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
@@ -222,7 +224,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 		return nil, err
 	}
 
-	return &SSOToken{AccessToken: *token.AccessToken, Expiry: time.Now().Add(time.Duration(token.ExpiresIn) * time.Second)}, nil
+	return &securestorage.SSOToken{AccessToken: *token.AccessToken, Expiry: time.Now().Add(time.Duration(token.ExpiresIn) * time.Second)}, nil
 }
 
 var ErrTimeout error = errors.New("polling for device authorization token timed out")

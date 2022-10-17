@@ -1,23 +1,34 @@
-package cfaws
+package securestorage
 
 import (
 	"time"
 
-	"github.com/common-fate/granted/pkg/credstore"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 	"github.com/pkg/errors"
 )
+
+type SSOTokensSecureStorage struct {
+	SecureStorage SecureStorage
+}
+
+func NewSecureSSOTokenStorage() SSOTokensSecureStorage {
+	return SSOTokensSecureStorage{
+		SecureStorage: SecureStorage{
+			StorageSuffix: "aws-sso-tokens",
+		},
+	}
+}
 
 type SSOToken struct {
 	AccessToken string
 	Expiry      time.Time
 }
 
-// GetValidCachedToken returns nil if no token was found, or if it is expired
-func GetValidCachedToken(profileKey string) *SSOToken {
+// GetValidSSOToken returns nil if no token was found, or if it is expired
+func (s *SSOTokensSecureStorage) GetValidSSOToken(profileKey string) *SSOToken {
 	var t SSOToken
-	err := credstore.Retrieve(profileKey, &t)
+	err := s.SecureStorage.Retrieve(profileKey, &t)
 	if err != nil {
 		debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "GetValidCachedToken").Error())
 	}
@@ -28,8 +39,8 @@ func GetValidCachedToken(profileKey string) *SSOToken {
 }
 
 // Attempts to store the token, any errors will be logged to debug logging
-func StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
-	err := credstore.Store(profileKey, ssoTokenValue)
+func (s *SSOTokensSecureStorage) StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
+	err := s.SecureStorage.Store(profileKey, ssoTokenValue)
 	if err != nil {
 		debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "writing sso token to credentials cache").Error())
 	}
@@ -37,8 +48,8 @@ func StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
 }
 
 // Attempts to clear the token, any errors will be logged to debug logging
-func ClearSSOToken(profileKey string) {
-	err := credstore.Clear(profileKey)
+func (s *SSOTokensSecureStorage) ClearSSOToken(profileKey string) {
+	err := s.SecureStorage.Clear(profileKey)
 	if err != nil {
 		debug.Fprintf(debug.VerbosityDebug, color.Error, "%s\n", errors.Wrap(err, "clearing sso token from the credentials cache").Error())
 	}

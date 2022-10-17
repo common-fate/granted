@@ -14,6 +14,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/ssocreds"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 )
@@ -34,9 +35,10 @@ type Profile struct {
 	// ordered from root to direct parent profile
 	Parents []*Profile
 	// the original config, some values may be empty strings depending on the type or profile
-	AWSConfig    config.SharedConfig
-	Initialised  bool
-	LoadingError error
+	AWSConfig                      config.SharedConfig
+	Initialised                    bool
+	LoadingError                   error
+	HasSecureStorageIAMCredentials bool
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -180,7 +182,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		return nil, err
 	}
 
-	// For config that has 'granted' prefix we need to convert the custom config to
+	// For config that has 'granted' prefix we need to convert this to AWS config fields
 	// aws configuration
 	if hasGrantedPrefix(pr.RawConfig) {
 		err = IsValidGrantedProfile(pr.RawConfig)
@@ -199,6 +201,21 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		pr.Initialised = true
 		pr.ProfileType = "AWS_SSO"
 		return pr, nil
+	} else {
+		for k, v := range pr.RawConfig {
+			if k == "credential_process" && strings.HasPrefix(v, build.GrantedBinaryName()) {
+				awsConfig, err := config.LoadSharedConfigProfile(ctx, pr.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{pr.File} })
+				if err != nil {
+					return nil, err
+				}
+				pr.AWSConfig = awsConfig
+				pr.AWSConfig.CredentialProcess = ""
+				pr.Initialised = true
+				pr.ProfileType = "AWS_IAM"
+				pr.HasSecureStorageIAMCredentials = true
+				return pr, nil
+			}
+		}
 	}
 
 	// default initializaton flow
@@ -264,6 +281,7 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 		// potentially triggered by bad config files with cycles in source_profile
 		// In simple cases this seems to be picked up by the AWS sdk before the profiles are initialised which would log a debug message instead
 		p.Initialised = true
+
 		cfg, err := config.LoadSharedConfigProfile(ctx, p.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{p.File} })
 		if err != nil {
 			return err

@@ -18,8 +18,8 @@ type awsCredsStdOut struct {
 	Version         int    `json:"Version"`
 	AccessKeyID     string `json:"AccessKeyId"`
 	SecretAccessKey string `json:"SecretAccessKey"`
-	SessionToken    string `json:"SessionToken"`
-	Expiration      string `json:"Expiration"`
+	SessionToken    string `json:"SessionToken,omitempty"`
+	Expiration      string `json:"Expiration,omitempty"`
 }
 
 var CredentialProcess = cli.Command{
@@ -58,7 +58,9 @@ var CredentialProcess = cli.Command{
 			AccessKeyID:     creds.AccessKeyID,
 			SecretAccessKey: creds.SecretAccessKey,
 			SessionToken:    creds.SessionToken,
-			Expiration:      creds.Expires.Format(time.RFC3339),
+		}
+		if creds.CanExpire {
+			out.Expiration = creds.Expires.Format(time.RFC3339)
 		}
 
 		jsonOut, err := json.Marshal(out)

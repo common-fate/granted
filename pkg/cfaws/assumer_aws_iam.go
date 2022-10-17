@@ -2,12 +2,15 @@ package cfaws
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/granted/pkg/securestorage"
+	"github.com/fatih/color"
 )
 
 // Implements Assumer
@@ -17,7 +20,12 @@ type AwsIamAssumer struct {
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
 func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
+	if c.HasSecureStorageIAMCredentials {
+		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+		return secureIAMCredentialStorage.GetCredentials(c.Name)
+	}
 
+	//using ~/.aws/credentials file for creds
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
 		config.WithSharedConfigProfile(c.Name),
@@ -41,17 +49,27 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		}),
 	}
 
-	//load the creds from the credentials file
+	// load the creds from the credentials file
 	cfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
 
-	creds, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+	credentials, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	return creds, nil
+
+	//inform the user about using the secure storage to securely store IAM user credentials
+	// if it has no parents and it reached this point, it must have had plain text credentials
+	// if it has parents, and the root is not a secure storage iam profile, then it has plain text credentials
+	if len(c.Parents) == 0 || !c.Parents[0].HasSecureStorageIAMCredentials {
+		fmt.Fprintf(color.Error, "Profile %s has plaintext credentials stored in the AWS credentials file.\n", c.Name)
+		fmt.Fprintf(color.Error, "To move the credentials to secure storage, run 'granted credentials import %s'.\n", c.Name)
+	}
+
+	return credentials, nil
+
 }
 
 // if required will get a FederationToken to be used to launch the console
