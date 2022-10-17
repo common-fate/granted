@@ -118,7 +118,7 @@ func validateProfileForImport(ctx context.Context, profiles *cfaws.Profiles, pro
 		return err
 	}
 	if existsInSecureStorage && !overwrite {
-		return fmt.Errorf("profile %s is already stored in secure storage.\nIf you were trying to update the credentials in secure storage, you can use '%s credentials update %s', or to overwrite the credentials in secure storage, run '%s credentials import %s --overwrite'", profileName, build.GrantedBinaryName(), profileName, build.GrantedBinaryName(), profileName)
+		return fmt.Errorf("profile %s is already stored in secure storage.\nIf you were trying to update the credentials in secure storage, you can use '%s credentials update %s', or to overwrite the credentials in secure storage, run '%s credentials import --overwrite %s'", profileName, build.GrantedBinaryName(), profileName, build.GrantedBinaryName(), profileName)
 	}
 	if !profile.AWSConfig.Credentials.HasKeys() {
 		return fmt.Errorf("profile %s does not have IAM credentials configured", profileName)
@@ -256,6 +256,10 @@ var UpdateCredentialsCommand = cli.Command{
 			if err != nil {
 				return err
 			}
+			if profileName == "" && len(profileNames) == 0 {
+				fmt.Println("No credentials in secure storage")
+				return nil
+			}
 			in := survey.Select{Message: "Profile Name:", Options: profileNames}
 			err = testable.AskOne(&in, &profileName)
 			if err != nil {
@@ -326,6 +330,10 @@ var RemoveCredentialsCommand = cli.Command{
 		if c.Bool("all") {
 			profileNames = append(profileNames, secureProfileKeys...)
 		} else {
+			if profileName == "" && len(secureProfileKeys) == 0 {
+				fmt.Println("No credentials in secure storage")
+				return nil
+			}
 			if profileName == "" {
 				in := survey.Select{Message: "Profile Name:", Options: secureProfileKeys}
 				err = testable.AskOne(&in, &profileName)
@@ -409,6 +417,11 @@ var ExportCredentialsCommand = cli.Command{
 		if c.Bool("all") {
 			profileNames = append(profileNames, secureProfileKeys...)
 		} else {
+			if profileName == "" && len(secureProfileKeys) == 0 {
+				fmt.Println("No credentials in secure storage")
+				return nil
+			}
+
 			if profileName == "" {
 				in := survey.Select{Message: "Profile Name:", Options: secureProfileKeys}
 				err = testable.AskOne(&in, &profileName)
@@ -496,7 +509,7 @@ var ExportCredentialsCommand = cli.Command{
 			}
 
 			fmt.Printf("Exported %s in plaintext from secure storage to %s\n", profileName, credentialsFilePath)
-			fmt.Printf("The %s credentials have not been removed from secure storage. If you'd like to delete them, you can run granted credentials remove %s\n", profileName, profileName)
+			fmt.Printf("The %s credentials have not been removed from secure storage. If you'd like to delete them, you can run '%s credentials remove %s'\n", profileName, build.GrantedBinaryName(), profileName)
 
 		}
 		return nil

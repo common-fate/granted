@@ -65,8 +65,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 	// if it has parents, and the root is not a secure storage iam profile, then it has plain text credentials
 	if len(c.Parents) == 0 || !c.Parents[0].HasSecureStorageIAMCredentials {
 		fmt.Fprintf(color.Error, "Profile %s has plaintext credentials stored in the AWS credentials file.\n", c.Name)
-		fmt.Fprintf(color.Error, "With Granted you can store these credentials in secure storage.\n")
-		fmt.Fprintf(color.Error, "To move the credentials to secure storage, run `granted credentials import %s`.\n", c.Name)
+		fmt.Fprintf(color.Error, "To move the credentials to secure storage, run 'granted credentials import %s'.\n", c.Name)
 	}
 
 	return credentials, nil
