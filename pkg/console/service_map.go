@@ -1,7 +1,7 @@
 package console
 
 // ServiceMap maps CLI flags to AWS console URL paths.
-// e.g. passing in `-r ec2` will open the console at the ec2/v2 URL.
+// e.g. passing in `-s ec2` will open the console at the ec2/v2 URL.
 var ServiceMap = map[string]string{
 	"":               "console",
 	"athena":         "athena",
