@@ -41,11 +41,15 @@ var ServiceMap = map[string]string{
 	"ssm":            "systems-manager",
 	"vpc":            "vpc",
 	"dx":             "directconnect/v2",
+	"config":         "config",
+	"securityhub":    "securityhub",
+	"trustedadvisor": "trustedadvisor",
 }
 
 var globalServiceMap = map[string]bool{
-	"iam":     true,
-	"route53": true,
-	"r53":     true,
-	"dx":      true,
+	"iam":            true,
+	"route53":        true,
+	"r53":            true,
+	"dx":             true,
+	"trustedadvisor": true,
 }
