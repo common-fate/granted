@@ -40,12 +40,12 @@ var ServiceMap = map[string]string{
 	"sagemaker":      "sagemaker",
 	"ssm":            "systems-manager",
 	"vpc":            "vpc",
-	"dx":             "directconnect/v2"
+	"dx":             "directconnect/v2",
 }
 
 var globalServiceMap = map[string]bool{
 	"iam":     true,
 	"route53": true,
 	"r53":     true,
-	"dx":	   true
+	"dx":      true,
 }
