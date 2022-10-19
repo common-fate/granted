@@ -22,7 +22,7 @@ func GlobalFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
 		&cli.BoolFlag{Name: "env", Aliases: []string{"e"}, Usage: "Export credentials to a .env file"},
-		&cli.BoolFlag{Name: "export", Aliases: []string{"ex"}, Usage: "Export credentials to a ~.aws/credentials file"},
+		&cli.BoolFlag{Name: "export", Aliases: []string{"ex"}, Usage: "Export credentials to a ~/.aws/credentials file"},
 		&cli.BoolFlag{Name: "unset", Aliases: []string{"un"}, Usage: "Unset all environment variables configured by Assume"},
 		&cli.BoolFlag{Name: "url", Aliases: []string{"u"}, Usage: "Get an active console session url"},
 		&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Like --c, but opens to a specified service"},

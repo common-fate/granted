@@ -314,7 +314,7 @@ func AssumeCommand(c *cli.Context) error {
 				yellow.Fprintln(color.Error, "No credential suffix found. This can cause issues with using exported credentials if conflicting profiles exist. Run `granted settings export-suffix set` to set one.")
 			}
 
-			green.Fprintln(color.Error, fmt.Sprintf("Exported credentials to ~.aws/credentials file as %s successfully", profileName))
+			green.Fprintln(color.Error, fmt.Sprintf("Exported credentials to ~/.aws/credentials file as %s successfully", profileName))
 		}
 		if assumeFlags.String("exec") != "" {
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
