@@ -11,7 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.10.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.14.0
 	github.com/bigkevmcd/go-configparser v0.0.0-20210106142102-909504547ead
-	github.com/common-fate/updatecheck v0.3.1
+	github.com/common-fate/updatecheck v0.3.2
 	github.com/fatih/color v1.13.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
