@@ -11,32 +11,24 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.10.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.14.0
 	github.com/bigkevmcd/go-configparser v0.0.0-20210106142102-909504547ead
-	github.com/common-fate/cf-protos v0.0.0-20220219185127-8c82fd962a2e
+	github.com/common-fate/updatecheck v0.3.1
 	github.com/fatih/color v1.13.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/urfave/cli/v2 v2.3.0
-	google.golang.org/grpc v1.44.0
 )
 
 require (
+	github.com/common-fate/clio v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/text v0.1.0 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/pascaldekloe/name v0.0.0-20180628100202-0fd16699aae1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	go.uber.org/atomic v1.7.0 // indirect
-	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.20.0 // indirect
-	golang.org/x/mod v0.5.0 // indirect
-	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
-	golang.org/x/tools v0.1.5 // indirect
+	golang.org/x/tools v0.0.0-20190524210228-3d17549cdc6b // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
 

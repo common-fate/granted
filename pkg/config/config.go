@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"runtime"
-	"time"
 
 	"github.com/BurntSushi/toml"
 
@@ -21,7 +20,6 @@ type Config struct {
 	// used to override the builtin filepaths for custom installation locations
 	CustomBrowserPath      string
 	CustomSSOBrowserPath   string
-	LastCheckForUpdates    time.Weekday
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
@@ -145,8 +143,7 @@ func Load() (*Config, error) {
 	return &c, nil
 }
 
-func (store *Config) Save() error {
-
+func (c *Config) Save() error {
 	grantedFolder, err := GrantedConfigFolder()
 	if err != nil {
 		return err
@@ -158,5 +155,5 @@ func (store *Config) Save() error {
 		return err
 	}
 	defer file.Close()
-	return toml.NewEncoder(file).Encode(store)
+	return toml.NewEncoder(file).Encode(c)
 }
