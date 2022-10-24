@@ -1,8 +1,7 @@
 package launcher
 
 import (
-	"fmt"
-	"hash/fnv"
+	"strings"
 )
 
 type ChromeProfile struct {
@@ -15,21 +14,13 @@ type ChromeProfile struct {
 }
 
 func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
-	profileName := chromeProfileName(profile)
+	profile = strings.ReplaceAll(profile, " ", "_")
 	return []string{
 		l.ExecutablePath,
 		"--user-data-dir=" + l.UserDataPath,
-		"--profile-directory=" + profileName,
+		"--profile-directory=granted-profile-" + profile,
 		"--no-first-run",
 		"--no-default-browser-check",
 		url,
 	}
-}
-
-func chromeProfileName(profile string) string {
-	h := fnv.New32a()
-	h.Write([]byte(profile))
-
-	hash := fmt.Sprint(h.Sum32())
-	return hash
 }

@@ -229,22 +229,22 @@ func AssumeCommand(c *cli.Context) error {
 		case browser.ChromeKey:
 			l = launcher.ChromeProfile{
 				ExecutablePath: browserPath,
-				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "1"), // held over for backwards compatibility, "1" indicates Chrome profiles
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "chrome"),
 			}
 		case browser.BraveKey:
 			l = launcher.ChromeProfile{
 				ExecutablePath: browserPath,
-				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "2"), // held over for backwards compatibility, "2" indicates Brave profiles
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "brave"),
 			}
 		case browser.EdgeKey:
 			l = launcher.ChromeProfile{
 				ExecutablePath: browserPath,
-				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "3"), // held over for backwards compatibility, "3" indicates Edge profiles
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "edge"),
 			}
 		case browser.ChromiumKey:
 			l = launcher.ChromeProfile{
 				ExecutablePath: browserPath,
-				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "4"), // held over for backwards compatibility, "4" indicates Chromium profiles
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "chromium"),
 			}
 		case browser.FirefoxKey:
 			l = launcher.Firefox{
