@@ -103,7 +103,7 @@ func (p *Profiles) loadDefaultConfigFile() error {
 			continue
 		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
-		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(section) {
+		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(strings.TrimPrefix(section, "profile ")) {
 			name := strings.TrimPrefix(section, "profile ")
 			p.ProfileNames = append(p.ProfileNames, name)
 			p.profiles[name] = &Profile{RawConfig: rawConfig, Name: name, File: configPath}
