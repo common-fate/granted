@@ -1,9 +1,9 @@
 package assume
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/banners"
@@ -44,7 +44,7 @@ func GlobalFlags() []cli.Flag {
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Fprintln(color.Error, banners.WithVersion(banners.Assume()))
+		clio.Log(banners.WithVersion(banners.Assume()))
 	}
 
 	app := &cli.App{
@@ -67,8 +67,9 @@ func GetCliApp() *cli.App {
 				}
 				os.Exit(0)
 			}
-			if c.Bool("verbose") {
-				debug.CliVerbosity = debug.VerbosityDebug
+
+			if c.Bool("verbose") || os.Getenv("GRANTED_LOG") == "debug" {
+				debug.Enable()
 			}
 			err := ValidateSSOFlags(c)
 			if err != nil {

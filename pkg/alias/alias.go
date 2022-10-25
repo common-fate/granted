@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/shells"
 	"github.com/fatih/color"
@@ -114,10 +115,11 @@ func SetupShellWizard(autoConfigure bool) error {
 	if err != nil {
 		return err
 	}
+
 	// skip prompt if autoConfigure is set to true
 	if !autoConfigure {
 		ul := color.New(color.Underline).SprintFunc()
-		fmt.Fprintf(color.Error, "ℹ️  To assume roles with Granted, we need to add an alias to your shell profile (%s).\n", ul("https://granted.dev/shell-alias"))
+		clio.Info("To assume roles with Granted, we need to add an alias to your shell profile (%s)", ul("https://granted.dev/shell-alias"))
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
 			Message: fmt.Sprintf("Install %s alias at %s", shell, cfg.File),
@@ -133,16 +135,15 @@ func SetupShellWizard(autoConfigure bool) error {
 			return errors.New("cancelled alias installation")
 		}
 
-		fmt.Fprintln(color.Error, "")
+		clio.NewLine()
 	}
 
 	err = Install(cfg)
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(color.Error, "Added the Granted alias to %s\n", cfg.File)
-	alert := color.New(color.Bold, color.FgYellow).SprintFunc()
-	fmt.Fprintf(color.Error, "\n%s\n", alert("Shell restart required to apply changes: please open a new terminal window and re-run your command."))
+	clio.Success("Added the Granted alias to %s", cfg.File)
+	clio.Warn("Shell restart required to apply changes: please open a new terminal window and re-run your command.")
 	os.Exit(0)
 	return nil
 }
@@ -168,7 +169,7 @@ func UninstallDefaultShellAlias() error {
 	if err != nil {
 		return err
 	}
-	fmt.Fprintf(color.Error, "Removed the Granted alias from %s\n", cfg.File)
+	clio.Success("Removed the Granted alias from %s", cfg.File)
 	return nil
 }
 

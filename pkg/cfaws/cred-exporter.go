@@ -1,15 +1,13 @@
 package cfaws
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/clio"
 	gconfig "github.com/common-fate/granted/pkg/config"
-
-	"github.com/fatih/color"
 )
 
 // ExportCredsToProfile will write assumed credentials to ~/.aws/credentials with a specified profile name header
@@ -28,7 +26,7 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 		if err != nil {
 			return err
 		}
-		fmt.Fprintln(color.Error, "Created file.")
+		clio.Info("An AWS credentials file was not found at %s so it has been created", credPath)
 
 	}
 

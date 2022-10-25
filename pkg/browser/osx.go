@@ -6,8 +6,7 @@ import (
 	"os"
 	"os/exec"
 
-	"github.com/common-fate/granted/pkg/debug"
-	"github.com/fatih/color"
+	"github.com/common-fate/clio"
 )
 
 type plist struct {
@@ -53,22 +52,21 @@ func HandleOSXBrowserSearch() (string, error) {
 	cmd := exec.Command("plutil", args...)
 	err = cmd.Run()
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+		clio.Debug(err.Error())
 	}
 
 	//read plist file
 	data, err := ioutil.ReadFile(path)
 
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+		clio.Debug(err.Error())
 	}
 	plist := &plist{}
 
-	// fmt.Fprintf(color.Error, "\n%s\n", data)
 	//unmarshal the xml into the structs
 	err = xml.Unmarshal([]byte(data), &plist)
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, color.Error, err.Error())
+		clio.Debug(err.Error())
 	}
 
 	//get out the default browser

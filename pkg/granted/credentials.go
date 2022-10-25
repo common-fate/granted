@@ -3,7 +3,6 @@ package granted
 import (
 	"context"
 	"fmt"
-	"os"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -12,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/securestorage"
@@ -297,10 +297,11 @@ var ListCredentialsCommand = cli.Command{
 			return err
 		}
 		if len(profiles) == 0 {
-			fmt.Fprintln(os.Stderr, "No IAM user credentials stored in secure storage")
+			clio.Info("No IAM user credentials stored in secure storage")
 			return nil
 		}
 		for _, profile := range profiles {
+			// print to os.stdout for scripting usage
 			fmt.Printf("%s\n", profile.Key)
 		}
 		return nil

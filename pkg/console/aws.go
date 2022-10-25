@@ -7,8 +7,7 @@ import (
 	"net/url"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/common-fate/granted/pkg/debug"
-	"github.com/fatih/color"
+	"github.com/common-fate/clio"
 )
 
 type AWS struct {
@@ -44,7 +43,7 @@ func (a AWS) URL(creds aws.Credentials) (string, error) {
 	}
 
 	partition := GetPartitionFromRegion(a.Region)
-	debug.Fprintf(debug.VerbosityDebug, color.Error, "Partition is detected as %s for region %s...\n", partition, a.Region)
+	clio.Debug("Partition is detected as %s for region %s...\n", partition, a.Region)
 
 	u := url.URL{
 		Scheme: "https",
@@ -96,14 +95,12 @@ func (a AWS) URL(creds aws.Credentials) (string, error) {
 func makeDestinationURL(service string, region string) (string, error) {
 	partition := GetPartitionFromRegion(region)
 	prefix := partition.ConsoleHostString()
-
-	serv := ServiceMap[service]
-	if serv == "" {
-		color.New(color.FgYellow).Fprintf(color.Error, "[warning] we don't recognize service %s but we'll try and open it anyway (you may receive a 404 page)\n", service)
-		serv = service
+	if ServiceMap[service] == "" {
+		clio.Warn("We don't recognize service %s but we'll try and open it anyway (you may receive a 404 page)\n", service)
+	} else {
+		service = ServiceMap[service]
 	}
-
-	dest := prefix + serv + "/home"
+	dest := prefix + service + "/home"
 
 	//excluding region here if the service is apart of the global service list
 	//incomplete list of global services

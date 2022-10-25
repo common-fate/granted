@@ -11,6 +11,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.10.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.14.0
 	github.com/bigkevmcd/go-configparser v0.0.0-20210106142102-909504547ead
+	github.com/common-fate/clio v0.3.0
 	github.com/common-fate/updatecheck v0.3.4
 	github.com/fatih/color v1.13.0
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
@@ -20,7 +21,6 @@ require (
 )
 
 require (
-	github.com/common-fate/clio v0.2.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/kr/pretty v0.1.0 // indirect
 	github.com/kr/text v0.1.0 // indirect

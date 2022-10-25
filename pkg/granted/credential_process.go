@@ -3,7 +3,6 @@ package granted
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -46,11 +45,7 @@ var CredentialProcess = cli.Command{
 
 		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration})
 		if err != nil {
-			// print the error so the user knows what went wrong.
-			fmt.Fprintln(os.Stderr, err)
-
-			// exit with an error status, as we haven't been able to assume the role.
-			os.Exit(1)
+			return err
 		}
 
 		out := awsCredsStdOut{

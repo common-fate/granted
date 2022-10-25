@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/granted/pkg/testable"
@@ -54,7 +55,7 @@ var ListSSOTokensCommand = cli.Command{
 		}
 
 		for _, key := range keys {
-			fmt.Fprintf(os.Stderr, "%s\n", fmt.Sprintf("%-*s (%s)", max, key, strings.Join(startUrlMap[key], ", ")))
+			clio.Log("%-*s (%s)", max, key, strings.Join(startUrlMap[key], ", "))
 		}
 		return nil
 	},
@@ -112,7 +113,7 @@ var ClearSSOTokensCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "Cleared all saved tokens")
+			clio.Success("Cleared all saved tokens")
 			return nil
 		}
 		var selection string
@@ -144,7 +145,7 @@ var ClearSSOTokensCommand = cli.Command{
 				Message: "Select a token to remove from keyring",
 				Options: tokenList,
 			}
-			fmt.Fprintln(os.Stderr)
+			clio.NewLine()
 			var out string
 			err = testable.AskOne(&in, &out, withStdio)
 			if err != nil {
@@ -157,7 +158,7 @@ var ClearSSOTokensCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(os.Stderr, "Cleared %s", selection)
+		clio.Success("Cleared %s", selection)
 		return nil
 	},
 }
@@ -184,7 +185,8 @@ func clearToken(key string) error {
 	// Specific to the mac keychain, the granted binary will not have access to delete the items set by the assume binary without the user granting access.
 	// So, first ask the user to allow access, then attempt to delete the item.
 	if runtime.GOOS == "darwin" {
-		fmt.Fprintf(os.Stderr, "If you are using the mac keychain, choose to 'Always Allow' when prompted to allow Granted access to the item.\nThis will allow the item to be deleted by this command.\n")
+		clio.Warn("If you are using the mac keychain, choose to 'Always Allow' when prompted to allow Granted access to the item")
+		clio.Warn("This will allow the item to be deleted by this command")
 		var t interface{}
 		err := secureSSOTokenStorage.SecureStorage.Retrieve(key, &t)
 		if err != nil {

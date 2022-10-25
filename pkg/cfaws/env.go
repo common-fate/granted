@@ -7,8 +7,8 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/testable"
-	"github.com/fatih/color"
 	"github.com/joho/godotenv"
 )
 
@@ -31,7 +31,7 @@ func WriteCredentialsToDotenv(region string, creds aws.Credentials) error {
 			if err != nil {
 				return err
 			}
-			fmt.Fprintln(color.Error, "Created .env file.")
+			clio.Success("Successfully created a new .env file in the current directory")
 		} else {
 			return fmt.Errorf(".env file does not exist and creation was aborted")
 		}

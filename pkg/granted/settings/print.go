@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
 	"github.com/fatih/color"
 	"github.com/fatih/structs"
 	"github.com/olekukonko/tablewriter"
@@ -20,7 +19,6 @@ var PrintCommand = cli.Command{
 			return err
 		}
 		data := [][]string{
-			{"logging verbosity", debug.CliVerbosity.String()},
 			{"update-checker-api-url", c.String("update-checker-api-url")},
 		}
 		// display config, this uses reflection to convert the config struct to a map
