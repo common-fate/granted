@@ -241,7 +241,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	if err != nil {
 		return err
 	}
-	clio.Success("Granted will default to using %s.", browserTitle)
+	clio.Success("Granted will default to using %s", browserTitle)
 	return nil
 }
 

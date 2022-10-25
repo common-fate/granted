@@ -46,6 +46,8 @@ github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869/go.mod h1:Ekp36dR
 github.com/common-fate/clio v0.2.0/go.mod h1:8l2d683ocPKQ8k+GWg3tTPPmI3U9HXYtMPDIjPoA8ws=
 github.com/common-fate/clio v0.3.0 h1:IIQr5LuqMPO3r2IYR7JiZ3flcaqNW7MDxYPa/Nl2Kac=
 github.com/common-fate/clio v0.3.0/go.mod h1:8l2d683ocPKQ8k+GWg3tTPPmI3U9HXYtMPDIjPoA8ws=
+github.com/common-fate/clio v0.3.1 h1:ZYOkopMq3ydpbitDhmeLau58nRZsVrw/aMKN6EyvwHI=
+github.com/common-fate/clio v0.3.1/go.mod h1:8l2d683ocPKQ8k+GWg3tTPPmI3U9HXYtMPDIjPoA8ws=
 github.com/common-fate/updatecheck v0.3.4 h1:Q2rq3EN7Jbt7z/klAFFCA4qaK3LxP57zIqxscrbDnYo=
 github.com/common-fate/updatecheck v0.3.4/go.mod h1:gmcVk40eNrJG09zg31JYUf3Yn6rzA7498fibqO2j1SU=
 github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d h1:U+s90UTSYgptZMwQh2aRr3LuazLJIa+Pg3Kc1ylSYVY=
