@@ -3,8 +3,7 @@
 package browser
 
 import (
-	"github.com/common-fate/granted/pkg/debug"
-	"github.com/fatih/color"
+	"github.com/common-fate/clio"
 	"golang.org/x/sys/windows/registry"
 )
 
