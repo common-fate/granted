@@ -43,7 +43,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.7.0 // indirect
 	github.com/aws/smithy-go v1.11.0
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect

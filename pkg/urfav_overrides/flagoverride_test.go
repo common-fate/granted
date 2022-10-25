@@ -5,8 +5,8 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bmizerany/assert"
 	"github.com/fatih/color"
+	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
 )
 
