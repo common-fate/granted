@@ -271,7 +271,7 @@ func AssumeCommand(c *cli.Context) error {
 			return clio.NewCLIError(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", err.Error()),
 				// allow them to try open the url manually
 				clio.InfoMsg("You can open the browser session manually using the following url:"),
-				clio.WarnMsg(consoleURL),
+				clio.InfoMsg(consoleURL),
 			)
 		}
 		return nil

@@ -90,14 +90,10 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 					if hasGrantedPrefix(c.RawConfig) {
 						gConf, loadErr := grantedConfig.Load()
 						if loadErr != nil {
-							return aws.Credentials{}, errors.Wrapf(err, "loading Granted config: %s", loadErr.Error())
+							clio.Debug(errors.Wrapf(err, "loading Granted config during sso error handling: %s", loadErr.Error()).Error())
+							return aws.Credentials{}, serr
 						}
-
-						requestURLMsg, err := GetGrantedApprovalsURL(c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
-						if err != nil {
-							return aws.Credentials{}, err
-						}
-						return aws.Credentials{}, errors.New(serr.Error() + "\n" + requestURLMsg)
+						return aws.Credentials{}, FormatAWSErrorWithGrantedApprovalsURL(serr, c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
 					}
 				}
 			}
@@ -188,7 +184,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
 	clio.Info("If the browser does not open automatically, please open this link:")
-	clio.Warn(url)
+	clio.Info(url)
 
 	//check if sso browser path is set
 	config, err := grantedConfig.Load()

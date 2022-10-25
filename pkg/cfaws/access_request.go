@@ -6,8 +6,8 @@ import (
 	"regexp"
 
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
-	"github.com/fatih/color"
 )
 
 // GetGrantedApprovalsURL returns the URL which users can request access to a particular role at.
@@ -21,16 +21,15 @@ import (
 //
 // If neither of the approaches above returns a URL, this method returns a message indicating that the request URL
 // hasn't been set up.
-func GetGrantedApprovalsURL(rawConfig configparser.Dict, gConf grantedConfig.Config, SSORoleName string, SSOAccountId string) (string, error) {
-
+func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig configparser.Dict, gConf grantedConfig.Config, SSORoleName string, SSOAccountId string) error {
+	cliErr := &clio.CLIError{
+		Err: awsError.Error(),
+	}
 	// try and extract a --url flag from the AWS profile, like the following:
 	//	[profile my-profile]
 	//	credential_process = granted credential-process --url https://example.com
 	// This flag takes the highest precendence if it is set.
-	url, err := parseURLFlagFromConfig(rawConfig)
-	if err != nil {
-		return "", err
-	}
+	url := parseURLFlagFromConfig(rawConfig)
 	if url == "" {
 		// if the --url flag wasn't found, try and load the global request URL setting.
 		url = gConf.AccessRequestURL
@@ -39,11 +38,19 @@ func GetGrantedApprovalsURL(rawConfig configparser.Dict, gConf grantedConfig.Con
 	if url != "" {
 		// if we have a request URL, we can prompt the user to make a request by visiting the URL.
 		requestURL := buildRequestURL(url, SSORoleName, SSOAccountId)
-		return color.YellowString("You need to request access to this role:\n" + requestURL), nil
+		// need to escape the % symbol in the request url which has been query escaped so that fmt does';t try to substitute it
+		cliErr.Messages = append(cliErr.Messages, clio.WarnMsg("You need to request access to this role:"), clio.WarnlnMsg(requestURL))
+		return cliErr
 	}
 
-	// otherwise, there is no request URL configured. Let the user know that they can set one up.
-	return color.YellowString("Granted Approvals URL not configured. \nSet up a URL to request access to this role with 'granted settings request-url set <YOUR_GRANTED_APPROVALS_URL'"), nil
+	// otherwise, there is no request URL configured. Let the user know that they can set one up if they are using Granted Approvals
+	// remember that not all users of credential process will be using approvals
+	cliErr.Messages = append(cliErr.Messages,
+		clio.InfoMsg("It looks like you don't have the right permissions to access this role"),
+		clio.InfoMsg("If you are using Granted Approvals to manage this role you can configure the Granted CLI with a request URL so that you can be directed to your Granted Approvals instance to make a new access request the next time you have this error"),
+		clio.InfoMsg("To configure a URL to request access to this role with 'granted settings request-url set <YOUR_GRANTED_APPROVALS_URL'"),
+	)
+	return cliErr
 }
 
 // parseURLFlagFromConfig tries to extract the '--url' argument from the granted credentials_process command in an AWS profile.
@@ -53,31 +60,22 @@ func GetGrantedApprovalsURL(rawConfig configparser.Dict, gConf grantedConfig.Con
 //	credential_process = granted credential-process --url https://example.com
 //
 // it will return 'https://example.com'. Otherwise, it returns an empty string
-func parseURLFlagFromConfig(rawConfig configparser.Dict) (string, error) {
+func parseURLFlagFromConfig(rawConfig configparser.Dict) string {
 	credProcess, ok := rawConfig["credential_process"]
 	if !ok {
-		return "", nil
+		return ""
 	}
-
-	grantedRegex, err := regexp.Compile(`granted\s+credential-process`)
-	if err != nil {
-		return "", err
-	}
+	grantedRegex := regexp.MustCompile(`granted\s+credential-process`)
 	hasGrantedCommand := grantedRegex.MatchString(credProcess)
 	if !hasGrantedCommand {
-		return "", nil
+		return ""
 	}
-
-	re, err := regexp.Compile(`--url\s+(\S+)`)
-	if err != nil {
-		return "", err
-	}
-
+	re := regexp.MustCompile(`--url\s+(\S+)`)
 	matchedValues := re.FindStringSubmatch(credProcess)
 	if len(matchedValues) > 1 {
-		return matchedValues[1], nil
+		return matchedValues[1]
 	}
-	return "", nil
+	return ""
 }
 
 func buildRequestURL(grantedUrl string, SSORoleName string, SSOAccountId string) string {
