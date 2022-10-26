@@ -2,7 +2,6 @@ package browser
 
 import (
 	"encoding/xml"
-	"io/ioutil"
 	"os"
 	"os/exec"
 
@@ -56,7 +55,7 @@ func HandleOSXBrowserSearch() (string, error) {
 	}
 
 	//read plist file
-	data, err := ioutil.ReadFile(path)
+	data, err := os.ReadFile(path)
 
 	if err != nil {
 		clio.Debug(err.Error())

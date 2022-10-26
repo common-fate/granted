@@ -55,7 +55,7 @@ var ListSSOTokensCommand = cli.Command{
 		}
 
 		for _, key := range keys {
-			clio.Log("%-*s (%s)", max, key, strings.Join(startUrlMap[key], ", "))
+			clio.Logf("%-*s (%s)", max, key, strings.Join(startUrlMap[key], ", "))
 		}
 		return nil
 	},
