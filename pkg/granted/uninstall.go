@@ -28,7 +28,7 @@ var UninstallCommand = cli.Command{
 
 			err = alias.UninstallDefaultShellAlias()
 			if err != nil {
-				clio.Error("%s", err)
+				clio.Error(err.Error())
 			}
 			grantedFolder, err := config.GrantedConfigFolder()
 			if err != nil {
@@ -39,7 +39,7 @@ var UninstallCommand = cli.Command{
 				return err
 			}
 
-			clio.Success("Removed Granted config folder %s\n", grantedFolder)
+			clio.Successf("Removed Granted config folder %s\n", grantedFolder)
 		}
 		return nil
 	},

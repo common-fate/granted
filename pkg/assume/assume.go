@@ -16,6 +16,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/assumeprint"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -25,7 +26,6 @@ import (
 	"github.com/common-fate/granted/pkg/launcher"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
-	"github.com/fatih/color"
 	"github.com/hako/durafmt"
 	"github.com/urfave/cli/v2"
 )
@@ -46,8 +46,8 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	if assumeFlags.String("exec") != "" && runtime.GOOS == "windows" {
-		return clio.NewCLIError("--exec flag is not currently supported on Windows",
-			clio.InfoMsg("Let us know if you'd like support for this by creating an issue on our Github repo: https://github.com/common-fate/granted/issues/new"),
+		return clierr.New("--exec flag is not currently supported on Windows",
+			clierr.Info("Let us know if you'd like support for this by creating an issue on our Github repo: https://github.com/common-fate/granted/issues/new"),
 		)
 	}
 	activeRoleProfile := assumeFlags.String("active-aws-profile")
@@ -75,7 +75,7 @@ func AssumeCommand(c *cli.Context) error {
 		profileName := c.Args().First()
 		if profileName != "" {
 			if !profiles.HasProfile(profileName) {
-				clio.Warn("%s does not match any profiles in your AWS config or credentials files", profileName)
+				clio.Warnf("%s does not match any profiles in your AWS config or credentials files", profileName)
 				profileName = ""
 			}
 		}
@@ -83,10 +83,10 @@ func AssumeCommand(c *cli.Context) error {
 		//set the session creds using the active role if we have one and the flag is set
 		if activeRoleFlag && activeRoleProfile != "" {
 			if !profiles.HasProfile(activeRoleProfile) {
-				clio.Warn("You tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files", activeRoleProfile)
+				clio.Warnf("You tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files", activeRoleProfile)
 			} else {
 				profileName = activeRoleProfile
-				clio.Info("Using active profile: %s", profileName)
+				clio.Infof("Using active profile: %s", profileName)
 			}
 		}
 		if profileName != "" {
@@ -118,9 +118,9 @@ func AssumeCommand(c *cli.Context) error {
 				Filter:  filterMultiToken,
 			}
 			if len(profileNames) == 0 {
-				return clio.NewCLIError("Granted couldn't find any AWS profiles in your config file or your credentials file",
-					clio.InfoMsg("You can add profiles to your AWS config by following our guide: "),
-					clio.InfoMsg("https://granted.dev/awsconfig"),
+				return clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
+					clierr.Info("You can add profiles to your AWS config by following our guide: "),
+					clierr.Info("https://granted.dev/awsconfig"),
 				)
 			}
 			err = testable.AskOne(&in, &profileName, withStdio)
@@ -258,7 +258,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		printFlagUsage(con.Region, con.Service)
-		clio.Info("Opening a console for %s in your browser...", profile.Name)
+		clio.Infof("Opening a console for %s in your browser...", profile.Name)
 
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
 		args := l.LaunchCommand(consoleURL, con.Profile)
@@ -268,10 +268,10 @@ func AssumeCommand(c *cli.Context) error {
 		}
 		err = cmd.Start()
 		if err != nil {
-			return clio.NewCLIError(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", err.Error()),
+			return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", err.Error()),
 				// allow them to try open the url manually
-				clio.InfoMsg("You can open the browser session manually using the following url:"),
-				clio.InfoMsg(consoleURL),
+				clierr.Info("You can open the browser session manually using the following url:"),
+				clierr.Info(consoleURL),
 			)
 		}
 		return nil
@@ -287,10 +287,10 @@ func AssumeCommand(c *cli.Context) error {
 			// few seconds old already.
 			durationDescription := durafmt.Parse(time.Until(creds.Expires) + 10*time.Second).LimitFirstN(1).String()
 			if os.Getenv("GRANTED_QUIET") != "true" {
-				clio.Success("[%s](%s) session credentials will expire in %s", profile.Name, region, durationDescription)
+				clio.Successf("[%s](%s) session credentials will expire in %s", profile.Name, region, durationDescription)
 			}
 		} else if os.Getenv("GRANTED_QUIET") != "true" {
-			clio.Success("[%s](%s) session credentials ready", profile.Name, region)
+			clio.Successf("[%s](%s) session credentials ready", profile.Name, region)
 		}
 		if assumeFlags.Bool("env") {
 			err = cfaws.WriteCredentialsToDotenv(region, creds)
@@ -314,7 +314,7 @@ func AssumeCommand(c *cli.Context) error {
 				clio.Warn("No credential suffix found. This can cause issues with using exported credentials if conflicting profiles exist. Run `granted settings export-suffix set` to set one.")
 			}
 
-			clio.Success("Exported credentials to ~/.aws/credentials file as %s successfully", profileName)
+			clio.Successf("Exported credentials to ~/.aws/credentials file as %s successfully", profileName)
 		}
 		if assumeFlags.String("exec") != "" {
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
@@ -356,7 +356,7 @@ func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) e
 	args := strings.Split(cmd, " ")
 	c := exec.Command(args[0], args[1:]...)
 	c.Stdout = os.Stdout
-	c.Stderr = color.Error
+	c.Stderr = os.Stderr
 	c.Env = append(os.Environ(), EnvKeys(creds, region)...)
 	return c.Run()
 }
@@ -389,6 +389,6 @@ func printFlagUsage(region, service string) {
 		m = append(m, "use -s to open a specific service")
 	}
 	if region == "" || service == "" {
-		clio.Info("%s (https://docs.commonfate.io/granted/usage/console)", strings.Join(m, " or "))
+		clio.Infof("%s (https://docs.commonfate.io/granted/usage/console)", strings.Join(m, " or "))
 	}
 }

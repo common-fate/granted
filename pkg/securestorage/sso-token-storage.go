@@ -29,7 +29,7 @@ func (s *SSOTokensSecureStorage) GetValidSSOToken(profileKey string) *SSOToken {
 	var t SSOToken
 	err := s.SecureStorage.Retrieve(profileKey, &t)
 	if err != nil {
-		clio.Debug("%s\n", errors.Wrap(err, "GetValidCachedToken").Error())
+		clio.Debugf("%s\n", errors.Wrap(err, "GetValidCachedToken").Error())
 	}
 	if t.Expiry.Before(time.Now()) {
 		return nil
@@ -41,7 +41,7 @@ func (s *SSOTokensSecureStorage) GetValidSSOToken(profileKey string) *SSOToken {
 func (s *SSOTokensSecureStorage) StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
 	err := s.SecureStorage.Store(profileKey, ssoTokenValue)
 	if err != nil {
-		clio.Debug("%s\n", errors.Wrap(err, "writing sso token to credentials cache").Error())
+		clio.Debugf("%s\n", errors.Wrap(err, "writing sso token to credentials cache").Error())
 	}
 
 }
@@ -50,6 +50,6 @@ func (s *SSOTokensSecureStorage) StoreSSOToken(profileKey string, ssoTokenValue 
 func (s *SSOTokensSecureStorage) ClearSSOToken(profileKey string) {
 	err := s.SecureStorage.Clear(profileKey)
 	if err != nil {
-		clio.Debug("%s\n", errors.Wrap(err, "clearing sso token from the credentials cache").Error())
+		clio.Debugf("%s\n", errors.Wrap(err, "clearing sso token from the credentials cache").Error())
 	}
 }

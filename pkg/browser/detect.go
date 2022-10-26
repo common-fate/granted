@@ -162,7 +162,7 @@ func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 	browserTitle := title.String((strings.ToLower(GetBrowserKey(browserName))))
 	clio.Info("Thanks for using Granted!")
 	clio.Info("Start by configuring which browser to use when launching the AWS console")
-	clio.Info("By default, Granted will open the AWS console with this browser: %s", browserTitle)
+	clio.Infof("By default, Granted will open the AWS console with this browser: %s", browserTitle)
 	clio.Info("Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers). You can change this setting later by running 'granted browser set'")
 	in := survey.Confirm{
 		Message: "Do you want Granted to use a different installed browser when launching the AWS console?",
@@ -201,7 +201,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 		} else {
 			customBrowserPath, detected := DetectInstallation(browserKey)
 			if !detected {
-				clio.Warn("Granted could not detect an existing installation of %s at known installation paths for your system", browserTitle)
+				clio.Warnf("Granted could not detect an existing installation of %s at known installation paths for your system", browserTitle)
 				clio.Info("If you have already installed this browser, you can specify the path to the executable manually")
 				validPath := false
 				for !validPath {
@@ -241,7 +241,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	if err != nil {
 		return err
 	}
-	clio.Success("Granted will default to using %s", browserTitle)
+	clio.Successf("Granted will default to using %s", browserTitle)
 	return nil
 }
 
@@ -283,7 +283,7 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 		if err != nil {
 			return err
 		}
-		clio.Success("Granted will use %s for SSO login prompts.", browserPath)
+		clio.Successf("Granted will use %s for SSO login prompts.", browserPath)
 	}
 	return nil
 
@@ -364,7 +364,7 @@ func AskAndGetBrowserPath() (string, error) {
 
 		customBrowserPath, detected := DetectInstallation(browserKey)
 		if !detected {
-			clio.Warn("Granted could not detect an existing installation of %s at known installation paths for your system", browserTitle)
+			clio.Warnf("Granted could not detect an existing installation of %s at known installation paths for your system", browserTitle)
 			clio.Info("If you have already installed this browser, you can specify the path to the executable manually")
 			validPath := false
 			for !validPath {

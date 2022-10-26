@@ -43,7 +43,7 @@ func (a AWS) URL(creds aws.Credentials) (string, error) {
 	}
 
 	partition := GetPartitionFromRegion(a.Region)
-	clio.Debug("Partition is detected as %s for region %s...\n", partition, a.Region)
+	clio.Debugf("Partition is detected as %s for region %s...\n", partition, a.Region)
 
 	u := url.URL{
 		Scheme: "https",
@@ -96,7 +96,7 @@ func makeDestinationURL(service string, region string) (string, error) {
 	partition := GetPartitionFromRegion(region)
 	prefix := partition.ConsoleHostString()
 	if ServiceMap[service] == "" {
-		clio.Warn("We don't recognize service %s but we'll try and open it anyway (you may receive a 404 page)\n", service)
+		clio.Warnf("We don't recognize service %s but we'll try and open it anyway (you may receive a 404 page)\n", service)
 	} else {
 		service = ServiceMap[service]
 	}

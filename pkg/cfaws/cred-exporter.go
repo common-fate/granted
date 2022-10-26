@@ -26,7 +26,7 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 		if err != nil {
 			return err
 		}
-		clio.Info("An AWS credentials file was not found at %s so it has been created", credPath)
+		clio.Infof("An AWS credentials file was not found at %s so it has been created", credPath)
 
 	}
 

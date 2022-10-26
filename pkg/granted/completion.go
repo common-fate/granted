@@ -71,7 +71,7 @@ func installFishCompletions(c *cli.Context) error {
 	}
 	clio.Success("Fish autocompletions generated successfully")
 	clio.Info("To use these completions please run the executable:")
-	clio.Info("source %s", executableDir)
+	clio.Infof("source %s", executableDir)
 	return nil
 }
 

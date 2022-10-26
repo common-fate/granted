@@ -16,7 +16,6 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/shells"
-	"github.com/fatih/color"
 )
 
 func init() {
@@ -25,7 +24,7 @@ func init() {
 	// We override this behaviour here so that we can print colored output.
 	// Users can set NO_COLOR to true if they are working in a terminal without
 	// color support and want to use Granted there.
-	_, color.NoColor = os.LookupEnv("NO_COLOR")
+	_, clio.NoColor = os.LookupEnv("NO_COLOR")
 }
 
 const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`
@@ -118,8 +117,7 @@ func SetupShellWizard(autoConfigure bool) error {
 
 	// skip prompt if autoConfigure is set to true
 	if !autoConfigure {
-		ul := color.New(color.Underline).SprintFunc()
-		clio.Info("To assume roles with Granted, we need to add an alias to your shell profile (%s)", ul("https://granted.dev/shell-alias"))
+		clio.Info("To assume roles with Granted, we need to add an alias to your shell profile (https://granted.dev/shell-alias)")
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
 			Message: fmt.Sprintf("Install %s alias at %s", shell, cfg.File),
@@ -142,7 +140,7 @@ func SetupShellWizard(autoConfigure bool) error {
 	if err != nil {
 		return err
 	}
-	clio.Success("Added the Granted alias to %s", cfg.File)
+	clio.Successf("Added the Granted alias to %s", cfg.File)
 	clio.Warn("Shell restart required to apply changes: please open a new terminal window and re-run your command.")
 	os.Exit(0)
 	return nil
@@ -169,7 +167,7 @@ func UninstallDefaultShellAlias() error {
 	if err != nil {
 		return err
 	}
-	clio.Success("Removed the Granted alias from %s", cfg.File)
+	clio.Successf("Removed the Granted alias from %s", cfg.File)
 	return nil
 }
 

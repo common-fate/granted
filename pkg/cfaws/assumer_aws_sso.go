@@ -90,7 +90,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 					if hasGrantedPrefix(c.RawConfig) {
 						gConf, loadErr := grantedConfig.Load()
 						if loadErr != nil {
-							clio.Debug(errors.Wrapf(err, "loading Granted config during sso error handling: %s", loadErr.Error()).Error())
+							clio.Debugf(errors.Wrapf(err, "loading Granted config during sso error handling: %s", loadErr.Error()).Error())
 							return aws.Credentials{}, serr
 						}
 						return aws.Credentials{}, FormatAWSErrorWithGrantedApprovalsURL(serr, c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
@@ -148,7 +148,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			// this is here for visibility in to role traversals when assuming a final profile with sso
 			if i < len(toAssume)-1 {
 				durationDescription := durafmt.Parse(time.Until(stsCreds.Expires) * time.Second).LimitFirstN(1).String()
-				clio.Success("Assumed parent profile: [%s](%s) session credentials will expire %s", p.Name, region, durationDescription)
+				clio.Successf("Assumed parent profile: [%s](%s) session credentials will expire %s", p.Name, region, durationDescription)
 			}
 			credProvider = &CredProv{stsCreds}
 

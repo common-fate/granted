@@ -1,17 +1,15 @@
 package debug
 
-import "os"
+import (
+	"github.com/common-fate/clio"
+)
 
 var Debug bool
 
 // Enable enables debug logging
-//
-// It sets the environment variable GRANTED_LOG=debug
 func Enable() {
 	Debug = true
-	// CLIO debug logging is configured via this environment variable
-	// setting it to "debug" means that clio.Debug() logs will be printed
-	os.Setenv("GRANTED_LOG", "debug")
+	clio.SetLevelFromString("debug")
 }
 
 // Disable disabled debug logging
@@ -19,5 +17,5 @@ func Enable() {
 // It unsets the environment variable GRANTED_LOG
 func Disable() {
 	Debug = false
-	os.Unsetenv("GRANTED_LOG")
+	clio.SetLevelFromString("")
 }

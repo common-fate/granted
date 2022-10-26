@@ -6,7 +6,7 @@ import (
 	"regexp"
 
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/clierr"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 )
 
@@ -22,7 +22,7 @@ import (
 // If neither of the approaches above returns a URL, this method returns a message indicating that the request URL
 // hasn't been set up.
 func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig configparser.Dict, gConf grantedConfig.Config, SSORoleName string, SSOAccountId string) error {
-	cliErr := &clio.CLIError{
+	cliError := &clierr.Err{
 		Err: awsError.Error(),
 	}
 	// try and extract a --url flag from the AWS profile, like the following:
@@ -39,18 +39,18 @@ func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig configparse
 		// if we have a request URL, we can prompt the user to make a request by visiting the URL.
 		requestURL := buildRequestURL(url, SSORoleName, SSOAccountId)
 		// need to escape the % symbol in the request url which has been query escaped so that fmt does';t try to substitute it
-		cliErr.Messages = append(cliErr.Messages, clio.WarnMsg("You need to request access to this role:"), clio.WarnlnMsg(requestURL))
-		return cliErr
+		cliError.Messages = append(cliError.Messages, clierr.Warn("You need to request access to this role:"), clierr.Warn(requestURL))
+		return cliError
 	}
 
 	// otherwise, there is no request URL configured. Let the user know that they can set one up if they are using Granted Approvals
 	// remember that not all users of credential process will be using approvals
-	cliErr.Messages = append(cliErr.Messages,
-		clio.InfoMsg("It looks like you don't have the right permissions to access this role"),
-		clio.InfoMsg("If you are using Granted Approvals to manage this role you can configure the Granted CLI with a request URL so that you can be directed to your Granted Approvals instance to make a new access request the next time you have this error"),
-		clio.InfoMsg("To configure a URL to request access to this role with 'granted settings request-url set <YOUR_GRANTED_APPROVALS_URL'"),
+	cliError.Messages = append(cliError.Messages,
+		clierr.Info("It looks like you don't have the right permissions to access this role"),
+		clierr.Info("If you are using Granted Approvals to manage this role you can configure the Granted CLI with a request URL so that you can be directed to your Granted Approvals instance to make a new access request the next time you have this error"),
+		clierr.Info("To configure a URL to request access to this role with 'granted settings request-url set <YOUR_GRANTED_APPROVALS_URL'"),
 	)
-	return cliErr
+	return cliError
 }
 
 // parseURLFlagFromConfig tries to extract the '--url' argument from the granted credentials_process command in an AWS profile.

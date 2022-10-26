@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/clierr"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/pkg/errors"
 	"github.com/stretchr/testify/assert"
@@ -75,7 +75,7 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 	tests := []struct {
 		name    string
 		args    args
-		want    *clio.CLIError
+		want    *clierr.Err
 		wantErr bool
 	}{
 		{
@@ -87,11 +87,11 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 				SSORoleName:  "test",
 				SSOAccountId: "123456789012",
 			},
-			want: &clio.CLIError{
+			want: &clierr.Err{
 				Err: "test error",
-				Messages: []clio.Printer{
-					clio.WarnMsg("You need to request access to this role:"),
-					clio.WarnlnMsg("https://example.com/access?accountId=123456789012&permissionSetArn.label=test&type=commonfate%2Faws-sso"),
+				Messages: []clierr.Printer{
+					clierr.Warn("You need to request access to this role:"),
+					clierr.Warn("https://example.com/access?accountId=123456789012&permissionSetArn.label=test&type=commonfate%2Faws-sso"),
 				},
 			},
 		},
@@ -108,11 +108,11 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 				SSORoleName:  "test",
 				SSOAccountId: "123456789012",
 			},
-			want: &clio.CLIError{
+			want: &clierr.Err{
 				Err: "test error",
-				Messages: []clio.Printer{
-					clio.WarnMsg("You need to request access to this role:"),
-					clio.WarnlnMsg("https://override.example.com/access?accountId=123456789012&permissionSetArn.label=test&type=commonfate%2Faws-sso"),
+				Messages: []clierr.Printer{
+					clierr.Warn("You need to request access to this role:"),
+					clierr.Warn("https://override.example.com/access?accountId=123456789012&permissionSetArn.label=test&type=commonfate%2Faws-sso"),
 				},
 			},
 		},
@@ -121,12 +121,12 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 			args: args{
 				gConf: grantedConfig.Config{},
 			},
-			want: &clio.CLIError{
+			want: &clierr.Err{
 				Err: "test error",
-				Messages: []clio.Printer{
-					clio.InfoMsg("It looks like you don't have the right permissions to access this role"),
-					clio.InfoMsg("If you are using Granted Approvals to manage this role you can configure the Granted CLI with a request URL so that you can be directed to your Granted Approvals instance to make a new access request the next time you have this error"),
-					clio.InfoMsg("To configure a URL to request access to this role with 'granted settings request-url set <YOUR_GRANTED_APPROVALS_URL'"),
+				Messages: []clierr.Printer{
+					clierr.Info("It looks like you don't have the right permissions to access this role"),
+					clierr.Info("If you are using Granted Approvals to manage this role you can configure the Granted CLI with a request URL so that you can be directed to your Granted Approvals instance to make a new access request the next time you have this error"),
+					clierr.Info("To configure a URL to request access to this role with 'granted settings request-url set <YOUR_GRANTED_APPROVALS_URL'"),
 				},
 			},
 		},

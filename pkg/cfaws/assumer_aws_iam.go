@@ -63,8 +63,8 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 	// if it has no parents and it reached this point, it must have had plain text credentials
 	// if it has parents, and the root is not a secure storage iam profile, then it has plain text credentials
 	if len(c.Parents) == 0 || !c.Parents[0].HasSecureStorageIAMCredentials {
-		clio.Warn("Profile %s has plaintext credentials stored in the AWS credentials file", c.Name)
-		clio.Info("To move the credentials to secure storage, run 'granted credentials import %s'", c.Name)
+		clio.Warnf("Profile %s has plaintext credentials stored in the AWS credentials file", c.Name)
+		clio.Infof("To move the credentials to secure storage, run 'granted credentials import %s'", c.Name)
 	}
 
 	return credentials, nil

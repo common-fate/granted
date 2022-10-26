@@ -17,7 +17,7 @@ var DefaultBrowserCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		clio.Info("Granted is using %s. To change this run `granted browser set`", conf.DefaultBrowser)
+		clio.Infof("Granted is using %s. To change this run `granted browser set`", conf.DefaultBrowser)
 
 		return nil
 	},
@@ -78,7 +78,7 @@ var SetSSOBrowserCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		clio.Success("Granted will default to using %s for SSO flows.", browserPath)
+		clio.Successf("Granted will default to using %s for SSO flows.", browserPath)
 		return nil
 	},
 }

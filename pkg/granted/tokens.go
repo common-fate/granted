@@ -158,7 +158,7 @@ var ClearSSOTokensCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		clio.Success("Cleared %s", selection)
+		clio.Successf("Cleared %s", selection)
 		return nil
 	},
 }

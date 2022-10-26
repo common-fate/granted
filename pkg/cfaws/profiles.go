@@ -99,7 +99,7 @@ func (p *Profiles) loadDefaultConfigFile() error {
 	for _, section := range configFile.Sections() {
 		rawConfig, err := configFile.Items(section)
 		if err != nil {
-			clio.Warn("Failed to parse the profile %s from your AWS config file due to the following error: %s", section, err)
+			clio.Warnf("Failed to parse the profile %s from your AWS config file due to the following error: %s", section, err)
 			continue
 		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
@@ -136,7 +136,7 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 	for _, section := range credsFile.Sections() {
 		rawConfig, err := credsFile.Items(section)
 		if err != nil {
-			clio.Warn("Failed to parse the profile %s from your AWS credentials file due to the following error: %s", section, err)
+			clio.Warnf("Failed to parse the profile %s from your AWS credentials file due to the following error: %s", section, err)
 			continue
 		}
 		// We only care about the non default sections for the credentials file (no profile prefix either)
@@ -144,7 +144,7 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 			// check for a duplicate profile in the map and skip if present (config file should take precedence)
 			_, exists := p.profiles[section]
 			if exists {
-				clio.Debug("skipping profile with name %s - profile already defined in config", section)
+				clio.Debugf("skipping profile with name %s - profile already defined in config", section)
 				continue
 			}
 			p.ProfileNames = append(p.ProfileNames, section)
@@ -159,8 +159,8 @@ func isLegalProfileName(name string) bool {
 	illegalProfileNameCharacters := regexp.MustCompile(`[\\[\];'" ]`)
 	illegalChars := `\][;'"` // These characters break the config file format and should not be usable for profile names
 	if illegalProfileNameCharacters.MatchString(name) {
-		clio.Warn("The profile %s cannot be loaded because the name contains one or more of these characters '%s'", name, illegalChars)
-		clio.Info("Try renaming the profile to '%s'", illegalProfileNameCharacters.ReplaceAllString(name, "-"))
+		clio.Warnf("The profile %s cannot be loaded because the name contains one or more of these characters '%s'", name, illegalChars)
+		clio.Infof("Try renaming the profile to '%s'", illegalProfileNameCharacters.ReplaceAllString(name, "-"))
 		return false
 	}
 	return true

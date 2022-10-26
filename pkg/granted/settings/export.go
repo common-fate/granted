@@ -50,7 +50,7 @@ var SetExportSettingsCommand = cli.Command{
 			return err
 		}
 
-		clio.Success("Set export credential suffix to: %s", selection)
+		clio.Successf("Set export credential suffix to: %s", selection)
 		return nil
 
 	},

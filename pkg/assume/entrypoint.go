@@ -10,7 +10,6 @@ import (
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/debug"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -49,7 +48,7 @@ func GetCliApp() *cli.App {
 
 	app := &cli.App{
 		Name:                 "assume",
-		Writer:               color.Error,
+		Writer:               os.Stderr,
 		Usage:                "https://granted.dev",
 		UsageText:            "assume [options][Profile]",
 		Version:              build.Version,
