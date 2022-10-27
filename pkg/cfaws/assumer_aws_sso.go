@@ -16,13 +16,13 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
-	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/hako/durafmt"
 	"github.com/pkg/browser"
 	"github.com/pkg/errors"
+	"gopkg.in/ini.v1"
 )
 
 // Implements Assumer
@@ -42,7 +42,7 @@ func (asa *AwsSsoAssumer) Type() string {
 }
 
 // Matches the profile type on whether it is an sso profile by checking for ssoaccountid.
-func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
+func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProfile config.SharedConfig) bool {
 	return parsedProfile.SSOAccountID != ""
 }
 

@@ -9,7 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/bigkevmcd/go-configparser"
+	"gopkg.in/ini.v1"
 )
 
 // Implements Assumer
@@ -45,8 +45,8 @@ func (aia *AwsGoogleAuthAssumer) Type() string {
 }
 
 // inspect for any items on the profile prefixed with "google_config."
-func (aia *AwsGoogleAuthAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
-	for k := range rawProfile {
+func (aia *AwsGoogleAuthAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProfile config.SharedConfig) bool {
+	for _, k := range rawProfile.KeyStrings() {
 		if strings.HasPrefix(k, "google_config.") {
 			return true
 		}
