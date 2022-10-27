@@ -8,8 +8,8 @@ import (
 	"github.com/99designs/keyring"
 	"github.com/AlecAivazis/survey/v2"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/pkg/errors"
 )
@@ -145,9 +145,7 @@ func (s *SecureStorage) openKeyring() (keyring.Keyring, error) {
 	}
 
 	// enable debug logging if the verbose flag is set in the CLI
-	if debug.Debug {
-		keyring.Debug = true
-	}
+	keyring.Debug = clio.IsDebug()
 
 	if cfg.Keyring != nil {
 		if cfg.Keyring.Backend != nil {

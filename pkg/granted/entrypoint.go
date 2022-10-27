@@ -1,13 +1,10 @@
 package granted
 
 import (
-	"os"
-
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/granted/settings"
 	"github.com/urfave/cli/v2"
 )
@@ -32,8 +29,9 @@ func GetCliApp() *cli.App {
 		Commands:             []*cli.Command{&DefaultBrowserCommand, &settings.SettingsCommand, &CompletionCommand, &TokenCommand, &SSOTokensCommand, &UninstallCommand, &SSOCommand, &CredentialsCommand, &CredentialProcess},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
-			if c.Bool("verbose") || os.Getenv("GRANTED_LOG") == "debug" {
-				debug.Enable()
+			clio.SetLevelFromEnv("GRANTED_LOG")
+			if c.Bool("verbose") {
+				clio.SetLevelFromString("debug")
 			}
 			if err := config.SetupConfigFolder(); err != nil {
 				return err

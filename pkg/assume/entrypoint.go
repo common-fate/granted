@@ -9,7 +9,6 @@ import (
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
 	"github.com/urfave/cli/v2"
 )
 
@@ -67,8 +66,9 @@ func GetCliApp() *cli.App {
 				os.Exit(0)
 			}
 
-			if c.Bool("verbose") || os.Getenv("GRANTED_LOG") == "debug" {
-				debug.Enable()
+			clio.SetLevelFromEnv("GRANTED_LOG")
+			if c.Bool("verbose") {
+				clio.SetLevelFromString("debug")
 			}
 			err := ValidateSSOFlags(c)
 			if err != nil {

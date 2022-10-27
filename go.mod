@@ -11,13 +11,14 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.10.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.14.0
 	github.com/bigkevmcd/go-configparser v0.0.0-20210106142102-909504547ead
-	github.com/common-fate/clio v1.0.0
 	github.com/common-fate/updatecheck v0.3.4
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/urfave/cli/v2 v2.3.0
 )
+
+require github.com/common-fate/clio v1.1.0
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
