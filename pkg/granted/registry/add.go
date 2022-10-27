@@ -22,6 +22,19 @@ var AddCommand = cli.Command{
 		repoURL := c.Args().First()
 		fmt.Printf("git clone %s\n", repoURL)
 
+		//grab out the subpath if there is one
+		//Will have the format like this https://github.com/octo-org/granted-registry.git/team_a/granted.yml
+		var subpath string
+		split := strings.Split(repoURL, ".git")
+		if len(split) > 1 {
+			repoURL = split[0] + ".git"
+			subpath = split[1]
+		} else {
+			repoURL = split[0] + ".git"
+		}
+		//TODO: subpath will then be used when syncing to only sync from the specified subpath of the repo into the aws config
+		_ = subpath
+
 		u, err := url.ParseRequestURI(repoURL)
 		if err != nil {
 			return errors.New(err.Error())
