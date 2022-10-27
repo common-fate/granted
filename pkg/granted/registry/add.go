@@ -53,7 +53,7 @@ var AddCommand = cli.Command{
 		} else {
 			fmt.Printf("git pull %s\n", repoURL)
 
-			cmd := exec.Command("git", "--git-dir", repoDirPath+"/.git", "pull", "origin", "main")
+			cmd := exec.Command("git", "--git-dir", repoDirPath+"/.git", "pull")
 
 			err = cmd.Run()
 			if err != nil {
