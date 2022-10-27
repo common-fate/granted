@@ -1,16 +1,14 @@
 package assume
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -44,12 +42,12 @@ func GlobalFlags() []cli.Flag {
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Fprintln(color.Error, banners.WithVersion(banners.Assume()))
+		clio.Log(banners.WithVersion(banners.Assume()))
 	}
 
 	app := &cli.App{
 		Name:                 "assume",
-		Writer:               color.Error,
+		Writer:               os.Stderr,
 		Usage:                "https://granted.dev",
 		UsageText:            "assume [options][Profile]",
 		Version:              build.Version,
@@ -67,8 +65,10 @@ func GetCliApp() *cli.App {
 				}
 				os.Exit(0)
 			}
+
+			clio.SetLevelFromEnv("GRANTED_LOG")
 			if c.Bool("verbose") {
-				debug.CliVerbosity = debug.VerbosityDebug
+				clio.SetLevelFromString("debug")
 			}
 			err := ValidateSSOFlags(c)
 			if err != nil {

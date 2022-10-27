@@ -8,7 +8,7 @@ The development instructions below pertain to Unix-based systems like Linux and 
 
 In order to develop Granted you'll need the following:
 
-- [Go 1.17](https://go.dev/doc/install)
+- [Go 1.19](https://go.dev/doc/install)
 
 ## Getting started
 
@@ -81,9 +81,15 @@ Granted consists of 2 binaries, `granted` and `assumego`.
 When you run `assume` a shell script will run which wraps the assumego binary.
 This is required so that assume can set environment variables in your terminal.
 
-For this reason, output to the terminal from print statements should specify os.Stderr as the writer.
-For example
+For this reason, informational output should be made to os.StdErr. We use a logging library called clio
+The library is configured in the entry point of granted and assume with the correct output writers.
+
+So when logging simply use the relevant log type
 
 ```go
-    fmt.Fprintln(os.Stderr, "hello world")
+    clio.Info("hello")
+    clio.Warn("hello")
+    clio.Success("hello")
+    clio.Error("hello")
+    clio.Error("hello")
 ```

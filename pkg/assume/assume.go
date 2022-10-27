@@ -15,6 +15,8 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/assumeprint"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -24,7 +26,6 @@ import (
 	"github.com/common-fate/granted/pkg/launcher"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
-	"github.com/fatih/color"
 	"github.com/hako/durafmt"
 	"github.com/urfave/cli/v2"
 )
@@ -45,7 +46,9 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	if assumeFlags.String("exec") != "" && runtime.GOOS == "windows" {
-		return fmt.Errorf("--exec flag is not currently supported on Windows. Let us know if you'd like support for this: https://github.com/common-fate/granted/issues/new")
+		return clierr.New("--exec flag is not currently supported on Windows",
+			clierr.Info("Let us know if you'd like support for this by creating an issue on our Github repo: https://github.com/common-fate/granted/issues/new"),
+		)
 	}
 	activeRoleProfile := assumeFlags.String("active-aws-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
@@ -72,7 +75,7 @@ func AssumeCommand(c *cli.Context) error {
 		profileName := c.Args().First()
 		if profileName != "" {
 			if !profiles.HasProfile(profileName) {
-				fmt.Fprintf(color.Error, "%s does not match any profiles in your AWS config or credentials files\n", profileName)
+				clio.Warnf("%s does not match any profiles in your AWS config or credentials files", profileName)
 				profileName = ""
 			}
 		}
@@ -80,10 +83,10 @@ func AssumeCommand(c *cli.Context) error {
 		//set the session creds using the active role if we have one and the flag is set
 		if activeRoleFlag && activeRoleProfile != "" {
 			if !profiles.HasProfile(activeRoleProfile) {
-				fmt.Fprintf(color.Error, "you tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files\n", activeRoleProfile)
+				clio.Warnf("You tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files", activeRoleProfile)
 			} else {
 				profileName = activeRoleProfile
-				fmt.Fprintf(color.Error, "using active profile: %s\n", profileName)
+				clio.Infof("Using active profile: %s", profileName)
 			}
 		}
 		if profileName != "" {
@@ -107,7 +110,7 @@ func AssumeCommand(c *cli.Context) error {
 			if cfg.Ordering == "Alphabetical" {
 				profileNames = profiles.ProfileNames
 			}
-			fmt.Fprintln(color.Error, "")
+			clio.NewLine()
 			// Replicate the logic from original assume fn.
 			in := survey.Select{
 				Message: "Please select the profile you would like to assume:",
@@ -115,10 +118,10 @@ func AssumeCommand(c *cli.Context) error {
 				Filter:  filterMultiToken,
 			}
 			if len(profileNames) == 0 {
-				fmt.Fprintln(color.Error, "ℹ️ Granted couldn't find any aws roles")
-				fmt.Fprintln(color.Error, "You can add roles to your aws config by following our guide: ")
-				fmt.Fprintln(color.Error, "https://granted.dev/awsconfig")
-				return nil
+				return clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
+					clierr.Info("You can add profiles to your AWS config by following our guide: "),
+					clierr.Info("https://granted.dev/awsconfig"),
+				)
 			}
 			err = testable.AskOne(&in, &profileName, withStdio)
 			if err != nil {
@@ -255,7 +258,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		printFlagUsage(con.Region, con.Service)
-		fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
+		clio.Infof("Opening a console for %s in your browser...", profile.Name)
 
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
 		args := l.LaunchCommand(consoleURL, con.Profile)
@@ -265,12 +268,11 @@ func AssumeCommand(c *cli.Context) error {
 		}
 		err = cmd.Start()
 		if err != nil {
-			fmt.Fprintf(color.Error, "Granted was unable to open a browser session automatically: %s", err.Error())
-			// allow them to try open the url manually
-			alert := color.New(color.Bold, color.FgYellow).SprintFunc()
-			fmt.Fprintf(os.Stdout, "\nOpen session manually using the following url:\n")
-			fmt.Fprintf(os.Stdout, "\n%s\n", alert("", consoleURL))
-			return err
+			return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", err.Error()),
+				// allow them to try open the url manually
+				clierr.Info("You can open the browser session manually using the following url:"),
+				clierr.Info(consoleURL),
+			)
 		}
 		return nil
 	} else {
@@ -279,24 +281,23 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 		sessionExpiration := ""
-		green := color.New(color.FgGreen)
 		if creds.CanExpire {
 			sessionExpiration = creds.Expires.Local().Format(time.RFC3339)
 			// We add 10 seconds here as a fudge factor, the credentials will be a
 			// few seconds old already.
 			durationDescription := durafmt.Parse(time.Until(creds.Expires) + 10*time.Second).LimitFirstN(1).String()
 			if os.Getenv("GRANTED_QUIET") != "true" {
-				green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire in %s\n", profile.Name, region, durationDescription)
+				clio.Successf("[%s](%s) session credentials will expire in %s", profile.Name, region, durationDescription)
 			}
 		} else if os.Getenv("GRANTED_QUIET") != "true" {
-			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
+			clio.Successf("[%s](%s) session credentials ready", profile.Name, region)
 		}
 		if assumeFlags.Bool("env") {
 			err = cfaws.WriteCredentialsToDotenv(region, creds)
 			if err != nil {
 				return err
 			}
-			green.Fprintln(color.Error, "Exported credentials to .env file successfully")
+			clio.Success("Exported credentials to .env file successfully")
 		}
 
 		if assumeFlags.Bool("export") {
@@ -310,11 +311,10 @@ func AssumeCommand(c *cli.Context) error {
 
 			} else {
 				profileName = profile.Name
-				yellow := color.New(color.FgYellow)
-				yellow.Fprintln(color.Error, "No credential suffix found. This can cause issues with using exported credentials if conflicting profiles exist. Run `granted settings export-suffix set` to set one.")
+				clio.Warn("No credential suffix found. This can cause issues with using exported credentials if conflicting profiles exist. Run `granted settings export-suffix set` to set one.")
 			}
 
-			green.Fprintln(color.Error, fmt.Sprintf("Exported credentials to ~/.aws/credentials file as %s successfully", profileName))
+			clio.Successf("Exported credentials to ~/.aws/credentials file as %s successfully", profileName)
 		}
 		if assumeFlags.String("exec") != "" {
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
@@ -356,7 +356,7 @@ func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) e
 	args := strings.Split(cmd, " ")
 	c := exec.Command(args[0], args[1:]...)
 	c.Stdout = os.Stdout
-	c.Stderr = color.Error
+	c.Stderr = os.Stderr
 	c.Env = append(os.Environ(), EnvKeys(creds, region)...)
 	return c.Run()
 }
@@ -382,16 +382,13 @@ func filterMultiToken(filterValue string, optValue string, optIndex int) bool {
 
 func printFlagUsage(region, service string) {
 	var m []string
-
 	if region == "" {
 		m = append(m, "use -r to open a specific region")
 	}
-
 	if service == "" {
 		m = append(m, "use -s to open a specific service")
 	}
-
 	if region == "" || service == "" {
-		fmt.Fprintf(color.Error, "\nℹ️  %s (https://docs.commonfate.io/granted/usage/console)\n", strings.Join(m, " or "))
+		clio.Infof("%s (https://docs.commonfate.io/granted/usage/console)", strings.Join(m, " or "))
 	}
 }

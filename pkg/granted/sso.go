@@ -13,7 +13,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/granted/pkg/cfaws"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -54,17 +53,17 @@ var GenerateCommand = cli.Command{
 		// section items manually.
 		for sectionIdx, sectionName := range config.Sections() {
 			if sectionIdx != 0 {
-				fmt.Fprintln(color.Output)
+				fmt.Println()
 			}
 
-			fmt.Fprintln(color.Output, "["+sectionName+"]")
+			fmt.Println("[" + sectionName + "]")
 			items, err := config.Items(sectionName)
 			if err != nil {
 				return nil
 			}
 
 			for key, value := range items {
-				fmt.Fprintln(color.Output, key+" = "+value)
+				fmt.Println(key + " = " + value)
 			}
 		}
 

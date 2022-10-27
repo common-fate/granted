@@ -10,7 +10,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/bigkevmcd/go-configparser"
-	"github.com/fatih/color"
 )
 
 // Implements Assumer
@@ -22,9 +21,9 @@ type AwsGoogleAuthAssumer struct {
 func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", c.Name))
 
-	cmd.Stdout = color.Error
+	cmd.Stdout = os.Stderr
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = color.Error
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return aws.Credentials{}, err

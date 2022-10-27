@@ -10,9 +10,9 @@ import (
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/testable"
-	"github.com/fatih/color"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/text/cases"
@@ -53,7 +53,7 @@ func HandleManualBrowserSelection() (string, error) {
 		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Chromium", "Stdout", "FirefoxStdout"},
 	}
 	var selection string
-	fmt.Fprintln(color.Error)
+	clio.NewLine()
 	err := testable.AskOne(&in, &selection, withStdio)
 	if err != nil {
 		return "", err
@@ -92,7 +92,7 @@ func Find() (string, error) {
 	}
 
 	if outcome == "" {
-		fmt.Fprintf(color.Error, "\nℹ️  Could not find default browser\n")
+		clio.Warn("Could not find default browser")
 		return HandleManualBrowserSelection()
 	}
 
@@ -160,10 +160,10 @@ func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 	}
 	title := cases.Title(language.AmericanEnglish)
 	browserTitle := title.String((strings.ToLower(GetBrowserKey(browserName))))
-	fmt.Fprintln(color.Error, "ℹ️  Thanks for using Granted!")
-	fmt.Fprintln(color.Error, "ℹ️  Start by configuring which browser to use when launching the AWS console.")
-	fmt.Fprintf(color.Error, "ℹ️  By default, Granted will open the AWS console with this browser: %s.\n", browserTitle)
-	fmt.Fprintln(color.Error, "ℹ️  Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers). You can change this setting later by running 'granted browser set'")
+	clio.Info("Thanks for using Granted!")
+	clio.Info("Start by configuring which browser to use when launching the AWS console")
+	clio.Infof("By default, Granted will open the AWS console with this browser: %s", browserTitle)
+	clio.Info("Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers). You can change this setting later by running 'granted browser set'")
 	in := survey.Confirm{
 		Message: "Do you want Granted to use a different installed browser when launching the AWS console?",
 	}
@@ -201,12 +201,13 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 		} else {
 			customBrowserPath, detected := DetectInstallation(browserKey)
 			if !detected {
-				fmt.Fprintf(color.Error, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
+				clio.Warnf("Granted could not detect an existing installation of %s at known installation paths for your system", browserTitle)
+				clio.Info("If you have already installed this browser, you can specify the path to the executable manually")
 				validPath := false
 				for !validPath {
 					// prompt for custom path
 					bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
-					fmt.Fprintln(color.Error)
+					clio.NewLine()
 					err := testable.AskOne(&bpIn, &customBrowserPath, withStdio)
 					if err != nil {
 						return err
@@ -214,7 +215,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 					if _, err := os.Stat(customBrowserPath); err == nil {
 						validPath = true
 					} else {
-						fmt.Fprintf(color.Error, "\n❌ The path you entered is not valid\n")
+						clio.Error("The path you entered is not valid")
 					}
 				}
 			}
@@ -240,20 +241,17 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	if err != nil {
 		return err
 	}
-
-	alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
-
-	fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s.", browserTitle))
-
+	clio.Successf("Granted will default to using %s", browserTitle)
 	return nil
 }
 
 func GrantedIntroduction() {
-	fmt.Fprintf(color.Error, "\nTo change the web browser that Granted uses run: `granted browser -set`\n")
-	fmt.Fprintf(color.Error, "\n\nHere's how to use Granted to supercharge your cloud access:\n")
-	fmt.Fprintf(color.Error, "\n`assume`                   - search profiles to assume\n")
-	fmt.Fprintf(color.Error, "\n`assume <PROFILE_NAME>`    - assume a profile\n")
-	fmt.Fprintf(color.Error, "\n`assume -c <PROFILE_NAME>` - open the console for the specified profile\n")
+	clio.Info("To change the web browser that Granted uses run: `granted browser -set`")
+	clio.NewLine()
+	clio.Info("Here's how to use Granted to supercharge your cloud access:")
+	clio.Info("`assume`                   - search profiles to assume")
+	clio.Info("`assume <PROFILE_NAME>`    - assume a profile")
+	clio.Info("`assume -c <PROFILE_NAME>` - open the console for the specified profile")
 
 	os.Exit(0)
 }
@@ -285,15 +283,15 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 		if err != nil {
 			return err
 		}
-		alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
-		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will use %s for SSO login prompts.", browserPath))
+		clio.Successf("Granted will use %s for SSO login prompts.", browserPath)
 	}
 	return nil
 
 }
 
 func RunFirefoxExtensionPrompts(firefoxPath string) error {
-	fmt.Fprintf(color.Error, "\nℹ️  In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted.\nThis addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon).\n")
+	clio.Info("In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted")
+	clio.Info("This addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon)")
 
 	label := "Open Firefox to download the extension?"
 
@@ -303,7 +301,7 @@ func RunFirefoxExtensionPrompts(firefoxPath string) error {
 		Options: []string{"Yes", "Already installed", "No"},
 	}
 	var out string
-	fmt.Fprintln(color.Error)
+	clio.NewLine()
 	err := testable.AskOne(in, &out, withStdio)
 	if err != nil {
 		return err
@@ -336,7 +334,7 @@ func RunFirefoxExtensionPrompts(firefoxPath string) error {
 		Default: true,
 	}
 	var confirm bool
-	fmt.Fprintln(color.Error)
+	clio.NewLine()
 	err = testable.AskOne(confIn, &confirm, withStdio)
 	if err != nil {
 		return err
@@ -349,7 +347,7 @@ func RunFirefoxExtensionPrompts(firefoxPath string) error {
 }
 
 func AskAndGetBrowserPath() (string, error) {
-	fmt.Fprintf(color.Error, "\nℹ️  Select your SSO default browser\n")
+	clio.Info("Select your SSO default browser")
 	outcome, err := HandleManualBrowserSelection()
 	if err != nil {
 		return "", err
@@ -366,12 +364,13 @@ func AskAndGetBrowserPath() (string, error) {
 
 		customBrowserPath, detected := DetectInstallation(browserKey)
 		if !detected {
-			fmt.Fprintf(color.Error, "\nℹ️  Granted could not detect an existing installation of %s at known installation paths for your system.\nIf you have already installed this browser, you can specify the path to the executable manually.\n", browserTitle)
+			clio.Warnf("Granted could not detect an existing installation of %s at known installation paths for your system", browserTitle)
+			clio.Info("If you have already installed this browser, you can specify the path to the executable manually")
 			validPath := false
 			for !validPath {
 				// prompt for custom path
 				bpIn := survey.Input{Message: fmt.Sprintf("Please enter the full path to your browser installation for %s:", browserTitle)}
-				fmt.Fprintln(color.Error)
+				clio.NewLine()
 				err := testable.AskOne(&bpIn, &customBrowserPath, withStdio)
 				if err != nil {
 					return "", err
@@ -379,7 +378,7 @@ func AskAndGetBrowserPath() (string, error) {
 				if _, err := os.Stat(customBrowserPath); err == nil {
 					validPath = true
 				} else {
-					fmt.Fprintf(color.Error, "\n❌ The path you entered is not valid\n")
+					clio.Error("The path you entered is not valid")
 				}
 			}
 		}

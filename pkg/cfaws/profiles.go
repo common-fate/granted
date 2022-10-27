@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"syscall"
@@ -14,9 +15,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/ssocreds"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
-	"github.com/common-fate/granted/pkg/debug"
-	"github.com/fatih/color"
 )
 
 type ConfigOpts struct {
@@ -99,11 +99,11 @@ func (p *Profiles) loadDefaultConfigFile() error {
 	for _, section := range configFile.Sections() {
 		rawConfig, err := configFile.Items(section)
 		if err != nil {
-			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS config: %s Due to the following error: %s\n", section, err)
+			clio.Warnf("Failed to parse the profile %s from your AWS config file due to the following error: %s", section, err)
 			continue
 		}
 		// Check if the section is prefixed with 'profile ' and that the profile has a name
-		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(section) {
+		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(strings.TrimPrefix(section, "profile ")) {
 			name := strings.TrimPrefix(section, "profile ")
 			p.ProfileNames = append(p.ProfileNames, name)
 			p.profiles[name] = &Profile{RawConfig: rawConfig, Name: name, File: configPath}
@@ -136,7 +136,7 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 	for _, section := range credsFile.Sections() {
 		rawConfig, err := credsFile.Items(section)
 		if err != nil {
-			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS credentials: %s Due to the following error: %s\n", section, err)
+			clio.Warnf("Failed to parse the profile %s from your AWS credentials file due to the following error: %s", section, err)
 			continue
 		}
 		// We only care about the non default sections for the credentials file (no profile prefix either)
@@ -144,7 +144,7 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 			// check for a duplicate profile in the map and skip if present (config file should take precedence)
 			_, exists := p.profiles[section]
 			if exists {
-				debug.Fprintf(debug.VerbosityDebug, color.Output, "skipping profile with name %s - profile already defined in config", section)
+				clio.Debugf("skipping profile with name %s - profile already defined in config", section)
 				continue
 			}
 			p.ProfileNames = append(p.ProfileNames, section)
@@ -156,9 +156,11 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 
 // Helper function which returns true if provided profile name string does not contain illegal characters
 func isLegalProfileName(name string) bool {
-	illegalChars := "\\][;'\"" // These characters break the config file format and should not be usable for profile names
-	if strings.ContainsAny(name, illegalChars) {
-		fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains one or more of: '%s' in the name, try replacing these with '-'\n", name, illegalChars)
+	illegalProfileNameCharacters := regexp.MustCompile(`[\\[\];'" ]`)
+	illegalChars := `\][;'"` // These characters break the config file format and should not be usable for profile names
+	if illegalProfileNameCharacters.MatchString(name) {
+		clio.Warnf("The profile %s cannot be loaded because the name contains one or more of these characters '%s'", name, illegalChars)
+		clio.Infof("Try renaming the profile to '%s'", illegalProfileNameCharacters.ReplaceAllString(name, "-"))
 		return false
 	}
 	return true

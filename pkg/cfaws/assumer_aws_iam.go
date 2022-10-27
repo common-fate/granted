@@ -2,15 +2,14 @@ package cfaws
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/securestorage"
-	"github.com/fatih/color"
 )
 
 // Implements Assumer
@@ -64,8 +63,8 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 	// if it has no parents and it reached this point, it must have had plain text credentials
 	// if it has parents, and the root is not a secure storage iam profile, then it has plain text credentials
 	if len(c.Parents) == 0 || !c.Parents[0].HasSecureStorageIAMCredentials {
-		fmt.Fprintf(color.Error, "Profile %s has plaintext credentials stored in the AWS credentials file.\n", c.Name)
-		fmt.Fprintf(color.Error, "To move the credentials to secure storage, run 'granted credentials import %s'.\n", c.Name)
+		clio.Warnf("Profile %s has plaintext credentials stored in the AWS credentials file", c.Name)
+		clio.Infof("To move the credentials to secure storage, run 'granted credentials import %s'", c.Name)
 	}
 
 	return credentials, nil
