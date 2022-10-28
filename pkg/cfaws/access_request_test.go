@@ -10,54 +10,58 @@ import (
 	"gopkg.in/ini.v1"
 )
 
+const TEST_SECTION_NAME = "profile test"
+
 func Test_parseURLFlagFromConfig(t *testing.T) {
-	type args struct {
-		rawConfig *ini.Section
+	testFileContents := `[profile test1]
+credential_process = granted credential-process --url https://example.com
+
+[profile test2]
+credential_process =  granted    credential-process   --url   https://example.com  
+
+[profile test3]
+credential_process = some-other-cli --url https://example.com
+
+[profile test4]
+`
+	testConfigFile, err := ini.LoadSources(ini.LoadOptions{}, []byte(testFileContents))
+	if err != nil {
+		t.Fatal(err)
 	}
 	tests := []struct {
 		name    string
-		args    args
+		profile string
 		want    string
 		wantErr bool
 	}{
-		// {
-		// 	name: "ok",
-		// 	args: args{
-		// 		rawConfig: *ini.Section{
-		// 			"credential_process": "granted credential-process --url https://example.com",
-		// 		},
-		// 	},
-		// 	want: "https://example.com",
-		// },
-		// {
-		// 	name: "multiple spaces",
-		// 	args: args{
-		// 		rawConfig: *ini.Section{
-		// 			"credential_process": " granted    credential-process   --url   https://example.com  ",
-		// 		},
-		// 	},
-		// 	want: "https://example.com",
-		// },
-		// {
-		// 	name: "other credential process",
-		// 	args: args{
-		// 		rawConfig: *ini.Section{
-		// 			"credential_process": "some-other-cli --url https://example.com",
-		// 		},
-		// 	},
-		// 	want: "",
-		// },
-		// {
-		// 	name: "no credential process entry",
-		// 	args: args{
-		// 		rawConfig: *ini.Section{},
-		// 	},
-		// 	want: "",
-		// },
+		{
+			name:    "ok",
+			profile: "profile test1",
+			want:    "https://example.com",
+		},
+		{
+			name:    "multiple spaces",
+			profile: "profile test2",
+			want:    "https://example.com",
+		},
+		{
+			name:    "other credential process",
+			profile: "profile test3",
+			want:    "",
+		},
+		{
+			name:    "no credential process entry",
+			profile: "profile test4",
+			want:    "",
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := parseURLFlagFromConfig(tt.args.rawConfig)
+			section, err := testConfigFile.GetSection(tt.profile)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := parseURLFlagFromConfig(section)
 			if got != tt.want {
 				t.Errorf("parseURLFlagFromConfig() = %v, want %v", got, tt.want)
 			}
@@ -71,6 +75,20 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 		gConf        grantedConfig.Config
 		SSORoleName  string
 		SSOAccountId string
+	}
+	testFile := ini.Empty()
+
+	emptySection, err := testFile.NewSection("empty")
+	if err != nil {
+		t.Fatal(err)
+	}
+	section, err := testFile.NewSection("test")
+	if err != nil {
+		t.Fatal(err)
+	}
+	_, err = section.NewKey("credential_process", "granted credential-process --url https://override.example.com")
+	if err != nil {
+		t.Fatal(err)
 	}
 	tests := []struct {
 		name    string
@@ -86,7 +104,9 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 				},
 				SSORoleName:  "test",
 				SSOAccountId: "123456789012",
+				rawConfig:    emptySection,
 			},
+
 			want: &clierr.Err{
 				Err: "test error",
 				Messages: []clierr.Printer{
@@ -101,10 +121,7 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 				gConf: grantedConfig.Config{
 					AccessRequestURL: "https://example.com",
 				},
-				// rawConfig: *ini.Section{
-				// 	// we should show the overridden --url flag, rather than the global setting.
-				// 	"credential_process": "granted credential-process --url https://override.example.com",
-				// },
+				rawConfig:    section,
 				SSORoleName:  "test",
 				SSOAccountId: "123456789012",
 			},
@@ -119,7 +136,8 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 		{
 			name: "display prompt if no URL is set",
 			args: args{
-				gConf: grantedConfig.Config{},
+				gConf:     grantedConfig.Config{},
+				rawConfig: emptySection,
 			},
 			want: &clierr.Err{
 				Err: "test error",
