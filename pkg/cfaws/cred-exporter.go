@@ -53,10 +53,14 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 		return err
 	}
 	//put the creds into options
-	err = section.ReflectFrom(map[string]string{
-		"aws_access_key_id":     creds.AccessKeyID,
-		"aws_secret_access_key": creds.SecretAccessKey,
-		"aws_session_token":     creds.SessionToken,
+	err = section.ReflectFrom(&struct {
+		AWSAccessKeyID     string `ini:"aws_access_key_id"`
+		AWSSecretAccessKey string `ini:"aws_secret_access_key"`
+		AWSSessionToken    string `ini:"aws_session_token,omitempty"`
+	}{
+		AWSAccessKeyID:     creds.AccessKeyID,
+		AWSSecretAccessKey: creds.SecretAccessKey,
+		AWSSessionToken:    creds.SessionToken,
 	})
 	if err != nil {
 		return err

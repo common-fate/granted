@@ -452,10 +452,14 @@ var ExportCredentialsCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			err = section.ReflectFrom(map[string]string{
-				"aws_access_key_id":     credentials.AccessKeyID,
-				"aws_secret_access_key": credentials.SecretAccessKey,
-				"aws_session_token":     credentials.SessionToken,
+			err = section.ReflectFrom(&struct {
+				AWSAccessKeyID     string `ini:"aws_access_key_id"`
+				AWSSecretAccessKey string `ini:"aws_secret_access_key"`
+				AWSSessionToken    string `ini:"aws_session_token,omitempty"`
+			}{
+				AWSAccessKeyID:     credentials.AccessKeyID,
+				AWSSecretAccessKey: credentials.SecretAccessKey,
+				AWSSessionToken:    credentials.SessionToken,
 			})
 			if err != nil {
 				return err

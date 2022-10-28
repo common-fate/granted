@@ -11,6 +11,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/ini.v1"
 )
@@ -146,10 +147,14 @@ type SSOProfile struct {
 func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]SSOProfile, error) {
 	cfg := aws.NewConfig()
 	cfg.Region = input.SSORegion
-
-	ssoToken, err := cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, input.StartUrl)
-	if err != nil {
-		return nil, err
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	ssoToken := secureSSOTokenStorage.GetValidSSOToken(input.StartUrl)
+	var err error
+	if ssoToken == nil {
+		ssoToken, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, input.StartUrl)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	ssoClient := sso.NewFromConfig(*cfg)
@@ -221,11 +226,16 @@ func mergeSSOProfiles(config *ini.File, prefix string, ssoProfiles []SSOProfile)
 		if err != nil {
 			return err
 		}
-		err = section.ReflectFrom(map[string]string{
-			"sso_start_url":  ssoProfile.StartUrl,
-			"sso_region":     ssoProfile.SSORegion,
-			"sso_account_id": ssoProfile.AccountId,
-			"sso_role_name":  ssoProfile.RoleName,
+		err = section.ReflectFrom(&struct {
+			SSOStartURL  string `ini:"sso_start_url"`
+			SSORegion    string `ini:"sso_region"`
+			SSOAccountID string `ini:"sso_account_id"`
+			SSORoleName  string `ini:"sso_role_name"`
+		}{
+			SSOStartURL:  ssoProfile.StartUrl,
+			SSORegion:    ssoProfile.SSORegion,
+			SSOAccountID: ssoProfile.AccountId,
+			SSORoleName:  ssoProfile.RoleName,
 		})
 		if err != nil {
 			return err
