@@ -37,7 +37,6 @@ var AddCommand = cli.Command{
 		}
 
 		repoURL := c.Args().First()
-		fmt.Printf("git clone %s\n", repoURL)
 
 		u, err := url.ParseRequestURI(repoURL)
 		if err != nil {
@@ -49,16 +48,37 @@ var AddCommand = cli.Command{
 			return err
 		}
 
-		cmd := exec.Command("git", "clone", repoURL, repoDirPath)
-
-		err = cmd.Run()
+		//check repo directory to see if repo exists
+		//use clone if not exists, pull if exists
+		_, err = os.Stat(repoDirPath)
 		if err != nil {
-			// TODO: Will throw an error if the folder already exists and is not an empty directory.
-			fmt.Println("the error is", err)
-			return err
-		}
+			if os.IsNotExist(err) {
+				fmt.Printf("git clone %s\n", repoURL)
 
-		fmt.Println("Sucessfully cloned the repo")
+				cmd := exec.Command("git", "clone", repoURL, repoDirPath)
+
+				err = cmd.Run()
+				if err != nil {
+					return err
+
+				}
+				fmt.Println("Successfully cloned the repo")
+
+			} else {
+				return err
+			}
+		} else {
+			fmt.Printf("git pull %s\n", repoURL)
+
+			cmd := exec.Command("git", "--git-dir", repoDirPath+"/.git", "pull")
+
+			err = cmd.Run()
+			if err != nil {
+				return err
+			}
+			fmt.Println("Successfully pulled the repo")
+
+		}
 
 		//if a specific ref is passed we will checkout that ref
 		fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
