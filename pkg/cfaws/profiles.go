@@ -100,13 +100,17 @@ func (p *Profiles) loadDefaultConfigFile() error {
 
 	// Itterate through the config sections
 	for _, section := range configFile.Sections() {
-		// Check if the section is prefixed with 'profile ' and that the profile has a name
-		if ((strings.HasPrefix(section.Name(), "profile ") && len(section.Name()) > 8) || section.Name() == "default") && isLegalProfileName(strings.TrimPrefix(section.Name(), "profile ")) {
-			name := strings.TrimPrefix(section.Name(), "profile ")
-			p.ProfileNames = append(p.ProfileNames, name)
-			sectionPtr := section
-			p.profiles[name] = &Profile{RawConfig: sectionPtr, Name: name, File: configPath}
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		if section.Name() != "DEFAULT" {
+			// Check if the section is prefixed with 'profile ' and that the profile has a name
+			if ((strings.HasPrefix(section.Name(), "profile ") && len(section.Name()) > 8) || section.Name() == "default") && isLegalProfileName(strings.TrimPrefix(section.Name(), "profile ")) {
+				name := strings.TrimPrefix(section.Name(), "profile ")
+				p.ProfileNames = append(p.ProfileNames, name)
+				sectionPtr := section
+				p.profiles[name] = &Profile{RawConfig: sectionPtr, Name: name, File: configPath}
+			}
 		}
+
 	}
 	return nil
 }
@@ -136,16 +140,19 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 	}
 
 	for _, section := range credentialsFile.Sections() {
-		// We only care about the non default sections for the credentials file (no profile prefix either)
-		if section.Name() != "default" && isLegalProfileName(section.Name()) {
-			// check for a duplicate profile in the map and skip if present (config file should take precedence)
-			_, exists := p.profiles[section.Name()]
-			if exists {
-				clio.Debugf("skipping profile with name %s - profile already defined in config", section.Name())
-				continue
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		if section.Name() != "DEFAULT" {
+			// We only care about the non default sections for the credentials file (no profile prefix either)
+			if section.Name() != "default" && isLegalProfileName(section.Name()) {
+				// check for a duplicate profile in the map and skip if present (config file should take precedence)
+				_, exists := p.profiles[section.Name()]
+				if exists {
+					clio.Debugf("skipping profile with name %s - profile already defined in config", section.Name())
+					continue
+				}
+				p.ProfileNames = append(p.ProfileNames, section.Name())
+				p.profiles[section.Name()] = &Profile{RawConfig: section, Name: section.Name(), File: credsPath}
 			}
-			p.ProfileNames = append(p.ProfileNames, section.Name())
-			p.profiles[section.Name()] = &Profile{RawConfig: section, Name: section.Name(), File: credsPath}
 		}
 	}
 	return nil
