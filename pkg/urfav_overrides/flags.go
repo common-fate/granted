@@ -26,7 +26,7 @@ type Flags struct {
 //
 // allFlags := cfflags.New("name",GlobalFlagsList, c)
 // allFlags.String("region")
-func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
+func New(name string, flags []cli.Flag, c *cli.Context, depth int) (*Flags, error) {
 	set := flag.NewFlagSet(name, flag.ContinueOnError)
 	for _, f := range flags {
 		if err := f.Apply(set); err != nil {
@@ -45,7 +45,7 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	// context.Args() for this command will ONLY contain the role and any flags provided after the role
 	// this slice of os.Args will only contain flags and not the role if it was provided
 	ag := []string{}
-	ag = append(ag, os.Args[1:len(os.Args)-c.Args().Len()]...)
+	ag = append(ag, os.Args[depth:len(os.Args)-c.Args().Len()]...)
 	ag = append(ag, ca...)
 
 	err := normalizeFlags(flags, set)

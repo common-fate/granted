@@ -8,14 +8,31 @@ import (
 	"os/exec"
 	"strings"
 
+	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
+
 	"github.com/urfave/cli/v2"
 )
 
+// Prevent issues where these flags are initialised in some part of the program then used by another part
+// For our use case, we need fresh copies of these flags in the app and in the assume command
+// we use this to allow flags to be set on either side of the profile arg e.g `assume -c profile-name -r ap-southeast-2`
+func GlobalFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{Name: "ref", Aliases: []string{"r"}, Usage: "Used to reference a specific commit hash, tag name or branch name"},
+	}
+}
+
 var AddCommand = cli.Command{
-	Name: "add",
+	Name:  "add",
+	Flags: GlobalFlags(),
 	Action: func(c *cli.Context) error {
 
-		if c.Args().Len() != 1 {
+		addFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c, 3)
+		if err != nil {
+			return err
+		}
+
+		if c.Args().Len() < 1 {
 			return fmt.Errorf("git repository not provided. You need to provide a git repository like 'granted add https://github.com/your-org/your-registry.git'")
 		}
 
@@ -42,6 +59,27 @@ var AddCommand = cli.Command{
 		}
 
 		fmt.Println("Sucessfully cloned the repo")
+
+		//if a specific ref is passed we will checkout that ref
+		fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
+
+		if addFlags.String("ref") != "" {
+			fmt.Println("attempting to checkout branch")
+
+			//can be a git hash, tag, or branch name. In that order
+			//todo set the path of the repo before checking out
+			ref := addFlags.String("ref")
+			cmd := exec.Command("git", "checkout", ref)
+			cmd.Dir = repoDirPath
+
+			err = cmd.Run()
+			if err != nil {
+				fmt.Println("the error is", err)
+				return err
+			}
+			fmt.Println("Sucessfully checkout out " + ref)
+
+		}
 
 		if err, ok := isValidRegistry(repoDirPath, repoURL); err != nil || !ok {
 			if err != nil {
