@@ -63,11 +63,24 @@ var AddCommand = cli.Command{
 
 				}
 				fmt.Println("Successfully cloned the repo")
+				//if a specific ref is passed we will checkout that ref
+				fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
+
+				if addFlags.String("ref") != "" {
+					checkoutRef(addFlags.String("ref"), repoDirPath)
+				}
 
 			} else {
 				return err
 			}
 		} else {
+			//if a specific ref is passed we will checkout that ref
+			fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
+
+			if addFlags.String("ref") != "" {
+				checkoutRef(addFlags.String("ref"), repoDirPath)
+
+			}
 			fmt.Printf("git pull %s\n", repoURL)
 
 			cmd := exec.Command("git", "--git-dir", repoDirPath+"/.git", "pull")
@@ -77,27 +90,6 @@ var AddCommand = cli.Command{
 				return err
 			}
 			fmt.Println("Successfully pulled the repo")
-
-		}
-
-		//if a specific ref is passed we will checkout that ref
-		fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
-
-		if addFlags.String("ref") != "" {
-			fmt.Println("attempting to checkout branch")
-
-			//can be a git hash, tag, or branch name. In that order
-			//todo set the path of the repo before checking out
-			ref := addFlags.String("ref")
-			cmd := exec.Command("git", "checkout", ref)
-			cmd.Dir = repoDirPath
-
-			err = cmd.Run()
-			if err != nil {
-				fmt.Println("the error is", err)
-				return err
-			}
-			fmt.Println("Sucessfully checkout out " + ref)
 
 		}
 
@@ -149,4 +141,22 @@ func isValidRegistry(folderpath string, url string) (error, bool) {
 	}
 
 	return nil, false
+}
+
+func checkoutRef(ref string, repoDirPath string) error {
+	//if a specific ref is passed we will checkout that ref
+
+	//can be a git hash, tag, or branch name. In that order
+	//todo set the path of the repo before checking out
+
+	cmd := exec.Command("git", "checkout", ref)
+	cmd.Dir = repoDirPath
+
+	err := cmd.Run()
+	if err != nil {
+		fmt.Println("the error is", err)
+		return err
+	}
+	fmt.Println("Sucessfully checkout out " + ref)
+
 }
