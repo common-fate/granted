@@ -24,7 +24,7 @@ type Flags struct {
 // to use this in a command,
 // This package interacts with os.Args directly
 //
-// allFlags := cfflags.New("name",GlobalFlagsList, c)
+// allFlags := cfflags.New("name",GlobalFlagsList, c, 1)
 // allFlags.String("region")
 // When using granted global flags for a subcommand. Eg. granted registry add {URL:} -c ref. you will need to need to specify a command depth
 // for it to work correctly.

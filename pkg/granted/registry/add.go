@@ -121,7 +121,7 @@ var AddCommand = cli.Command{
 }
 
 func formatFolderPath(p string) string {
-	var formattedURL string = ""
+	var formattedURL string
 
 	// remove trailing whitespaces.
 	formattedURL = strings.TrimSpace(p)

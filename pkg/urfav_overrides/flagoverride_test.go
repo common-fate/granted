@@ -25,7 +25,7 @@ func TestFlagsPassToCFFlags(t *testing.T) {
 
 		Action: func(c *cli.Context) error {
 
-			assumeFlags, err := New("assumeFlags", testingFlags, c)
+			assumeFlags, err := New("assumeFlags", testingFlags, c, 1)
 			if err != nil {
 				return err
 			}
