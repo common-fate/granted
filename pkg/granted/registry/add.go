@@ -67,7 +67,11 @@ var AddCommand = cli.Command{
 				fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
 
 				if addFlags.String("ref") != "" {
-					checkoutRef(addFlags.String("ref"), repoDirPath)
+					err = checkoutRef(addFlags.String("ref"), repoDirPath)
+					if err != nil {
+						return err
+
+					}
 				}
 
 			} else {
@@ -78,8 +82,11 @@ var AddCommand = cli.Command{
 			fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
 
 			if addFlags.String("ref") != "" {
-				checkoutRef(addFlags.String("ref"), repoDirPath)
+				err = checkoutRef(addFlags.String("ref"), repoDirPath)
+				if err != nil {
+					return err
 
+				}
 			}
 			fmt.Printf("git pull %s\n", repoURL)
 
