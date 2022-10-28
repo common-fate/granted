@@ -158,5 +158,6 @@ func checkoutRef(ref string, repoDirPath string) error {
 		return err
 	}
 	fmt.Println("Sucessfully checkout out " + ref)
+	return nil
 
 }
