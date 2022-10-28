@@ -10,8 +10,6 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const TEST_SECTION_NAME = "profile test"
-
 func Test_parseURLFlagFromConfig(t *testing.T) {
 	testFileContents := `[profile test1]
 credential_process = granted credential-process --url https://example.com
