@@ -14,6 +14,7 @@ type Registry struct {
 	AwsConfigPaths []string `yaml:"awsConfig"`
 }
 
+// Parse the `granted.yml` file.
 func (c *Registry) Parse(folderpath string) (*Registry, error) {
 	file, err := os.ReadFile(path.Join(folderpath, "granted.yml"))
 	if err != nil {
@@ -28,6 +29,7 @@ func (c *Registry) Parse(folderpath string) (*Registry, error) {
 	return c, nil
 }
 
+// GetRegistryLocation returns the directory path where cloned repo is located.
 func GetRegistryLocation(u *url.URL) (string, error) {
 	gConfigPath, err := config.GrantedConfigFolder()
 	if err != nil {
