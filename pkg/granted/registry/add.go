@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
+	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/urfave/cli/v2"
 )
 
@@ -42,6 +43,17 @@ var AddCommand = cli.Command{
 		}
 
 		fmt.Println("Sucessfully cloned the repo")
+		gConf, err := grantedConfig.Load()
+		if err != nil {
+			return err
+		}
+
+		// save the repo url to granted config toml file.
+		gConf.ProfileRegistryURL = repoURL
+
+		if err := gConf.Save(); err != nil {
+			return err
+		}
 
 		if err, ok := isValidRegistry(repoDirPath, repoURL); err != nil || !ok {
 			if err != nil {
