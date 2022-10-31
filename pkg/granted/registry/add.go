@@ -8,6 +8,7 @@ import (
 	"os/exec"
 	"strings"
 
+	grantedConfig "github.com/common-fate/granted/pkg/config"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 
 	"github.com/urfave/cli/v2"
@@ -61,6 +62,19 @@ var AddCommand = cli.Command{
 			return err
 		}
 
+		gConf, err := grantedConfig.Load()
+		if err != nil {
+			return err
+		}
+
+		// save the repo url to granted config toml file.
+		gConf.ProfileRegistryURL = repoURL
+
+		if err := gConf.Save(); err != nil {
+			return err
+
+		}
+
 		//check repo directory to see if repo exists
 		//use clone if not exists, pull if exists
 		_, err = os.Stat(repoDirPath)
@@ -76,10 +90,11 @@ var AddCommand = cli.Command{
 
 				}
 				fmt.Println("Successfully cloned the repo")
-				//if a specific ref is passed we will checkout that ref
-				fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
 
+				//if a specific ref is passed we will checkout that ref
 				if addFlags.String("ref") != "" {
+					fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
+
 					err = checkoutRef(addFlags.String("ref"), repoDirPath)
 					if err != nil {
 						return err
@@ -92,9 +107,8 @@ var AddCommand = cli.Command{
 			}
 		} else {
 			//if a specific ref is passed we will checkout that ref
-			fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
-
 			if addFlags.String("ref") != "" {
+				fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
 				err = checkoutRef(addFlags.String("ref"), repoDirPath)
 				if err != nil {
 					return err
