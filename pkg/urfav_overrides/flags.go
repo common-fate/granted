@@ -24,9 +24,13 @@ type Flags struct {
 // to use this in a command,
 // This package interacts with os.Args directly
 //
-// allFlags := cfflags.New("name",GlobalFlagsList, c)
+// allFlags := cfflags.New("name",GlobalFlagsList, c, 1)
 // allFlags.String("region")
-func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
+// When using granted global flags for a subcommand. Eg. granted registry add {URL:} -c ref. you will need to need to specify a command depth
+// for it to work correctly.
+// The depth is used to filter out the subcommands when grabbing out the flags passed in the body of the cli request
+// err = set.Parse(ag) fails to populate the flag value when args includes subcommands so we filter them out
+func New(name string, flags []cli.Flag, c *cli.Context, depth int) (*Flags, error) {
 	set := flag.NewFlagSet(name, flag.ContinueOnError)
 	for _, f := range flags {
 		if err := f.Apply(set); err != nil {
@@ -45,7 +49,7 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	// context.Args() for this command will ONLY contain the role and any flags provided after the role
 	// this slice of os.Args will only contain flags and not the role if it was provided
 	ag := []string{}
-	ag = append(ag, os.Args[1:len(os.Args)-c.Args().Len()]...)
+	ag = append(ag, os.Args[depth:len(os.Args)-c.Args().Len()]...)
 	ag = append(ag, ca...)
 
 	err := normalizeFlags(flags, set)
