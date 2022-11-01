@@ -190,7 +190,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 
 	// For config that has 'granted' prefix we need to convert this to AWS config fields
 	// aws configuration
-	if hasGrantedPrefix(pr.RawConfig) {
+	if hasGrantedSSOPrefix(pr.RawConfig) {
 		awsConfig, err := ParseGrantedSSOProfile(ctx, pr)
 		if err != nil {
 			return nil, err

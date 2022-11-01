@@ -3,6 +3,7 @@ package cfaws
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"gopkg.in/ini.v1"
@@ -52,7 +53,12 @@ func IsValidGrantedProfile(rawConfig *ini.Section) error {
 	return nil
 }
 
-// check if the passed aws config consist of "granted-sso-start-url" key.
-func hasGrantedPrefix(rawConfig *ini.Section) bool {
-	return rawConfig.HasKey("granted_sso_start_url")
+// check if the config section shas any keys prefixed with "granted_sso_"
+func hasGrantedSSOPrefix(rawConfig *ini.Section) bool {
+	for _, v := range rawConfig.KeyStrings() {
+		if strings.HasPrefix(v, "granted_sso_") {
+			return true
+		}
+	}
+	return false
 }

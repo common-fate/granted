@@ -87,7 +87,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			// to set up the request URL if it's empty.
 			if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
 				if httpErr.HTTPStatusCode() == http.StatusForbidden {
-					if hasGrantedPrefix(c.RawConfig) {
+					if hasGrantedSSOPrefix(c.RawConfig) {
 						gConf, loadErr := grantedConfig.Load()
 						if loadErr != nil {
 							clio.Debugf(errors.Wrapf(err, "loading Granted config during sso error handling: %s", loadErr.Error()).Error())
