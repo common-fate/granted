@@ -5,9 +5,9 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/clio"
 	gconfig "github.com/common-fate/granted/pkg/config"
+	"gopkg.in/ini.v1"
 )
 
 // ExportCredsToProfile will write assumed credentials to ~/.aws/credentials with a specified profile name header
@@ -30,7 +30,10 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 
 	}
 
-	credFile, err := configparser.NewConfigParserFromFile(credPath)
+	credentialsFile, err := ini.LoadSources(ini.LoadOptions{
+		AllowNonUniqueSections:  false,
+		SkipUnrecognizableLines: false,
+	}, credPath)
 	if err != nil {
 		return err
 	}
@@ -44,33 +47,23 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 		profileName = profileName + "-" + cfg.ExportCredentialSuffix
 	}
 
-	if credFile.HasSection(profileName) {
-		err := credFile.RemoveSection(profileName)
-		if err != nil {
-			return err
-		}
-	}
-	err = credFile.AddSection(profileName)
+	credentialsFile.DeleteSection(profileName)
+	section, err := credentialsFile.NewSection(profileName)
 	if err != nil {
 		return err
 	}
 	//put the creds into options
-	err = credFile.Set(profileName, "aws_access_key_id", creds.AccessKeyID)
+	err = section.ReflectFrom(&struct {
+		AWSAccessKeyID     string `ini:"aws_access_key_id"`
+		AWSSecretAccessKey string `ini:"aws_secret_access_key"`
+		AWSSessionToken    string `ini:"aws_session_token,omitempty"`
+	}{
+		AWSAccessKeyID:     creds.AccessKeyID,
+		AWSSecretAccessKey: creds.SecretAccessKey,
+		AWSSessionToken:    creds.SessionToken,
+	})
 	if err != nil {
 		return err
 	}
-	err = credFile.Set(profileName, "aws_secret_access_key", creds.SecretAccessKey)
-	if err != nil {
-		return err
-	}
-	err = credFile.Set(profileName, "aws_session_token", creds.SessionToken)
-	if err != nil {
-		return err
-	}
-	err = credFile.SaveWithDelimiter(credPath, "=")
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return credentialsFile.SaveTo(credPath)
 }

@@ -8,7 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/processcreds"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/bigkevmcd/go-configparser"
+	"gopkg.in/ini.v1"
 )
 
 // Implements Assumer using the aws credential_process standard
@@ -17,9 +17,9 @@ type CredentialProcessAssumer struct {
 
 func loadCredProcessCreds(ctx context.Context, c *Profile) (aws.Credentials, error) {
 	var credProcessCommand string
-	for k, v := range c.RawConfig {
-		if k == "credential_process" {
-			credProcessCommand = v
+	for _, item := range c.RawConfig.Keys() {
+		if item.Name() == "credential_process" {
+			credProcessCommand = item.Value()
 			break
 		}
 	}
@@ -94,8 +94,8 @@ func (cpa *CredentialProcessAssumer) Type() string {
 }
 
 // inspect for any credential processes with the saml2aws tool
-func (cpa *CredentialProcessAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
-	for k := range rawProfile {
+func (cpa *CredentialProcessAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProfile config.SharedConfig) bool {
+	for _, k := range rawProfile.KeyStrings() {
 		if k == "credential_process" {
 			return true
 		}

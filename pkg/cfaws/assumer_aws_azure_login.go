@@ -9,7 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/bigkevmcd/go-configparser"
+	"gopkg.in/ini.v1"
 )
 
 // Implements Assumer
@@ -60,8 +60,8 @@ func (aal *AwsAzureLoginAssumer) Type() string {
 }
 
 // inspect for any items on the profile prefixed with "AZURE_"
-func (aal *AwsAzureLoginAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
-	for k := range rawProfile {
+func (aal *AwsAzureLoginAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProfile config.SharedConfig) bool {
+	for _, k := range rawProfile.KeyStrings() {
 		if strings.HasPrefix(k, "azure_") {
 			return true
 		}

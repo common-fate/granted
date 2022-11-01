@@ -10,7 +10,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.9.0
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.10.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.14.0
-	github.com/bigkevmcd/go-configparser v0.0.0-20210106142102-909504547ead
 	github.com/common-fate/updatecheck v0.3.4
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
@@ -65,4 +64,5 @@ require (
 	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7
+	gopkg.in/ini.v1 v1.67.0
 )

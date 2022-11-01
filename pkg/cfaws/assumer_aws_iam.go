@@ -7,9 +7,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
-	"github.com/bigkevmcd/go-configparser"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/securestorage"
+	"gopkg.in/ini.v1"
 )
 
 // Implements Assumer
@@ -89,7 +89,7 @@ func (aia *AwsIamAssumer) Type() string {
 
 // Matches the profile type on whether it is not an sso profile.
 // this will also match other types that are not sso profiles so it should be the last option checked when determining the profile type
-func (aia *AwsIamAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
+func (aia *AwsIamAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProfile config.SharedConfig) bool {
 	return parsedProfile.SSOAccountID == ""
 }
 

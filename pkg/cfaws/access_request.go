@@ -5,9 +5,10 @@ import (
 	"net/url"
 	"regexp"
 
-	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
+	"gopkg.in/ini.v1"
 )
 
 // GetGrantedApprovalsURL returns the URL which users can request access to a particular role at.
@@ -21,7 +22,7 @@ import (
 //
 // If neither of the approaches above returns a URL, this method returns a message indicating that the request URL
 // hasn't been set up.
-func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig configparser.Dict, gConf grantedConfig.Config, SSORoleName string, SSOAccountId string) error {
+func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig *ini.Section, gConf grantedConfig.Config, SSORoleName string, SSOAccountId string) error {
 	cliError := &clierr.Err{
 		Err: awsError.Error(),
 	}
@@ -60,18 +61,19 @@ func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig configparse
 //	credential_process = granted credential-process --url https://example.com
 //
 // it will return 'https://example.com'. Otherwise, it returns an empty string
-func parseURLFlagFromConfig(rawConfig configparser.Dict) string {
-	credProcess, ok := rawConfig["credential_process"]
-	if !ok {
+func parseURLFlagFromConfig(rawConfig *ini.Section) string {
+	credProcess, err := rawConfig.GetKey("credential_process")
+	if err != nil {
+		clio.Debug(err.Error())
 		return ""
 	}
 	grantedRegex := regexp.MustCompile(`granted\s+credential-process`)
-	hasGrantedCommand := grantedRegex.MatchString(credProcess)
+	hasGrantedCommand := grantedRegex.MatchString(credProcess.Value())
 	if !hasGrantedCommand {
 		return ""
 	}
 	re := regexp.MustCompile(`--url\s+(\S+)`)
-	matchedValues := re.FindStringSubmatch(credProcess)
+	matchedValues := re.FindStringSubmatch(credProcess.Value())
 	if len(matchedValues) > 1 {
 		return matchedValues[1]
 	}

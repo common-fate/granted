@@ -9,7 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2/core"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/bigkevmcd/go-configparser"
+	"gopkg.in/ini.v1"
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
@@ -76,21 +76,26 @@ var AddCredentialsCommand = cli.Command{
 //	credential_process = granted credential-process --profile=my-profile
 func updateOrCreateProfileWithCredentialProcess(profileName string) error {
 	configPath := config.DefaultSharedConfigFilename()
-	configFile, err := configparser.NewConfigParserFromFile(configPath)
+	configFile, err := ini.LoadSources(ini.LoadOptions{
+		AllowNonUniqueSections:  false,
+		SkipUnrecognizableLines: false,
+	}, configPath)
 	if err != nil {
 		return err
 	}
 	sectionName := "profile " + profileName
-	if !configFile.HasSection(sectionName) {
-		if err := configFile.AddSection(sectionName); err != nil {
+	section, err := configFile.GetSection(sectionName)
+	if err != nil {
+		section, err = configFile.NewSection(sectionName)
+		if err != nil {
 			return err
 		}
 	}
-	err = configFile.Set(sectionName, "credential_process", fmt.Sprintf("%s credential-process --profile=%s", build.GrantedBinaryName(), profileName))
+	_, err = section.NewKey("credential_process", fmt.Sprintf("%s credential-process --profile=%s", build.GrantedBinaryName(), profileName))
 	if err != nil {
 		return err
 	}
-	return configFile.SaveWithDelimiter(configPath, "=")
+	return configFile.SaveTo(configPath)
 }
 
 func validateProfileForImport(ctx context.Context, profiles *cfaws.Profiles, profileName string, overwrite bool) error {
@@ -174,18 +179,24 @@ var ImportCredentialsCommand = cli.Command{
 
 		// remove the profile from the credentials file
 		credentialsFilePath := config.DefaultSharedCredentialsFilename()
-		credentialsFile, err := configparser.NewConfigParserFromFile(credentialsFilePath)
+		credentialsFile, err := ini.LoadSources(ini.LoadOptions{
+			AllowNonUniqueSections:  false,
+			SkipUnrecognizableLines: false,
+		}, credentialsFilePath)
 		if err != nil {
 			return err
 		}
 
-		items, err := credentialsFile.Items(profileName)
+		items, err := credentialsFile.GetSection(profileName)
 		if err != nil {
 			return err
 		}
 
 		configPath := config.DefaultSharedConfigFilename()
-		configFile, err := configparser.NewConfigParserFromFile(configPath)
+		configFile, err := ini.LoadSources(ini.LoadOptions{
+			AllowNonUniqueSections:  false,
+			SkipUnrecognizableLines: false,
+		}, configPath)
 		if err != nil {
 			return err
 		}
@@ -193,15 +204,15 @@ var ImportCredentialsCommand = cli.Command{
 
 		// Merge options from the credentials profile to the config file profile.
 		// if the same option is configured in the config file profile it takes precedence
-		for k, v := range items {
+		for _, key := range items.Keys() {
 			// omit sensitive values from the merge
-			if !(k == "aws_access_key_id" || k == "aws_secret_access_key" || k == "aws_session_token") {
-				has, err := configFile.HasOption(sectionName, k)
+			if !(key.Name() == "aws_access_key_id" || key.Name() == "aws_secret_access_key" || key.Name() == "aws_session_token") {
+				section, err := configFile.GetSection(sectionName)
 				if err != nil {
 					return err
 				}
-				if !has {
-					err = configFile.Set(sectionName, k, v)
+				if !section.HasKey(key.Name()) {
+					_, err = section.NewKey(key.Name(), key.Value())
 					if err != nil {
 						return err
 					}
@@ -209,17 +220,14 @@ var ImportCredentialsCommand = cli.Command{
 			}
 		}
 		// save the updated config file after merging
-		err = configFile.SaveWithDelimiter(configPath, "=")
+		err = configFile.SaveTo(configPath)
 		if err != nil {
 			return err
 		}
 
 		// remove the plaintext profile from the credentials file
-		err = credentialsFile.RemoveSection(profileName)
-		if err != nil {
-			return err
-		}
-		err = credentialsFile.SaveWithDelimiter(credentialsFilePath, "=")
+		credentialsFile.DeleteSection(profileName)
+		err = credentialsFile.SaveTo(credentialsFilePath)
 		if err != nil {
 			return err
 		}
@@ -318,7 +326,10 @@ var RemoveCredentialsCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
 		configPath := config.DefaultSharedConfigFilename()
-		configFile, err := configparser.NewConfigParserFromFile(configPath)
+		configFile, err := ini.LoadSources(ini.LoadOptions{
+			AllowNonUniqueSections:  false,
+			SkipUnrecognizableLines: false,
+		}, configPath)
 		if err != nil {
 			return err
 		}
@@ -371,27 +382,16 @@ If you have already used 'granted credentials export-plaintext <profile name>' t
 				return err
 			}
 			sectionName := "profile " + profileName
-			if configFile.HasSection(sectionName) {
-				hasCredentialProcess, err := configFile.HasOption(sectionName, "credential_process")
-				if err != nil {
-					return err
-				}
-				if hasCredentialProcess {
-					credentialProcessOption, err := configFile.Get(sectionName, "credential_process")
-					if err != nil {
-						return err
-					}
-					if strings.HasPrefix(credentialProcessOption, fmt.Sprintf("%s credential-process", build.GrantedBinaryName())) {
+			if section, _ := configFile.GetSection(sectionName); section != nil {
+				if key, _ := section.GetKey("credential_process"); key != nil {
+					if strings.HasPrefix(key.Value(), fmt.Sprintf("%s credential-process", build.GrantedBinaryName())) {
 						fmt.Printf("Removing profile %s AWS config file\n", profileName)
-						err = configFile.RemoveSection(sectionName)
-						if err != nil {
-							return err
-						}
+						configFile.DeleteSection(sectionName)
 					}
 				}
 			}
 		}
-		err = configFile.SaveWithDelimiter(configPath, "=")
+		err = configFile.SaveTo(configPath)
 		if err != nil {
 			return err
 		}
@@ -440,68 +440,55 @@ var ExportCredentialsCommand = cli.Command{
 			}
 			//fetch parsed credentials file
 			credentialsFilePath := config.DefaultSharedCredentialsFilename()
-			credentialsFile, err := configparser.NewConfigParserFromFile(credentialsFilePath)
+			credentialsFile, err := ini.LoadSources(ini.LoadOptions{
+				AllowNonUniqueSections:  false,
+				SkipUnrecognizableLines: false,
+			}, credentialsFilePath)
 			if err != nil {
 				return err
 			}
 
-			err = credentialsFile.AddSection(profileName)
+			section, err := credentialsFile.NewSection(profileName)
 			if err != nil {
 				return err
 			}
-
-			if credentials.AccessKeyID != "" {
-				if err := credentialsFile.Set(profileName, "aws_access_key_id", credentials.AccessKeyID); err != nil {
-					return err
-				}
+			err = section.ReflectFrom(&struct {
+				AWSAccessKeyID     string `ini:"aws_access_key_id"`
+				AWSSecretAccessKey string `ini:"aws_secret_access_key"`
+				AWSSessionToken    string `ini:"aws_session_token,omitempty"`
+			}{
+				AWSAccessKeyID:     credentials.AccessKeyID,
+				AWSSecretAccessKey: credentials.SecretAccessKey,
+				AWSSessionToken:    credentials.SessionToken,
+			})
+			if err != nil {
+				return err
 			}
-			if credentials.SecretAccessKey != "" {
-				if err := credentialsFile.Set(profileName, "aws_secret_access_key", credentials.SecretAccessKey); err != nil {
-					return err
-				}
-			}
-			if credentials.SessionToken != "" {
-				if err := credentialsFile.Set(profileName, "aws_session_token", credentials.SessionToken); err != nil {
-					return err
-				}
-			}
-
-			err = credentialsFile.SaveWithDelimiter(credentialsFilePath, "=")
+			err = credentialsFile.SaveTo(credentialsFilePath)
 			if err != nil {
 				return err
 			}
 			configPath := config.DefaultSharedConfigFilename()
-			configFile, err := configparser.NewConfigParserFromFile(configPath)
+			configFile, err := ini.LoadSources(ini.LoadOptions{
+				AllowNonUniqueSections:  false,
+				SkipUnrecognizableLines: false,
+			}, configPath)
 			if err != nil {
 				return err
 			}
 			sectionName := "profile " + profileName
-			if configFile.HasSection(sectionName) {
-				has, err := configFile.HasOption(sectionName, "credential_process")
-				if err != nil {
-					return err
-				}
-				if has {
-					items, err := configFile.Items(sectionName)
-					if err != nil {
-						return err
-					}
+			if section, _ := configFile.GetSection(sectionName); section != nil {
+				if section.HasKey("credential_process") {
 					// if the result of removing the credential process is that the profile has not configuration, then just remove it completely.
 					// the profile in the credential file will suffice
 					// else just remove teh credential process line.
 					// this avoids leaving the config file with an empty profile, which appears to be some kind of error when its not
-					if len(items) > 1 {
-						err = configFile.RemoveOption(sectionName, "credential_process")
-						if err != nil {
-							return err
-						}
+					if len(section.Keys()) > 1 {
+						section.DeleteKey("credential_process")
 					} else {
-						err = configFile.RemoveSection(sectionName)
-						if err != nil {
-							return err
-						}
+						configFile.DeleteSection(sectionName)
 					}
-					err = configFile.SaveWithDelimiter(configPath, "=")
+					err = configFile.SaveTo(configPath)
 					if err != nil {
 						return err
 					}
