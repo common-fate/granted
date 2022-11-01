@@ -69,7 +69,7 @@ var AddCommand = cli.Command{
 			return err
 		}
 
-		for _, repoURL := range repoURLs {
+		for index, repoURL := range repoURLs {
 			// TODO: parse fails for SSH url
 			u, err := url.Parse(repoURL)
 			if err != nil {
@@ -146,9 +146,17 @@ var AddCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-		}
 
-		// TODO: Run Sync logic here.
+			isFirstSection := false
+			if index == 0 {
+				isFirstSection = true
+			}
+
+			// Sync clonned repo content with aws config file.
+			if err := Sync(r, repoURL, repoDirPath, isFirstSection); err != nil {
+				return err
+			}
+		}
 
 		return nil
 	},
