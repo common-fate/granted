@@ -1,17 +1,14 @@
 package assume
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
-	"github.com/common-fate/granted/pkg/updates"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -22,7 +19,7 @@ func GlobalFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
 		&cli.BoolFlag{Name: "env", Aliases: []string{"e"}, Usage: "Export credentials to a .env file"},
-		&cli.BoolFlag{Name: "export", Aliases: []string{"ex"}, Usage: "Export credentials to a ~.aws/credentials file"},
+		&cli.BoolFlag{Name: "export", Aliases: []string{"ex"}, Usage: "Export credentials to a ~/.aws/credentials file"},
 		&cli.BoolFlag{Name: "unset", Aliases: []string{"un"}, Usage: "Unset all environment variables configured by Assume"},
 		&cli.BoolFlag{Name: "url", Aliases: []string{"u"}, Usage: "Get an active console session url"},
 		&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Like --c, but opens to a specified service"},
@@ -45,18 +42,18 @@ func GlobalFlags() []cli.Flag {
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Fprintln(color.Error, banners.WithVersion(banners.Assume()))
+		clio.Log(banners.WithVersion(banners.Assume()))
 	}
 
 	app := &cli.App{
 		Name:                 "assume",
-		Writer:               color.Error,
+		Writer:               os.Stderr,
 		Usage:                "https://granted.dev",
 		UsageText:            "assume [options][Profile]",
 		Version:              build.Version,
 		HideVersion:          false,
 		Flags:                GlobalFlags(),
-		Action:               updates.WithUpdateCheck(func(c *cli.Context) error { return AssumeCommand(c) }),
+		Action:               AssumeCommand,
 		EnableBashCompletion: true,
 		BashComplete:         Completion,
 		Before: func(c *cli.Context) error {
@@ -68,8 +65,10 @@ func GetCliApp() *cli.App {
 				}
 				os.Exit(0)
 			}
+
+			clio.SetLevelFromEnv("GRANTED_LOG")
 			if c.Bool("verbose") {
-				debug.CliVerbosity = debug.VerbosityDebug
+				clio.SetLevelFromString("debug")
 			}
 			err := ValidateSSOFlags(c)
 			if err != nil {

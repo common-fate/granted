@@ -1,6 +1,6 @@
 module github.com/common-fate/granted
 
-go 1.17
+go 1.19
 
 require (
 	github.com/99designs/keyring v1.2.0
@@ -10,37 +10,28 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.9.0
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.10.0
 	github.com/aws/aws-sdk-go-v2/service/sts v1.14.0
-	github.com/bigkevmcd/go-configparser v0.0.0-20210106142102-909504547ead
-	github.com/common-fate/cf-protos v0.0.0-20220219185127-8c82fd962a2e
-	github.com/fatih/color v1.13.0
+	github.com/common-fate/updatecheck v0.3.4
+	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
 	github.com/urfave/cli/v2 v2.3.0
-	google.golang.org/grpc v1.44.0
+)
+
+require (
+	github.com/common-fate/clio v1.1.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
-	github.com/golang/protobuf v1.5.2 // indirect
-	github.com/kr/pretty v0.2.1 // indirect
-	github.com/kr/pty v1.1.8 // indirect
-	github.com/kr/text v0.2.0 // indirect
 	github.com/mattn/go-runewidth v0.0.9 // indirect
 	github.com/pascaldekloe/name v0.0.0-20180628100202-0fd16699aae1 // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	go.uber.org/zap v1.20.0 // indirect
-	golang.org/x/mod v0.5.0 // indirect
-	golang.org/x/net v0.0.0-20211112202133-69e39bad7dc2 // indirect
-	golang.org/x/tools v0.1.5 // indirect
+	go.uber.org/zap v1.23.0 // indirect
+	golang.org/x/tools v0.0.0-20190524210228-3d17549cdc6b // indirect
 	golang.org/x/xerrors v0.0.0-20200804184101-5ec99f83aff1 // indirect
-	google.golang.org/genproto v0.0.0-20200526211855-cb27e3aa2013 // indirect
-	google.golang.org/protobuf v1.27.1 // indirect
-	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
-	gopkg.in/ini.v1 v1.67.0 // indirect
-	gopkg.in/yaml.v2 v2.3.0 // indirect
 )
 
 require (
@@ -54,7 +45,6 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.5 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.7.0 // indirect
 	github.com/aws/smithy-go v1.11.0
-	github.com/bmizerany/assert v0.0.0-20160611221934-b7ed37b82869
 	github.com/cpuguy83/go-md2man/v2 v2.0.0-20190314233015-f79a8a8ca69d // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
 	github.com/dvsekhvalnov/jose2go v1.5.0 // indirect
@@ -76,4 +66,5 @@ require (
 	golang.org/x/sys v0.0.0-20220224120231-95c6836cb0e7
 	golang.org/x/term v0.0.0-20210927222741-03fcf44c2211 // indirect
 	golang.org/x/text v0.3.7
+	gopkg.in/ini.v1 v1.67.0
 )

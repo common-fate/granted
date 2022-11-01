@@ -3,7 +3,7 @@ package cfflags
 import (
 	"errors"
 	"flag"
-	"io/ioutil"
+	"io"
 	"os"
 	"strconv"
 	"strings"
@@ -38,7 +38,7 @@ func New(name string, flags []cli.Flag, c *cli.Context, depth int) (*Flags, erro
 		}
 	}
 
-	set.SetOutput(ioutil.Discard)
+	set.SetOutput(io.Discard)
 
 	ca := []string{}
 	if c.Args().Len() > 1 {

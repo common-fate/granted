@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"syscall"
@@ -13,9 +14,9 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/ssocreds"
-	"github.com/bigkevmcd/go-configparser"
-	"github.com/common-fate/granted/pkg/debug"
-	"github.com/fatih/color"
+	"github.com/common-fate/clio"
+	"github.com/common-fate/granted/internal/build"
+	"gopkg.in/ini.v1"
 )
 
 type ConfigOpts struct {
@@ -25,7 +26,7 @@ type ConfigOpts struct {
 
 type Profile struct {
 	// allows access to the raw values from the file
-	RawConfig configparser.Dict
+	RawConfig *ini.Section
 	Name      string
 	// the file that this profile is from
 	File        string
@@ -34,9 +35,10 @@ type Profile struct {
 	// ordered from root to direct parent profile
 	Parents []*Profile
 	// the original config, some values may be empty strings depending on the type or profile
-	AWSConfig    config.SharedConfig
-	Initialised  bool
-	LoadingError error
+	AWSConfig                      config.SharedConfig
+	Initialised                    bool
+	LoadingError                   error
+	HasSecureStorageIAMCredentials bool
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -85,7 +87,10 @@ func LoadProfiles() (*Profiles, error) {
 // ...
 func (p *Profiles) loadDefaultConfigFile() error {
 	configPath := config.DefaultSharedConfigFilename()
-	configFile, err := configparser.NewConfigParserFromFile(configPath)
+	configFile, err := ini.LoadSources(ini.LoadOptions{
+		AllowNonUniqueSections:  false,
+		SkipUnrecognizableLines: false,
+	}, configPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -95,17 +100,17 @@ func (p *Profiles) loadDefaultConfigFile() error {
 
 	// Itterate through the config sections
 	for _, section := range configFile.Sections() {
-		rawConfig, err := configFile.Items(section)
-		if err != nil {
-			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS config: %s Due to the following error: %s\n", section, err)
-			continue
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		if section.Name() != "DEFAULT" {
+			// Check if the section is prefixed with 'profile ' and that the profile has a name
+			if ((strings.HasPrefix(section.Name(), "profile ") && len(section.Name()) > 8) || section.Name() == "default") && isLegalProfileName(strings.TrimPrefix(section.Name(), "profile ")) {
+				name := strings.TrimPrefix(section.Name(), "profile ")
+				p.ProfileNames = append(p.ProfileNames, name)
+				sectionPtr := section
+				p.profiles[name] = &Profile{RawConfig: sectionPtr, Name: name, File: configPath}
+			}
 		}
-		// Check if the section is prefixed with 'profile ' and that the profile has a name
-		if ((strings.HasPrefix(section, "profile ") && len(section) > 8) || section == "default") && isLegalProfileName(section) {
-			name := strings.TrimPrefix(section, "profile ")
-			p.ProfileNames = append(p.ProfileNames, name)
-			p.profiles[name] = &Profile{RawConfig: rawConfig, Name: name, File: configPath}
-		}
+
 	}
 	return nil
 }
@@ -123,7 +128,10 @@ func (p *Profiles) loadDefaultConfigFile() error {
 func (p *Profiles) loadDefaultCredentialsFile() error {
 	//fetch parsed credentials file
 	credsPath := config.DefaultSharedCredentialsFilename()
-	credsFile, err := configparser.NewConfigParserFromFile(credsPath)
+	credentialsFile, err := ini.LoadSources(ini.LoadOptions{
+		AllowNonUniqueSections:  false,
+		SkipUnrecognizableLines: false,
+	}, credsPath)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -131,22 +139,20 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 		return err
 	}
 
-	for _, section := range credsFile.Sections() {
-		rawConfig, err := credsFile.Items(section)
-		if err != nil {
-			fmt.Fprintf(color.Error, "failed to parse a profile from your AWS credentials: %s Due to the following error: %s\n", section, err)
-			continue
-		}
-		// We only care about the non default sections for the credentials file (no profile prefix either)
-		if section != "default" && isLegalProfileName(section) {
-			// check for a duplicate profile in the map and skip if present (config file should take precedence)
-			_, exists := p.profiles[section]
-			if exists {
-				debug.Fprintf(debug.VerbosityDebug, color.Output, "skipping profile with name %s - profile already defined in config", section)
-				continue
+	for _, section := range credentialsFile.Sections() {
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		if section.Name() != "DEFAULT" {
+			// We only care about the non default sections for the credentials file (no profile prefix either)
+			if section.Name() != "default" && isLegalProfileName(section.Name()) {
+				// check for a duplicate profile in the map and skip if present (config file should take precedence)
+				_, exists := p.profiles[section.Name()]
+				if exists {
+					clio.Debugf("skipping profile with name %s - profile already defined in config", section.Name())
+					continue
+				}
+				p.ProfileNames = append(p.ProfileNames, section.Name())
+				p.profiles[section.Name()] = &Profile{RawConfig: section, Name: section.Name(), File: credsPath}
 			}
-			p.ProfileNames = append(p.ProfileNames, section)
-			p.profiles[section] = &Profile{RawConfig: rawConfig, Name: section, File: credsPath}
 		}
 	}
 	return nil
@@ -154,9 +160,11 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 
 // Helper function which returns true if provided profile name string does not contain illegal characters
 func isLegalProfileName(name string) bool {
-	illegalChars := "\\][;'\"" // These characters break the config file format and should not be usable for profile names
-	if strings.ContainsAny(name, illegalChars) {
-		fmt.Fprintf(color.Error, "warning, profile: %s cannot be loaded because it contains one or more of: '%s' in the name, try replacing these with '-'\n", name, illegalChars)
+	illegalProfileNameCharacters := regexp.MustCompile(`[\\[\];'" ]`)
+	illegalChars := `\][;'"` // These characters break the config file format and should not be usable for profile names
+	if illegalProfileNameCharacters.MatchString(name) {
+		clio.Warnf("The profile %s cannot be loaded because the name contains one or more of these characters '%s'", name, illegalChars)
+		clio.Infof("Try renaming the profile to '%s'", illegalProfileNameCharacters.ReplaceAllString(name, "-"))
 		return false
 	}
 	return true
@@ -180,25 +188,32 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		return nil, err
 	}
 
-	// For config that has 'granted' prefix we need to convert the custom config to
+	// For config that has 'granted' prefix we need to convert this to AWS config fields
 	// aws configuration
-	if hasGrantedPrefix(pr.RawConfig) {
-		err = IsValidGrantedProfile(pr.RawConfig)
+	if hasGrantedSSOPrefix(pr.RawConfig) {
+		awsConfig, err := ParseGrantedSSOProfile(ctx, pr)
 		if err != nil {
 			return nil, err
 		}
-
-		gConfig := NewGrantedConfig(pr.RawConfig)
-		awsConfig, err := gConfig.ConvertToAWSConfig(ctx, pr)
-		if err != nil {
-			return nil, err
-		}
-
 		pr.AWSConfig = *awsConfig
-
 		pr.Initialised = true
 		pr.ProfileType = "AWS_SSO"
 		return pr, nil
+	} else {
+		for _, v := range pr.RawConfig.Keys() {
+			if v.Name() == "credential_process" && strings.HasPrefix(v.Value(), build.GrantedBinaryName()) {
+				awsConfig, err := config.LoadSharedConfigProfile(ctx, pr.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{pr.File} })
+				if err != nil {
+					return nil, err
+				}
+				pr.AWSConfig = awsConfig
+				pr.AWSConfig.CredentialProcess = ""
+				pr.Initialised = true
+				pr.ProfileType = "AWS_IAM"
+				pr.HasSecureStorageIAMCredentials = true
+				return pr, nil
+			}
+		}
 	}
 
 	// default initializaton flow
@@ -264,6 +279,7 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 		// potentially triggered by bad config files with cycles in source_profile
 		// In simple cases this seems to be picked up by the AWS sdk before the profiles are initialised which would log a debug message instead
 		p.Initialised = true
+
 		cfg, err := config.LoadSharedConfigProfile(ctx, p.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{p.File} })
 		if err != nil {
 			return err

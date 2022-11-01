@@ -3,7 +3,6 @@ package granted
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/pkg/errors"
@@ -18,8 +17,8 @@ type awsCredsStdOut struct {
 	Version         int    `json:"Version"`
 	AccessKeyID     string `json:"AccessKeyId"`
 	SecretAccessKey string `json:"SecretAccessKey"`
-	SessionToken    string `json:"SessionToken"`
-	Expiration      string `json:"Expiration"`
+	SessionToken    string `json:"SessionToken,omitempty"`
+	Expiration      string `json:"Expiration,omitempty"`
 }
 
 var CredentialProcess = cli.Command{
@@ -46,11 +45,7 @@ var CredentialProcess = cli.Command{
 
 		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration})
 		if err != nil {
-			// print the error so the user knows what went wrong.
-			fmt.Fprintln(os.Stderr, err)
-
-			// exit with an error status, as we haven't been able to assume the role.
-			os.Exit(1)
+			return err
 		}
 
 		out := awsCredsStdOut{
@@ -58,7 +53,9 @@ var CredentialProcess = cli.Command{
 			AccessKeyID:     creds.AccessKeyID,
 			SecretAccessKey: creds.SecretAccessKey,
 			SessionToken:    creds.SessionToken,
-			Expiration:      creds.Expires.Format(time.RFC3339),
+		}
+		if creds.CanExpire {
+			out.Expiration = creds.Expires.Format(time.RFC3339)
 		}
 
 		jsonOut, err := json.Marshal(out)

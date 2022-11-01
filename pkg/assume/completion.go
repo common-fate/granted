@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/urfave/cli/v2"
 )
@@ -15,6 +16,10 @@ import (
 //
 // You can use `assume -c ` + tab to get profile names or `assume -` + tab to get flags
 func Completion(ctx *cli.Context) {
+	clio.SetLevelFromEnv("GRANTED_LOG")
+	if ctx.Bool("verbose") {
+		clio.SetLevelFromString("debug")
+	}
 	if len(os.Args) > 2 && strings.HasPrefix(os.Args[len(os.Args)-2], "-") {
 		// set the ooutput back to std out so that this completion works correctly
 		ctx.App.Writer = os.Stdout

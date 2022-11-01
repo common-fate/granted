@@ -1,21 +1,18 @@
 package granted
 
 import (
-	"fmt"
-
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/debug"
 	"github.com/common-fate/granted/pkg/granted/registry"
 	"github.com/common-fate/granted/pkg/granted/settings"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Fprintln(color.Error, banners.WithVersion(banners.Granted()))
+		clio.Log(banners.WithVersion(banners.Granted()))
 	}
 
 	flags := []cli.Flag{
@@ -30,11 +27,12 @@ func GetCliApp() *cli.App {
 		UsageText:            "granted [global options] command [command options] [arguments...]",
 		Version:              build.Version,
 		HideVersion:          false,
-		Commands:             []*cli.Command{&DefaultBrowserCommand, &settings.SettingsCommand, &CompletionCommand, &TokenCommand, &UninstallCommand, &CredentialProcess, &registry.ProfileRegistry},
+		Commands:             []*cli.Command{&DefaultBrowserCommand, &settings.SettingsCommand, &CompletionCommand, &TokenCommand, &SSOTokensCommand, &UninstallCommand, &SSOCommand, &CredentialsCommand, &CredentialProcess, &registry.ProfileRegistry},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
+			clio.SetLevelFromEnv("GRANTED_LOG")
 			if c.Bool("verbose") {
-				debug.CliVerbosity = debug.VerbosityDebug
+				clio.SetLevelFromString("debug")
 			}
 			if err := config.SetupConfigFolder(); err != nil {
 				return err

@@ -5,8 +5,7 @@ import (
 	"os"
 	"testing"
 
-	"github.com/bmizerany/assert"
-	"github.com/fatih/color"
+	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
 )
 
@@ -47,7 +46,7 @@ func TestFlagsPassToCFFlags(t *testing.T) {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		fmt.Fprintf(color.Error, "%s\n", err)
+		fmt.Fprintf(os.Stderr, "%s\n", err)
 		os.Exit(1)
 	}
 

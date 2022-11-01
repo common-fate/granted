@@ -1,9 +1,8 @@
 package cfaws
 
 import (
-	"github.com/common-fate/granted/pkg/debug"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/frecency"
-	"github.com/fatih/color"
 	"github.com/pkg/errors"
 )
 
@@ -23,11 +22,11 @@ func (f *FrecentProfiles) Update(selectedProfile string) {
 	}
 	err := f.store.DeleteAll(s)
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, color.Error, errors.Wrap(err, "removing entries from frecency").Error())
+		clio.Debug(errors.Wrap(err, "removing entries from frecency").Error())
 	}
 	err = f.store.Upsert(selectedProfile)
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, color.Error, errors.Wrap(err, "upserting entry to frecency").Error())
+		clio.Debug(errors.Wrap(err, "upserting entry to frecency").Error())
 	}
 }
 
@@ -35,11 +34,11 @@ func (f *FrecentProfiles) Update(selectedProfile string) {
 func UpdateFrecencyCache(selectedProfile string) {
 	fr, err := frecency.Load(frecencyStoreKey)
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, color.Error, errors.Wrap(err, "loading aws_profiles_frecency frecency store").Error())
+		clio.Debug(errors.Wrap(err, "loading aws_profiles_frecency frecency store").Error())
 	} else {
 		err = fr.Upsert(selectedProfile)
 		if err != nil {
-			debug.Fprintf(debug.VerbosityDebug, color.Error, errors.Wrap(err, "upserting entry to frecency").Error())
+			clio.Debug(errors.Wrap(err, "upserting entry to frecency").Error())
 		}
 	}
 }
@@ -51,7 +50,7 @@ func (p *Profiles) GetFrecentProfiles() (*FrecentProfiles, []string) {
 	namesMap := make(map[string]string)
 	fr, err := frecency.Load(frecencyStoreKey)
 	if err != nil {
-		debug.Fprintf(debug.VerbosityDebug, color.Error, errors.Wrap(err, "loading aws_profiles_frecency frecency store").Error())
+		clio.Debug(errors.Wrap(err, "loading aws_profiles_frecency frecency store").Error())
 	}
 	namesToRemoveFromFrecency := []string{}
 

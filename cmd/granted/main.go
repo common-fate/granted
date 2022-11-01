@@ -1,24 +1,27 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
+	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/granted"
-	"github.com/fatih/color"
-
-	"github.com/urfave/cli/v2"
+	"github.com/common-fate/updatecheck"
 )
 
 func main() {
-	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Printf("Granted v%s\n", build.Version)
-	}
+	updatecheck.Check(updatecheck.GrantedCLI, build.Version, !build.IsDev())
+	defer updatecheck.Print()
 	app := granted.GetCliApp()
 	err := app.Run(os.Args)
 	if err != nil {
-		fmt.Fprintf(color.Error, "%s\n", err)
+		// if the error is an instance of clierr.PrintCLIErrorer then print the error accordingly
+		if cliError, ok := err.(clierr.PrintCLIErrorer); ok {
+			cliError.PrintCLIError()
+		} else {
+			clio.Error(err.Error())
+		}
 		os.Exit(1)
 	}
 }

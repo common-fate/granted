@@ -4,8 +4,6 @@ package forkprocess
 
 import (
 	"os/exec"
-	"os/user"
-	"strconv"
 
 	"github.com/pkg/errors"
 )
@@ -20,22 +18,7 @@ type Process struct {
 // New creates a new Process with the current user's user and group ID.
 // Call Start() on the returned process to actually it.
 func New(args ...string) (*Process, error) {
-	u, err := user.Current()
-	if err != nil {
-		return nil, errors.Wrap(err, "getting current user")
-	}
-	uid, err := strconv.ParseUint(u.Uid, 10, 32)
-	if err != nil {
-		return nil, errors.Wrapf(err, "parsing uid (%s)", u.Uid)
-	}
-	gid, err := strconv.ParseUint(u.Gid, 10, 32)
-	if err != nil {
-		return nil, errors.Wrapf(err, "parsing gid (%s)", u.Uid)
-	}
-
 	p := Process{
-		UID:  uint32(uid),
-		GID:  uint32(gid),
 		Args: args,
 	}
 	return &p, nil

@@ -2,9 +2,7 @@ package cfaws
 
 import (
 	"context"
-	"fmt"
 	"net/http"
-	"os"
 	"os/exec"
 	"time"
 
@@ -18,10 +16,13 @@ import (
 	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
-	"github.com/bigkevmcd/go-configparser"
+	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
-	"github.com/fatih/color"
+	"github.com/common-fate/granted/pkg/securestorage"
+	"github.com/hako/durafmt"
+	"github.com/pkg/browser"
 	"github.com/pkg/errors"
+	"gopkg.in/ini.v1"
 )
 
 // Implements Assumer
@@ -41,7 +42,7 @@ func (asa *AwsSsoAssumer) Type() string {
 }
 
 // Matches the profile type on whether it is an sso profile by checking for ssoaccountid.
-func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
+func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProfile config.SharedConfig) bool {
 	return parsedProfile.SSOAccountID != ""
 }
 
@@ -59,7 +60,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	cfg := aws.NewConfig()
 	cfg.Region = rootProfile.AWSConfig.SSORegion
 
-	cachedToken := GetValidCachedToken(ssoTokenKey)
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
 	var accessToken *string
 	if cachedToken == nil {
 		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
@@ -67,7 +69,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			return aws.Credentials{}, err
 		}
 
-		StoreSSOToken(ssoTokenKey, *newSSOToken)
+		secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *newSSOToken)
 		accessToken = &newSSOToken.AccessToken
 	} else {
 		accessToken = &cachedToken.AccessToken
@@ -85,17 +87,13 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			// to set up the request URL if it's empty.
 			if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
 				if httpErr.HTTPStatusCode() == http.StatusForbidden {
-					if hasGrantedPrefix(c.RawConfig) {
+					if hasGrantedSSOPrefix(c.RawConfig) {
 						gConf, loadErr := grantedConfig.Load()
 						if loadErr != nil {
-							return aws.Credentials{}, errors.Wrapf(err, "loading Granted config: %s", loadErr.Error())
+							clio.Debugf(errors.Wrapf(err, "loading Granted config during sso error handling: %s", loadErr.Error()).Error())
+							return aws.Credentials{}, serr
 						}
-
-						requestURLMsg, err := GetGrantedApprovalsURL(c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
-						if err != nil {
-							return aws.Credentials{}, err
-						}
-						fmt.Fprintln(os.Stderr, requestURLMsg)
+						return aws.Credentials{}, FormatAWSErrorWithGrantedApprovalsURL(serr, c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
 					}
 				}
 			}
@@ -105,7 +103,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		var unauthorised *ssotypes.UnauthorizedException
 		if errors.As(err, &unauthorised) {
 			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
-			ClearSSOToken(ssoTokenKey)
+			secureSSOTokenStorage.ClearSSOToken(ssoTokenKey)
 		}
 		return aws.Credentials{}, err
 	}
@@ -149,8 +147,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			// only print for sub assumes because the final credentials are printed at the end of the assume command
 			// this is here for visibility in to role traversals when assuming a final profile with sso
 			if i < len(toAssume)-1 {
-				green := color.New(color.FgGreen)
-				green.Fprintf(color.Error, "\nAssumed parent profile: [%s](%s) session credentials will expire %s\n", p.Name, region, stsCreds.Expires.Local().String())
+				durationDescription := durafmt.Parse(time.Until(stsCreds.Expires) * time.Second).LimitFirstN(1).String()
+				clio.Successf("Assumed parent profile: [%s](%s) session credentials will expire %s", p.Name, region, durationDescription)
 			}
 			credProvider = &CredProv{stsCreds}
 
@@ -161,7 +159,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 }
 
 // SSODeviceCodeFlowFromStartUrl contains all the steps to complete a device code flow to retrieve an SSO token
-func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*SSOToken, error) {
+func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*securestorage.SSOToken, error) {
 	ssooidcClient := ssooidc.NewFromConfig(cfg)
 
 	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
@@ -185,7 +183,8 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	}
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	fmt.Fprintf(color.Error, "If browser is not opened automatically, please open link:\n%v\n", url)
+	clio.Info("If the browser does not open automatically, please open this link:")
+	clio.Info(url)
 
 	//check if sso browser path is set
 	config, err := grantedConfig.Load()
@@ -193,30 +192,35 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 		return nil, err
 	}
 
-	browserCommand := "open" // we default to running 'open <URL>'
-
 	if config.CustomSSOBrowserPath != "" {
-		// replace the 'open' command with a call to the custom browser path.
-		browserCommand = config.CustomSSOBrowserPath
-	}
-	cmd := exec.Command(browserCommand, url) // TODO:CHR why do we need the spaces around the URL?
-	err = cmd.Start()
-	if err != nil {
-		return nil, err
-	}
-	// detach from this new process because it continues to run
-	err = cmd.Process.Release()
-	if err != nil {
-		return nil, err
+		cmd := exec.Command(config.CustomSSOBrowserPath, url)
+		err = cmd.Start()
+		if err != nil {
+			// fail silently
+			clio.Debug(err.Error())
+		} else {
+			// detatch from this new process because it continues to run
+			err = cmd.Process.Release()
+			if err != nil {
+				// fail silently
+				clio.Debug(err.Error())
+			}
+		}
+	} else {
+		err = browser.OpenURL(url)
+		if err != nil {
+			// fail silently
+			clio.Debug(err.Error())
+		}
 	}
 
-	fmt.Fprintln(color.Error, "\nAwaiting authentication in the browser...")
+	clio.Info("Awaiting authentication in the browser...")
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
 		return nil, err
 	}
 
-	return &SSOToken{AccessToken: *token.AccessToken, Expiry: time.Now().Add(time.Duration(token.ExpiresIn) * time.Second)}, nil
+	return &securestorage.SSOToken{AccessToken: *token.AccessToken, Expiry: time.Now().Add(time.Duration(token.ExpiresIn) * time.Second)}, nil
 }
 
 var ErrTimeout error = errors.New("polling for device authorization token timed out")

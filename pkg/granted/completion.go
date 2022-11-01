@@ -10,11 +10,11 @@ import (
 	"os/user"
 	"path"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/assume"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/shells"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -43,8 +43,7 @@ var CompletionCommand = cli.Command{
 		case "bash":
 			err = installBashCompletions(c)
 		default:
-			fmt.Fprintln(color.Error, "To install completions for other shells, please see our docs:")
-			fmt.Fprintln(color.Error, "https://granted.dev/autocompletion")
+			clio.Info("To install completions for other shells, please see our docs: https://granted.dev/autocompletion")
 		}
 		return err
 	},
@@ -70,12 +69,9 @@ func installFishCompletions(c *cli.Context) error {
 	if err != nil {
 		return fmt.Errorf("Something went wrong when saving fish autocompletions: " + err.Error())
 	}
-
-	green := color.New(color.FgGreen)
-
-	green.Fprintln(color.Error, "[✔] Fish autocompletions generated successfully ")
-	fmt.Fprintln(color.Error, "To use these completions please run the executable:")
-	fmt.Fprintln(color.Error, "source "+executableDir)
+	clio.Success("Fish autocompletions generated successfully")
+	clio.Info("To use these completions please run the executable:")
+	clio.Infof("source %s", executableDir)
 	return nil
 }
 
@@ -138,15 +134,12 @@ func installZSHCompletions(c *cli.Context) error {
 	if is := errors.As(err, &lae); err != nil && !is {
 		return err
 	}
-	green := color.New(color.FgGreen)
-	green.Fprintln(color.Error, "[✔] ZSH autocompletions generated successfully ")
-	alert := color.New(color.Bold, color.FgYellow).SprintFunc()
-	fmt.Fprintf(color.Error, "\n%s\n", alert("Shell restart required to apply changes: please open a new terminal and test the autocomplete."))
+	clio.Success("ZSH autocompletions generated successfully")
+	clio.Warn("A shell restart is required to apply changes, please open a new terminal to test that autocomplete is working")
 	return nil
 }
 
 func installBashCompletions(c *cli.Context) error {
-	fmt.Fprintln(color.Error, "We don't have completion support for bash yet, check out our docs to find out how to let us know you want this feature.")
-	fmt.Fprintln(color.Error, "https://granted.dev/autocompletion")
+	clio.Info("We don't have completion support for bash yet, check out our docs to find out how to let us know you want this feature https://granted.dev/autocompletion")
 	return nil
 }

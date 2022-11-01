@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/testable"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -20,12 +20,8 @@ var ExportSettingsCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-
-		green := color.New(color.FgGreen)
-
-		green.Fprintln(color.Error, "Current suffix: ", cfg.ExportCredentialSuffix)
+		fmt.Println(cfg.ExportCredentialSuffix)
 		return nil
-
 	},
 }
 
@@ -42,7 +38,7 @@ var SetExportSettingsCommand = cli.Command{
 			Message: "Exported credential suffix:",
 		}
 		var selection string
-		fmt.Fprintln(color.Error)
+		clio.NewLine()
 		err = testable.AskOne(&in, &selection, withStdio)
 		if err != nil {
 			return err
@@ -54,9 +50,7 @@ var SetExportSettingsCommand = cli.Command{
 			return err
 		}
 
-		green := color.New(color.FgGreen)
-
-		green.Fprintln(color.Error, "Set export credential suffix to: ", selection)
+		clio.Successf("Set export credential suffix to: %s", selection)
 		return nil
 
 	},

@@ -5,12 +5,12 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/bigkevmcd/go-configparser"
+	"gopkg.in/ini.v1"
 )
 
-//Added support for optional pass through args on proxy sso provider
-//When using a sso provider adding pass through flags can be acheived by adding the -pass-through or -pt flag
-//EG. assume role-a -pt --mode -pt gui (Run the proxy login with a gui rather than in cli. Example taken from aws-azure-login)
+// Added support for optional pass through args on proxy sso provider
+// When using a sso provider adding pass through flags can be acheived by adding the -pass-through or -pt flag
+// EG. assume role-a -pt --mode -pt gui (Run the proxy login with a gui rather than in cli. Example taken from aws-azure-login)
 type Assumer interface {
 	// AssumeTerminal should follow the required process for it implemetation and return aws credentials ready to be exported to the terminal environment
 	AssumeTerminal(context.Context, *Profile, ConfigOpts) (aws.Credentials, error)
@@ -19,7 +19,7 @@ type Assumer interface {
 	// A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH
 	Type() string
 	// ProfileMatchesType takes a list of strings which are the lines in an aw config profile and returns true if this profile is the assumers type
-	ProfileMatchesType(configparser.Dict, config.SharedConfig) bool
+	ProfileMatchesType(*ini.Section, config.SharedConfig) bool
 }
 
 // List of assumers should be ordered by how they match type
