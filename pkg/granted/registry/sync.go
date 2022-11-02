@@ -1,9 +1,12 @@
 package registry
 
 import (
+	"bufio"
 	"fmt"
+	"log"
 	"net/url"
 	"os"
+	"os/exec"
 	"path"
 	"path/filepath"
 	"regexp"
@@ -34,26 +37,26 @@ var SyncCommand = cli.Command{
 				return err
 			}
 
-			// pull the repo here.
-			// fmt.Printf("git -C %s pull %s %s\n", repoDirPath, "origin", "main")
-			// cmd := exec.Command("git", "-C", repoDirPath, "pull", "origin", "main")
-
-			// // StderrPipe returns a pipe that will be connected to the command's
-			// // standard error when the command starts.
-			// // TODO: Sync command should have silent option and probably log to external log file on error.
-			// stderr, _ := cmd.StderrPipe()
-			// if err := cmd.Start(); err != nil {
-			// 	log.Fatal(err)
-			// }
-
-			// scanner := bufio.NewScanner(stderr)
-			// for scanner.Scan() {
-			// 	fmt.Println(scanner.Text())
-			// }
-
 			repoDirPath, err := GetRegistryLocation(u)
 			if err != nil {
 				return err
+			}
+
+			// pull the repo here.
+			fmt.Printf("git -C %s pull %s %s\n", repoDirPath, "origin", "main")
+			cmd := exec.Command("git", "-C", repoDirPath, "pull", "origin", "main")
+
+			// StderrPipe returns a pipe that will be connected to the command's
+			// standard error when the command starts.
+			// TODO: Sync command should have silent option and probably log to external log file on error.
+			stderr, _ := cmd.StderrPipe()
+			if err := cmd.Start(); err != nil {
+				log.Fatal(err)
+			}
+
+			scanner := bufio.NewScanner(stderr)
+			for scanner.Scan() {
+				fmt.Println(scanner.Text())
 			}
 
 			var r Registry
