@@ -8,7 +8,8 @@ import (
 
 // TODO: Sync command/Add command should create new aws config file if not found.
 var SyncCommand = cli.Command{
-	Name: "sync",
+	Name:        "sync",
+	Description: "Pull the latest change from remote origin and sync aws profiles in aws config files. For more click here https://github.com/common-fate/rfds/discussions/2",
 	Action: func(c *cli.Context) error {
 
 		gConf, err := grantedConfig.Load()

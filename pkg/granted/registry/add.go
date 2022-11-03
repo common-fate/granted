@@ -21,8 +21,10 @@ func GlobalFlags() []cli.Flag {
 }
 
 var AddCommand = cli.Command{
-	Name:  "add",
-	Flags: GlobalFlags(),
+	Name:        "add",
+	Description: "Add a profile registry that you want to sync with aws config file",
+	Usage:       "Provide git repository you want to sync with aws config file",
+	Flags:       GlobalFlags(),
 	Action: func(c *cli.Context) error {
 
 		if c.Args().Len() < 1 {
