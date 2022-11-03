@@ -1,12 +1,10 @@
 package registry
 
 import (
-	"net/url"
 	"os"
 	"path"
 
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/urfave/cli/v2"
 	"gopkg.in/yaml.v3"
 )
 
@@ -30,16 +28,11 @@ func (c *Registry) Parse(folderpath string) (*Registry, error) {
 }
 
 // GetRegistryLocation returns the directory path where cloned repo is located.
-func GetRegistryLocation(u *url.URL) (string, error) {
+func getRegistryLocation(u GitURL) (string, error) {
 	gConfigPath, err := config.GrantedConfigFolder()
 	if err != nil {
 		return "", err
 	}
 
-	return path.Join(gConfigPath, "registries", u.Host, formatFolderPath(u.Path)), nil
-}
-
-var ProfileRegistry = cli.Command{
-	Name:        "registry",
-	Subcommands: []*cli.Command{&AddCommand, &SyncCommand},
+	return path.Join(gConfigPath, "registries", u.Host, (u.Org + "/" + u.Repo)), nil
 }

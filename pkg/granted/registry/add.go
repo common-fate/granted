@@ -1,15 +1,12 @@
 package registry
 
 import (
-	"errors"
 	"fmt"
-	"net/url"
 	"os"
-	"os/exec"
 	"strings"
 
+	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
-	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 
 	"github.com/urfave/cli/v2"
 )
@@ -28,13 +25,8 @@ var AddCommand = cli.Command{
 	Flags: GlobalFlags(),
 	Action: func(c *cli.Context) error {
 
-		addFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c, 3)
-		if err != nil {
-			return err
-		}
-
 		if c.Args().Len() < 1 {
-			return fmt.Errorf("git repository not provided. You need to provide a git repository like 'granted add https://github.com/your-org/your-registry.git'")
+			clio.Error("Please provide a git repository you want to add like 'granted registry add <https://github.com/your-org/your-registry.git>'")
 		}
 
 		var repoURLs []string
@@ -63,88 +55,75 @@ var AddCommand = cli.Command{
 			return err
 		}
 
-		// save the repo url to granted config toml file.
-		gConf.ProfileRegistryURLS = repoURLs
-		if err := gConf.Save(); err != nil {
-			return err
-		}
-
 		for index, repoURL := range repoURLs {
-			// TODO: parse fails for SSH url
-			u, err := url.Parse(repoURL)
-			if err != nil {
-				return errors.New(err.Error())
-			}
-
-			repoDirPath, err := GetRegistryLocation(u)
+			url, err := parseGitURL(repoURL)
 			if err != nil {
 				return err
 			}
 
-			// check repo directory to see if repo exists
-			// use clone if not exists, pull if exists
-			_, err = os.Stat(repoDirPath)
+			repoDirPath, err := getRegistryLocation(url)
 			if err != nil {
+				return err
+			}
+
+			if _, err = os.Stat(repoDirPath); err != nil {
+				// directory doesn't exist; clone the repo
 				if os.IsNotExist(err) {
-					fmt.Printf("git clone %s\n", repoURL)
-
-					cmd := exec.Command("git", "clone", repoURL, repoDirPath)
-
-					err = cmd.Run()
+					err = gitClone(repoURL, repoDirPath)
 					if err != nil {
 						return err
-
 					}
-					fmt.Println("Successfully cloned the repo")
 
-					//if a specific ref is passed we will checkout that ref
-					if addFlags.String("ref") != "" {
-						fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
+					// //if a specific ref is passed we will checkout that ref
+					// if addFlags.String("ref") != "" {
+					// 	fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
 
-						err = checkoutRef(addFlags.String("ref"), repoDirPath)
-						if err != nil {
-							return err
+					// 	err = checkoutRef(addFlags.String("ref"), repoDirPath)
+					// 	if err != nil {
+					// 		return err
 
-						}
-					}
+					// 	}
+					// }
 
 				} else {
+					// other error. Should not happen.
 					return err
 				}
 			} else {
-				//if a specific ref is passed we will checkout that ref
-				if addFlags.String("ref") != "" {
-					fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
-					err = checkoutRef(addFlags.String("ref"), repoDirPath)
-					if err != nil {
-						return err
-
-					}
-				}
-				fmt.Printf("git pull %s\n", repoURL)
-
-				cmd := exec.Command("git", "--git-dir", repoDirPath+"/.git", "pull")
-
-				err = cmd.Run()
-				if err != nil {
-					return err
-				}
-				fmt.Println("Successfully pulled the repo")
-
+				// file exists; pull instead of clone.
+				clio.Debugf("%s already exists; pulling instead of cloning. ", repoURL)
+				gitPull(repoDirPath, false)
 			}
 
-			if err, ok := isValidRegistry(repoDirPath, repoURL); err != nil || !ok {
-				if err != nil {
-					return err
-				}
+			//if a specific ref is passed we will checkout that ref
+			// if addFlags.String("ref") != "" {
+			// 	fmt.Println("attempting to checkout branch" + addFlags.String("ref"))
+			// 	err = checkoutRef(addFlags.String("ref"), repoDirPath)
+			// 	if err != nil {
+			// 		return err
 
-				return fmt.Errorf("unable to find `granted.yml` file in %s", repoURL)
+			// 	}
+			// }
+
+			// check if the fetched cloned repo contains granted.yml file.
+			if err = parseClonedRepo(repoDirPath, repoURL); err != nil {
+				return err
 			}
 
 			var r Registry
 			_, err = r.Parse(repoDirPath)
 			if err != nil {
 				return err
+			}
+
+			// save only if new repo url is added.
+			// TODO: ssh & https for the same repo will duplicate.
+			if !Contains(gConf.ProfileRegistryURLS, repoURL) {
+				gConf.ProfileRegistryURLS = append(gConf.ProfileRegistryURLS, repoURL)
+
+				if err := gConf.Save(); err != nil {
+					return err
+				}
 			}
 
 			isFirstSection := false
@@ -162,7 +141,7 @@ var AddCommand = cli.Command{
 	},
 }
 
-func formatFolderPath(p string) string {
+func FormatFolderPath(p string) string {
 	var formattedURL string
 
 	// remove trailing whitespaces.
@@ -177,36 +156,17 @@ func formatFolderPath(p string) string {
 	return formattedURL
 }
 
-func isValidRegistry(folderpath string, url string) (error, bool) {
+func parseClonedRepo(folderpath string, url string) error {
 	dir, err := os.ReadDir(folderpath)
 	if err != nil {
-		return err, false
+		return err
 	}
 
 	for _, file := range dir {
 		if file.Name() == "granted.yml" || file.Name() == "granted.yaml" {
-			return nil, true
+			return nil
 		}
 	}
 
-	return nil, false
-}
-
-func checkoutRef(ref string, repoDirPath string) error {
-	//if a specific ref is passed we will checkout that ref
-
-	//can be a git hash, tag, or branch name. In that order
-	//todo set the path of the repo before checking out
-
-	cmd := exec.Command("git", "checkout", ref)
-	cmd.Dir = repoDirPath
-
-	err := cmd.Run()
-	if err != nil {
-		fmt.Println("the error is", err)
-		return err
-	}
-	fmt.Println("Sucessfully checkout out " + ref)
-	return nil
-
+	return fmt.Errorf("unable to find `granted.yml` file in %s", url)
 }
