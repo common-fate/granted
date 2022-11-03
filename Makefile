@@ -7,11 +7,13 @@ assume-binary:
 	go build -o ./bin/dassumego cmd/assume/main.go
 
 cli: go-binary assume-binary
-	mv ./bin/dgranted ${PREFIX}/bin/
+	mv ./bin/dgranted ${PREFIX}/bin/granted
 	mv ./bin/dassumego ${PREFIX}/bin/
 	# replace references to "assumego" (the production binary) with "dassumego"
 	cat scripts/assume | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume && chmod +x ${PREFIX}/bin/dassume
 	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.fish && chmod +x ${PREFIX}/bin/dassume.fish
+	mv ${PREFIX}/bin/dassume ${PREFIX}/bin/assume
+	mv ${PREFIX}/bin/dassume.fish ${PREFIX}/bin/assume.fish
 
 clean:
 	rm ${PREFIX}/bin/dassumego
