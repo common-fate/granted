@@ -15,7 +15,7 @@ func getDefaultAWSConfigLocation() (string, error) {
 		return "", err
 	}
 
-	configPath := filepath.Join(h, ".aws", "config2")
+	configPath := filepath.Join(h, ".aws", "config")
 	return configPath, nil
 }
 
