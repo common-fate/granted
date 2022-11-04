@@ -58,6 +58,14 @@ var AddCommand = cli.Command{
 		}
 
 		for index, repoURL := range repoURLs {
+			// save only if new repo url is added.
+			// TODO: ssh & https for the same repo will duplicate.
+			if Contains(gConf.ProfileRegistryURLS, repoURL) {
+				clio.Warnf("Already subscribed to '%s'. Skipping adding this registry. Use 'granted registry sync' cmd instead to sync the config files.", repoURL)
+
+				continue
+			}
+
 			url, err := parseGitURL(repoURL)
 			if err != nil {
 				return err
@@ -112,20 +120,18 @@ var AddCommand = cli.Command{
 				return err
 			}
 
+			// we have verified that this registry is a valid one
+			// so save the repo url now.
+			gConf.ProfileRegistryURLS = append(gConf.ProfileRegistryURLS, repoURL)
+
+			if err := gConf.Save(); err != nil {
+				return err
+			}
+
 			var r Registry
 			_, err = r.Parse(repoDirPath)
 			if err != nil {
 				return err
-			}
-
-			// save only if new repo url is added.
-			// TODO: ssh & https for the same repo will duplicate.
-			if !Contains(gConf.ProfileRegistryURLS, repoURL) {
-				gConf.ProfileRegistryURLS = append(gConf.ProfileRegistryURLS, repoURL)
-
-				if err := gConf.Save(); err != nil {
-					return err
-				}
 			}
 
 			isFirstSection := false
