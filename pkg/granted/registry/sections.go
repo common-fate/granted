@@ -130,7 +130,11 @@ func generateNewRegistrySection(configFile *ini.File, clonedFile *ini.File, repo
 			}
 
 			*f = *sec
-			f.Comment = "# Changed name because of duplication. \n" + f.Comment
+			if f.Comment == "" {
+				f.Comment = "# profile name has been prefixed due to duplication"
+			} else {
+				f.Comment = "# profile name has been prefixed due to duplication. \n" + f.Comment
+			}
 
 			continue
 		}
