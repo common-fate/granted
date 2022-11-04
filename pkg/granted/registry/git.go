@@ -44,12 +44,12 @@ func gitPull(repoDirPath string, shouldSilentLogs bool) error {
 
 	// StderrPipe returns a pipe that will be connected to the command's
 	// standard error when the command starts.
-	if shouldSilentLogs {
-		stderr, _ := cmd.StderrPipe()
-		if err := cmd.Start(); err != nil {
-			log.Fatal(err)
-		}
+	stderr, _ := cmd.StderrPipe()
+	if err := cmd.Start(); err != nil {
+		log.Fatal(err)
+	}
 
+	if !shouldSilentLogs {
 		scanner := bufio.NewScanner(stderr)
 		for scanner.Scan() {
 			fmt.Println(scanner.Text())
