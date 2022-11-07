@@ -23,7 +23,7 @@ var RemoveCommand = cli.Command{
 		}
 
 		if len(gConf.ProfileRegistryURLS) <= 0 {
-			clio.Error("There are no granted registry configured currently.\n Please use 'granted registry add <https://github.com/your-org/your-registry.git>' to add a new git repository")
+			clio.Error("There are no profile registries configured currently.\n Please use 'granted registry add <https://github.com/your-org/your-registry.git>' to add a new registry")
 
 			return nil
 		}
