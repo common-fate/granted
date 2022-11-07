@@ -120,7 +120,7 @@ func AssumeCommand(c *cli.Context) error {
 					longestProfileNameLength = len(pn)
 				}
 			}
-			color.NoColor = false
+
 			promptHeader := color.New(color.Underline, color.Bold).Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", "Profile", "Description")
 			for i, pn := range profileNames {
 				var description string
@@ -131,7 +131,7 @@ func AssumeCommand(c *cli.Context) error {
 				}
 				stringKey := fmt.Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", pn, description)
 
-				profileNameMap[stringKey] = profileName
+				profileNameMap[stringKey] = pn
 				profileKeys[i] = stringKey
 			}
 			// This overrides the default prompt template to add a header row above the options
@@ -176,7 +176,6 @@ func AssumeCommand(c *cli.Context) error {
 			}
 			// Reset the template for select questions to the original
 			survey.SelectQuestionTemplate = originalSelectTemplate
-
 			profileName = profileNameMap[profileName]
 			// background task to update the frecency cache
 			wg.Add(1)
