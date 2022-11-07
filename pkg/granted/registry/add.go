@@ -3,7 +3,6 @@ package registry
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
@@ -138,21 +137,6 @@ var AddCommand = cli.Command{
 
 		return nil
 	},
-}
-
-func FormatFolderPath(p string) string {
-	var formattedURL string
-
-	// remove trailing whitespaces.
-	formattedURL = strings.TrimSpace(p)
-
-	// remove trailing '/'
-	formattedURL = strings.TrimPrefix(formattedURL, "/")
-
-	// remove .git from the folder name
-	formattedURL = strings.Replace(formattedURL, ".git", "", 1)
-
-	return formattedURL
 }
 
 func parseClonedRepo(folderpath string, url string) error {

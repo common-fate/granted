@@ -16,8 +16,8 @@ type GitURL struct {
 	Repo string
 }
 
-// TODO: Need to test this func
 func parseGitURL(repoURL string) (GitURL, error) {
+	clio.Debug("parsing the provided url to get host, organization and repo name")
 	re := regexp.MustCompile(`((git@|http(s)?:\/\/)(?P<HOST>[\w\.@]+)(\/|:))(?P<ORG>[\w,\-,\_]+)\/(?P<REPO>[\w,\-,\_]+)(.git){0,1}((\/){0,1})`)
 
 	if re.MatchString(repoURL) {
