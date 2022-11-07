@@ -5,6 +5,7 @@ import (
 	"path"
 	"path/filepath"
 
+	"github.com/common-fate/clio"
 	"gopkg.in/ini.v1"
 )
 
@@ -41,6 +42,7 @@ func loadAWSConfigFile() (*ini.File, error) {
 func loadClonedConfigs(r Registry, repoDirPath string) (*ini.File, error) {
 	clonedFile := ini.Empty()
 	for _, cfile := range r.AwsConfigPaths {
+		clio.Debugf("loading aws config file from %s", cfile)
 		filepath := path.Join(repoDirPath, cfile)
 
 		err := clonedFile.Append(filepath)

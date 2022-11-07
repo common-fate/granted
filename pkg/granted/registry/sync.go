@@ -87,6 +87,7 @@ var SyncCommand = cli.Command{
 }
 
 func Sync(r Registry, repoURL string, repoDirPath string, isFirstSection bool) error {
+	clio.Debugf("syncing %s \n", repoURL)
 
 	awsConfigPath, err := getDefaultAWSConfigLocation()
 	if err != nil {
@@ -109,6 +110,8 @@ func Sync(r Registry, repoURL string, repoDirPath string, isFirstSection bool) e
 	}
 
 	awsConfigFile.SaveTo(awsConfigPath)
+
+	clio.Debugln("Changes saved to aws config file.")
 
 	return nil
 }

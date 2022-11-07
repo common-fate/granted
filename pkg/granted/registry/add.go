@@ -129,6 +129,19 @@ var AddCommand = cli.Command{
 				isFirstSection = true
 			}
 
+			awsConfigPath, err := getDefaultAWSConfigLocation()
+			if err != nil {
+				return err
+			}
+
+			if _, err := os.Stat(awsConfigPath); os.IsNotExist(err) {
+				clio.Debugf("%s file doesnot exist. Creating an empty file\n", awsConfigPath)
+				_, err := os.Create(awsConfigPath)
+				if err != nil {
+					return fmt.Errorf("unable to create : %s", err)
+				}
+			}
+
 			// Sync clonned repo content with aws config file.
 			if err := Sync(r, repoURL, repoDirPath, isFirstSection); err != nil {
 				return err

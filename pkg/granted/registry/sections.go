@@ -5,6 +5,7 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/common-fate/clio"
 	"gopkg.in/ini.v1"
 )
 
@@ -96,6 +97,7 @@ func getNonGrantedProfiles(config *ini.File) []*ini.Section {
 }
 
 func generateNewRegistrySection(configFile *ini.File, clonedFile *ini.File, repoURL string, isFirstSection bool) error {
+	clio.Debugf("generating section %s", repoURL)
 	err := configFile.NewSections(fmt.Sprintf("granted_registry_start %s", repoURL))
 	if err != nil {
 		return err
@@ -124,6 +126,7 @@ func generateNewRegistrySection(configFile *ini.File, clonedFile *ini.File, repo
 		}
 
 		if Contains(localProfileNames, sec.Name()) {
+			clio.Debugf("profile name duplication found for %s. Prefixing %s to avoid collision.", sec.Name(), namespace)
 			f, err := configFile.NewSection(appendNamespaceToDuplicateSections(sec.Name(), namespace))
 			if err != nil {
 				return err
