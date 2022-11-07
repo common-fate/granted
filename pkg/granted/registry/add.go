@@ -11,20 +11,10 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-// Prevent issues where these flags are initialised in some part of the program then used by another part
-// For our use case, we need fresh copies of these flags in the app and in the assume command
-// we use this to allow flags to be set on either side of the profile arg e.g `assume -c profile-name -r ap-southeast-2`
-func GlobalFlags() []cli.Flag {
-	return []cli.Flag{
-		&cli.StringFlag{Name: "ref", Aliases: []string{"r"}, Usage: "Used to reference a specific commit hash, tag name or branch name"},
-	}
-}
-
 var AddCommand = cli.Command{
 	Name:        "add",
 	Description: "Add a profile registry that you want to sync with aws config file",
 	Usage:       "Provide git repository you want to sync with aws config file",
-	Flags:       GlobalFlags(),
 	Action: func(c *cli.Context) error {
 
 		if c.Args().Len() < 1 {
@@ -76,6 +66,8 @@ var AddCommand = cli.Command{
 				return err
 			}
 
+			clio.Debugf("registry location  %s", repoDirPath)
+
 			if _, err = os.Stat(repoDirPath); err != nil {
 				// directory doesn't exist; clone the repo
 				if os.IsNotExist(err) {
@@ -123,7 +115,6 @@ var AddCommand = cli.Command{
 			// we have verified that this registry is a valid one
 			// so save the repo url now.
 			gConf.ProfileRegistryURLS = append(gConf.ProfileRegistryURLS, repoURL)
-
 			if err := gConf.Save(); err != nil {
 				return err
 			}

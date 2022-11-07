@@ -57,7 +57,7 @@ func SSOProfileFromEnv() (*cfaws.Profile, error) {
 }
 
 func ssoFlags(c *cli.Context) (ssoStartURL, ssoRegion, accountID, roleName string) {
-	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c, 1)
+	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
 		return
 	}

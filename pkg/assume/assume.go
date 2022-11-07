@@ -40,7 +40,7 @@ type Launcher interface {
 func AssumeCommand(c *cli.Context) error {
 	// assumeFlags allows flags to be passed on either side of the role argument.
 	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
-	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c, 1)
+	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
 		return err
 	}
