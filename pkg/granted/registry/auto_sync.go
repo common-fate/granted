@@ -12,7 +12,6 @@ import (
 	"github.com/common-fate/clio"
 )
 
-// waitgroup is used to ensure that Check() has finished
 var waitgroup sync.WaitGroup
 
 var checks struct {
@@ -115,20 +114,20 @@ func Print() {
 	}
 }
 
-func runSync(rc registrySyncConfig) error {
+func runSync(rc registrySyncConfig) {
 	defer waitgroup.Done()
 	if err := syncProfileRegistries(); err != nil {
-		return err
+		clio.Debugf("error running granted registry sync with err %s", err)
+		return
 	}
 
 	rc.LastCheckForSync = time.Now().Weekday()
 	if err := rc.Save(); err != nil {
-		return err
+		clio.Debug("unable to save to registry sync config")
+		return
 	}
 
 	checks.mu.Lock()
 	defer checks.mu.Unlock()
 	checks.msgs = append(checks.msgs, fmt.Sprintf("successfully synced for the day %s", time.Now()))
-
-	return nil
 }
