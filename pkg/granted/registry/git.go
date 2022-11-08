@@ -80,15 +80,21 @@ func gitInit(repoDirPath string) error {
 // Check to see if a remote has been added
 func gitHasRemote(repoDirPath string) (bool, error) {
 	cmd := exec.Command("git", "-C", repoDirPath, "remote", "get-url", "origin")
-	output, err := cmd.Output()
-	fmt.Printf(string(output))
-	if strings.Contains(string(output), "No such remote") {
-		return false, nil
+
+	stderr, _ := cmd.StderrPipe()
+	if err := cmd.Start(); err != nil {
+		log.Fatal(err)
+		return false, err
 	}
-	if output != nil {
-		return true, nil
+
+	scanner := bufio.NewScanner(stderr)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "No such remote") {
+			return false, nil
+		}
 	}
-	return false, err
+
+	return true, nil
 }
 
 func gitClone(repoURL string, repoDirPath string) error {
