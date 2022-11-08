@@ -6,6 +6,7 @@ import (
 	"log"
 	"os/exec"
 	"regexp"
+	"strings"
 
 	"github.com/common-fate/clio"
 )
@@ -59,6 +60,35 @@ func gitPull(repoDirPath string, shouldSilentLogs bool) error {
 	clio.Infof("Successfully pulled the repo.")
 
 	return nil
+}
+
+func gitInit(repoDirPath string) error {
+	clio.Debugf("git init %s\n", repoDirPath)
+
+	cmd := exec.Command("git", "init", repoDirPath)
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+
+	}
+	clio.Infof("Successfully initialized repo %s", repoDirPath)
+
+	return nil
+}
+
+// Check to see if a remote has been added
+func gitHasRemote(repoDirPath string) (bool, error) {
+	cmd := exec.Command("git", "-C", repoDirPath, "remote", "get-url", "origin")
+	output, err := cmd.Output()
+	fmt.Printf(string(output))
+	if strings.Contains(string(output), "No such remote") {
+		return false, nil
+	}
+	if output != nil {
+		return true, nil
+	}
+	return false, err
 }
 
 func gitClone(repoURL string, repoDirPath string) error {
