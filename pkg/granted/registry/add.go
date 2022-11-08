@@ -17,7 +17,7 @@ var AddCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 
 		if c.Args().Len() < 1 {
-			clio.Error("Please provide a git repository you want to add like 'granted registry add <https://github.com/your-org/your-registry.git>'")
+			clio.Error("You need to provide git repository you would like to add. Try 'granted registry add <https://github.com/your-org/your-registry.git>'")
 		}
 
 		var repoURLs []string
@@ -28,7 +28,7 @@ var AddCommand = cli.Command{
 			n++
 		}
 
-		// TODO: grab out the subpath if there is one
+		// grab out the subpath if there is one
 		// Will have the format like this https://github.com/octo-org/granted-registry.git/team_a/granted.yml
 		// var subpath string
 		// split := strings.Split(repoURL, ".git")
@@ -55,7 +55,7 @@ var AddCommand = cli.Command{
 				continue
 			}
 
-			clio.Debug("parsing the provided url to get host, organization and repo name")
+			clio.Debugf("parsing the provided url to get host, organization and repo name for %s", repoURL)
 			url, err := parseGitURL(repoURL)
 			if err != nil {
 				return err
@@ -114,6 +114,15 @@ var AddCommand = cli.Command{
 				return err
 			}
 
+			// if there are no granted registry setup yet then
+			// check if this is the first index
+			isFirstSection := false
+			if len(gConf.ProfileRegistryURLS) == 0 {
+				if index == 0 {
+					isFirstSection = true
+				}
+			}
+
 			// we have verified that this registry is a valid one
 			// so save the repo url now.
 			gConf.ProfileRegistryURLS = append(gConf.ProfileRegistryURLS, repoURL)
@@ -125,15 +134,6 @@ var AddCommand = cli.Command{
 			_, err = r.Parse(repoDirPath)
 			if err != nil {
 				return err
-			}
-
-			isFirstSection := false
-			// if there are no granted registry setup yet then
-			// check if this is the first index
-			if len(gConf.ProfileRegistryURLS) <= 0 {
-				if index == 0 {
-					isFirstSection = true
-				}
 			}
 
 			awsConfigPath, err := getDefaultAWSConfigLocation()

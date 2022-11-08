@@ -30,9 +30,9 @@ func Run() {
 		return
 	}
 
-	// load and check if sync has been run for the day.
-	// if true then skip.
+	// load and check if sync has been run for the day. If true then skip.
 	rc, ok := loadRegistryConfig()
+	clio.Debug("checking if autosync has been run for the day")
 	if ok && time.Now().Weekday() == rc.LastCheckForSync {
 		clio.Debug("skipping profile registry sync until tomorrow=%s", rc.Path())
 
