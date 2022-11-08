@@ -17,7 +17,6 @@ type GitURL struct {
 }
 
 func parseGitURL(repoURL string) (GitURL, error) {
-	clio.Debug("parsing the provided url to get host, organization and repo name")
 	re := regexp.MustCompile(`((git@|http(s)?:\/\/)(?P<HOST>[\w\.@]+)(\/|:))(?P<ORG>[\w,\-,\_]+)\/(?P<REPO>[\w,\-,\_]+)(.git){0,1}((\/){0,1})`)
 
 	if re.MatchString(repoURL) {
@@ -56,7 +55,7 @@ func gitPull(repoDirPath string, shouldSilentLogs bool) error {
 		}
 	}
 
-	clio.Infof("Successfully pulled the repo.")
+	clio.Debugf("Successfully pulled the repo")
 
 	return nil
 }
@@ -106,7 +105,7 @@ func gitClone(repoURL string, repoDirPath string) error {
 		return err
 
 	}
-	clio.Infof("Successfully cloned %s", repoURL)
+	clio.Debugf("Successfully cloned %s", repoURL)
 
 	return nil
 }
