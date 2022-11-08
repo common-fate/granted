@@ -105,7 +105,10 @@ func Sync(r Registry, repoURL string, repoDirPath string, isFirstSection bool) e
 		return err
 	}
 
-	awsConfigFile.SaveTo(awsConfigPath)
+	err = awsConfigFile.SaveTo(awsConfigPath)
+	if err != nil {
+		return err
+	}
 
 	clio.Debug("Changes saved to aws config file.")
 
