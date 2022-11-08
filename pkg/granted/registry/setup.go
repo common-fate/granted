@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 
 	"github.com/urfave/cli/v2"
@@ -60,7 +61,7 @@ var SetupCommand = cli.Command{
 		}
 		// write the default config to the granted.yml
 		_, err = f.WriteString(`awsConfig:
-				- ./config`)
+		- ./config`)
 		if err != nil {
 			return err
 		}
@@ -68,6 +69,8 @@ var SetupCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+
+		clio.Info(`Registry setup complete.`)
 
 		return nil
 	},
