@@ -70,7 +70,6 @@ func gitInit(repoDirPath string) error {
 		return err
 
 	}
-	clio.Infof("Successfully initialized repo %s", repoDirPath)
 
 	return nil
 }
