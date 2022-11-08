@@ -11,7 +11,7 @@ var SyncCommand = cli.Command{
 	Description: "Pull the latest change from remote origin and sync aws profiles in aws config files. For more click here https://github.com/common-fate/rfds/discussions/2",
 	Action: func(c *cli.Context) error {
 
-		if err := syncProfileRegistries(); err != nil {
+		if err := SyncProfileRegistries(); err != nil {
 			return err
 		}
 
@@ -19,7 +19,7 @@ var SyncCommand = cli.Command{
 	},
 }
 
-func syncProfileRegistries() error {
+func SyncProfileRegistries() error {
 	gConf, err := grantedConfig.Load()
 	if err != nil {
 		return err

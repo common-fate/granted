@@ -7,7 +7,7 @@ import (
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/assume"
-	"github.com/common-fate/granted/pkg/granted/registry"
+	"github.com/common-fate/granted/pkg/autosync"
 	"github.com/common-fate/updatecheck"
 )
 
@@ -15,8 +15,8 @@ func main() {
 	updatecheck.Check(updatecheck.GrantedCLI, build.Version, !build.IsDev())
 	defer updatecheck.Print()
 
-	registry.AutoSync()
-	defer registry.Print()
+	autosync.Run()
+	defer autosync.Print()
 
 	app := assume.GetCliApp()
 	err := app.Run(os.Args)
