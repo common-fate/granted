@@ -6,6 +6,7 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/internal/build"
+	"github.com/common-fate/granted/pkg/autosync"
 	"github.com/common-fate/granted/pkg/granted"
 	"github.com/common-fate/updatecheck"
 )
@@ -13,6 +14,10 @@ import (
 func main() {
 	updatecheck.Check(updatecheck.GrantedCLI, build.Version, !build.IsDev())
 	defer updatecheck.Print()
+
+	autosync.Run()
+	defer autosync.Print()
+
 	app := granted.GetCliApp()
 	err := app.Run(os.Args)
 	if err != nil {

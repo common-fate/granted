@@ -55,6 +55,7 @@ var AddCommand = cli.Command{
 				continue
 			}
 
+			clio.Debug("parsing the provided url to get host, organization and repo name")
 			url, err := parseGitURL(repoURL)
 			if err != nil {
 				return err
@@ -93,7 +94,9 @@ var AddCommand = cli.Command{
 			} else {
 				// file exists; pull instead of clone.
 				clio.Debugf("%s already exists; pulling instead of cloning. ", repoURL)
-				gitPull(repoDirPath, false)
+				if err = gitPull(repoDirPath, false); err != nil {
+					return err
+				}
 			}
 
 			//if a specific ref is passed we will checkout that ref
@@ -125,8 +128,12 @@ var AddCommand = cli.Command{
 			}
 
 			isFirstSection := false
-			if index == 0 {
-				isFirstSection = true
+			// if there are no granted registry setup yet then
+			// check if this is the first index
+			if len(gConf.ProfileRegistryURLS) <= 0 {
+				if index == 0 {
+					isFirstSection = true
+				}
 			}
 
 			awsConfigPath, err := getDefaultAWSConfigLocation()
