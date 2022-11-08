@@ -97,19 +97,3 @@ func ensureConfigDoesntExist(c *cli.Context) error {
   b) run 'granted registry sync' to instead make updates to the existing registry
 `))
 }
-
-var PushCommand = cli.Command{
-	Name:        "push",
-	Description: "Push changes to the registry",
-	Action: func(c *cli.Context) error {
-
-		// Check if a remote has been added to the repo
-		hasRemote, err := gitHasRemote("./")
-		if err != nil {
-			return err
-		}
-		fmt.Println("hasRemote", hasRemote)
-
-		return nil
-	},
-}

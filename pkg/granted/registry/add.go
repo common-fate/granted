@@ -93,7 +93,10 @@ var AddCommand = cli.Command{
 			} else {
 				// file exists; pull instead of clone.
 				clio.Debugf("%s already exists; pulling instead of cloning. ", repoURL)
-				gitPull(repoDirPath, false)
+				err = gitPull(repoDirPath, false)
+				if err != nil {
+					return err
+				}
 			}
 
 			//if a specific ref is passed we will checkout that ref
