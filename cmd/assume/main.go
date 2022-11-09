@@ -18,12 +18,6 @@ func main() {
 
 	app := assume.GetCliApp()
 
-	// this should be skipped when 'granted registry' command or/and any of 'granted registry add/sync/setup/remove' subcommand is called.
-	if !registry.Contains(os.Args, "registry") {
-		autosync.Run()
-		defer autosync.Print()
-	}
-
 	err := app.Run(os.Args)
 	if err != nil {
 		// if the error is an instance of clierr.PrintCLIErrorer then print the error accordingly
@@ -33,5 +27,13 @@ func main() {
 			clio.Error(err.Error())
 		}
 		os.Exit(1)
+	}
+
+	// Note: Need to add this after app.Run() func above because in case of error we are using os.Exit(1) which will not wait for autosync to complete
+	// and might cause sideeffect in the config files.
+	// this should be skipped when 'granted registry' command or/and any of 'granted registry add/sync/setup/remove' subcommand is called.
+	if !registry.Contains(os.Args, "registry") {
+		autosync.Run()
+		defer autosync.Print()
 	}
 }

@@ -20,7 +20,6 @@ func (e *RegistrySyncError) Error() string {
 func runSync(rc RegistrySyncConfig) {
 	defer waitgroup.Done()
 	if err := registry.SyncProfileRegistries(); err != nil {
-		clio.Debugf("error running granted registry sync with err %s", err)
 
 		checks.mu.Lock()
 		checks.errs = append(checks.errs, &RegistrySyncError{err: err})
