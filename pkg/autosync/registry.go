@@ -19,7 +19,8 @@ func (e *RegistrySyncError) Error() string {
 
 func runSync(rc RegistrySyncConfig) {
 	defer waitgroup.Done()
-	if err := registry.SyncProfileRegistries(); err != nil {
+	shouldSilentLog := true
+	if err := registry.SyncProfileRegistries(shouldSilentLog); err != nil {
 
 		checks.mu.Lock()
 		checks.errs = append(checks.errs, &RegistrySyncError{err: err})

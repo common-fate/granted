@@ -11,7 +11,8 @@ var SyncCommand = cli.Command{
 	Description: "Pull the latest change from remote origin and sync aws profiles in aws config files. For more click here https://github.com/common-fate/rfds/discussions/2",
 	Action: func(c *cli.Context) error {
 
-		if err := SyncProfileRegistries(); err != nil {
+		shouldSilentLog := false
+		if err := SyncProfileRegistries(shouldSilentLog); err != nil {
 			return err
 		}
 
@@ -19,7 +20,8 @@ var SyncCommand = cli.Command{
 	},
 }
 
-func SyncProfileRegistries() error {
+// Wrapper around sync func. Check if profile registry is configured, pull the latest changes and call sync func.
+func SyncProfileRegistries(shouldSilentLog bool) error {
 	gConf, err := grantedConfig.Load()
 	if err != nil {
 		return err
@@ -55,7 +57,7 @@ func SyncProfileRegistries() error {
 			return err
 		}
 
-		if err = gitPull(repoDirPath, false); err != nil {
+		if err = gitPull(repoDirPath, shouldSilentLog); err != nil {
 			return err
 		}
 
@@ -82,6 +84,8 @@ func SyncProfileRegistries() error {
 	return nil
 }
 
+// Sync function will load all the configs provided in the clonedFile.
+// and generated a new section in the ~/.aws/profile file.
 func Sync(r Registry, repoURL string, repoDirPath string, isFirstSection bool) error {
 	clio.Debugf("syncing %s \n", repoURL)
 
