@@ -3,6 +3,8 @@ package registry
 import (
 	"fmt"
 	"os"
+	"path"
+	"strings"
 
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
@@ -27,19 +29,6 @@ var AddCommand = cli.Command{
 			repoURLs = append(repoURLs, c.Args().Get(n))
 			n++
 		}
-
-		// grab out the subpath if there is one
-		// Will have the format like this https://github.com/octo-org/granted-registry.git/team_a/granted.yml
-		// var subpath string
-		// split := strings.Split(repoURL, ".git")
-		// if len(split) > 1 {
-		// 	repoURL = split[0] + ".git"
-		// 	subpath = split[1]
-		// } else {
-		// 	repoURL = split[0] + ".git"
-		// }
-		// //TODO: subpath will then be used when syncing to only sync from the specified subpath of the repo into the aws config
-		// _ = subpath
 
 		gConf, err := grantedConfig.Load()
 		if err != nil {
@@ -66,12 +55,10 @@ var AddCommand = cli.Command{
 				return err
 			}
 
-			clio.Debugf("registry location  %s", repoDirPath)
-
 			if _, err = os.Stat(repoDirPath); err != nil {
 				// directory doesn't exist; clone the repo
 				if os.IsNotExist(err) {
-					err = gitClone(repoURL, repoDirPath)
+					err = gitClone(url.GetURL(), repoDirPath)
 					if err != nil {
 						return err
 					}
@@ -93,7 +80,7 @@ var AddCommand = cli.Command{
 				}
 			} else {
 				// file exists; pull instead of clone.
-				clio.Debugf("%s already exists; pulling instead of cloning. ", repoURL)
+				clio.Debugf("%s already exists; pulling instead of cloning. ", url.GetURL())
 				if err = gitPull(repoDirPath, false); err != nil {
 					return err
 				}
@@ -110,7 +97,7 @@ var AddCommand = cli.Command{
 			// }
 
 			// check if the fetched cloned repo contains granted.yml file.
-			if err = parseClonedRepo(repoDirPath, repoURL); err != nil {
+			if err = parseClonedRepo(repoDirPath, url); err != nil {
 				return err
 			}
 
@@ -131,7 +118,7 @@ var AddCommand = cli.Command{
 			}
 
 			var r Registry
-			_, err = r.Parse(repoDirPath)
+			_, err = r.Parse(repoDirPath, url)
 			if err != nil {
 				return err
 			}
@@ -159,7 +146,34 @@ var AddCommand = cli.Command{
 	},
 }
 
-func parseClonedRepo(folderpath string, url string) error {
+func parseClonedRepo(folderpath string, url GitURL) error {
+	if url.Subpath != "" {
+		if strings.Contains(url.Subpath, "granted.yml") || strings.Contains(url.Subpath, "granted.yaml") {
+			clio.Debug("provided url consist of specific location of granted.yml")
+			_, err := os.ReadFile(path.Join(folderpath, url.Subpath))
+			if err != nil {
+				return err
+			}
+
+			return nil
+
+		} else {
+			clio.Debug("looking for granted.yml file in subfolder")
+			dir, err := os.ReadDir(path.Join(folderpath, url.Subpath))
+			if err != nil {
+				return err
+			}
+
+			for _, file := range dir {
+				if file.Name() == "granted.yml" || file.Name() == "granted.yaml" {
+					return nil
+				}
+			}
+		}
+
+		return fmt.Errorf("unable to find `granted.yml` file in %s", folderpath+url.Subpath)
+	}
+
 	dir, err := os.ReadDir(folderpath)
 	if err != nil {
 		return err

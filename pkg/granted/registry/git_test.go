@@ -81,6 +81,17 @@ func TestParseGitURL(t *testing.T) {
 			},
 			wantErr: nil,
 		},
+		{
+			name: "http github.com withs subpath",
+			url:  "http://github.com/Eddie023/granted-registry.git/team_a",
+			want: GitURL{
+				Host:    "github.com",
+				Org:     "Eddie023",
+				Repo:    "granted-registry",
+				Subpath: "team_a/granted.yml",
+			},
+			wantErr: nil,
+		},
 	}
 
 	for _, tt := range tests {

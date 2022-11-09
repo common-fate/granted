@@ -11,24 +11,35 @@ import (
 )
 
 type GitURL struct {
-	Host string
-	Org  string
-	Repo string
+	ProvidedURL string
+	Host        string
+	Org         string
+	Repo        string
+	Subpath     string
+}
+
+func (g *GitURL) GetURL() string {
+	split := strings.Split(g.ProvidedURL, ".git")
+
+	return split[0] + ".git"
 }
 
 func parseGitURL(repoURL string) (GitURL, error) {
-	re := regexp.MustCompile(`((git@|http(s)?:\/\/)(?P<HOST>[\w\.@]+)(\/|:))(?P<ORG>[\w,\-,\_]+)\/(?P<REPO>[\w,\-,\_]+)(.git){0,1}((\/){0,1})`)
+	re := regexp.MustCompile(`((git@|http(s)?:\/\/)(?P<HOST>[\w\.@]+)(\/|:))(?P<ORG>[\w,\-,\_]+)\/(?P<REPO>[\w,\-,\_]+)(.git){0,1}(\/){0,1}(?P<SUBPATH>.*)`)
 
 	if re.MatchString(repoURL) {
 		matches := re.FindStringSubmatch(repoURL)
 		hostIndex := re.SubexpIndex("HOST")
 		orgIndex := re.SubexpIndex("ORG")
 		repoIndex := re.SubexpIndex("REPO")
+		subpathIndex := re.SubexpIndex("SUBPATH")
 
 		return GitURL{
-			Host: matches[hostIndex],
-			Org:  matches[orgIndex],
-			Repo: matches[repoIndex],
+			ProvidedURL: repoURL,
+			Host:        matches[hostIndex],
+			Org:         matches[orgIndex],
+			Repo:        matches[repoIndex],
+			Subpath:     matches[subpathIndex],
 		}, nil
 
 	}
@@ -71,10 +82,18 @@ func gitClone(repoURL string, repoDirPath string) error {
 
 	cmd := exec.Command("git", "clone", repoURL, repoDirPath)
 
-	err := cmd.Run()
-	if err != nil {
+	stderr, _ := cmd.StderrPipe()
+	if err := cmd.Start(); err != nil {
 		return err
+	}
 
+	scanner := bufio.NewScanner(stderr)
+	for scanner.Scan() {
+		if strings.Contains(scanner.Text(), "error") || strings.Contains(scanner.Text(), "fatal") {
+			return fmt.Errorf(scanner.Text())
+		}
+
+		clio.Info(scanner.Text())
 	}
 	clio.Debugf("Successfully cloned %s", repoURL)
 

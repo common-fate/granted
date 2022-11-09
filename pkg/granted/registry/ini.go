@@ -39,12 +39,18 @@ func loadAWSConfigFile() (*ini.File, error) {
 
 // load all cloned configs of a single repo into one ini object.
 // this will overwrite if there are duplicate profiles with same name.
+
 func loadClonedConfigs(r Registry, repoDirPath string) (*ini.File, error) {
 	clonedFile := ini.Empty()
 	for _, cfile := range r.AwsConfigPaths {
-		clio.Debugf("loading aws config file from %s", cfile)
-		filepath := path.Join(repoDirPath, cfile)
+		var filepath string
+		if r.Subpath != "" {
+			filepath = path.Join(repoDirPath, r.Subpath, cfile)
+		} else {
+			filepath = path.Join(repoDirPath, cfile)
+		}
 
+		clio.Debugf("loading aws config file from %s", filepath)
 		err := clonedFile.Append(filepath)
 		if err != nil {
 			return nil, err
