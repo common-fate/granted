@@ -7,13 +7,11 @@ assume-binary:
 	go build -o ./bin/dassumego cmd/assume/main.go
 
 cli: go-binary assume-binary
-	mv ./bin/dgranted ${PREFIX}/bin/granted
+	mv ./bin/dgranted ${PREFIX}/bin/
 	mv ./bin/dassumego ${PREFIX}/bin/
 	# replace references to "assumego" (the production binary) with "dassumego"
 	cat scripts/assume | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume && chmod +x ${PREFIX}/bin/dassume
 	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.fish && chmod +x ${PREFIX}/bin/dassume.fish
-	mv ${PREFIX}/bin/dassume ${PREFIX}/bin/assume
-	mv ${PREFIX}/bin/dassume.fish ${PREFIX}/bin/assume.fish
 
 clean:
 	rm ${PREFIX}/bin/dassumego
@@ -51,3 +49,14 @@ ci-cli-all-platforms: test-binaries
 	cp bin/linux/dassume.fish bin/macos/dassume.fish
 	cat scripts/assume.bat | sed 's/assumego/dassumego/g' > bin/windows/dassume.bat
 	cat scripts/assume.ps1 | sed 's/assumego/dassumego/g' > bin/windows/dassume.ps1
+
+## This will use the 'granted' and 'assume' binary for dev build.
+## Helpful to use dev build using 'granted' and 'assume' before release.
+cli-act-prod: go-binary assume-binary
+	mv ./bin/dgranted ${PREFIX}/bin/granted
+	mv ./bin/dassumego ${PREFIX}/bin/
+	# replace references to "assumego" (the production binary) with "dassumego"
+	cat scripts/assume | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume && chmod +x ${PREFIX}/bin/dassume
+	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.fish && chmod +x ${PREFIX}/bin/dassume.fish
+	mv ${PREFIX}/bin/dassume ${PREFIX}/bin/assume
+	mv ${PREFIX}/bin/dassume.fish ${PREFIX}/bin/assume.fish
