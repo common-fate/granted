@@ -13,8 +13,9 @@ import (
 
 var RemoveCommand = cli.Command{
 	Name:        "remove",
-	Description: "Remove subscription to provided registry",
-	Usage:       "Remove subscribing to existing registry",
+	Description: "Unsubscribe from a Profile Registry",
+	Usage:       "Unsubscribe from a Profile Registry",
+
 	Action: func(c *cli.Context) error {
 
 		gConf, err := grantedConfig.Load()
@@ -71,7 +72,7 @@ var RemoveCommand = cli.Command{
 			}
 		}
 
-		clio.Successf("Successfully removed %s", out)
+		clio.Successf("Successfully unsubscribed from %s", out)
 
 		return nil
 	},

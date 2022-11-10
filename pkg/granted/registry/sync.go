@@ -8,12 +8,10 @@ import (
 
 var SyncCommand = cli.Command{
 	Name:        "sync",
-	Usage:       "Pull the latest change from remote origin and sync aws profiles in aws config files. For more click here https://github.com/common-fate/rfds/discussions/2",
-	Description: "Pull the latest change from remote origin and sync aws profiles in aws config files. For more click here https://github.com/common-fate/rfds/discussions/2",
+	Usage:       "Pull the latest change from remote origin and sync aws profiles in aws config files",
+	Description: "Pull the latest change from remote origin and sync aws profiles in aws config files",
 	Action: func(c *cli.Context) error {
-
-		shouldSilentLog := false
-		if err := SyncProfileRegistries(shouldSilentLog); err != nil {
+		if err := SyncProfileRegistries(false); err != nil {
 			return err
 		}
 
@@ -115,9 +113,7 @@ func Sync(r Registry, repoURL string, repoDirPath string, isFirstSection bool) e
 		return err
 	}
 
-	clio.Debug("Changes saved to aws config file.")
-
-	clio.Infof("successfully synced registry %s", repoURL)
+	clio.Successf("Successfully synced registry %s", repoURL)
 
 	return nil
 }
