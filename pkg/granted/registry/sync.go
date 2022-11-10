@@ -61,12 +61,12 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 			return err
 		}
 
-		if err = parseClonedRepo(repoDirPath, repoURL); err != nil {
+		if err = parseClonedRepo(repoDirPath, u); err != nil {
 			return err
 		}
 
 		var r Registry
-		_, err = r.Parse(repoDirPath)
+		_, err = r.Parse(repoDirPath, u)
 		if err != nil {
 			return err
 		}
