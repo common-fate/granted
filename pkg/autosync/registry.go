@@ -1,7 +1,6 @@
 package autosync
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -17,29 +16,19 @@ func (e *RegistrySyncError) Error() string {
 	return fmt.Sprintf("error syncing profile registry with err: %s", e.err.Error())
 }
 
-func runSync(rc RegistrySyncConfig) {
-	defer waitgroup.Done()
+func runSync(rc RegistrySyncConfig) error {
+	clio.Info("Syncing Profile Registries")
 	shouldSilentLog := true
-	if err := registry.SyncProfileRegistries(shouldSilentLog); err != nil {
-
-		checks.mu.Lock()
-		checks.errs = append(checks.errs, &RegistrySyncError{err: err})
-		checks.mu.Unlock()
-
-		return
+	err := registry.SyncProfileRegistries(shouldSilentLog)
+	if err != nil {
+		return &RegistrySyncError{err: err}
 	}
-
 	rc.LastCheckForSync = time.Now().Weekday()
-	if err := rc.Save(); err != nil {
+	err = rc.Save()
+	if err != nil {
 		clio.Debug("unable to save to registry sync config")
-
-		checks.mu.Lock()
-		checks.errs = append(checks.errs, &RegistrySyncError{err: errors.New(err.Error())})
-		checks.mu.Unlock()
-		return
+		return &RegistrySyncError{err: err}
 	}
-
-	checks.mu.Lock()
-	checks.msgs = append(checks.msgs, fmt.Sprintf("successfully synced for the day %s", time.Now()))
-	checks.mu.Unlock()
+	clio.Success("Completed syncing Profile Registries")
+	return nil
 }

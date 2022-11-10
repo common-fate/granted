@@ -40,7 +40,7 @@ func (rc RegistrySyncConfig) Save() error {
 		return err
 	}
 
-	err = os.WriteFile(rc.Path(), data, 0700)
+	err = os.WriteFile(rc.Path(), data, 0666)
 	if err != nil {
 		return err
 	}

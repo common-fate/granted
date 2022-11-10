@@ -1,6 +1,8 @@
 package registry
 
 import (
+	"os"
+
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/urfave/cli/v2"
@@ -56,11 +58,21 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 			return err
 		}
 
-		if err = gitPull(repoDirPath, shouldSilentLog); err != nil {
-			return err
+		// If the local repo has been deleted, then attempt to clone it again
+		_, err = os.Stat(repoDirPath)
+		if os.IsNotExist(err) {
+			err = gitClone(repoURL, repoDirPath)
+			if err != nil {
+				return err
+			}
+		} else {
+			err = gitPull(repoDirPath, shouldSilentLog)
+			if err != nil {
+				return err
+			}
 		}
-
-		if err = parseClonedRepo(repoDirPath, u); err != nil {
+		err = parseClonedRepo(repoDirPath, u)
+		if err != nil {
 			return err
 		}
 

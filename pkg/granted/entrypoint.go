@@ -5,6 +5,7 @@ import (
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/granted/middleware"
 	"github.com/common-fate/granted/pkg/granted/registry"
 	"github.com/common-fate/granted/pkg/granted/settings"
 	"github.com/urfave/cli/v2"
@@ -27,7 +28,7 @@ func GetCliApp() *cli.App {
 		UsageText:            "granted [global options] command [command options] [arguments...]",
 		Version:              build.Version,
 		HideVersion:          false,
-		Commands:             []*cli.Command{&DefaultBrowserCommand, &settings.SettingsCommand, &CompletionCommand, &TokenCommand, &SSOTokensCommand, &UninstallCommand, &SSOCommand, &CredentialsCommand, &CredentialProcess, &registry.ProfileRegistry},
+		Commands:             []*cli.Command{&DefaultBrowserCommand, &settings.SettingsCommand, &CompletionCommand, &TokenCommand, &SSOTokensCommand, &UninstallCommand, &SSOCommand, &CredentialsCommand, middleware.WithBeforeFuncs(&CredentialProcess, middleware.WithAutosync()), &registry.ProfileRegistry},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			clio.SetLevelFromEnv("GRANTED_LOG")

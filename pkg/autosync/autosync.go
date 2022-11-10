@@ -1,20 +1,11 @@
 package autosync
 
 import (
-	"sync"
 	"time"
 
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 )
-
-var waitgroup sync.WaitGroup
-
-var checks struct {
-	mu   sync.Mutex
-	msgs []string
-	errs []error
-}
 
 func Run() {
 	// check if registry has been configured or not.
@@ -35,26 +26,12 @@ func Run() {
 	clio.Debug("checking if autosync has been run for the day")
 	if ok && time.Now().Weekday() == rc.LastCheckForSync {
 		clio.Debug("skipping profile registry sync until tomorrow=%s", rc.Path())
-
 		return
 	}
 
-	waitgroup.Add(1)
-	go runSync(rc)
-}
-
-// Print the output of the sync for that day.
-func Print() {
-	waitgroup.Wait()
-	for _, msg := range checks.msgs {
-		if msg != "" {
-			clio.Debug(msg)
-		}
-	}
-
-	for _, err := range checks.errs {
-		if err != nil {
-			clio.Warn(err)
-		}
+	err = runSync(rc)
+	if err != nil {
+		clio.Debugw("failed to sync profile registries", "error", err)
+		clio.Warn("Failed to sync Profile Registries")
 	}
 }
