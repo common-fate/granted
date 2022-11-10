@@ -16,6 +16,21 @@ type GitURL struct {
 	Org         string
 	Repo        string
 	Subpath     string
+	Filename    string
+}
+
+// compares if Host, Organization and Repo name is same for both passed URL.
+// if there is subfolder and filename then compare if they are same or not.
+func IsSameGitURL(a GitURL, b GitURL) bool {
+	if a.Filename != "" || b.Filename != "" {
+		return (a.Host == b.Host) && (a.Org == b.Org) && (a.Repo == b.Repo) && (a.Subpath == b.Subpath) && (a.Filename == b.Filename)
+	}
+
+	if a.Subpath != "" || b.Subpath != "" {
+		return (a.Host == b.Host) && (a.Org == b.Org) && (a.Repo == b.Repo) && (a.Subpath == b.Subpath)
+	}
+
+	return (a.Host == b.Host) && (a.Org == b.Org) && (a.Repo == b.Repo)
 }
 
 func (g *GitURL) GetURL() string {
@@ -25,7 +40,7 @@ func (g *GitURL) GetURL() string {
 }
 
 func parseGitURL(repoURL string) (GitURL, error) {
-	re := regexp.MustCompile(`((git@|http(s)?:\/\/)(?P<HOST>[\w\.@]+)(\/|:))(?P<ORG>[\w,\-,\_]+)\/(?P<REPO>[\w,\-,\_]+)(.git){0,1}(\/){0,1}(?P<SUBPATH>.*)`)
+	re := regexp.MustCompile(`((git@|http(s)?:\/\/)(?P<HOST>[\w\.@]+)(\/|:))(?P<ORG>[\w,\-,\_]+)\/(?P<REPO>[\w,\-,\_]+)(.git){0,1}(\/){0,1}((?P<SUBPATH>.+)?(\/)?(?P<FILE>.+yml)?)?`)
 
 	if re.MatchString(repoURL) {
 		matches := re.FindStringSubmatch(repoURL)
@@ -34,12 +49,26 @@ func parseGitURL(repoURL string) (GitURL, error) {
 		repoIndex := re.SubexpIndex("REPO")
 		subpathIndex := re.SubexpIndex("SUBPATH")
 
+		subpath := matches[subpathIndex]
+		var configFileName = ""
+		var folder = ""
+
+		if subpath != "" {
+			if strings.HasSuffix(subpath, ".yml") {
+				configFileName = subpath[strings.LastIndex(subpath, "/")+1:]
+				folder = subpath[:strings.LastIndex(subpath, "/")]
+			} else {
+				folder = subpath
+			}
+		}
+
 		return GitURL{
 			ProvidedURL: repoURL,
 			Host:        matches[hostIndex],
 			Org:         matches[orgIndex],
 			Repo:        matches[repoIndex],
-			Subpath:     matches[subpathIndex],
+			Subpath:     folder,
+			Filename:    configFileName,
 		}, nil
 
 	}
@@ -130,4 +159,21 @@ func CheckoutRef(ref string, repoDirPath string) error {
 	fmt.Println("Sucessfully checkout out " + ref)
 	return nil
 
+}
+
+func URLExists(arr []string, url GitURL) bool {
+	for _, v := range arr {
+		u, err := parseGitURL(v)
+		// should not happen but if it does let's skip this iteration.
+		if err != nil {
+			continue
+		}
+
+		if IsSameGitURL(u, url) {
+			return true
+		}
+
+		return false
+	}
+	return false
 }

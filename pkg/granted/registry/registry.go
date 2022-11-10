@@ -3,7 +3,6 @@ package registry
 import (
 	"os"
 	"path"
-	"strings"
 
 	"github.com/common-fate/granted/pkg/config"
 	"gopkg.in/yaml.v3"
@@ -11,22 +10,19 @@ import (
 
 type Registry struct {
 	AwsConfigPaths []string `yaml:"awsConfig"`
-	Subpath        string
+	Url            GitURL
 }
 
 // Parse the `granted.yml` file.
 func (c *Registry) Parse(folderpath string, url GitURL) (*Registry, error) {
 	var grantedFilePath string
 	if url.Subpath != "" {
-		c.Subpath = url.Subpath
-
 		// the subpath specifies granted.yml
-		if strings.Contains(url.Subpath, "granted.yml") || strings.Contains(url.Subpath, "granted.yaml") {
-			grantedFilePath = path.Join(folderpath, url.Subpath)
+		if url.Filename != "" {
+			grantedFilePath = path.Join(folderpath, url.Subpath, url.Filename)
 		} else {
 			grantedFilePath = path.Join(folderpath, url.Subpath, "granted.yml")
 		}
-
 	} else {
 		grantedFilePath = path.Join(folderpath, "granted.yml")
 	}
@@ -40,6 +36,8 @@ func (c *Registry) Parse(folderpath string, url GitURL) (*Registry, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	c.Url = url
 
 	return c, nil
 }

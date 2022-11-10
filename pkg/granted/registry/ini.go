@@ -39,13 +39,12 @@ func loadAWSConfigFile() (*ini.File, error) {
 
 // load all cloned configs of a single repo into one ini object.
 // this will overwrite if there are duplicate profiles with same name.
-
 func loadClonedConfigs(r Registry, repoDirPath string) (*ini.File, error) {
 	clonedFile := ini.Empty()
 	for _, cfile := range r.AwsConfigPaths {
 		var filepath string
-		if r.Subpath != "" {
-			filepath = path.Join(repoDirPath, r.Subpath, cfile)
+		if r.Url.Subpath != "" {
+			filepath = path.Join(repoDirPath, r.Url.Subpath, cfile)
 		} else {
 			filepath = path.Join(repoDirPath, cfile)
 		}
