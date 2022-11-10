@@ -8,6 +8,7 @@ import (
 
 var ProfileRegistry = cli.Command{
 	Name:        "registry",
+	Usage:       "Add git repository of AWS profiles which will be synced to ~/.aws/config file",
 	Description: "Add git repository of AWS profiles which will be synced to ~/.aws/config file",
 	Subcommands: []*cli.Command{&SetupCommand, &AddCommand, &SyncCommand, &RemoveCommand},
 	Action: func(c *cli.Context) error {

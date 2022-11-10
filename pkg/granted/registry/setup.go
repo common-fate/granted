@@ -1,8 +1,8 @@
 package registry
 
 import (
-	"fmt"
 	"os"
+	"path"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
@@ -13,9 +13,10 @@ import (
 
 var SetupCommand = cli.Command{
 	Name:        "setup",
-	Description: "Setup a granted registry for the first time",
+	Usage:       "Setup a Profile Registry repository",
+	Description: "Setup a granted registry repository",
 	Subcommands: []*cli.Command{},
-	Flags:       []cli.Flag{&cli.PathFlag{Name: "dir", Aliases: []string{"d"}, Usage: "Directory to setup registry in, by default a registry is made in ./granted-registry", Value: "granted-registry"}},
+	Flags:       []cli.Flag{&cli.PathFlag{Name: "dir", Aliases: []string{"d"}, Usage: "Directory to setup the Profile Registry", Value: "granted-registry"}},
 	Action: func(c *cli.Context) error {
 		dir := c.Path("dir")
 
@@ -39,7 +40,7 @@ var SetupCommand = cli.Command{
 
 		var confirm bool
 		s := &survey.Confirm{
-			Message: "Are you sure you want to save your credentials file to the current directory? All profiles will be copied",
+			Message: "Are you sure you want to copy all of the profiles from your AWS config file?",
 			Default: true,
 		}
 		err = survey.AskOne(s, &confirm)
@@ -47,24 +48,24 @@ var SetupCommand = cli.Command{
 			return err
 		}
 		if !confirm {
-			fmt.Println("Cancelled registry setup")
+			clio.Info("Cancelled registry setup")
 			return nil
 		}
 
 		// now save cfg contents to ./config
-		configPath := fmt.Sprintf("%s/config", dir)
-		err = configFile.SaveTo(configPath)
+
+		err = configFile.SaveTo(path.Join(dir, "config"))
 		if err != nil {
 			return err
 		}
 
 		// create granted.yml
-		grantedYmlPath := fmt.Sprintf("%s/granted.yml", dir)
-		f, err := os.Create(grantedYmlPath)
+
+		f, err := os.Create(path.Join(dir, "granted.yml"))
 		if err != nil {
 			return err
 		}
-
+		defer f.Close()
 		// now initialize the git repo
 		err = gitInit(dir)
 		if err != nil {
@@ -76,39 +77,24 @@ var SetupCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		err = f.Close()
-		if err != nil {
-			return err
-		}
-
-		msg := fmt.Sprintf(`Successfully created valid profile registry 'granted-registry' in %s.`, dir)
-		msg2 := "Now push this repository to remote origin so that your team-members can sync to it."
-		clio.Info(msg)
-		clio.Info(msg2)
-
+		clio.Infof("Successfully created valid profile registry 'granted-registry' in %s.", dir)
+		clio.Info("Now push this repository to remote origin so that your team-members can sync to it.")
 		return nil
 	},
 }
 
 // sanity check: verify that a config file doesn't already exist.
 // if it does, the user may have run this command by mistake.
-func ensureConfigDoesntExist(c *cli.Context, path string) error {
-	grantedYmlPath := fmt.Sprintf("%s/granted.yml", path)
-	_, err := os.Open(grantedYmlPath)
+func ensureConfigDoesntExist(c *cli.Context, dir string) error {
+	_, err := os.Open(path.Join(dir, "granted.yml"))
 	if err != nil {
 		return nil
 	}
 
-	// overwrite := c.Bool("overwrite")
-	// if overwrite {
-	// 	clio.Warnf("--overwrite has been set, the config file %s will be overwritten", f)
-	// 	return nil
-	// }
-
 	// if we get here, the config file exists and is at risk of being overwritten.
 	return clierr.New(("A granted.yml file already exists in this folder.\ngranted will exit to avoid overwriting this file, in case you've run this command by mistake."),
 		clierr.Info(`Alternatively, take one of the following actions:
-  a) run 'granted registry setup' from a different folder
-  b) run 'granted registry sync' to instead make updates to the existing registry
+  a) run 'granted registry setup' in a different directory
+  b) run 'granted registry add' to connect to an existing Profile Registry
 `))
 }

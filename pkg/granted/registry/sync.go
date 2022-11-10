@@ -8,6 +8,7 @@ import (
 
 var SyncCommand = cli.Command{
 	Name:        "sync",
+	Usage:       "Pull the latest change from remote origin and sync aws profiles in aws config files. For more click here https://github.com/common-fate/rfds/discussions/2",
 	Description: "Pull the latest change from remote origin and sync aws profiles in aws config files. For more click here https://github.com/common-fate/rfds/discussions/2",
 	Action: func(c *cli.Context) error {
 
