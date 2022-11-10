@@ -110,13 +110,6 @@ var AddCommand = cli.Command{
 				}
 			}
 
-			// we have verified that this registry is a valid one
-			// so save the repo url now.
-			gConf.ProfileRegistryURLS = append(gConf.ProfileRegistryURLS, repoURL)
-			if err := gConf.Save(); err != nil {
-				return err
-			}
-
 			var r Registry
 			_, err = r.Parse(repoDirPath, url)
 			if err != nil {
@@ -138,6 +131,13 @@ var AddCommand = cli.Command{
 
 			// Sync clonned repo content with aws config file.
 			if err := Sync(r, repoURL, repoDirPath, isFirstSection); err != nil {
+				return err
+			}
+
+			// we have verified that this registry is a valid one and sync is completed.
+			// so save the repo url to config file.
+			gConf.ProfileRegistryURLS = append(gConf.ProfileRegistryURLS, repoURL)
+			if err := gConf.Save(); err != nil {
 				return err
 			}
 		}
