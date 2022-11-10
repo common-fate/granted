@@ -14,12 +14,13 @@ import (
 
 var AddCommand = cli.Command{
 	Name:        "add",
-	Description: "Add a profile registry that you want to sync with aws config file",
+	Description: "Add a Profile Registry that you want to sync with aws config file",
 	Usage:       "Provide git repository you want to sync with aws config file",
+	ArgsUsage:   "<repository url> ...",
 	Action: func(c *cli.Context) error {
 
 		if c.Args().Len() < 1 {
-			clio.Error("You need to provide git repository you would like to add. Try 'granted registry add <https://github.com/your-org/your-registry.git>'")
+			clio.Error("Repository argument is required. Try 'granted registry add <https://github.com/your-org/your-registry.git>'")
 		}
 
 		var repoURLs []string
@@ -121,7 +122,7 @@ var AddCommand = cli.Command{
 			}
 
 			if _, err := os.Stat(awsConfigPath); os.IsNotExist(err) {
-				clio.Debugf("%s file doesnot exist. Creating an empty file\n", awsConfigPath)
+				clio.Debugf("%s file does not exist. Creating an empty file\n", awsConfigPath)
 				_, err := os.Create(awsConfigPath)
 				if err != nil {
 					return fmt.Errorf("unable to create : %s", err)

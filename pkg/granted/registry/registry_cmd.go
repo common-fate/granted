@@ -8,30 +8,30 @@ import (
 
 var ProfileRegistry = cli.Command{
 	Name:        "registry",
-	Usage:       "Add git repository of AWS profiles which will be synced to ~/.aws/config file",
-	Description: "Add git repository of AWS profiles which will be synced to ~/.aws/config file",
+	Usage:       "Manage Profile Registries",
+	Description: "Profile Registries allow you to easily share AWS profile configuration in a team.",
 	Subcommands: []*cli.Command{&SetupCommand, &AddCommand, &SyncCommand, &RemoveCommand},
 	Action: func(c *cli.Context) error {
-
 		gConf, err := grantedConfig.Load()
 		if err != nil {
 			return err
 		}
 
-		if len(gConf.ProfileRegistryURLS) <= 0 {
-			clio.Info("There are no registry subscribed to granted yet.\n Use 'granted registry add <your_repo>' to configure subscription.\n")
-
+		if len(gConf.ProfileRegistryURLS) == 0 {
+			clio.Warn("You haven't connected any Profile Registries yet.")
+			clio.Info("Connect to a Profile Registry by running 'granted registry add <your_repo>'")
 			return nil
 		}
 
-		clio.Log("Granted is currently synced with following registries: ")
+		clio.Info("Granted is currently synced with following registries:")
 		for i, url := range gConf.ProfileRegistryURLS {
 			clio.Logf("\t %d: %s", (i + 1), url)
 		}
+		clio.NewLine()
 
-		clio.Infoln("To add new registry use 'granted registry add <your_repo>'")
-		clio.Infoln("To remove registry use 'granted registry remove' and select from the options")
-		clio.Infoln("To sync registry use 'granted registry sync'")
+		clio.Info("To add new registry use 'granted registry add <your_repo>'")
+		clio.Info("To remove a registry use 'granted registry remove' and select from the options")
+		clio.Info("To sync a registry use 'granted registry sync'")
 
 		return nil
 	},
