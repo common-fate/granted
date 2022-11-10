@@ -56,6 +56,14 @@ func (p *Profiles) HasProfile(profile string) bool {
 	return ok
 }
 
+// if the profile has a granted_description key, the value is returned. else an empty string
+func (p *Profile) Description() string {
+	key, err := p.RawConfig.GetKey("granted_description")
+	if err != nil {
+		return ""
+	}
+	return key.Value()
+}
 func (p *Profiles) Profile(profile string) (*Profile, error) {
 	if c, ok := p.profiles[profile]; ok {
 		return c, nil

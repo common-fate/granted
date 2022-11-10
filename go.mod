@@ -19,6 +19,7 @@ require (
 
 require (
 	github.com/common-fate/clio v1.1.0
+	github.com/fatih/color v1.13.0
 	gopkg.in/yaml.v3 v3.0.1
 )
 
