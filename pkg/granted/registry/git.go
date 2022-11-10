@@ -77,6 +77,40 @@ func gitPull(repoDirPath string, shouldSilentLogs bool) error {
 	return nil
 }
 
+func gitInit(repoDirPath string) error {
+	clio.Debugf("git init %s\n", repoDirPath)
+
+	cmd := exec.Command("git", "init", repoDirPath)
+
+	err := cmd.Run()
+	if err != nil {
+		return err
+
+	}
+
+	return nil
+}
+
+// Check to see if a remote has been added
+// func gitHasRemote(repoDirPath string) (bool, error) {
+// 	cmd := exec.Command("git", "-C", repoDirPath, "remote", "get-url", "origin")
+
+// 	stderr, _ := cmd.StderrPipe()
+// 	if err := cmd.Start(); err != nil {
+// 		log.Fatal(err)
+// 		return false, err
+// 	}
+
+// 	scanner := bufio.NewScanner(stderr)
+// 	for scanner.Scan() {
+// 		if strings.Contains(scanner.Text(), "No such remote") {
+// 			return false, nil
+// 		}
+// 	}
+
+// 	return true, nil
+// }
+
 func gitClone(repoURL string, repoDirPath string) error {
 	clio.Debugf("git clone %s\n", repoURL)
 

@@ -178,7 +178,6 @@ func parseClonedRepo(folderpath string, url GitURL) error {
 	if err != nil {
 		return err
 	}
-
 	for _, file := range dir {
 		if file.Name() == "granted.yml" || file.Name() == "granted.yaml" {
 			return nil
