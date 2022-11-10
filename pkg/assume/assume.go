@@ -17,6 +17,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/ansi"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/assumeprint"
 	"github.com/common-fate/granted/pkg/browser"
@@ -120,19 +121,26 @@ func AssumeCommand(c *cli.Context) error {
 					longestProfileNameLength = len(pn)
 				}
 			}
-
-			promptHeader := color.New(color.Underline, color.Bold).Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", "Profile", "Description")
+			lightBlack := ansi.ColorFunc(ansi.LightBlack)
+			var hasDescriptions bool
 			for i, pn := range profileNames {
 				var description string
 				p, _ := profiles.Profile(pn)
 
-				if p != nil {
+				if p != nil && p.Description() != "" {
+					hasDescriptions = true
 					description = p.Description()
 				}
-				stringKey := fmt.Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", pn, description)
+
+				stringKey := fmt.Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", pn, lightBlack(description))
 
 				profileNameMap[stringKey] = pn
 				profileKeys[i] = stringKey
+			}
+			var promptHeader string
+			// only add the description headers if there are profiles using descriptions
+			if hasDescriptions {
+				promptHeader = fmt.Sprintf(`{{- "  %s\n"}}`, color.New(color.Underline, color.Bold).Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", "Profile", "Description"))
 			}
 			// This overrides the default prompt template to add a header row above the options
 			// this should be reset back to the original template after the call to AskOne
@@ -150,7 +158,7 @@ func AssumeCommand(c *cli.Context) error {
 {{- else}}
   {{- "  "}}{{- color "cyan"}}[Use arrows to move, type to filter{{- if and .Help (not .ShowHelp)}}, {{ .Config.HelpInput }} for more help{{end}}]{{color "reset"}}
   {{- "\n"}}
-  {{- "  %s\n"}}
+  %s
   {{- range $ix, $option := .PageEntries}}
 	{{- template "option" $.IterateOption $ix $option}}
   {{- end}}
