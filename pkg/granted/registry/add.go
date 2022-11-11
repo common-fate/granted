@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"strings"
 
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
@@ -147,42 +146,20 @@ var AddCommand = cli.Command{
 }
 
 func parseClonedRepo(folderpath string, url GitURL) error {
-	if url.Subpath != "" {
-		if strings.Contains(url.Subpath, "granted.yml") || strings.Contains(url.Subpath, "granted.yaml") {
-			clio.Debug("provided url consist of specific location of granted.yml")
-			_, err := os.ReadFile(path.Join(folderpath, url.Subpath))
-			if err != nil {
-				return err
-			}
+	var grantedConfigFilename string = "granted.yml"
 
-			return nil
-
-		} else {
-			clio.Debug("looking for granted.yml file in subfolder")
-			dir, err := os.ReadDir(path.Join(folderpath, url.Subpath))
-			if err != nil {
-				return err
-			}
-
-			for _, file := range dir {
-				if file.Name() == "granted.yml" || file.Name() == "granted.yaml" {
-					return nil
-				}
-			}
-		}
-
-		return fmt.Errorf("unable to find `granted.yml` file in %s", folderpath+url.Subpath)
+	if url.Filename != "" {
+		grantedConfigFilename = url.Filename
 	}
 
-	dir, err := os.ReadDir(folderpath)
+	configFilePath := path.Join(folderpath, url.Subpath, grantedConfigFilename)
+
+	clio.Debugf("checking for %s in %s", grantedConfigFilename, configFilePath)
+	_, err := os.ReadFile(configFilePath)
 	if err != nil {
-		return err
-	}
-	for _, file := range dir {
-		if file.Name() == "granted.yml" || file.Name() == "granted.yaml" {
-			return nil
-		}
+		clio.Debug(err)
+		return fmt.Errorf("unable to find `%s` file in %s", grantedConfigFilename, configFilePath)
 	}
 
-	return fmt.Errorf("unable to find `granted.yml` file in %s", url)
+	return nil
 }

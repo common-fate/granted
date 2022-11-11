@@ -4,6 +4,7 @@ import (
 	"os"
 	"path"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/config"
 	"gopkg.in/yaml.v3"
 )
@@ -13,20 +14,15 @@ type Registry struct {
 	Url            GitURL
 }
 
-// Parse the `granted.yml` file.
+// Parse the config file if provided or 'granted.yml' file by default.
 func (c *Registry) Parse(folderpath string, url GitURL) (*Registry, error) {
-	var grantedFilePath string
-	if url.Subpath != "" {
-		// the subpath specifies granted.yml
-		if url.Filename != "" {
-			grantedFilePath = path.Join(folderpath, url.Subpath, url.Filename)
-		} else {
-			grantedFilePath = path.Join(folderpath, url.Subpath, "granted.yml")
-		}
-	} else {
-		grantedFilePath = path.Join(folderpath, "granted.yml")
+	var configFileName string = "granted.yml"
+	if url.Filename != "" {
+		configFileName = url.Filename
 	}
 
+	grantedFilePath := path.Join(folderpath, url.Subpath, configFileName)
+	clio.Debugf("reading awsConfigs listed in %s", grantedFilePath)
 	file, err := os.ReadFile(grantedFilePath)
 	if err != nil {
 		return nil, err
