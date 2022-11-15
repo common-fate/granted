@@ -254,7 +254,9 @@ func TestGenerateNewGrantedSection(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				configFileContent.Reload()
+				if err = configFileContent.Reload(); err != nil {
+					t.Fatal(err)
+				}
 			}
 
 			got := configFileContent.SectionStrings()
