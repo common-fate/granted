@@ -6,6 +6,7 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
+	"github.com/common-fate/granted/pkg/autosync"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
@@ -57,6 +58,7 @@ func GetCliApp() *cli.App {
 		EnableBashCompletion: true,
 		BashComplete:         Completion,
 		Before: func(c *cli.Context) error {
+
 			// unsets the exported env vars
 			if c.Bool("unset") {
 				err := UnsetAction(c)
@@ -99,11 +101,14 @@ func GetCliApp() *cli.App {
 				// terminates the command with os.exit(0)
 				browser.GrantedIntroduction()
 			}
+			// Sync granted profile registries if enabled
+			autosync.Run()
 
 			// Setup the shell alias
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
 				return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
 			}
+
 			return nil
 		},
 	}

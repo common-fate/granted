@@ -16,6 +16,7 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/shells"
+	"github.com/fatih/color"
 )
 
 func init() {
@@ -25,6 +26,7 @@ func init() {
 	// Users can set NO_COLOR to true if they are working in a terminal without
 	// color support and want to use Granted there.
 	_, clio.NoColor = os.LookupEnv("NO_COLOR")
+	_, color.NoColor = os.LookupEnv("NO_COLOR")
 }
 
 const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`

@@ -7,6 +7,7 @@ import (
 	"os/exec"
 	"path"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -16,6 +17,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/ansi"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/assumeprint"
 	"github.com/common-fate/granted/pkg/browser"
@@ -26,6 +28,7 @@ import (
 	"github.com/common-fate/granted/pkg/launcher"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
+	"github.com/fatih/color"
 	"github.com/hako/durafmt"
 	"github.com/urfave/cli/v2"
 )
@@ -110,23 +113,78 @@ func AssumeCommand(c *cli.Context) error {
 			if cfg.Ordering == "Alphabetical" {
 				profileNames = profiles.ProfileNames
 			}
+			profileNameMap := make(map[string]string)
+			profileKeys := make([]string, len(profileNames))
+			var longestProfileNameLength int
+			for _, pn := range profileNames {
+				if len(pn) > longestProfileNameLength {
+					longestProfileNameLength = len(pn)
+				}
+			}
+			lightBlack := ansi.ColorFunc(ansi.LightBlack)
+			var hasDescriptions bool
+			for i, pn := range profileNames {
+				var description string
+				p, _ := profiles.Profile(pn)
+
+				if p != nil && p.Description() != "" {
+					hasDescriptions = true
+					description = p.Description()
+				}
+
+				stringKey := fmt.Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", pn, lightBlack(description))
+
+				profileNameMap[stringKey] = pn
+				profileKeys[i] = stringKey
+			}
+			var promptHeader string
+			// only add the description headers if there are profiles using descriptions
+			if hasDescriptions {
+				promptHeader = fmt.Sprintf(`{{- "  %s\n"}}`, color.New(color.Underline, color.Bold).Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", "Profile", "Description"))
+			}
+			// This overrides the default prompt template to add a header row above the options
+			// this should be reset back to the original template after the call to AskOne
+			originalSelectTemplate := survey.SelectQuestionTemplate
+			survey.SelectQuestionTemplate = fmt.Sprintf(`
+{{- define "option"}}
+	{{- if eq .SelectedIndex .CurrentIndex }}{{color .Config.Icons.SelectFocus.Format }}{{ .Config.Icons.SelectFocus.Text }} {{else}}{{color "default"}}  {{end}}
+	{{- .CurrentOpt.Value}}
+{{- color "reset"}}
+{{end}}
+{{- if .ShowHelp }}{{- color .Config.Icons.Help.Format }}{{ .Config.Icons.Help.Text }} {{ .Help }}{{color "reset"}}{{"\n"}}{{end}}
+{{- color .Config.Icons.Question.Format }}{{ .Config.Icons.Question.Text }} {{color "reset"}}
+{{- color "default+hb"}}{{ .Message }}{{ .FilterMessage }}{{color "reset"}}
+{{- if .ShowAnswer}}{{color "cyan"}} {{.Answer}}{{color "reset"}}{{"\n"}}
+{{- else}}
+  {{- "  "}}{{- color "cyan"}}[Use arrows to move, type to filter{{- if and .Help (not .ShowHelp)}}, {{ .Config.HelpInput }} for more help{{end}}]{{color "reset"}}
+  {{- "\n"}}
+  %s
+  {{- range $ix, $option := .PageEntries}}
+	{{- template "option" $.IterateOption $ix $option}}
+  {{- end}}
+{{- end}}`, promptHeader)
+
 			clio.NewLine()
 			// Replicate the logic from original assume fn.
 			in := survey.Select{
 				Message: "Please select the profile you would like to assume:",
-				Options: profileNames,
+				Options: profileKeys,
 				Filter:  filterMultiToken,
 			}
-			if len(profileNames) == 0 {
+			if len(profileKeys) == 0 {
 				return clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
 					clierr.Info("You can add profiles to your AWS config by following our guide: "),
 					clierr.Info("https://granted.dev/awsconfig"),
 				)
 			}
+
 			err = testable.AskOne(&in, &profileName, withStdio)
 			if err != nil {
 				return err
 			}
+			// Reset the template for select questions to the original
+			survey.SelectQuestionTemplate = originalSelectTemplate
+			profileName = profileNameMap[profileName]
 			// background task to update the frecency cache
 			wg.Add(1)
 			go func() {

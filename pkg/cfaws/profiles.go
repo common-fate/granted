@@ -56,6 +56,14 @@ func (p *Profiles) HasProfile(profile string) bool {
 	return ok
 }
 
+// if the profile has a granted_description key, the value is returned. else an empty string
+func (p *Profile) Description() string {
+	key, err := p.RawConfig.GetKey("granted_description")
+	if err != nil {
+		return ""
+	}
+	return key.Value()
+}
 func (p *Profiles) Profile(profile string) (*Profile, error) {
 	if c, ok := p.profiles[profile]; ok {
 		return c, nil
@@ -103,7 +111,7 @@ func (p *Profiles) loadDefaultConfigFile() error {
 		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
 		if section.Name() != "DEFAULT" {
 			// Check if the section is prefixed with 'profile ' and that the profile has a name
-			if ((strings.HasPrefix(section.Name(), "profile ") && len(section.Name()) > 8) || section.Name() == "default") && isLegalProfileName(strings.TrimPrefix(section.Name(), "profile ")) {
+			if ((strings.HasPrefix(section.Name(), "profile ") && len(section.Name()) > 8) || section.Name() == "default") && IsLegalProfileName(strings.TrimPrefix(section.Name(), "profile ")) {
 				name := strings.TrimPrefix(section.Name(), "profile ")
 				p.ProfileNames = append(p.ProfileNames, name)
 				sectionPtr := section
@@ -143,7 +151,7 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
 		if section.Name() != "DEFAULT" {
 			// We only care about the non default sections for the credentials file (no profile prefix either)
-			if section.Name() != "default" && isLegalProfileName(section.Name()) {
+			if section.Name() != "default" && IsLegalProfileName(section.Name()) {
 				// check for a duplicate profile in the map and skip if present (config file should take precedence)
 				_, exists := p.profiles[section.Name()]
 				if exists {
@@ -159,7 +167,7 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 }
 
 // Helper function which returns true if provided profile name string does not contain illegal characters
-func isLegalProfileName(name string) bool {
+func IsLegalProfileName(name string) bool {
 	illegalProfileNameCharacters := regexp.MustCompile(`[\\[\];'" ]`)
 	illegalChars := `\][;'"` // These characters break the config file format and should not be usable for profile names
 	if illegalProfileNameCharacters.MatchString(name) {

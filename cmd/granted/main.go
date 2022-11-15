@@ -13,7 +13,9 @@ import (
 func main() {
 	updatecheck.Check(updatecheck.GrantedCLI, build.Version, !build.IsDev())
 	defer updatecheck.Print()
+
 	app := granted.GetCliApp()
+
 	err := app.Run(os.Args)
 	if err != nil {
 		// if the error is an instance of clierr.PrintCLIErrorer then print the error accordingly
@@ -24,4 +26,5 @@ func main() {
 		}
 		os.Exit(1)
 	}
+
 }
