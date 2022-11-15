@@ -3,9 +3,11 @@ package cfaws
 import (
 	"context"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/common-fate/clio"
 	"gopkg.in/ini.v1"
 )
 
@@ -37,6 +39,14 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 	if err != nil {
 		return nil, err
 	}
+
+	// sanity check to verify if the provided value is a valid url
+	_, err = url.ParseRequestURI(item.Value())
+	if err != nil {
+		clio.Debug(err)
+		return nil, fmt.Errorf("invalid value '%s' provided for 'granted_sso_start_url'", item.Value())
+	}
+
 	cfg.SSOStartURL = item.Value()
 	return &cfg, err
 }
