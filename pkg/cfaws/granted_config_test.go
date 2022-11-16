@@ -4,7 +4,7 @@ import (
 	"testing"
 )
 
-func TestParseCredentialProcess(t *testing.T) {
+func TestValidateCredentialProcess(t *testing.T) {
 	tests := []struct {
 		name        string
 		arg         string
@@ -33,7 +33,7 @@ func TestParseCredentialProcess(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 
-			err := parseCredentialProcess(tt.arg, tt.profileName)
+			err := validateCredentialProcess(tt.arg, tt.profileName)
 			if err != nil {
 				if err.Error() != tt.wantErr {
 					t.Fatal(err)

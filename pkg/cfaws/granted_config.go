@@ -55,7 +55,7 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 		return nil, err
 	}
 
-	err = parseCredentialProcess(item.Value(), profile.Name)
+	err = validateCredentialProcess(item.Value(), profile.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -85,12 +85,12 @@ func hasGrantedSSOPrefix(rawConfig *ini.Section) bool {
 	return false
 }
 
-// parseCredentialProcess checks whether the granted_ prefixed AWS profiles
+// validateCredentialProcess checks whether the granted_ prefixed AWS profiles
 // are correctly using the granted credential-process override or not.
 // also check whether the provided flag to 'granted credential-process --profile pname'
 // matches the AWS config profile name. If it doesn't then return an err
 // as the user will certainly run into unexpected behaviour.
-func parseCredentialProcess(arg string, awsProfileName string) error {
+func validateCredentialProcess(arg string, awsProfileName string) error {
 	regex := regexp.MustCompile(`^(\s+)?granted\s+credential-process.*--profile\s+(?P<PName>([^\s]+))`)
 
 	if regex.MatchString(arg) {
