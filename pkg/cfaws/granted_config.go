@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/url"
+	"regexp"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -48,6 +49,17 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 	}
 
 	cfg.SSOStartURL = item.Value()
+
+	item, err = profile.RawConfig.GetKey("credential_process")
+	if err != nil {
+		return nil, err
+	}
+
+	err = validateCredentialProcess(item.Value(), profile.Name)
+	if err != nil {
+		return nil, err
+	}
+
 	return &cfg, err
 }
 
@@ -71,4 +83,33 @@ func hasGrantedSSOPrefix(rawConfig *ini.Section) bool {
 		}
 	}
 	return false
+}
+
+// validateCredentialProcess checks whether the granted_ prefixed AWS profiles
+// are correctly using the granted credential-process override or not.
+// also check whether the provided flag to 'granted credential-process --profile pname'
+// matches the AWS config profile name. If it doesn't then return an err
+// as the user will certainly run into unexpected behaviour.
+func validateCredentialProcess(arg string, awsProfileName string) error {
+	regex := regexp.MustCompile(`^(\s+)?granted\s+credential-process.*--profile\s+(?P<PName>([^\s]+))`)
+
+	if regex.MatchString(arg) {
+		matches := regex.FindStringSubmatch(arg)
+		pNameIndex := regex.SubexpIndex("PName")
+
+		profileName := matches[pNameIndex]
+
+		if profileName == "" {
+			return fmt.Errorf("profile name not provided. Try adding profile name like 'granted credential-process --profile <profile-name>'")
+		}
+
+		// if matches then do nth.
+		if profileName == awsProfileName {
+			return nil
+		}
+
+		return fmt.Errorf("unmatched profile names. The profile name '%s' provided to 'granted credential-process' doesnot match AWS profile name '%s'", profileName, awsProfileName)
+	}
+
+	return fmt.Errorf("unable to parse 'credential_process'. Looks like your credential_process isn't configured correctly. \n You need to add 'granted credential-process --profile <profile-name>'")
 }
