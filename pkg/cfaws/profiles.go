@@ -56,9 +56,9 @@ func (p *Profiles) HasProfile(profile string) bool {
 	return ok
 }
 
-// if the profile has a granted_description key, the value is returned. else an empty string
-func (p *Profile) Description() string {
-	key, err := p.RawConfig.GetKey("granted_description")
+// if the profile has a "granted_${name}" key, the value is returned. else an empty string
+func (p *Profile) CustomGrantedProperty(name string) string {
+	key, err := p.RawConfig.GetKey(fmt.Sprintf("granted_%s", name))
 	if err != nil {
 		return ""
 	}
