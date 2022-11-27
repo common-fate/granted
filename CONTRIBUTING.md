@@ -38,7 +38,7 @@ When opening a bug report we ask that you please include the following informati
 
 - Your Granted version `granted -v`
 - If applicable and relevant your .aws config file, found at `~/.aws/config` **(excluding any account IDs or SSO start URLs)**
-- Details surrouding the bug and steps to replicate
+- Details surrounding the bug and steps to replicate
 - If possible an example of the bug
 
 Some things to try before opening a new issue:
@@ -73,7 +73,7 @@ Some things to try before opening a new issue:
 
 # Technical Notes
 
-Before you get started developing on Granted, these notes will help to explain some key comcepts in the codebase.
+Before you get started developing on Granted, these notes will help to explain some key concepts in the codebase.
 
 ## IO
 
