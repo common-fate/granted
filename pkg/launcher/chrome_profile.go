@@ -3,6 +3,8 @@ package launcher
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
+	"hash/fnv"
 	"os"
 	"path"
 	"runtime"
@@ -23,28 +25,27 @@ type ChromeProfile struct {
 
 func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
 	profileName, _ := FindBrowserProfile(profile, l.BrowserType)
-	// profileName := chromeProfileName(profile)
+	profileName = chromeProfileName(profileName)
 
 	return []string{
 		l.ExecutablePath,
 		// "--args",
-		// "--user-data-dir=" + l.UserDataPath,
+		"--user-data-dir=" + l.UserDataPath,
 		"--profile-directory=" + profileName,
-		// "--no-first-run",
+		"--no-first-run",
 		"--no-default-browser-check",
 		url,
 	}
 }
 
-//Todo: is this still needed
-// func chromeProfileName(profile string) string {
+func chromeProfileName(profile string) string {
 
-// 	h := fnv.New32a()
-// 	h.Write([]byte(profile))
+	h := fnv.New32a()
+	h.Write([]byte(profile))
 
-// 	hash := fmt.Sprint(h.Sum32())
-// 	return hash
-// }
+	hash := fmt.Sprint(h.Sum32())
+	return hash
+}
 
 var BravePathMac = "Library/Application Support/BraveSoftware/Brave-Browser/Local State"
 var BravePathLinux = ".config/brave-browser/Local State"
