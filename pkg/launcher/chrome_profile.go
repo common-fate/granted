@@ -3,8 +3,6 @@ package launcher
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
-	"hash/fnv"
 	"os"
 	"path"
 	"runtime"
@@ -38,14 +36,15 @@ func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
 	}
 }
 
-func chromeProfileName(profile string) string {
+//Todo: is this still needed
+// func chromeProfileName(profile string) string {
 
-	h := fnv.New32a()
-	h.Write([]byte(profile))
+// 	h := fnv.New32a()
+// 	h.Write([]byte(profile))
 
-	hash := fmt.Sprint(h.Sum32())
-	return hash
-}
+// 	hash := fmt.Sprint(h.Sum32())
+// 	return hash
+// }
 
 var BravePathMac = "Library/Application Support/BraveSoftware/Brave-Browser/Local State"
 var BravePathLinux = ".config/brave-browser/Local State"
