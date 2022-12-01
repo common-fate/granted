@@ -7,6 +7,7 @@ import (
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
+	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"gopkg.in/ini.v1"
 )
 
@@ -150,9 +151,16 @@ func getNonGrantedProfiles(config *ini.File) []*ini.Section {
 	return nonGrantedProfiles
 }
 
-func generateNewRegistrySection(configFile *ini.File, clonedFile *ini.File, sectionName string, isFirstSection bool) error {
+func generateNewRegistrySection(configFile *ini.File, clonedFile *ini.File, config grantedConfig.Registry, isFirstSection bool) error {
+	sectionName := config.Name
 	clio.Debugf("generating section %s", sectionName)
-	err := configFile.NewSections(fmt.Sprintf("granted_registry_start %s", sectionName))
+
+	gconf, err := grantedConfig.Load()
+	if err != nil {
+		return err
+	}
+
+	err = configFile.NewSections(fmt.Sprintf("granted_registry_start %s", sectionName))
 	if err != nil {
 		return err
 	}
@@ -177,6 +185,17 @@ func generateNewRegistrySection(configFile *ini.File, clonedFile *ini.File, sect
 		if cfaws.IsLegalProfileName(strings.TrimPrefix(sec.Name(), "profile ")) {
 
 			if Contains(currentProfiles, sec.Name()) {
+
+				if !gconf.ProfileRegistry.PrefixAllProfiles {
+					clio.Warnf("profile duplication found for '%s'", sec.Name())
+
+					clio.Infof("You can add '%s' as prefix to colliding profile '%s' to remove duplication", sectionName, strings.TrimPrefix(sec.Name(), "profile "))
+					clio.Info("Run granted registry add with optional flag '--prefix-duplicate-profiles' to add prefix to duplicate profiles")
+					clio.Infof("Run granted registry add with optional flag '--prefix-all-profiles' to add prefix to all profiles for this registry")
+
+					return fmt.Errorf("aborting Sync")
+				}
+
 				clio.Debugf("profile name duplication found for %s. Prefixing %s to avoid collision.", sec.Name(), namespace)
 				f, err := configFile.NewSection(appendNamespaceToDuplicateSections(sec.Name(), namespace))
 				if err != nil {
