@@ -14,7 +14,7 @@ var AddCommand = cli.Command{
 	Name:        "add",
 	Description: "Add a Profile Registry that you want to sync with aws config file",
 	Usage:       "Provide git repository you want to sync with aws config file",
-	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries"}, &cli.StringFlag{Name: "url", Required: true}, &cli.StringFlag{Name: "path"}},
+	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries"}, &cli.StringFlag{Name: "url", Required: true}, &cli.StringFlag{Name: "path"}, &cli.StringFlag{Name: "ref"}, &cli.IntFlag{Name: "priority"}},
 	ArgsUsage:   "<repository url> --name <registry_name> --url <git-url>",
 	Action: func(c *cli.Context) error {
 		gConf, err := grantedConfig.Load()
@@ -24,6 +24,9 @@ var AddCommand = cli.Command{
 
 		name := c.String("name")
 		gitURL := c.String("url")
+		path := c.String("path")
+		ref := c.String("ref")
+		priority := c.Int("priority")
 
 		if _, ok := gConf.ProfileRegistry.Registries[name]; ok {
 			clio.Errorf("profile registry with name '%s' already exists. Name is required to be unique. Try adding with different name.\n", name)
@@ -31,7 +34,14 @@ var AddCommand = cli.Command{
 			return nil
 		}
 
-		registry := NewProfileRegistry(name, gitURL)
+		registry := NewProfileRegistry(registryOptions{
+			name:     name,
+			path:     path,
+			url:      gitURL,
+			ref:      ref,
+			priority: priority,
+		})
+
 		repoDirPath, err := registry.getRegistryLocation()
 		if err != nil {
 			return err
@@ -91,19 +101,12 @@ var AddCommand = cli.Command{
 		// // we have verified that this registry is a valid one and sync is completed.
 		// // so save the repo url to config file.
 		if gConf.ProfileRegistry.Registries != nil {
-			gConf.ProfileRegistry.Registries[name] = grantedConfig.Registry{
-				Name: name,
-				URL:  gitURL,
-			}
+			gConf.ProfileRegistry.Registries[name] = registry.Config
 		} else {
-			registry := make(map[string]grantedConfig.Registry)
+			reg := make(map[string]grantedConfig.Registry)
 
-			registry[name] = grantedConfig.Registry{
-				Name: name,
-				URL:  gitURL,
-			}
-
-			gConf.ProfileRegistry.Registries = registry
+			reg[name] = registry.Config
+			gConf.ProfileRegistry.Registries = reg
 		}
 
 		err = gConf.Save()

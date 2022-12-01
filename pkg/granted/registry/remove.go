@@ -41,7 +41,10 @@ var RemoveCommand = cli.Command{
 
 		selectedRegistry := gConf.ProfileRegistry.Registries[out]
 
-		r := NewProfileRegistry(selectedRegistry.Name, selectedRegistry.URL)
+		r := NewProfileRegistry(registryOptions{
+			name: selectedRegistry.Name,
+			url:  selectedRegistry.URL,
+		})
 
 		repoDir, err := r.getRegistryLocation()
 		if err != nil {

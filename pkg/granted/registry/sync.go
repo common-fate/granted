@@ -110,7 +110,7 @@ func Sync(r Registry, isFirstSection bool) error {
 		return err
 	}
 
-	err = generateNewRegistrySection(awsConfigFile, clonedFile, r.Config.Name, isFirstSection)
+	err = generateNewRegistrySection(awsConfigFile, clonedFile, r.Config, isFirstSection)
 	if err != nil {
 		return err
 	}

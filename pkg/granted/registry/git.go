@@ -65,7 +65,7 @@ func gitClone(repoURL string, repoDirPath string) error {
 
 	scanner := bufio.NewScanner(stderr)
 	for scanner.Scan() {
-		if strings.Contains(scanner.Text(), "error") || strings.Contains(scanner.Text(), "fatal") {
+		if strings.Contains(strings.ToLower(scanner.Text()), "error") || strings.Contains(strings.ToLower(scanner.Text()), "fatal") {
 			return fmt.Errorf(scanner.Text())
 		}
 

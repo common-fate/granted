@@ -26,19 +26,30 @@ func (r *Registry) getRegistryLocation() (string, error) {
 }
 
 func (r *Registry) Parse() error {
-	var configFilePath string = "granted.yml"
-	if r.Config.Path != nil {
-		configFilePath = *r.Config.Path
-	}
+	const defaultConfigFilename string = "granted.yml"
 
 	filepath, err := r.getRegistryLocation()
 	if err != nil {
 		return err
 	}
 
-	grantedFilePath := path.Join(filepath, configFilePath)
-	clio.Debugf("verifying if valid config exists in %s", grantedFilePath)
-	file, err := os.ReadFile(grantedFilePath)
+	if r.Config.Path != nil {
+		filepath = path.Join(filepath, *r.Config.Path)
+	}
+
+	fileInfo, err := os.Stat(filepath)
+	if err != nil {
+		return err
+	}
+
+	// if the provided path is a directory then
+	// we will assume that it has default config file i.e `granted.yml` file inside the given directory.
+	if fileInfo.IsDir() {
+		filepath = path.Join(filepath, defaultConfigFilename)
+	}
+
+	clio.Debugf("verifying if valid config exists in %s", filepath)
+	file, err := os.ReadFile(filepath)
 	if err != nil {
 		return err
 	}
@@ -51,13 +62,31 @@ func (r *Registry) Parse() error {
 	return nil
 }
 
-func NewProfileRegistry(name string, url string) Registry {
-	return Registry{
+type registryOptions struct {
+	name     string
+	path     string
+	ref      string
+	url      string
+	priority int
+}
+
+func NewProfileRegistry(rOpts registryOptions) Registry {
+	newRegistry := Registry{
 		Config: grantedConfig.Registry{
-			Name: name,
-			URL:  url,
+			Name: rOpts.name,
+			URL:  rOpts.url,
 		},
 	}
+
+	if rOpts.path != "" {
+		newRegistry.Config.Path = &rOpts.path
+	}
+
+	if rOpts.ref != "" {
+		newRegistry.Config.Ref = &rOpts.ref
+	}
+
+	return newRegistry
 }
 
 func GetProfileRegistries() ([]Registry, error) {
