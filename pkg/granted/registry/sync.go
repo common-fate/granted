@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/common-fate/clio"
-	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,12 +22,12 @@ var SyncCommand = cli.Command{
 
 // Wrapper around sync func. Check if profile registry is configured, pull the latest changes and call sync func.
 func SyncProfileRegistries(shouldSilentLog bool) error {
-	gConf, err := grantedConfig.Load()
+	registries, err := GetProfileRegistries()
 	if err != nil {
 		return err
 	}
 
-	if len(gConf.ProfileRegistryURLS) < 1 {
+	if len(registries) == 0 {
 		clio.Warn("granted registry not configured. Try adding a git repository with 'granted registry add <https://github.com/your-org/your-registry.git>'")
 	}
 
@@ -47,13 +46,8 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 		return err
 	}
 
-	for index, repoURL := range gConf.ProfileRegistryURLS {
-		u, err := parseGitURL(repoURL)
-		if err != nil {
-			return err
-		}
-
-		repoDirPath, err := getRegistryLocation(u)
+	for index, r := range registries {
+		repoDirPath, err := r.getRegistryLocation()
 		if err != nil {
 			return err
 		}
@@ -61,7 +55,7 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 		// If the local repo has been deleted, then attempt to clone it again
 		_, err = os.Stat(repoDirPath)
 		if os.IsNotExist(err) {
-			err = gitClone(repoURL, repoDirPath)
+			err = gitClone(r.Config.URL, repoDirPath)
 			if err != nil {
 				return err
 			}
@@ -71,13 +65,14 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 				return err
 			}
 		}
-		err = parseClonedRepo(repoDirPath, u)
-		if err != nil {
-			return err
-		}
 
-		var r Registry
-		_, err = r.Parse(repoDirPath, u)
+		// TODO: Need to parse the cloned repo
+		// err = parseClonedRepo(repoDirPath, )
+		// if err != nil {
+		// 	return err
+		// }
+
+		err = r.Parse()
 		if err != nil {
 			return err
 		}
@@ -87,7 +82,7 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 			isFirstSection = true
 		}
 
-		if err := Sync(r, repoURL, repoDirPath, isFirstSection); err != nil {
+		if err := Sync(r, isFirstSection); err != nil {
 			return err
 		}
 	}
@@ -97,8 +92,8 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 
 // Sync function will load all the configs provided in the clonedFile.
 // and generated a new section in the ~/.aws/profile file.
-func Sync(r Registry, repoURL string, repoDirPath string, isFirstSection bool) error {
-	clio.Debugf("syncing %s \n", repoURL)
+func Sync(r Registry, isFirstSection bool) error {
+	clio.Debugf("syncing %s \n", r.Config.Name)
 
 	awsConfigPath, err := getDefaultAWSConfigLocation()
 	if err != nil {
@@ -110,12 +105,12 @@ func Sync(r Registry, repoURL string, repoDirPath string, isFirstSection bool) e
 		return err
 	}
 
-	clonedFile, err := loadClonedConfigs(r, repoDirPath)
+	clonedFile, err := loadClonedConfigs(r)
 	if err != nil {
 		return err
 	}
 
-	err = generateNewRegistrySection(awsConfigFile, clonedFile, repoURL, isFirstSection)
+	err = generateNewRegistrySection(awsConfigFile, clonedFile, r.Config.Name, isFirstSection)
 	if err != nil {
 		return err
 	}
@@ -125,7 +120,7 @@ func Sync(r Registry, repoURL string, repoDirPath string, isFirstSection bool) e
 		return err
 	}
 
-	clio.Successf("Successfully synced registry %s", repoURL)
+	clio.Successf("Successfully synced registry %s", r.Config.Name)
 
 	return nil
 }
