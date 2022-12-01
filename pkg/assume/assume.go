@@ -244,7 +244,7 @@ func AssumeCommand(c *cli.Context) error {
 
 	// if getConsoleURL is true, we'll use the AWS federated login to retrieve a URL to access the console.
 	// depending on how Granted is configured, this is then printed to the terminal or a browser is launched at the URL automatically.
-	getConsoleURL := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
+	getConsoleURL := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url") || assumeFlags.String("profile") != "")
 
 	if getConsoleURL {
 		con := console.AWS{
@@ -258,6 +258,12 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 
+		containerProfile := profile.Name
+
+		if assumeFlags.String("profile") != "" {
+			containerProfile = assumeFlags.String("profile")
+		}
+
 		consoleURL, err := con.URL(creds)
 		if err != nil {
 			return err
@@ -265,7 +271,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
 			// tranform the URL into the Firefox Tab Container format.
-			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s", profile.Name, url.QueryEscape(consoleURL))
+			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s", containerProfile, url.QueryEscape(consoleURL))
 		}
 
 		justPrintURL := assumeFlags.Bool("url") || cfg.DefaultBrowser == browser.StdoutKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey
@@ -289,21 +295,28 @@ func AssumeCommand(c *cli.Context) error {
 		switch cfg.DefaultBrowser {
 		case browser.ChromeKey:
 			l = launcher.ChromeProfile{
+				BrowserType:    browser.ChromeKey,
 				ExecutablePath: browserPath,
 				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "1"), // held over for backwards compatibility, "1" indicates Chrome profiles
 			}
 		case browser.BraveKey:
 			l = launcher.ChromeProfile{
+				BrowserType: browser.BraveKey,
+
 				ExecutablePath: browserPath,
 				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "2"), // held over for backwards compatibility, "2" indicates Brave profiles
 			}
 		case browser.EdgeKey:
 			l = launcher.ChromeProfile{
+				BrowserType: browser.EdgeKey,
+
 				ExecutablePath: browserPath,
 				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "3"), // held over for backwards compatibility, "3" indicates Edge profiles
 			}
 		case browser.ChromiumKey:
 			l = launcher.ChromeProfile{
+				BrowserType: browser.ChromiumKey,
+
 				ExecutablePath: browserPath,
 				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "4"), // held over for backwards compatibility, "4" indicates Chromium profiles
 			}
@@ -319,7 +332,8 @@ func AssumeCommand(c *cli.Context) error {
 		clio.Infof("Opening a console for %s in your browser...", profile.Name)
 
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
-		args := l.LaunchCommand(consoleURL, con.Profile)
+		args := l.LaunchCommand(consoleURL, containerProfile)
+
 		cmd, err := forkprocess.New(args...)
 		if err != nil {
 			return err

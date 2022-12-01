@@ -38,6 +38,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "sso-region", Usage: "Use this in conjunction with --sso, the sso-region"},
 		&cli.StringFlag{Name: "account-id", Usage: "Use this in conjunction with --sso, the account-id"},
 		&cli.StringFlag{Name: "role-name", Usage: "Use this in conjunction with --sso, the role-name"},
+		&cli.StringFlag{Name: "profile", Usage: "Use a pre-existing profile in your browser"},
 	}
 }
 
