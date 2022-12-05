@@ -27,6 +27,8 @@ var AddCommand = cli.Command{
 		path := c.String("path")
 		ref := c.String("ref")
 		priority := c.Int("priority")
+		prefixAllProfiles := c.Bool("prefix-all-profiles")
+		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
 
 		if _, ok := gConf.ProfileRegistry.Registries[name]; ok {
 			clio.Errorf("profile registry with name '%s' already exists. Name is required to be unique. Try adding with different name.\n", name)
@@ -35,11 +37,13 @@ var AddCommand = cli.Command{
 		}
 
 		registry := NewProfileRegistry(registryOptions{
-			name:     name,
-			path:     path,
-			url:      gitURL,
-			ref:      ref,
-			priority: priority,
+			name:                    name,
+			path:                    path,
+			url:                     gitURL,
+			ref:                     ref,
+			priority:                priority,
+			prefixAllProfiles:       prefixAllProfiles,
+			prefixDuplicateProfiles: prefixDuplicateProfiles,
 		})
 
 		repoDirPath, err := registry.getRegistryLocation()
@@ -94,12 +98,12 @@ var AddCommand = cli.Command{
 			isFirstSection = true
 		}
 
-		if err := Sync(registry, isFirstSection); err != nil {
+		if err := Sync(&registry, isFirstSection, ADD_COMMAND); err != nil {
 			return err
 		}
 
-		// // we have verified that this registry is a valid one and sync is completed.
-		// // so save the repo url to config file.
+		// we have verified that this registry is a valid one and sync is completed.
+		// so save the repo url to config file.
 		if gConf.ProfileRegistry.Registries != nil {
 			gConf.ProfileRegistry.Registries[name] = registry.Config
 		} else {

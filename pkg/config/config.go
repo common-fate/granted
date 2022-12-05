@@ -29,8 +29,10 @@ type Config struct {
 	AccessRequestURL string `toml:",omitempty"`
 	ProfileRegistry  struct {
 		// add any global configuration to profile registry here.
-		PrefixAllProfiles bool
-		Registries        map[string]Registry `toml:",omitempty"`
+		PrefixAllProfiles       bool
+		PrefixDuplicateProfiles bool
+		SessionName             string              `toml:",omitempty"`
+		Registries              map[string]Registry `toml:",omitempty"`
 	} `toml:",omitempty"`
 }
 
@@ -42,11 +44,13 @@ type KeyringConfig struct {
 }
 
 type Registry struct {
-	Name     string  `toml:"name"`
-	URL      string  `toml:"url"`
-	Path     *string `toml:"path,omitempty"`
-	Ref      *string `toml:"ref,omitempty"`
-	Priority *int    `toml:"priority, omitempty"`
+	Name                    string  `toml:"name"`
+	URL                     string  `toml:"url"`
+	Path                    *string `toml:"path,omitempty"`
+	Ref                     *string `toml:"ref,omitempty"`
+	Priority                *int    `toml:"priority, omitempty"`
+	PrefixDuplicateProfiles bool    `toml:"prefixDuplicateProfiles,omitempty"`
+	PrefixAllProfiles       bool    `toml:"prefixAllProfiles,omitempty"`
 }
 
 // NewDefaultConfig returns a config with OS specific defaults populated

@@ -24,7 +24,7 @@ var ProfileRegistryCommand = cli.Command{
 
 		clio.Info("Granted is currently synced with following registries:")
 		for i, r := range registries {
-			clio.Logf("\t %d: %s with name %s", (i + 1), r.Config.URL, r.Config.Name)
+			clio.Logf("\t %d: %s with name '%s'", (i + 1), r.Config.URL, r.Config.Name)
 		}
 		clio.NewLine()
 

@@ -5,9 +5,11 @@ import (
 	"regexp"
 	"strings"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/testable"
 	"gopkg.in/ini.v1"
 )
 
@@ -151,7 +153,7 @@ func getNonGrantedProfiles(config *ini.File) []*ini.Section {
 	return nonGrantedProfiles
 }
 
-func generateNewRegistrySection(configFile *ini.File, clonedFile *ini.File, config grantedConfig.Registry, isFirstSection bool) error {
+func generateNewRegistrySection(config *grantedConfig.Registry, configFile *ini.File, clonedFile *ini.File, isFirstSection bool, cmdType CommandType) error {
 	sectionName := config.Name
 	clio.Debugf("generating section %s", sectionName)
 
@@ -184,19 +186,58 @@ func generateNewRegistrySection(configFile *ini.File, clonedFile *ini.File, conf
 		// We only care about the non default sections for the credentials file (no profile prefix either)
 		if cfaws.IsLegalProfileName(strings.TrimPrefix(sec.Name(), "profile ")) {
 
-			if Contains(currentProfiles, sec.Name()) {
-
-				if !gconf.ProfileRegistry.PrefixAllProfiles {
-					clio.Warnf("profile duplication found for '%s'", sec.Name())
-
-					clio.Infof("You can add '%s' as prefix to colliding profile '%s' to remove duplication", sectionName, strings.TrimPrefix(sec.Name(), "profile "))
-					clio.Info("Run granted registry add with optional flag '--prefix-duplicate-profiles' to add prefix to duplicate profiles")
-					clio.Infof("Run granted registry add with optional flag '--prefix-all-profiles' to add prefix to all profiles for this registry")
-
-					return fmt.Errorf("aborting Sync")
+			if gconf.ProfileRegistry.PrefixAllProfiles || config.PrefixAllProfiles {
+				f, err := configFile.NewSection(appendNamespaceToDuplicateSections(sec.Name(), namespace))
+				if err != nil {
+					return err
 				}
 
-				clio.Debugf("profile name duplication found for %s. Prefixing %s to avoid collision.", sec.Name(), namespace)
+				*f = *sec
+
+				continue
+			}
+
+			if Contains(currentProfiles, sec.Name()) {
+				// check global config to see if we should prefix all duplicate profiles for this registry.
+				if !gconf.ProfileRegistry.PrefixDuplicateProfiles {
+
+					// registry level config
+					if !config.PrefixDuplicateProfiles {
+						if cmdType == ADD_COMMAND {
+							clio.Warnf("profile duplication found for '%s'", sec.Name())
+
+							const (
+								DUPLICATE = "add registry name as prefix to all duplicate profiles for this registry"
+								ABORT     = "abort, I will manually fix this"
+							)
+
+							options := []string{DUPLICATE, ABORT}
+
+							in := survey.Select{Message: "Please select which option would you like to choose to resolve: ", Options: options}
+							var selected string
+							err = testable.AskOne(&in, &selected)
+							if err != nil {
+								return err
+							}
+
+							if selected == ABORT {
+								return fmt.Errorf("aborting sync for registry %s", sectionName)
+							}
+
+							config.PrefixDuplicateProfiles = true
+						} else {
+
+							clio.Warnf("profile duplication found for '%s'", sec.Name())
+							clio.Infof("You can add '%s' as prefix to colliding profile '%s' to remove duplication", sectionName, strings.TrimPrefix(sec.Name(), "profile "))
+							clio.Info("Run granted registry add with optional flag '--prefix-duplicate-profiles' to add prefix to duplicate profiles")
+							clio.Infof("Run granted registry add with optional flag '--prefix-all-profiles' to add prefix to all profiles for this registry")
+
+							return fmt.Errorf("aborting sync")
+						}
+					}
+				}
+
+				clio.Debugf("Prefixing %s to avoid collision.", sec.Name())
 				f, err := configFile.NewSection(appendNamespaceToDuplicateSections(sec.Name(), namespace))
 				if err != nil {
 					return err

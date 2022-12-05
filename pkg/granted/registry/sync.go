@@ -82,7 +82,7 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 			isFirstSection = true
 		}
 
-		if err := Sync(r, isFirstSection); err != nil {
+		if err := Sync(&r, isFirstSection, SYNC_COMMAND); err != nil {
 			return err
 		}
 	}
@@ -90,9 +90,17 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 	return nil
 }
 
+type CommandType string
+
+const (
+	ADD_COMMAND       CommandType = "add"
+	SYNC_COMMAND      CommandType = "sync"
+	AUTO_SYNC_COMMAND CommandType = "autosync"
+)
+
 // Sync function will load all the configs provided in the clonedFile.
 // and generated a new section in the ~/.aws/profile file.
-func Sync(r Registry, isFirstSection bool) error {
+func Sync(r *Registry, isFirstSection bool, cmd CommandType) error {
 	clio.Debugf("syncing %s \n", r.Config.Name)
 
 	awsConfigPath, err := getDefaultAWSConfigLocation()
@@ -105,12 +113,12 @@ func Sync(r Registry, isFirstSection bool) error {
 		return err
 	}
 
-	clonedFile, err := loadClonedConfigs(r)
+	clonedFile, err := loadClonedConfigs(*r)
 	if err != nil {
 		return err
 	}
 
-	err = generateNewRegistrySection(awsConfigFile, clonedFile, r.Config, isFirstSection)
+	err = generateNewRegistrySection(&r.Config, awsConfigFile, clonedFile, isFirstSection, cmd)
 	if err != nil {
 		return err
 	}

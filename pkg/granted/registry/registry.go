@@ -3,6 +3,7 @@ package registry
 import (
 	"os"
 	"path"
+	"sort"
 
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
@@ -63,18 +64,22 @@ func (r *Registry) Parse() error {
 }
 
 type registryOptions struct {
-	name     string
-	path     string
-	ref      string
-	url      string
-	priority int
+	name                    string
+	path                    string
+	ref                     string
+	url                     string
+	priority                int
+	prefixAllProfiles       bool
+	prefixDuplicateProfiles bool
 }
 
 func NewProfileRegistry(rOpts registryOptions) Registry {
 	newRegistry := Registry{
 		Config: grantedConfig.Registry{
-			Name: rOpts.name,
-			URL:  rOpts.url,
+			Name:                    rOpts.name,
+			URL:                     rOpts.url,
+			PrefixAllProfiles:       rOpts.prefixAllProfiles,
+			PrefixDuplicateProfiles: rOpts.prefixDuplicateProfiles,
 		},
 	}
 
@@ -103,11 +108,28 @@ func GetProfileRegistries() ([]Registry, error) {
 	for _, item := range gConf.ProfileRegistry.Registries {
 		registries = append(registries, Registry{
 			Config: grantedConfig.Registry{
-				Name: item.Name,
-				URL:  item.URL,
+				Name:     item.Name,
+				URL:      item.URL,
+				Path:     item.Path,
+				Ref:      item.Ref,
+				Priority: item.Priority,
 			},
 		})
 	}
+
+	// sort registries bases on their priority.
+	sort.Slice(registries, func(i, j int) bool {
+		var a, b int = 0, 0
+		if registries[i].Config.Priority != nil {
+			a = *registries[i].Config.Priority
+		}
+
+		if registries[j].Config.Priority != nil {
+			b = *registries[j].Config.Priority
+		}
+
+		return a > b
+	})
 
 	return registries, nil
 }
