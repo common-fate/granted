@@ -196,6 +196,7 @@ func (r Registry) PromptRequiredVars(passedRequiredVars []string) error {
 	return nil
 }
 
+// This is used when user enters the required key through cli prompts.
 func SaveKeys(ansmap map[string]interface{}) error {
 	gConf, err := grantedConfig.Load()
 	if err != nil {
@@ -220,6 +221,7 @@ func SaveKeys(ansmap map[string]interface{}) error {
 	return nil
 }
 
+// This is used when user passed the required value through flag.
 func SaveKey(key string, value string) error {
 	gConf, err := grantedConfig.Load()
 	if err != nil {
