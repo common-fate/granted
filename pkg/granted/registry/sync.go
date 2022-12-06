@@ -66,12 +66,6 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 			}
 		}
 
-		// TODO: Need to parse the cloned repo
-		// err = parseClonedRepo(repoDirPath, )
-		// if err != nil {
-		// 	return err
-		// }
-
 		err = r.Parse()
 		if err != nil {
 			return err
@@ -118,7 +112,7 @@ func Sync(r *Registry, isFirstSection bool, cmd CommandType) error {
 		return err
 	}
 
-	err = generateNewRegistrySection(&r.Config, awsConfigFile, clonedFile, isFirstSection, cmd)
+	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, isFirstSection, cmd)
 	if err != nil {
 		return err
 	}

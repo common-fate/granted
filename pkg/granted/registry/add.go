@@ -14,7 +14,7 @@ var AddCommand = cli.Command{
 	Name:        "add",
 	Description: "Add a Profile Registry that you want to sync with aws config file",
 	Usage:       "Provide git repository you want to sync with aws config file",
-	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries"}, &cli.StringFlag{Name: "url", Required: true}, &cli.StringFlag{Name: "path"}, &cli.StringFlag{Name: "ref"}, &cli.IntFlag{Name: "priority"}},
+	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries"}, &cli.StringFlag{Name: "url", Required: true}, &cli.StringFlag{Name: "path"}, &cli.StringFlag{Name: "ref"}, &cli.BoolFlag{Name: "prefix-all-profiles"}, &cli.IntFlag{Name: "priority"}, &cli.StringSliceFlag{Name: "requiredVar", Aliases: []string{"r"}}},
 	ArgsUsage:   "<repository url> --name <registry_name> --url <git-url>",
 	Action: func(c *cli.Context) error {
 		gConf, err := grantedConfig.Load()
@@ -29,6 +29,7 @@ var AddCommand = cli.Command{
 		priority := c.Int("priority")
 		prefixAllProfiles := c.Bool("prefix-all-profiles")
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
+		requiredVar := c.StringSlice("requiredVar")
 
 		if _, ok := gConf.ProfileRegistry.Registries[name]; ok {
 			clio.Errorf("profile registry with name '%s' already exists. Name is required to be unique. Try adding with different name.\n", name)
@@ -68,9 +69,19 @@ var AddCommand = cli.Command{
 			// 	}
 			// }
 
+		} else {
+			err = gitPull(repoDirPath, false)
+			if err != nil {
+				return err
+			}
 		}
 
 		err = registry.Parse()
+		if err != nil {
+			return err
+		}
+
+		err = registry.PromptRequiredVars(requiredVar)
 		if err != nil {
 			return err
 		}
@@ -121,22 +132,3 @@ var AddCommand = cli.Command{
 		return nil
 	},
 }
-
-// func parseClonedRepo(folderpath string, url GitURL) error {
-// 	var grantedConfigFilename string = "granted.yml"
-
-// 	if url.Filename != "" {
-// 		grantedConfigFilename = url.Filename
-// 	}
-
-// 	configFilePath := path.Join(folderpath, url.Subpath, grantedConfigFilename)
-
-// 	clio.Debugf("checking for %s in %s", grantedConfigFilename, configFilePath)
-// 	_, err := os.ReadFile(configFilePath)
-// 	if err != nil {
-// 		clio.Debug(err)
-// 		return fmt.Errorf("unable to find `%s` file in %s", grantedConfigFilename, configFilePath)
-// 	}
-
-// 	return nil
-// }

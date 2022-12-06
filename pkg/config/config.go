@@ -32,6 +32,7 @@ type Config struct {
 		PrefixAllProfiles       bool
 		PrefixDuplicateProfiles bool
 		SessionName             string              `toml:",omitempty"`
+		RequiredKeys            map[string]string   `toml:",omitempty"`
 		Registries              map[string]Registry `toml:",omitempty"`
 	} `toml:",omitempty"`
 }
