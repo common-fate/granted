@@ -133,6 +133,7 @@ func GetProfileRegistries() ([]Registry, error) {
 	return registries, nil
 }
 
+// Get the key=value from the provided required variable flag.
 func formattedRequiredVars(s string) (string, string, error) {
 	value := strings.Split(s, "=")
 	if len(value) == 2 {
