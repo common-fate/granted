@@ -1,9 +1,11 @@
 package registry
 
 import (
+	"fmt"
 	"os"
 
 	"github.com/common-fate/clio"
+	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/urfave/cli/v2"
 )
 
@@ -23,6 +25,11 @@ var SyncCommand = cli.Command{
 // Wrapper around sync func. Check if profile registry is configured, pull the latest changes and call sync func.
 func SyncProfileRegistries(shouldSilentLog bool) error {
 	registries, err := GetProfileRegistries()
+	if err != nil {
+		return err
+	}
+
+	gConf, err := grantedConfig.Load()
 	if err != nil {
 		return err
 	}
@@ -69,6 +76,16 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 		err = r.Parse()
 		if err != nil {
 			return err
+		}
+
+		// If the required keys for the registry is not configured when sync is performed
+		// it will abort the sync. This might happen if user removes the required key from
+		// the config file manually or new required key is added to granted.yml file.
+		// This should fail because sync can happend in the background process.
+		for key := range r.RequiredKeys {
+			if value, ok := gConf.ProfileRegistry.RequiredKeys[key]; !ok || value == "" {
+				return fmt.Errorf("%s is undefined but required for '%s' profile registry. Abort sync", key, r.Config.Name)
+			}
 		}
 
 		isFirstSection := false
