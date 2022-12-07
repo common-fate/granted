@@ -48,6 +48,7 @@ type Registry struct {
 	Name                    string  `toml:"name"`
 	URL                     string  `toml:"url"`
 	Path                    *string `toml:"path,omitempty"`
+	Filename                *string `toml:"filename,omitempty"`
 	Ref                     *string `toml:"ref,omitempty"`
 	Priority                *int    `toml:"priority, omitempty"`
 	PrefixDuplicateProfiles bool    `toml:"prefixDuplicateProfiles,omitempty"`

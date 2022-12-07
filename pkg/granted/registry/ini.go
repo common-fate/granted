@@ -55,7 +55,7 @@ func loadClonedConfigs(r Registry) (*ini.File, error) {
 			filepath = path.Join(repoDirPath, cfile)
 		}
 
-		clio.Debugf("loading aws config file from %s", filepath, cfile)
+		clio.Debugf("loading aws config file from %s", filepath)
 		err := clonedFile.Append(filepath)
 		if err != nil {
 			return nil, err

@@ -14,7 +14,7 @@ var AddCommand = cli.Command{
 	Name:        "add",
 	Description: "Add a Profile Registry that you want to sync with aws config file",
 	Usage:       "Provide git repository you want to sync with aws config file",
-	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries"}, &cli.StringFlag{Name: "url", Required: true}, &cli.StringFlag{Name: "path"}, &cli.StringFlag{Name: "ref"}, &cli.BoolFlag{Name: "prefix-all-profiles"}, &cli.StringSliceFlag{Name: "requiredVar", Aliases: []string{"r"}}},
+	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries"}, &cli.StringFlag{Name: "url", Required: true}, &cli.StringFlag{Name: "path"}, &cli.StringFlag{Name: "filename", Aliases: []string{"f"}}, &cli.StringFlag{Name: "ref"}, &cli.BoolFlag{Name: "prefix-all-profiles"}, &cli.StringSliceFlag{Name: "requiredVar", Aliases: []string{"r"}}},
 	ArgsUsage:   "<repository url> --name <registry_name> --url <git-url>",
 	Action: func(c *cli.Context) error {
 		gConf, err := grantedConfig.Load()
@@ -25,6 +25,7 @@ var AddCommand = cli.Command{
 		name := c.String("name")
 		gitURL := c.String("url")
 		path := c.String("path")
+		configFileName := c.String("filename")
 		ref := c.String("ref")
 		prefixAllProfiles := c.Bool("prefix-all-profiles")
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
@@ -39,6 +40,7 @@ var AddCommand = cli.Command{
 		registry := NewProfileRegistry(registryOptions{
 			name:                    name,
 			path:                    path,
+			configFileName:          configFileName,
 			url:                     gitURL,
 			ref:                     ref,
 			prefixAllProfiles:       prefixAllProfiles,
