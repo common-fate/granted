@@ -4,19 +4,19 @@ import (
 	"time"
 
 	"github.com/common-fate/clio"
-	grantedConfig "github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/granted/registry"
 )
 
 func Run() {
-	// check if registry has been configured or not.
-	// should skip registry sync if no profile registry.
-	gConf, err := grantedConfig.Load()
+	registries, err := registry.GetProfileRegistries()
 	if err != nil {
 		clio.Debugf("unable to load granted config file with err %s", err.Error())
 		return
 	}
 
-	if len(gConf.ProfileRegistryURLS) < 1 {
+	// check if registry has been configured or not.
+	// should skip registry sync if no profile registry.
+	if len(registries) == 0 {
 		clio.Debug("profile registry not configured. Skipping auto sync.")
 		return
 	}
