@@ -41,14 +41,9 @@ func (r *Registry) Parse() error {
 		filepath = path.Join(filepath, *r.Config.Path)
 	}
 
-	fileInfo, err := os.Stat(filepath)
-	if err != nil {
-		return err
-	}
-
-	// if the provided path is a directory then
-	// we will assume that it has default config file i.e `granted.yml` file inside the given directory.
-	if fileInfo.IsDir() {
+	if r.Config.Filename != nil {
+		filepath = path.Join(filepath, *r.Config.Filename)
+	} else {
 		filepath = path.Join(filepath, defaultConfigFilename)
 	}
 
@@ -69,6 +64,7 @@ func (r *Registry) Parse() error {
 type registryOptions struct {
 	name                    string
 	path                    string
+	configFileName          string
 	ref                     string
 	url                     string
 	prefixAllProfiles       bool
@@ -87,6 +83,10 @@ func NewProfileRegistry(rOpts registryOptions) Registry {
 
 	if rOpts.path != "" {
 		newRegistry.Config.Path = &rOpts.path
+	}
+
+	if rOpts.configFileName != "" {
+		newRegistry.Config.Filename = &rOpts.configFileName
 	}
 
 	if rOpts.ref != "" {
@@ -159,13 +159,25 @@ func (r Registry) PromptRequiredVars(passedRequiredVars []string) error {
 			}
 		}
 
+		gConf, err := grantedConfig.Load()
+		if err != nil {
+			return err
+		}
+
 		for key, prompt := range r.RequiredKeys {
 			// if the key was passed through cli then skip the prompt
 			if _, ok := requiredVarsThroughFlags[key]; ok {
-				err := SaveKey(key, requiredVarsThroughFlags[key])
+				err := SaveKey(gConf, key, requiredVarsThroughFlags[key])
 				if err != nil {
 					return err
 				}
+
+				continue
+			}
+
+			// if the key is already configured then skip
+			if gConf.ProfileRegistry.RequiredKeys[key] != "" {
+				clio.Debugf("%s is already configured so skipping", key)
 
 				continue
 			}
@@ -174,21 +186,24 @@ func (r Registry) PromptRequiredVars(passedRequiredVars []string) error {
 				Name:     key,
 				Prompt:   &survey.Input{Message: fmt.Sprintf("'%s': %s", key, prompt)},
 				Validate: survey.Required}
+
 			questions = append(questions, &qs)
 		}
 
 		ansmap := make(map[string]interface{})
 
-		clio.Info("Your Profile Registry requires you to input values for the following keys:")
+		if len(questions) > 0 {
+			clio.Info("Your Profile Registry requires you to input values for the following keys:")
 
-		err := survey.Ask(questions, &ansmap)
-		if err != nil {
-			return err
-		}
+			err = survey.Ask(questions, &ansmap)
+			if err != nil {
+				return err
+			}
 
-		err = SaveKeys(ansmap)
-		if err != nil {
-			return err
+			err = SaveKeys(gConf, ansmap)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -196,12 +211,7 @@ func (r Registry) PromptRequiredVars(passedRequiredVars []string) error {
 }
 
 // This is used when user enters the required key through cli prompts.
-func SaveKeys(ansmap map[string]interface{}) error {
-	gConf, err := grantedConfig.Load()
-	if err != nil {
-		return err
-	}
-
+func SaveKeys(gConf *grantedConfig.Config, ansmap map[string]interface{}) error {
 	for k, v := range ansmap {
 		if len(gConf.ProfileRegistry.RequiredKeys) == 0 {
 			var requiredKeys = make(map[string]string)
@@ -212,7 +222,7 @@ func SaveKeys(ansmap map[string]interface{}) error {
 		}
 	}
 
-	err = gConf.Save()
+	err := gConf.Save()
 	if err != nil {
 		return err
 	}
@@ -221,12 +231,7 @@ func SaveKeys(ansmap map[string]interface{}) error {
 }
 
 // This is used when user passed the required value through flag.
-func SaveKey(key string, value string) error {
-	gConf, err := grantedConfig.Load()
-	if err != nil {
-		return err
-	}
-
+func SaveKey(gConf *grantedConfig.Config, key string, value string) error {
 	if len(gConf.ProfileRegistry.RequiredKeys) == 0 {
 		var requiredKeys = make(map[string]string)
 		requiredKeys[key] = value
@@ -235,7 +240,7 @@ func SaveKey(key string, value string) error {
 		gConf.ProfileRegistry.RequiredKeys[key] = value
 	}
 
-	err = gConf.Save()
+	err := gConf.Save()
 	if err != nil {
 		return err
 	}
