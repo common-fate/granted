@@ -14,7 +14,7 @@ var AddCommand = cli.Command{
 	Name:        "add",
 	Description: "Add a Profile Registry that you want to sync with aws config file",
 	Usage:       "Provide git repository you want to sync with aws config file",
-	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries", Aliases: []string{"n"}}, &cli.StringFlag{Name: "url", Required: true, Usage: "git url for the remote repository", Aliases: []string{"u"}}, &cli.StringFlag{Name: "path", Usage: "provide path if only the subfolder needs to be synced", Aliases: []string{"p"}}, &cli.StringFlag{Name: "filename", Aliases: []string{"f"}, Usage: "provide filename if yml file is not granted.yml", DefaultText: "granted.yml"}, &cli.StringFlag{Name: "ref", Hidden: true}, &cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"add-prefix"}, Usage: "provide this flag if you want to append registry name to all profiles"}, &cli.StringSliceFlag{Name: "requiredVar", Aliases: []string{"r"}, Usage: "used to bypass the prompt or override user specific values"}},
+	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries", Aliases: []string{"n"}}, &cli.StringFlag{Name: "url", Required: true, Usage: "git url for the remote repository", Aliases: []string{"u"}}, &cli.StringFlag{Name: "path", Usage: "provide path if only the subfolder needs to be synced", Aliases: []string{"p"}}, &cli.StringFlag{Name: "filename", Aliases: []string{"f"}, Usage: "provide filename if yml file is not granted.yml", DefaultText: "granted.yml"}, &cli.StringFlag{Name: "ref", Hidden: true}, &cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"add-prefix"}, Usage: "provide this flag if you want to append registry name to all profiles"}, &cli.StringSliceFlag{Name: "requiredKey", Aliases: []string{"r"}, Usage: "used to bypass the prompt or override user specific values"}},
 	ArgsUsage:   "<repository url> --name <registry_name> --url <git-url>",
 	Action: func(c *cli.Context) error {
 		gConf, err := grantedConfig.Load()
@@ -29,7 +29,7 @@ var AddCommand = cli.Command{
 		ref := c.String("ref")
 		prefixAllProfiles := c.Bool("prefix-all-profiles")
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
-		requiredVar := c.StringSlice("requiredVar")
+		requiredKey := c.StringSlice("requiredKey")
 
 		if _, ok := gConf.ProfileRegistry.Registries[name]; ok {
 			clio.Errorf("profile registry with name '%s' already exists. Name is required to be unique. Try adding with different name.\n", name)
@@ -81,7 +81,7 @@ var AddCommand = cli.Command{
 			return err
 		}
 
-		err = registry.PromptRequiredVars(requiredVar)
+		err = registry.PromptRequiredKeys(requiredKey)
 		if err != nil {
 			return err
 		}

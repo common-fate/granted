@@ -132,7 +132,7 @@ func GetProfileRegistries() ([]Registry, error) {
 }
 
 // Get the key=value from the provided required variable flag.
-func formattedRequiredVars(s string) (string, string, error) {
+func formatKey(s string) (string, string, error) {
 	value := strings.Split(s, "=")
 	if len(value) == 2 {
 		return value[0], value[1], nil
@@ -143,19 +143,19 @@ func formattedRequiredVars(s string) (string, string, error) {
 
 // granted.yml config might contain user specific variables
 // in such case we would prompt users to add them before registry is added.
-func (r Registry) PromptRequiredVars(passedRequiredVars []string) error {
+func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 	var questions []*survey.Question
 
-	var requiredVarsThroughFlags = make(map[string]string)
+	var requiredKeysThroughFlags = make(map[string]string)
 	if r.RequiredKeys != nil {
-		if len(passedRequiredVars) != 0 {
-			for _, val := range passedRequiredVars {
-				key, value, err := formattedRequiredVars(val)
+		if len(passedKeys) != 0 {
+			for _, val := range passedKeys {
+				key, value, err := formatKey(val)
 				if err != nil {
 					return err
 				}
 
-				requiredVarsThroughFlags[key] = value
+				requiredKeysThroughFlags[key] = value
 			}
 		}
 
@@ -166,8 +166,8 @@ func (r Registry) PromptRequiredVars(passedRequiredVars []string) error {
 
 		for key, prompt := range r.RequiredKeys {
 			// if the key was passed through cli then skip the prompt
-			if _, ok := requiredVarsThroughFlags[key]; ok {
-				err := SaveKey(gConf, key, requiredVarsThroughFlags[key])
+			if _, ok := requiredKeysThroughFlags[key]; ok {
+				err := SaveKey(gConf, key, requiredKeysThroughFlags[key])
 				if err != nil {
 					return err
 				}
