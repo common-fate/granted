@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path"
-	"sort"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -72,7 +71,6 @@ type registryOptions struct {
 	path                    string
 	ref                     string
 	url                     string
-	priority                int
 	prefixAllProfiles       bool
 	prefixDuplicateProfiles bool
 }
@@ -84,7 +82,6 @@ func NewProfileRegistry(rOpts registryOptions) Registry {
 			URL:                     rOpts.url,
 			PrefixAllProfiles:       rOpts.prefixAllProfiles,
 			PrefixDuplicateProfiles: rOpts.prefixDuplicateProfiles,
-			Priority:                &rOpts.priority,
 		},
 	}
 
@@ -116,19 +113,20 @@ func GetProfileRegistries() ([]Registry, error) {
 		})
 	}
 
+	// commented until priority feature is fully implemented.
 	// sort registries bases on their priority.
-	sort.Slice(registries, func(i, j int) bool {
-		var a, b int = 0, 0
-		if registries[i].Config.Priority != nil {
-			a = *registries[i].Config.Priority
-		}
+	// sort.Slice(registries, func(i, j int) bool {
+	// 	var a, b int = 0, 0
+	// 	if registries[i].Config.Priority != nil {
+	// 		a = *registries[i].Config.Priority
+	// 	}
 
-		if registries[j].Config.Priority != nil {
-			b = *registries[j].Config.Priority
-		}
+	// 	if registries[j].Config.Priority != nil {
+	// 		b = *registries[j].Config.Priority
+	// 	}
 
-		return a > b
-	})
+	// 	return a > b
+	// })
 
 	return registries, nil
 }

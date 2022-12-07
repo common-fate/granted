@@ -14,7 +14,7 @@ var AddCommand = cli.Command{
 	Name:        "add",
 	Description: "Add a Profile Registry that you want to sync with aws config file",
 	Usage:       "Provide git repository you want to sync with aws config file",
-	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries"}, &cli.StringFlag{Name: "url", Required: true}, &cli.StringFlag{Name: "path"}, &cli.StringFlag{Name: "ref"}, &cli.BoolFlag{Name: "prefix-all-profiles"}, &cli.IntFlag{Name: "priority"}, &cli.StringSliceFlag{Name: "requiredVar", Aliases: []string{"r"}}},
+	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries"}, &cli.StringFlag{Name: "url", Required: true}, &cli.StringFlag{Name: "path"}, &cli.StringFlag{Name: "ref"}, &cli.BoolFlag{Name: "prefix-all-profiles"}, &cli.StringSliceFlag{Name: "requiredVar", Aliases: []string{"r"}}},
 	ArgsUsage:   "<repository url> --name <registry_name> --url <git-url>",
 	Action: func(c *cli.Context) error {
 		gConf, err := grantedConfig.Load()
@@ -26,7 +26,6 @@ var AddCommand = cli.Command{
 		gitURL := c.String("url")
 		path := c.String("path")
 		ref := c.String("ref")
-		priority := c.Int("priority")
 		prefixAllProfiles := c.Bool("prefix-all-profiles")
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
 		requiredVar := c.StringSlice("requiredVar")
@@ -42,7 +41,6 @@ var AddCommand = cli.Command{
 			path:                    path,
 			url:                     gitURL,
 			ref:                     ref,
-			priority:                priority,
 			prefixAllProfiles:       prefixAllProfiles,
 			prefixDuplicateProfiles: prefixDuplicateProfiles,
 		})
@@ -100,12 +98,12 @@ var AddCommand = cli.Command{
 		}
 
 		isFirstSection := false
-		allRegistry, err := GetProfileRegistries()
+		allRegistries, err := GetProfileRegistries()
 		if err != nil {
 			return err
 		}
 
-		if len(allRegistry) == 0 {
+		if len(allRegistries) == 0 {
 			isFirstSection = true
 		}
 
