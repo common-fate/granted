@@ -253,7 +253,7 @@ func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *i
 				if f.Comment == "" {
 					f.Comment = "# profile name has been prefixed due to duplication"
 				} else {
-					f.Comment = "# profile name has been prefixed due to duplication. \n" + f.Comment
+					f.Comment = "# profile name has been prefixed due to duplication. \n" + sec.Comment
 				}
 
 				continue
@@ -268,6 +268,8 @@ func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *i
 			if err != nil {
 				return err
 			}
+
+			f.Comment = sec.Comment
 		}
 
 	}

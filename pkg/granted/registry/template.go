@@ -2,7 +2,6 @@ package registry
 
 import (
 	"bytes"
-	"fmt"
 	"regexp"
 	"text/template"
 
@@ -31,7 +30,6 @@ func interpolateVariables(r *Registry, value string, profileName string) (string
 	}
 
 	for k, v := range gConf.ProfileRegistry.RequiredKeys {
-		fmt.Println("called inside required keys")
 		variables[k] = v
 	}
 
