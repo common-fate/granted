@@ -14,7 +14,7 @@ var AddCommand = cli.Command{
 	Name:        "add",
 	Description: "Add a Profile Registry that you want to sync with aws config file",
 	Usage:       "Provide git repository you want to sync with aws config file",
-	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries"}, &cli.StringFlag{Name: "url", Required: true}, &cli.StringFlag{Name: "path"}, &cli.StringFlag{Name: "filename", Aliases: []string{"f"}}, &cli.StringFlag{Name: "ref"}, &cli.BoolFlag{Name: "prefix-all-profiles"}, &cli.StringSliceFlag{Name: "requiredVar", Aliases: []string{"r"}}},
+	Flags:       []cli.Flag{&cli.StringFlag{Name: "name", Required: true, Usage: "name is used to uniquely identify profile registries", Aliases: []string{"n"}}, &cli.StringFlag{Name: "url", Required: true, Usage: "git url for the remote repository", Aliases: []string{"u"}}, &cli.StringFlag{Name: "path", Usage: "provide path if only the subfolder needs to be synced", Aliases: []string{"p"}}, &cli.StringFlag{Name: "filename", Aliases: []string{"f"}, Usage: "provide filename if yml file is not granted.yml", DefaultText: "granted.yml"}, &cli.StringFlag{Name: "ref", Hidden: true}, &cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"add-prefix"}, Usage: "provide this flag if you want to append registry name to all profiles"}, &cli.StringSliceFlag{Name: "requiredVar", Aliases: []string{"r"}, Usage: "used to bypass the prompt or override user specific values"}},
 	ArgsUsage:   "<repository url> --name <registry_name> --url <git-url>",
 	Action: func(c *cli.Context) error {
 		gConf, err := grantedConfig.Load()
