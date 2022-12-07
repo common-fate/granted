@@ -113,6 +113,11 @@ var AddCommand = cli.Command{
 			return err
 		}
 
+		gConf, err = grantedConfig.Load()
+		if err != nil {
+			return err
+		}
+
 		// we have verified that this registry is a valid one and sync is completed.
 		// so save the repo url to config file.
 		if gConf.ProfileRegistry.Registries != nil {
