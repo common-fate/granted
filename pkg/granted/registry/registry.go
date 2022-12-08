@@ -14,9 +14,13 @@ import (
 
 type Registry struct {
 	Config         grantedConfig.Registry
-	AwsConfigPaths []string               `yaml:"awsConfig"`
-	Variables      map[string]interface{} `yaml:"variables"`
-	RequiredKeys   map[string]string      `yaml:"requiredKeys"`
+	AwsConfigPaths []string `yaml:"awsConfig"`
+	TemplateValues struct {
+		Variables    map[string]string `yaml:"variables"`
+		RequiredKeys map[string]struct {
+			Prompt string `yaml:"prompt"`
+		} `yaml:"required"`
+	} `yaml:"templateValues"`
 }
 
 // GetRegistryLocation returns the directory path where cloned repo is located.
@@ -67,6 +71,7 @@ type registryOptions struct {
 	configFileName          string
 	ref                     string
 	url                     string
+	priority                int
 	prefixAllProfiles       bool
 	prefixDuplicateProfiles bool
 }
@@ -91,6 +96,10 @@ func NewProfileRegistry(rOpts registryOptions) Registry {
 
 	if rOpts.ref != "" {
 		newRegistry.Config.Ref = &rOpts.ref
+	}
+
+	if rOpts.priority != 0 {
+		newRegistry.Config.Priority = &rOpts.priority
 	}
 
 	return newRegistry
@@ -147,7 +156,8 @@ func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 	var questions []*survey.Question
 
 	var requiredKeysThroughFlags = make(map[string]string)
-	if r.RequiredKeys != nil {
+
+	if r.TemplateValues.RequiredKeys != nil {
 		if len(passedKeys) != 0 {
 			for _, val := range passedKeys {
 				key, value, err := formatKey(val)
@@ -164,7 +174,7 @@ func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 			return err
 		}
 
-		for key, prompt := range r.RequiredKeys {
+		for key, v := range r.TemplateValues.RequiredKeys {
 			// if the key was passed through cli then skip the prompt
 			if _, ok := requiredKeysThroughFlags[key]; ok {
 				err := SaveKey(gConf, key, requiredKeysThroughFlags[key])
@@ -184,7 +194,7 @@ func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 
 			qs := survey.Question{
 				Name:     key,
-				Prompt:   &survey.Input{Message: fmt.Sprintf("'%s': %s", key, prompt)},
+				Prompt:   &survey.Input{Message: fmt.Sprintf("'%s': %s", key, v.Prompt)},
 				Validate: survey.Required}
 
 			questions = append(questions, &qs)

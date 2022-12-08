@@ -82,7 +82,7 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 		// it will abort the sync. This might happen if user removes the required key from
 		// the config file manually or new required key is added to granted.yml file.
 		// This should fail because sync can happend in the background process.
-		for key := range r.RequiredKeys {
+		for key := range r.TemplateValues.RequiredKeys {
 			if value, ok := gConf.ProfileRegistry.RequiredKeys[key]; !ok || value == "" {
 				return fmt.Errorf("%s is undefined but required for '%s' profile registry. Abort sync", key, r.Config.Name)
 			}
