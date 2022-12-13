@@ -13,7 +13,7 @@ import (
 )
 
 func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.SharedConfig, error) {
-	err := IsValidGrantedProfile(profile.RawConfig)
+	err := IsValidGrantedProfile(profile)
 	if err != nil {
 		return nil, err
 	}
@@ -28,27 +28,38 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 	cfg.SSOAccountID = item.Value()
 	item, err = profile.RawConfig.GetKey("granted_sso_region")
 	if err != nil {
-		return nil, err
+		if profile.SSOSession != nil && profile.SSOSession.SSORegion != "" {
+			cfg.SSORegion = profile.SSOSession.SSORegion
+		} else {
+			return nil, err
+		}
+	} else {
+		cfg.SSORegion = item.Value()
 	}
-	cfg.SSORegion = item.Value()
+
 	item, err = profile.RawConfig.GetKey("granted_sso_role_name")
 	if err != nil {
 		return nil, err
 	}
 	cfg.SSORoleName = item.Value()
+
 	item, err = profile.RawConfig.GetKey("granted_sso_start_url")
 	if err != nil {
-		return nil, err
+		if profile.SSOSession != nil && profile.SSOSession.SSORegion != "" {
+			cfg.SSOStartURL = profile.SSOSession.SSOStartURL
+		} else {
+			return nil, err
+		}
+	} else {
+		cfg.SSOStartURL = item.Value()
 	}
 
 	// sanity check to verify if the provided value is a valid url
-	_, err = url.ParseRequestURI(item.Value())
+	_, err = url.ParseRequestURI(cfg.SSOStartURL)
 	if err != nil {
 		clio.Debug(err)
-		return nil, fmt.Errorf("invalid value '%s' provided for 'granted_sso_start_url'", item.Value())
+		return nil, fmt.Errorf("invalid value '%s' provided for 'granted_sso_start_url'", cfg.SSOStartURL)
 	}
-
-	cfg.SSOStartURL = item.Value()
 
 	item, err = profile.RawConfig.GetKey("credential_process")
 	if err != nil {
@@ -65,11 +76,19 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 
 // For `granted login` cmd, we have to make sure 'granted' prefix
 // is added to the aws config file.
-func IsValidGrantedProfile(rawConfig *ini.Section) error {
-	requiredGrantedCredentials := []string{"granted_sso_start_url", "granted_sso_region", "granted_sso_account_id", "granted_sso_role_name"}
+func IsValidGrantedProfile(profile *Profile) error {
+	requiredGrantedCredentials := []string{"granted_sso_account_id", "granted_sso_role_name"} //"granted_sso_start_url", "granted_sso_region",
 	for _, value := range requiredGrantedCredentials {
-		if !rawConfig.HasKey(value) {
+		if !profile.RawConfig.HasKey(value) {
 			return fmt.Errorf("invalid aws config for granted login. '%s' field must be provided", value)
+		}
+	}
+	if profile.SSOSession != nil {
+		if profile.SSOSession.SSORegion == "" && !profile.RawConfig.HasKey("granted_sso_region") {
+			return fmt.Errorf("invalid aws config for granted login. '%s' field must be provided", "granted_sso_region")
+		}
+		if profile.SSOSession.SSOStartURL == "" && !profile.RawConfig.HasKey("granted_sso_start_url") {
+			return fmt.Errorf("invalid aws config for granted login. '%s' field must be provided", "granted_sso_start_url")
 		}
 	}
 	return nil
@@ -91,7 +110,7 @@ func hasGrantedSSOPrefix(rawConfig *ini.Section) bool {
 // matches the AWS config profile name. If it doesn't then return an err
 // as the user will certainly run into unexpected behaviour.
 func validateCredentialProcess(arg string, awsProfileName string) error {
-	regex := regexp.MustCompile(`^(\s+)?granted\s+credential-process.*--profile\s+(?P<PName>([^\s]+))`)
+	regex := regexp.MustCompile(`^(\s+)?(dgranted|granted)\s+credential-process.*--profile\s+(?P<PName>([^\s]+))`)
 
 	if regex.MatchString(arg) {
 		matches := regex.FindStringSubmatch(arg)
