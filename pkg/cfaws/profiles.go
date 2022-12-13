@@ -59,19 +59,8 @@ type Profiles struct {
 	profiles     map[string]*Profile
 }
 
-func LoadSSOSessions() (map[string]SSOSession, error) {
+func LoadSSOSessions(configFile *ini.File) (map[string]SSOSession, error) {
 	sessions := make(map[string]SSOSession)
-	configPath := config.DefaultSharedConfigFilename()
-	configFile, err := ini.LoadSources(ini.LoadOptions{
-		AllowNonUniqueSections:  false,
-		SkipUnrecognizableLines: false,
-	}, configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return sessions, nil
-		}
-		return nil, err
-	}
 
 	// Itterate through the config sections
 	for _, section := range configFile.Sections() {
@@ -111,14 +100,46 @@ func (p *Profiles) Profile(profile string) (*Profile, error) {
 	return nil, ErrProfileNotFound
 }
 
-func LoadProfiles() (*Profiles, error) {
+type ConfigFileLoader interface {
+	Load() (*ini.File, error)
+	Path() string
+}
+
+type FileLoader struct {
+	FilePath string
+}
+
+func (f FileLoader) Path() string {
+	return f.FilePath
+}
+func (f FileLoader) Load() (*ini.File, error) {
+	configFile, err := ini.LoadSources(ini.LoadOptions{
+		AllowNonUniqueSections:  false,
+		SkipUnrecognizableLines: false,
+	}, f.FilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ini.Empty(), nil
+		}
+		return nil, err
+	}
+	return configFile, nil
+}
+func LoadProfilesFromDefaultFiles() (*Profiles, error) {
+	return LoadProfiles(FileLoader{
+		FilePath: config.DefaultSharedConfigFilename(),
+	}, FileLoader{
+		FilePath: config.DefaultSharedCredentialsFilename(),
+	})
+}
+func LoadProfiles(configFileLoader, credentialsFileLoader ConfigFileLoader) (*Profiles, error) {
 
 	p := Profiles{profiles: make(map[string]*Profile)}
-	err := p.loadDefaultConfigFile()
+	err := p.loadDefaultConfigFile(configFileLoader)
 	if err != nil {
 		return nil, err
 	}
-	err = p.loadDefaultCredentialsFile()
+	err = p.loadDefaultCredentialsFile(credentialsFileLoader)
 	if err != nil {
 		return nil, err
 	}
@@ -134,23 +155,16 @@ func LoadProfiles() (*Profiles, error) {
 // [profile cf-prod]
 // sso_region=ap-southeast-2
 // ...
-func (p *Profiles) loadDefaultConfigFile() error {
-	ssoSessions, err := LoadSSOSessions()
-	if err != nil {
-		return err
-	}
-	configPath := config.DefaultSharedConfigFilename()
-	configFile, err := ini.LoadSources(ini.LoadOptions{
-		AllowNonUniqueSections:  false,
-		SkipUnrecognizableLines: false,
-	}, configPath)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
+func (p *Profiles) loadDefaultConfigFile(loader ConfigFileLoader) error {
 
+	configFile, err := loader.Load()
+	if err != nil {
+		return err
+	}
+	ssoSessions, err := LoadSSOSessions(configFile)
+	if err != nil {
+		return err
+	}
 	// Itterate through the config sections
 	for _, section := range configFile.Sections() {
 		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
@@ -159,7 +173,7 @@ func (p *Profiles) loadDefaultConfigFile() error {
 			if ((strings.HasPrefix(section.Name(), "profile ") && len(section.Name()) > 8) || section.Name() == "default") && IsLegalProfileName(strings.TrimPrefix(section.Name(), "profile ")) {
 				name := strings.TrimPrefix(section.Name(), "profile ")
 				sectionPtr := section
-				profile := &Profile{RawConfig: sectionPtr, Name: name, File: configPath}
+				profile := &Profile{RawConfig: sectionPtr, Name: name, File: loader.Path()}
 				if section.HasKey("sso_session") {
 					key, _ := section.GetKey("sso_session")
 					ssoSession, ok := ssoSessions[key.Value()]
@@ -187,20 +201,12 @@ func (p *Profiles) loadDefaultConfigFile() error {
 // aws_access_key_id = xxxxxx
 // aws_secret_access_key = xxxxxx
 // ...
-func (p *Profiles) loadDefaultCredentialsFile() error {
+func (p *Profiles) loadDefaultCredentialsFile(loader ConfigFileLoader) error {
 	//fetch parsed credentials file
-	credsPath := config.DefaultSharedCredentialsFilename()
-	credentialsFile, err := ini.LoadSources(ini.LoadOptions{
-		AllowNonUniqueSections:  false,
-		SkipUnrecognizableLines: false,
-	}, credsPath)
+	credentialsFile, err := loader.Load()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
 		return err
 	}
-
 	for _, section := range credentialsFile.Sections() {
 		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
 		if section.Name() != "DEFAULT" {
@@ -213,7 +219,7 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 					continue
 				}
 				p.ProfileNames = append(p.ProfileNames, section.Name())
-				p.profiles[section.Name()] = &Profile{RawConfig: section, Name: section.Name(), File: credsPath}
+				p.profiles[section.Name()] = &Profile{RawConfig: section, Name: section.Name(), File: loader.Path()}
 			}
 		}
 	}
