@@ -24,6 +24,11 @@ type ConfigOpts struct {
 	Args     []string
 }
 
+type SSOSession struct {
+	SSORegion   string
+	SSOStartURL string
+}
+
 type Profile struct {
 	// allows access to the raw values from the file
 	RawConfig *ini.Section
@@ -39,6 +44,9 @@ type Profile struct {
 	Initialised                    bool
 	LoadingError                   error
 	HasSecureStorageIAMCredentials bool
+
+	// AWS SDK doesn't support sso_session yet so we check for it manually
+	SSOSession *SSOSession
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -51,6 +59,38 @@ type Profiles struct {
 	profiles     map[string]*Profile
 }
 
+func LoadSSOSessions() (map[string]SSOSession, error) {
+	sessions := make(map[string]SSOSession)
+	configPath := config.DefaultSharedConfigFilename()
+	configFile, err := ini.LoadSources(ini.LoadOptions{
+		AllowNonUniqueSections:  false,
+		SkipUnrecognizableLines: false,
+	}, configPath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return sessions, nil
+		}
+		return nil, err
+	}
+
+	// Itterate through the config sections
+	for _, section := range configFile.Sections() {
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		if strings.HasPrefix(section.Name(), "sso-session ") {
+			session := SSOSession{}
+			regionKey, err := section.GetKey("sso_region")
+			if err == nil {
+				session.SSORegion = regionKey.Value()
+			}
+			startURLKey, err := section.GetKey("sso_start_url")
+			if err == nil {
+				session.SSOStartURL = startURLKey.Value()
+			}
+			sessions[strings.TrimPrefix(section.Name(), "sso-session ")] = session
+		}
+	}
+	return sessions, nil
+}
 func (p *Profiles) HasProfile(profile string) bool {
 	_, ok := p.profiles[profile]
 	return ok
@@ -72,6 +112,7 @@ func (p *Profiles) Profile(profile string) (*Profile, error) {
 }
 
 func LoadProfiles() (*Profiles, error) {
+
 	p := Profiles{profiles: make(map[string]*Profile)}
 	err := p.loadDefaultConfigFile()
 	if err != nil {
@@ -94,6 +135,10 @@ func LoadProfiles() (*Profiles, error) {
 // sso_region=ap-southeast-2
 // ...
 func (p *Profiles) loadDefaultConfigFile() error {
+	ssoSessions, err := LoadSSOSessions()
+	if err != nil {
+		return err
+	}
 	configPath := config.DefaultSharedConfigFilename()
 	configFile, err := ini.LoadSources(ini.LoadOptions{
 		AllowNonUniqueSections:  false,
@@ -113,12 +158,21 @@ func (p *Profiles) loadDefaultConfigFile() error {
 			// Check if the section is prefixed with 'profile ' and that the profile has a name
 			if ((strings.HasPrefix(section.Name(), "profile ") && len(section.Name()) > 8) || section.Name() == "default") && IsLegalProfileName(strings.TrimPrefix(section.Name(), "profile ")) {
 				name := strings.TrimPrefix(section.Name(), "profile ")
-				p.ProfileNames = append(p.ProfileNames, name)
 				sectionPtr := section
-				p.profiles[name] = &Profile{RawConfig: sectionPtr, Name: name, File: configPath}
+				profile := &Profile{RawConfig: sectionPtr, Name: name, File: configPath}
+				if section.HasKey("sso_session") {
+					key, _ := section.GetKey("sso_session")
+					ssoSession, ok := ssoSessions[key.Value()]
+					if !ok {
+						clio.Errorf("failed to load config profile %s because it has an 'sso_session = %s' section but the [sso-session %s] section was not found", name, key.Value(), key.Value())
+						continue
+					}
+					profile.SSOSession = &ssoSession
+				}
+				p.ProfileNames = append(p.ProfileNames, name)
+				p.profiles[name] = profile
 			}
 		}
-
 	}
 	return nil
 }
@@ -214,6 +268,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 				if err != nil {
 					return nil, err
 				}
+
 				pr.AWSConfig = awsConfig
 				pr.AWSConfig.CredentialProcess = ""
 				pr.Initialised = true
@@ -292,7 +347,18 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 		if err != nil {
 			return err
 		}
+
+		// set the sso session if it exists and not overridden on the profile
+		if p.SSOSession != nil {
+			if cfg.SSOStartURL == "" {
+				cfg.SSOStartURL = p.SSOSession.SSOStartURL
+			}
+			if cfg.SSORegion == "" {
+				cfg.SSORegion = p.SSOSession.SSORegion
+			}
+		}
 		p.AWSConfig = cfg
+
 		if depth < 10 {
 			if p.AWSConfig.SourceProfileName == "" {
 				as := assumers
