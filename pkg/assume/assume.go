@@ -70,7 +70,7 @@ func AssumeCommand(c *cli.Context) error {
 		var wg sync.WaitGroup
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		profiles, err := cfaws.LoadProfiles()
+		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
 		if err != nil {
 			return err
 		}

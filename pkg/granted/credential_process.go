@@ -28,7 +28,7 @@ var CredentialProcess = cli.Command{
 	Action: func(c *cli.Context) error {
 
 		profileName := c.String("profile")
-		profiles, err := cfaws.LoadProfiles()
+		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
 		if err != nil {
 			return err
 		}
