@@ -260,8 +260,8 @@ func AssumeCommand(c *cli.Context) error {
 
 		containerProfile := profile.Name
 
-		if assumeFlags.String("profile") != "" {
-			containerProfile = assumeFlags.String("profile")
+		if assumeFlags.String("browser-profile") != "" {
+			containerProfile = assumeFlags.String("browser-profile")
 		}
 
 		consoleURL, err := con.URL(creds)
