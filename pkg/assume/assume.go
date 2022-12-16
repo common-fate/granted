@@ -127,9 +127,9 @@ func AssumeCommand(c *cli.Context) error {
 				var description string
 				p, _ := profiles.Profile(pn)
 
-				if p != nil && p.Description() != "" {
+				if p != nil && p.CustomGrantedProperty("description") != "" {
 					hasDescriptions = true
-					description = p.Description()
+					description = p.CustomGrantedProperty("description")
 				}
 
 				stringKey := fmt.Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", pn, lightBlack(description))
@@ -265,7 +265,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
 			// tranform the URL into the Firefox Tab Container format.
-			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s", profile.Name, url.QueryEscape(consoleURL))
+			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", profile.Name, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
 		}
 
 		justPrintURL := assumeFlags.Bool("url") || cfg.DefaultBrowser == browser.StdoutKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey
