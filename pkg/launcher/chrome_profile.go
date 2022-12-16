@@ -35,16 +35,6 @@ func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
 	}
 }
 
-// func chromeProfileName(profile string) string {
-
-// 	h := fnv.New32a()
-// 	h.Write([]byte(profile))
-
-// 	hash := fmt.Sprint(h.Sum32())
-// 	return hash
-// }
-
-// todo: verify these are correct
 var BravePathMac = "Library/Application Support/BraveSoftware/Brave-Browser/Local State"
 var BravePathLinux = ".config/brave-browser/Local State"
 var BravePathWindows = `AppData\Local\BraveSoftware\Brave-Browser\Local State`
