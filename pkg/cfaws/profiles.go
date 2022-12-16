@@ -24,6 +24,11 @@ type ConfigOpts struct {
 	Args     []string
 }
 
+type SSOSession struct {
+	SSORegion   string
+	SSOStartURL string
+}
+
 type Profile struct {
 	// allows access to the raw values from the file
 	RawConfig *ini.Section
@@ -39,6 +44,9 @@ type Profile struct {
 	Initialised                    bool
 	LoadingError                   error
 	HasSecureStorageIAMCredentials bool
+
+	// AWS SDK doesn't support sso_session yet so we check for it manually
+	SSOSession *SSOSession
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -51,14 +59,35 @@ type Profiles struct {
 	profiles     map[string]*Profile
 }
 
+func LoadSSOSessions(configFile *ini.File) (map[string]SSOSession, error) {
+	sessions := make(map[string]SSOSession)
+
+	// Itterate through the config sections
+	for _, section := range configFile.Sections() {
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		if strings.HasPrefix(section.Name(), "sso-session ") {
+			session := SSOSession{}
+			regionKey, err := section.GetKey("sso_region")
+			if err == nil {
+				session.SSORegion = regionKey.Value()
+			}
+			startURLKey, err := section.GetKey("sso_start_url")
+			if err == nil {
+				session.SSOStartURL = startURLKey.Value()
+			}
+			sessions[strings.TrimPrefix(section.Name(), "sso-session ")] = session
+		}
+	}
+	return sessions, nil
+}
 func (p *Profiles) HasProfile(profile string) bool {
 	_, ok := p.profiles[profile]
 	return ok
 }
 
-// if the profile has a granted_description key, the value is returned. else an empty string
-func (p *Profile) Description() string {
-	key, err := p.RawConfig.GetKey("granted_description")
+// if the profile has a "granted_${name}" key, the value is returned. else an empty string
+func (p *Profile) CustomGrantedProperty(name string) string {
+	key, err := p.RawConfig.GetKey(fmt.Sprintf("granted_%s", name))
 	if err != nil {
 		return ""
 	}
@@ -71,13 +100,46 @@ func (p *Profiles) Profile(profile string) (*Profile, error) {
 	return nil, ErrProfileNotFound
 }
 
-func LoadProfiles() (*Profiles, error) {
+type ConfigFileLoader interface {
+	Load() (*ini.File, error)
+	Path() string
+}
+
+type FileLoader struct {
+	FilePath string
+}
+
+func (f FileLoader) Path() string {
+	return f.FilePath
+}
+func (f FileLoader) Load() (*ini.File, error) {
+	configFile, err := ini.LoadSources(ini.LoadOptions{
+		AllowNonUniqueSections:  false,
+		SkipUnrecognizableLines: false,
+	}, f.FilePath)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return ini.Empty(), nil
+		}
+		return nil, err
+	}
+	return configFile, nil
+}
+func LoadProfilesFromDefaultFiles() (*Profiles, error) {
+	return LoadProfiles(FileLoader{
+		FilePath: config.DefaultSharedConfigFilename(),
+	}, FileLoader{
+		FilePath: config.DefaultSharedCredentialsFilename(),
+	})
+}
+func LoadProfiles(configFileLoader, credentialsFileLoader ConfigFileLoader) (*Profiles, error) {
+
 	p := Profiles{profiles: make(map[string]*Profile)}
-	err := p.loadDefaultConfigFile()
+	err := p.loadDefaultConfigFile(configFileLoader)
 	if err != nil {
 		return nil, err
 	}
-	err = p.loadDefaultCredentialsFile()
+	err = p.loadDefaultCredentialsFile(credentialsFileLoader)
 	if err != nil {
 		return nil, err
 	}
@@ -93,19 +155,16 @@ func LoadProfiles() (*Profiles, error) {
 // [profile cf-prod]
 // sso_region=ap-southeast-2
 // ...
-func (p *Profiles) loadDefaultConfigFile() error {
-	configPath := config.DefaultSharedConfigFilename()
-	configFile, err := ini.LoadSources(ini.LoadOptions{
-		AllowNonUniqueSections:  false,
-		SkipUnrecognizableLines: false,
-	}, configPath)
+func (p *Profiles) loadDefaultConfigFile(loader ConfigFileLoader) error {
+
+	configFile, err := loader.Load()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
 		return err
 	}
-
+	ssoSessions, err := LoadSSOSessions(configFile)
+	if err != nil {
+		return err
+	}
 	// Itterate through the config sections
 	for _, section := range configFile.Sections() {
 		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
@@ -113,12 +172,21 @@ func (p *Profiles) loadDefaultConfigFile() error {
 			// Check if the section is prefixed with 'profile ' and that the profile has a name
 			if ((strings.HasPrefix(section.Name(), "profile ") && len(section.Name()) > 8) || section.Name() == "default") && IsLegalProfileName(strings.TrimPrefix(section.Name(), "profile ")) {
 				name := strings.TrimPrefix(section.Name(), "profile ")
-				p.ProfileNames = append(p.ProfileNames, name)
 				sectionPtr := section
-				p.profiles[name] = &Profile{RawConfig: sectionPtr, Name: name, File: configPath}
+				profile := &Profile{RawConfig: sectionPtr, Name: name, File: loader.Path()}
+				if section.HasKey("sso_session") {
+					key, _ := section.GetKey("sso_session")
+					ssoSession, ok := ssoSessions[key.Value()]
+					if !ok {
+						clio.Errorf("failed to load config profile %s because it has an 'sso_session = %s' section but the [sso-session %s] section was not found", name, key.Value(), key.Value())
+						continue
+					}
+					profile.SSOSession = &ssoSession
+				}
+				p.ProfileNames = append(p.ProfileNames, name)
+				p.profiles[name] = profile
 			}
 		}
-
 	}
 	return nil
 }
@@ -133,20 +201,12 @@ func (p *Profiles) loadDefaultConfigFile() error {
 // aws_access_key_id = xxxxxx
 // aws_secret_access_key = xxxxxx
 // ...
-func (p *Profiles) loadDefaultCredentialsFile() error {
+func (p *Profiles) loadDefaultCredentialsFile(loader ConfigFileLoader) error {
 	//fetch parsed credentials file
-	credsPath := config.DefaultSharedCredentialsFilename()
-	credentialsFile, err := ini.LoadSources(ini.LoadOptions{
-		AllowNonUniqueSections:  false,
-		SkipUnrecognizableLines: false,
-	}, credsPath)
+	credentialsFile, err := loader.Load()
 	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
 		return err
 	}
-
 	for _, section := range credentialsFile.Sections() {
 		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
 		if section.Name() != "DEFAULT" {
@@ -159,7 +219,7 @@ func (p *Profiles) loadDefaultCredentialsFile() error {
 					continue
 				}
 				p.ProfileNames = append(p.ProfileNames, section.Name())
-				p.profiles[section.Name()] = &Profile{RawConfig: section, Name: section.Name(), File: credsPath}
+				p.profiles[section.Name()] = &Profile{RawConfig: section, Name: section.Name(), File: loader.Path()}
 			}
 		}
 	}
@@ -214,6 +274,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 				if err != nil {
 					return nil, err
 				}
+
 				pr.AWSConfig = awsConfig
 				pr.AWSConfig.CredentialProcess = ""
 				pr.Initialised = true
@@ -292,7 +353,18 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 		if err != nil {
 			return err
 		}
+
+		// set the sso session if it exists and not overridden on the profile
+		if p.SSOSession != nil {
+			if cfg.SSOStartURL == "" {
+				cfg.SSOStartURL = p.SSOSession.SSOStartURL
+			}
+			if cfg.SSORegion == "" {
+				cfg.SSORegion = p.SSOSession.SSORegion
+			}
+		}
 		p.AWSConfig = cfg
+
 		if depth < 10 {
 			if p.AWSConfig.SourceProfileName == "" {
 				as := assumers

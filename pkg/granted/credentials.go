@@ -40,7 +40,7 @@ var AddCredentialsCommand = cli.Command{
 		}
 
 		// validate the the profile does not already exist
-		profiles, err := cfaws.LoadProfiles()
+		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
 		if err != nil {
 			return err
 		}
@@ -140,7 +140,7 @@ var ImportCredentialsCommand = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
-		profiles, err := cfaws.LoadProfiles()
+		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
 		if err != nil {
 			return err
 		}

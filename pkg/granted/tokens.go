@@ -75,7 +75,7 @@ func MapTokens(ctx context.Context) (map[string][]string, error) {
 		return nil, err
 	}
 
-	profiles, err := cfaws.LoadProfiles()
+	profiles, err := cfaws.LoadProfilesFromDefaultFiles()
 	if err != nil {
 		return nil, err
 	}

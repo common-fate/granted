@@ -70,7 +70,7 @@ func AssumeCommand(c *cli.Context) error {
 		var wg sync.WaitGroup
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		profiles, err := cfaws.LoadProfiles()
+		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
 		if err != nil {
 			return err
 		}
@@ -127,9 +127,9 @@ func AssumeCommand(c *cli.Context) error {
 				var description string
 				p, _ := profiles.Profile(pn)
 
-				if p != nil && p.Description() != "" {
+				if p != nil && p.CustomGrantedProperty("description") != "" {
 					hasDescriptions = true
-					description = p.Description()
+					description = p.CustomGrantedProperty("description")
 				}
 
 				stringKey := fmt.Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", pn, lightBlack(description))
@@ -271,7 +271,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
 			// tranform the URL into the Firefox Tab Container format.
-			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s", containerProfile, url.QueryEscape(consoleURL))
+			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", containerProfile, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
 		}
 
 		justPrintURL := assumeFlags.Bool("url") || cfg.DefaultBrowser == browser.StdoutKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey
