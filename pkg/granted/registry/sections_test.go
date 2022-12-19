@@ -231,7 +231,7 @@ func TestGenerateNewGrantedSection(t *testing.T) {
 					t.Fatal(err)
 				}
 
-				err = generateNewRegistrySection(&r, configFileContent, clonedFile, false, ADD_COMMAND)
+				err = generateNewRegistrySection(&r, configFileContent, clonedFile, false)
 				if err != nil {
 					t.Fatal(err)
 				}
@@ -366,7 +366,7 @@ granted_sso_start_url  = https://example.awsapps.com/start
 region = us-east-1
 `
 
-const profileRegistryTwo = `
+const ProfileRegistryTwo = `
 [profile s2.one]
 region = us-east-2
 

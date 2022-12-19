@@ -31,9 +31,9 @@ type Config struct {
 		// add any global configuration to profile registry here.
 		PrefixAllProfiles       bool
 		PrefixDuplicateProfiles bool
-		SessionName             string              `toml:",omitempty"`
-		RequiredKeys            map[string]string   `toml:",omitempty"`
-		Registries              map[string]Registry `toml:",omitempty"`
+		SessionName             string            `toml:",omitempty"`
+		RequiredKeys            map[string]string `toml:",omitempty"`
+		Registries              []Registry        `toml:",omitempty"`
 	} `toml:",omitempty"`
 }
 

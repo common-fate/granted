@@ -7,6 +7,7 @@ import (
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/urfave/cli/v2"
+	"gopkg.in/ini.v1"
 )
 
 var SyncCommand = cli.Command{
@@ -38,12 +39,7 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 		clio.Warn("granted registry not configured. Try adding a git repository with 'granted registry add <https://github.com/your-org/your-registry.git>'")
 	}
 
-	awsConfigPath, err := getDefaultAWSConfigLocation()
-	if err != nil {
-		return err
-	}
-
-	configFile, err := loadAWSConfigFile()
+	configFile, awsConfigPath, err := loadAWSConfigFile()
 	if err != nil {
 		return err
 	}
@@ -54,7 +50,7 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 	}
 
 	for index, r := range registries {
-		repoDirPath, err := r.getRegistryLocation()
+		repoDirPath, err := getRegistryLocation(r.Config)
 		if err != nil {
 			return err
 		}
@@ -93,53 +89,60 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 			isFirstSection = true
 		}
 
-		if err := Sync(&r, isFirstSection, SYNC_COMMAND); err != nil {
+		if err := Sync(&r, configFile, isFirstSection); err != nil {
+			se, ok := err.(*SyncError)
+			if ok {
+				clio.Warnf("Sync failed for registry %s", r.Config.Name)
+				clio.Debug(se.Error())
+
+				// skip syncing for this registry but continue syncing for other registries.
+				continue
+			}
 			return err
 		}
+
+		err = configFile.SaveTo(awsConfigPath)
+		if err != nil {
+			return err
+		}
+
 	}
 
 	return nil
 }
 
-type CommandType string
-
-const (
-	ADD_COMMAND       CommandType = "add"
-	SYNC_COMMAND      CommandType = "sync"
-	AUTO_SYNC_COMMAND CommandType = "autosync"
-)
+// when there is new duplication when running sync command
+// and if user choses to duplicate then currenlty the config is not saved to gconfig.
 
 // Sync function will load all the configs provided in the clonedFile.
 // and generated a new section in the ~/.aws/profile file.
-func Sync(r *Registry, isFirstSection bool, cmd CommandType) error {
+func Sync(r *Registry, awsConfigFile *ini.File, isFirstSection bool) error {
 	clio.Debugf("syncing %s \n", r.Config.Name)
-
-	awsConfigPath, err := getDefaultAWSConfigLocation()
-	if err != nil {
-		return err
-	}
-
-	awsConfigFile, err := loadAWSConfigFile()
-	if err != nil {
-		return err
-	}
 
 	clonedFile, err := loadClonedConfigs(*r)
 	if err != nil {
 		return err
 	}
 
-	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, isFirstSection, cmd)
+	// return custom error that should be catched and skipped.
+	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, isFirstSection)
 	if err != nil {
-		return err
-	}
-
-	err = awsConfigFile.SaveTo(awsConfigPath)
-	if err != nil {
-		return err
+		return &SyncError{
+			Err:          err,
+			RegistryName: r.Config.Name,
+		}
 	}
 
 	clio.Successf("Successfully synced registry %s", r.Config.Name)
 
 	return nil
+}
+
+type SyncError struct {
+	Err          error
+	RegistryName string
+}
+
+func (m *SyncError) Error() string {
+	return fmt.Sprintf("Failed to sync for registry %s with error: %s", m.RegistryName, m.Err.Error())
 }

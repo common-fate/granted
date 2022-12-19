@@ -76,7 +76,7 @@ func gitClone(repoURL string, repoDirPath string) error {
 	return nil
 }
 
-// WIP/TODO: set the path of the repo before checking out
+// set the path of the repo before checking out
 // if a specific ref is passed we will checkout that ref
 // can be a git hash, tag, or branch name. In that order
 func CheckoutRef(ref string, repoDirPath string) error {
@@ -86,10 +86,9 @@ func CheckoutRef(ref string, repoDirPath string) error {
 
 	err := cmd.Run()
 	if err != nil {
-		fmt.Println("the error is", err)
 		return err
 	}
-	fmt.Println("Sucessfully checkout out " + ref)
+	clio.Debugf("Sucessfully checkout out " + ref)
 	return nil
 
 }

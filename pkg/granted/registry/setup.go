@@ -33,7 +33,7 @@ var SetupCommand = cli.Command{
 		}
 
 		// copy ~/.aws/config to ./config
-		configFile, err := loadAWSConfigFile()
+		configFile, _, err := loadAWSConfigFile()
 		if err != nil {
 			return err
 		}

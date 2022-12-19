@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"sort"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -24,19 +25,19 @@ type Registry struct {
 }
 
 // GetRegistryLocation returns the directory path where cloned repo is located.
-func (r *Registry) getRegistryLocation() (string, error) {
+func getRegistryLocation(r grantedConfig.Registry) (string, error) {
 	gConfigPath, err := grantedConfig.GrantedConfigFolder()
 	if err != nil {
 		return "", err
 	}
 
-	return path.Join(gConfigPath, "registries", r.Config.Name), nil
+	return path.Join(gConfigPath, "registries", r.Name), nil
 }
 
 func (r *Registry) Parse() error {
 	const defaultConfigFilename string = "granted.yml"
 
-	filepath, err := r.getRegistryLocation()
+	filepath, err := getRegistryLocation(r.Config)
 	if err != nil {
 		return err
 	}
@@ -115,27 +116,26 @@ func GetProfileRegistries() ([]Registry, error) {
 		return []Registry{}, nil
 	}
 
-	registries := []Registry{}
-	for name := range gConf.ProfileRegistry.Registries {
+	var registries []Registry
+	for _, r := range gConf.ProfileRegistry.Registries {
 		registries = append(registries, Registry{
-			Config: gConf.ProfileRegistry.Registries[name],
+			Config: r,
 		})
 	}
 
-	// commented until priority feature is fully implemented.
-	// sort registries bases on their priority.
-	// sort.Slice(registries, func(i, j int) bool {
-	// 	var a, b int = 0, 0
-	// 	if registries[i].Config.Priority != nil {
-	// 		a = *registries[i].Config.Priority
-	// 	}
+	// this will sort the registry based on priority.
+	sort.Slice(registries, func(i, j int) bool {
+		var a, b int = 0, 0
+		if registries[i].Config.Priority != nil {
+			a = *registries[i].Config.Priority
+		}
 
-	// 	if registries[j].Config.Priority != nil {
-	// 		b = *registries[j].Config.Priority
-	// 	}
+		if registries[j].Config.Priority != nil {
+			b = *registries[j].Config.Priority
+		}
 
-	// 	return a > b
-	// })
+		return a > b
+	})
 
 	return registries, nil
 }

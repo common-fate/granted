@@ -28,8 +28,8 @@ var RemoveCommand = cli.Command{
 
 		registriesWithNames := []string{}
 
-		for name := range gConf.ProfileRegistry.Registries {
-			registriesWithNames = append(registriesWithNames, name)
+		for _, r := range gConf.ProfileRegistry.Registries {
+			registriesWithNames = append(registriesWithNames, r.Name)
 		}
 
 		in := survey.Select{Message: "Please select the git repository you would like to unsubscribe:", Options: registriesWithNames}
@@ -39,14 +39,15 @@ var RemoveCommand = cli.Command{
 			return err
 		}
 
-		selectedRegistry := gConf.ProfileRegistry.Registries[out]
+		var selectedRegistry grantedConfig.Registry
 
-		r := NewProfileRegistry(registryOptions{
-			name: selectedRegistry.Name,
-			url:  selectedRegistry.URL,
-		})
+		for _, r := range gConf.ProfileRegistry.Registries {
+			if r.Name == out {
+				selectedRegistry = r
+			}
+		}
 
-		repoDir, err := r.getRegistryLocation()
+		repoDir, err := getRegistryLocation(selectedRegistry)
 		if err != nil {
 			return err
 		}
@@ -61,8 +62,13 @@ var RemoveCommand = cli.Command{
 			return err
 		}
 
-		delete(gConf.ProfileRegistry.Registries, out)
-		if err := gConf.Save(); err != nil {
+		err = remove(gConf, out)
+		if err != nil {
+			return err
+		}
+
+		err = gConf.Save()
+		if err != nil {
 			return err
 		}
 
@@ -70,4 +76,28 @@ var RemoveCommand = cli.Command{
 
 		return nil
 	},
+}
+
+func remove(gConf *grantedConfig.Config, rName string) error {
+	registries := gConf.ProfileRegistry.Registries
+
+	var index int = -1
+	for i := 0; i < len(registries); i++ {
+		if registries[i].Name == rName {
+			index = i
+		}
+	}
+
+	if index > -1 {
+		registries = append(registries[:index], registries[index+1:]...)
+	}
+
+	gConf.ProfileRegistry.Registries = registries
+
+	err := gConf.Save()
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

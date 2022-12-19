@@ -20,21 +20,21 @@ func getDefaultAWSConfigLocation() (string, error) {
 	return configPath, nil
 }
 
-func loadAWSConfigFile() (*ini.File, error) {
-	p, err := getDefaultAWSConfigLocation()
+func loadAWSConfigFile() (*ini.File, string, error) {
+	filepath, err := getDefaultAWSConfigLocation()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	awsConfig, err := ini.LoadSources(ini.LoadOptions{
 		SkipUnrecognizableLines: true,
 		AllowNonUniqueSections:  true,
-	}, p)
+	}, filepath)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return awsConfig, nil
+	return awsConfig, filepath, nil
 }
 
 // load all cloned configs of a single repo into one ini object.
@@ -42,7 +42,7 @@ func loadAWSConfigFile() (*ini.File, error) {
 func loadClonedConfigs(r Registry) (*ini.File, error) {
 	clonedFile := ini.Empty()
 
-	repoDirPath, err := r.getRegistryLocation()
+	repoDirPath, err := getRegistryLocation(r.Config)
 	if err != nil {
 		return nil, err
 	}
