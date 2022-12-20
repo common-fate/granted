@@ -4,7 +4,6 @@ import (
 	"os"
 	"testing"
 
-	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"gopkg.in/ini.v1"
 )
 
@@ -190,69 +189,6 @@ func TestGetGeneratedSectionByName(t *testing.T) {
 
 			if len(tt.want) != len(got) {
 				t.Errorf("Got %v Want %v", got, tt.want)
-			}
-		})
-	}
-}
-
-func TestGenerateNewGrantedSection(t *testing.T) {
-	tests := []struct {
-		name              string
-		want              []string
-		registries        []Registry
-		fileContent       string
-		configFileContent string
-	}{
-		{
-			name: "should add profiles from the file content",
-			registries: []Registry{
-				{
-					Config: grantedConfig.Registry{
-						Name: "first",
-					},
-				},
-			},
-			fileContent:       profileRegistryOne,
-			configFileContent: "",
-			want:              []string{"DEFAULT", "granted_registry_start first", "profile s1.one", "profile s1.two", "profile duplicate", "granted_registry_end first"},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			configFileContent, err := ini.Load([]byte(""))
-			if err != nil {
-				t.Fatal(err)
-			}
-
-			for _, r := range tt.registries {
-				clonedFile, err := ini.Load([]byte(tt.fileContent))
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				err = generateNewRegistrySection(&r, configFileContent, clonedFile, false)
-				if err != nil {
-					t.Fatal(err)
-				}
-
-				if err = configFileContent.Reload(); err != nil {
-					t.Fatal(err)
-				}
-			}
-
-			got := configFileContent.SectionStrings()
-
-			isEqual, invalidArr := CheckArrayEquality(tt.want, got)
-
-			if !isEqual {
-				if len(invalidArr) > 0 {
-					t.Errorf("invalid values %v on want %v", invalidArr, tt.want)
-
-					return
-				}
-
-				t.Errorf("Unequal array length. want %v and got %v", tt.want, got)
 			}
 		})
 	}
