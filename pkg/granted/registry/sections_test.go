@@ -291,7 +291,7 @@ key4=value4
 ## random things
 `
 
-const profileRegistryOne = `
+const ProfileRegistryOne = `
 [profile s1.one]
 region = us-east-2
 
