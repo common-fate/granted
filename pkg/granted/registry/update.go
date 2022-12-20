@@ -60,7 +60,7 @@ var UpdateCommand = cli.Command{
 			return nil
 		}
 
-		clio.Infof("Your Profile Registry has updated configuration.")
+		clio.Infof("Your Profile Registry has updated configuration. No action required.")
 
 		return nil
 	},
