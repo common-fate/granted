@@ -8,6 +8,14 @@ import (
 )
 
 func Run() {
+	if registry.IsOutdatedConfig() {
+		clio.Warn("outdated Profile Registry Configuration. Use `granted registry update` to update your configuration.")
+
+		clio.Warn("skipping Profile Registry sync.")
+
+		return
+	}
+
 	registries, err := registry.GetProfileRegistries()
 	if err != nil {
 		clio.Debugf("unable to load granted config file with err %s", err.Error())
