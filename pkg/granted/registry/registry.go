@@ -148,8 +148,6 @@ func formatKey(s string) (string, string, error) {
 // granted.yml config might contain user specific variables
 // in such case we would prompt users to add them before registry is added.
 func (r Registry) PromptRequiredKeys(passedKeys []string) error {
-	var questions []*survey.Question
-
 	var requiredKeysThroughFlags = make(map[string]string)
 
 	gConf, err := grantedConfig.Load()
@@ -158,81 +156,90 @@ func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 	}
 
 	for _, v := range r.TemplateValues {
-		for fieldName, val := range v {
-			for _, valMap := range val {
+		for fieldName, values := range v {
+			if isRequiredKey(values) {
+				var questions []*survey.Question
+				if len(passedKeys) != 0 {
+					for _, val := range passedKeys {
+						key, value, err := formatKey(val)
+						if err != nil {
+							return err
+						}
 
-				if _, ok := valMap["isRequired"]; ok {
-					if len(passedKeys) != 0 {
-						for _, val := range passedKeys {
-							key, value, err := formatKey(val)
+						requiredKeysThroughFlags[key] = value
+					}
+				}
+
+				// if the key was passed through cli then skip the prompt
+				if _, ok := requiredKeysThroughFlags[fieldName]; ok {
+					err := SaveKey(gConf, fieldName, requiredKeysThroughFlags[fieldName])
+					if err != nil {
+						return err
+					}
+
+					break
+				}
+
+				// if the key is already configured then skip
+				if gConf.ProfileRegistry.RequiredKeys[fieldName] != "" {
+					clio.Debugf("%s is already configured so skipping", fieldName)
+
+					break
+				}
+
+				var prompt string
+				for _, j := range values {
+					for k, v := range j {
+						if k == "prompt" {
+							prompt = v
+						}
+					}
+				}
+
+				qs := survey.Question{
+					Name:     fieldName,
+					Prompt:   &survey.Input{Message: fmt.Sprintf("'%s': %s", fieldName, prompt)},
+					Validate: survey.Required}
+
+				questions = append(questions, &qs)
+				ansmap := make(map[string]interface{})
+
+				if len(questions) > 0 {
+					clio.Info("Your Profile Registry requires you to input values for the following keys:")
+
+					err = survey.Ask(questions, &ansmap)
+					if err != nil {
+						return err
+					}
+
+					err = SaveKeys(gConf, ansmap)
+					if err != nil {
+						return err
+					}
+
+					break
+				}
+
+			} else {
+				// for all other variables add them to registry as variables
+				for _, j := range values {
+					for k, v := range j {
+						if k == "value" {
+							if gConf.ProfileRegistry.Variables == nil {
+								gConf.ProfileRegistry.Variables = make(map[string]string)
+								gConf.ProfileRegistry.Variables[fieldName] = v
+							} else {
+								gConf.ProfileRegistry.Variables[fieldName] = v
+							}
+							err := gConf.Save()
 							if err != nil {
 								return err
 							}
 
-							requiredKeysThroughFlags[key] = value
+							break
+
 						}
 					}
-
-					// if the key was passed through cli then skip the prompt
-					if _, ok := requiredKeysThroughFlags[fieldName]; ok {
-						err := SaveKey(gConf, fieldName, requiredKeysThroughFlags[fieldName])
-						if err != nil {
-							return err
-						}
-
-						break
-					}
-
-					// if the key is already configured then skip
-					if gConf.ProfileRegistry.RequiredKeys[fieldName] != "" {
-						clio.Debugf("%s is already configured so skipping", fieldName)
-
-						break
-					}
-
-					qs := survey.Question{
-						Name:     fieldName,
-						Prompt:   &survey.Input{Message: fmt.Sprintf("'%s': %s", fieldName, valMap["prompt"])},
-						Validate: survey.Required}
-
-					questions = append(questions, &qs)
-					ansmap := make(map[string]interface{})
-
-					if len(questions) > 0 {
-						clio.Info("Your Profile Registry requires you to input values for the following keys:")
-
-						err = survey.Ask(questions, &ansmap)
-						if err != nil {
-							return err
-						}
-
-						err = SaveKeys(gConf, ansmap)
-						if err != nil {
-							return err
-						}
-
-						break
-					}
-
-				} else {
-					// for all other variables add them to registry as variables
-					if val, ok := valMap["value"]; ok {
-
-						if gConf.ProfileRegistry.Variables == nil {
-							gConf.ProfileRegistry.Variables = make(map[string]string)
-							gConf.ProfileRegistry.Variables[fieldName] = val
-						} else {
-							gConf.ProfileRegistry.Variables[fieldName] = val
-						}
-						err := gConf.Save()
-						if err != nil {
-							return err
-						}
-					} else {
-						clio.Warnf("variable '%s' doesnot have associated 'value' key with it.", fieldName)
-					}
-
-					continue
 				}
 			}
 		}
@@ -277,4 +284,17 @@ func SaveKey(gConf *grantedConfig.Config, key string, value string) error {
 	}
 
 	return nil
+}
+
+// isRequiredKey has user specific keys that if true
+// will prompt users to enter value for them
+func isRequiredKey(m []map[string]string) bool {
+	for _, fields := range m {
+		for k, v := range fields {
+			if k == "isRequired" && v == "true" {
+				return true
+			}
+		}
+	}
+	return false
 }
