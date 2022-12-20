@@ -70,6 +70,7 @@ func IsOutdatedConfig() bool {
 	gConf, err := grantedConfig.Load()
 	if err != nil {
 		clio.Debug(err.Error())
+		return true
 	}
 
 	if len(gConf.ProfileRegistryURLS) > 0 {
