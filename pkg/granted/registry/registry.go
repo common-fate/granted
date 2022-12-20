@@ -15,13 +15,8 @@ import (
 
 type Registry struct {
 	Config         grantedConfig.Registry
-	AwsConfigPaths []string `yaml:"awsConfig"`
-	TemplateValues struct {
-		Variables    map[string]string `yaml:"variables"`
-		RequiredKeys map[string]struct {
-			Prompt string `yaml:"prompt"`
-		} `yaml:"required"`
-	} `yaml:"templateValues"`
+	AwsConfigPaths []string                         `yaml:"awsConfig"`
+	TemplateValues []map[string][]map[string]string `yaml:"templateValues"`
 }
 
 // GetRegistryLocation returns the directory path where cloned repo is located.
@@ -157,62 +152,88 @@ func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 
 	var requiredKeysThroughFlags = make(map[string]string)
 
-	if r.TemplateValues.RequiredKeys != nil {
-		if len(passedKeys) != 0 {
-			for _, val := range passedKeys {
-				key, value, err := formatKey(val)
-				if err != nil {
-					return err
+	gConf, err := grantedConfig.Load()
+	if err != nil {
+		return err
+	}
+
+	for _, v := range r.TemplateValues {
+		for fieldName, val := range v {
+			for _, valMap := range val {
+
+				if _, ok := valMap["isRequired"]; ok {
+					if len(passedKeys) != 0 {
+						for _, val := range passedKeys {
+							key, value, err := formatKey(val)
+							if err != nil {
+								return err
+							}
+
+							requiredKeysThroughFlags[key] = value
+						}
+					}
+
+					// if the key was passed through cli then skip the prompt
+					if _, ok := requiredKeysThroughFlags[fieldName]; ok {
+						err := SaveKey(gConf, fieldName, requiredKeysThroughFlags[fieldName])
+						if err != nil {
+							return err
+						}
+
+						break
+					}
+
+					// if the key is already configured then skip
+					if gConf.ProfileRegistry.RequiredKeys[fieldName] != "" {
+						clio.Debugf("%s is already configured so skipping", fieldName)
+
+						break
+					}
+
+					qs := survey.Question{
+						Name:     fieldName,
+						Prompt:   &survey.Input{Message: fmt.Sprintf("'%s': %s", fieldName, valMap["prompt"])},
+						Validate: survey.Required}
+
+					questions = append(questions, &qs)
+					ansmap := make(map[string]interface{})
+
+					if len(questions) > 0 {
+						clio.Info("Your Profile Registry requires you to input values for the following keys:")
+
+						err = survey.Ask(questions, &ansmap)
+						if err != nil {
+							return err
+						}
+
+						err = SaveKeys(gConf, ansmap)
+						if err != nil {
+							return err
+						}
+
+						break
+					}
+
+				} else {
+					// for all other variables add them to registry as variables
+					if val, ok := valMap["value"]; ok {
+
+						if gConf.ProfileRegistry.Variables == nil {
+							gConf.ProfileRegistry.Variables = make(map[string]string)
+							gConf.ProfileRegistry.Variables[fieldName] = val
+						} else {
+							gConf.ProfileRegistry.Variables[fieldName] = val
+						}
+						err := gConf.Save()
+						if err != nil {
+							return err
+						}
+					} else {
+						clio.Warnf("variable '%s' doesnot have associated 'value' key with it.", fieldName)
+					}
+
+					continue
 				}
-
-				requiredKeysThroughFlags[key] = value
-			}
-		}
-
-		gConf, err := grantedConfig.Load()
-		if err != nil {
-			return err
-		}
-
-		for key, v := range r.TemplateValues.RequiredKeys {
-			// if the key was passed through cli then skip the prompt
-			if _, ok := requiredKeysThroughFlags[key]; ok {
-				err := SaveKey(gConf, key, requiredKeysThroughFlags[key])
-				if err != nil {
-					return err
-				}
-
-				continue
-			}
-
-			// if the key is already configured then skip
-			if gConf.ProfileRegistry.RequiredKeys[key] != "" {
-				clio.Debugf("%s is already configured so skipping", key)
-
-				continue
-			}
-
-			qs := survey.Question{
-				Name:     key,
-				Prompt:   &survey.Input{Message: fmt.Sprintf("'%s': %s", key, v.Prompt)},
-				Validate: survey.Required}
-
-			questions = append(questions, &qs)
-		}
-
-		ansmap := make(map[string]interface{})
-
-		if len(questions) > 0 {
-			clio.Info("Your Profile Registry requires you to input values for the following keys:")
-
-			err = survey.Ask(questions, &ansmap)
-			if err != nil {
-				return err
-			}
-
-			err = SaveKeys(gConf, ansmap)
-			if err != nil {
-				return err
 			}
 		}
 	}

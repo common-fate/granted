@@ -2,8 +2,8 @@ package registry
 
 import (
 	"bytes"
+	"html/template"
 	"regexp"
-	"text/template"
 
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 )
@@ -30,7 +30,7 @@ func interpolateVariables(r *Registry, value string, profileName string) (string
 	}
 
 	d := ConfigTemplateVariables{
-		Variables: r.TemplateValues.Variables,
+		Variables: gConf.ProfileRegistry.Variables,
 		Required:  gConf.ProfileRegistry.RequiredKeys,
 		Profile:   profileName,
 	}

@@ -27,12 +27,16 @@ type Config struct {
 	// to request access, in the event that we receive a ForbiddenException
 	// denying access to assume a particular role.
 	AccessRequestURL string `toml:",omitempty"`
-	ProfileRegistry  struct {
+
+	// depricated in favor of ProfileRegistry
+	ProfileRegistryURLS []string `toml:",omitempty"`
+	ProfileRegistry     struct {
 		// add any global configuration to profile registry here.
 		PrefixAllProfiles       bool
 		PrefixDuplicateProfiles bool
 		SessionName             string            `toml:",omitempty"`
 		RequiredKeys            map[string]string `toml:",omitempty"`
+		Variables               map[string]string `toml:",omitempty"`
 		Registries              []Registry        `toml:",omitempty"`
 	} `toml:",omitempty"`
 }
