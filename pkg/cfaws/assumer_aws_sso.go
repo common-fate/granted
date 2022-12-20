@@ -183,8 +183,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	}
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	clio.Info("If the browser does not open automatically, please open this link:")
-	clio.Info(url)
+	clio.Info("If the browser does not open automatically, please open this link: " + url)
 
 	//check if sso browser path is set
 	config, err := grantedConfig.Load()
@@ -214,7 +213,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 		}
 	}
 
-	clio.Info("Awaiting authentication in the browser...")
+	clio.Info("Awaiting browser authentication, this may take up to 2 minutes...")
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
 		return nil, err
