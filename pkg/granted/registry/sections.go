@@ -153,7 +153,7 @@ func getNonGrantedProfiles(config *ini.File) []*ini.Section {
 	return nonGrantedProfiles
 }
 
-func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *ini.File, isFirstSection bool) error {
+func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *ini.File, isFirstSection bool, promptIfDuplication bool) error {
 	sectionName := r.Config.Name
 	clio.Debugf("generating section %s", sectionName)
 
@@ -206,24 +206,27 @@ func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *i
 					// check registry level config to see if we should prefix the duplicate profiles
 					if !r.Config.PrefixDuplicateProfiles {
 
+						// automatically add prefix to duplicate profiles without prompting users.
 						clio.Warnf("profile duplication found for '%s'", sec.Name())
+						if promptIfDuplication {
 
-						const (
-							DUPLICATE = "add registry name as prefix to all duplicate profiles for this registry"
-							ABORT     = "abort, I will manually fix this"
-						)
+							const (
+								DUPLICATE = "Add registry name as prefix to all duplicate profiles for this registry"
+								ABORT     = "Abort, I will manually fix this"
+							)
 
-						options := []string{DUPLICATE, ABORT}
+							options := []string{DUPLICATE, ABORT}
 
-						in := survey.Select{Message: "Please select which option would you like to choose to resolve: ", Options: options}
-						var selected string
-						err = testable.AskOne(&in, &selected)
-						if err != nil {
-							return err
-						}
+							in := survey.Select{Message: "Please select which option would you like to choose to resolve: ", Options: options}
+							var selected string
+							err = testable.AskOne(&in, &selected)
+							if err != nil {
+								return err
+							}
 
-						if selected == ABORT {
-							return fmt.Errorf("aborting sync for registry %s", sectionName)
+							if selected == ABORT {
+								return fmt.Errorf("aborting sync for registry %s", sectionName)
+							}
 						}
 
 						r.Config.PrefixDuplicateProfiles = true

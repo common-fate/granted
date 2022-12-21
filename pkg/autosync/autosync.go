@@ -9,7 +9,7 @@ import (
 
 func Run() {
 	if registry.IsOutdatedConfig() {
-		clio.Warn("outdated Profile Registry Configuration. Use `granted registry update` to update your configuration.")
+		clio.Warn("Outdated Profile Registry Configuration. Use `granted registry update` to update your configuration.")
 
 		clio.Warn("skipping Profile Registry sync.")
 

@@ -18,7 +18,7 @@ var ProfileRegistryCommand = cli.Command{
 
 		if len(registries) == 0 {
 			clio.Warn("You haven't connected any Profile Registries yet.")
-			clio.Info("Connect to a Profile Registry by running 'granted registry add <your_repo>'")
+			clio.Info("Connect to a Profile Registry by running 'granted registry add -n <registry_name> -u <your_repo>'")
 			return nil
 		}
 

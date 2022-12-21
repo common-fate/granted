@@ -19,7 +19,7 @@ func (e *RegistrySyncError) Error() string {
 func runSync(rc RegistrySyncConfig) error {
 	clio.Info("Syncing Profile Registries")
 	shouldSilentLog := true
-	err := registry.SyncProfileRegistries(shouldSilentLog)
+	err := registry.SyncProfileRegistries(shouldSilentLog, true)
 	if err != nil {
 		return &RegistrySyncError{err: err}
 	}

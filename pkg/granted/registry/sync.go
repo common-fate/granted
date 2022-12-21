@@ -14,7 +14,7 @@ var SyncCommand = cli.Command{
 	Usage:       "Pull the latest change from remote origin and sync aws profiles in aws config files",
 	Description: "Pull the latest change from remote origin and sync aws profiles in aws config files",
 	Action: func(c *cli.Context) error {
-		if err := SyncProfileRegistries(false); err != nil {
+		if err := SyncProfileRegistries(false, true); err != nil {
 			return err
 		}
 
@@ -23,7 +23,9 @@ var SyncCommand = cli.Command{
 }
 
 // Wrapper around sync func. Check if profile registry is configured, pull the latest changes and call sync func.
-func SyncProfileRegistries(shouldSilentLog bool) error {
+// promptUserIfProfileDuplication if true will automatically prefix the duplicate profiles and won't prompt users
+// this is useful when new registry with higher priority is added and there is duplication with lower priority registry.
+func SyncProfileRegistries(shouldSilentLog bool, promptUserIfProfileDuplication bool) error {
 	registries, err := GetProfileRegistries()
 	if err != nil {
 		return err
@@ -49,7 +51,7 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 			return err
 		}
 
-		// If the local repo has been deleted, then attempt to clone it again
+		// If the local repo has been deleted, then attem	pt to clone it again
 		_, err = os.Stat(repoDirPath)
 		if os.IsNotExist(err) {
 			err = gitClone(r.Config.URL, repoDirPath)
@@ -78,7 +80,7 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 			isFirstSection = true
 		}
 
-		if err := Sync(&r, configFile, isFirstSection); err != nil {
+		if err := Sync(&r, configFile, isFirstSection, promptUserIfProfileDuplication); err != nil {
 			se, ok := err.(*SyncError)
 			if ok {
 				clio.Warnf("Sync failed for registry %s", r.Config.Name)
@@ -105,7 +107,7 @@ func SyncProfileRegistries(shouldSilentLog bool) error {
 
 // Sync function will load all the configs provided in the clonedFile.
 // and generated a new section in the ~/.aws/profile file.
-func Sync(r *Registry, awsConfigFile *ini.File, isFirstSection bool) error {
+func Sync(r *Registry, awsConfigFile *ini.File, isFirstSection bool, promptIfDuplication bool) error {
 	clio.Debugf("syncing %s \n", r.Config.Name)
 
 	clonedFile, err := loadClonedConfigs(*r)
@@ -114,7 +116,7 @@ func Sync(r *Registry, awsConfigFile *ini.File, isFirstSection bool) error {
 	}
 
 	// return custom error that should be catched and skipped.
-	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, isFirstSection)
+	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, isFirstSection, promptIfDuplication)
 	if err != nil {
 		return &SyncError{
 			Err:          err,
