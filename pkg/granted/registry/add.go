@@ -168,6 +168,7 @@ var AddCommand = cli.Command{
 						return err
 					}
 
+					clio.Debugf("New Registry has higher priority, resyncing all registries in new order...")
 					err = SyncProfileRegistries(false, false)
 					if err != nil {
 						return err

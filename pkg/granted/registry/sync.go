@@ -22,6 +22,12 @@ var SyncCommand = cli.Command{
 	},
 }
 
+type syncOpts struct {
+	isFirstSection                 bool
+	promptUserIfProfileDuplication bool
+	shouldSilentLog                bool
+}
+
 // Wrapper around sync func. Check if profile registry is configured, pull the latest changes and call sync func.
 // promptUserIfProfileDuplication if true will automatically prefix the duplicate profiles and won't prompt users
 // this is useful when new registry with higher priority is added and there is duplication with lower priority registry.
@@ -46,41 +52,18 @@ func SyncProfileRegistries(shouldSilentLog bool, promptUserIfProfileDuplication 
 	}
 
 	for index, r := range registries {
-		repoDirPath, err := getRegistryLocation(r.Config)
-		if err != nil {
-			return err
-		}
-
-		// If the local repo has been deleted, then attem	pt to clone it again
-		_, err = os.Stat(repoDirPath)
-		if os.IsNotExist(err) {
-			err = gitClone(r.Config.URL, repoDirPath)
-			if err != nil {
-				return err
-			}
-		} else {
-			err = gitPull(repoDirPath, shouldSilentLog)
-			if err != nil {
-				return err
-			}
-		}
-
-		err = r.Parse()
-		if err != nil {
-			return err
-		}
-
-		err = r.PromptRequiredKeys([]string{})
-		if err != nil {
-			return err
-		}
-
 		isFirstSection := false
 		if index == 0 {
 			isFirstSection = true
 		}
 
-		if err := Sync(&r, configFile, isFirstSection, promptUserIfProfileDuplication); err != nil {
+		err = runSync(&r, configFile, awsConfigPath, syncOpts{
+			isFirstSection:                 isFirstSection,
+			shouldSilentLog:                shouldSilentLog,
+			promptUserIfProfileDuplication: promptUserIfProfileDuplication,
+		})
+
+		if err != nil {
 			se, ok := err.(*SyncError)
 			if ok {
 				clio.Warnf("Sync failed for registry %s", r.Config.Name)
@@ -91,12 +74,62 @@ func SyncProfileRegistries(shouldSilentLog bool, promptUserIfProfileDuplication 
 			}
 			return err
 		}
+	}
 
-		err = configFile.SaveTo(awsConfigPath)
+	return nil
+}
+
+// runSync will return custom error when there is error for specific registry so that
+// other registries can still be synced.
+func runSync(r *Registry, configFile *ini.File, configFilePath string, opts syncOpts) error {
+	repoDirPath, err := getRegistryLocation(r.Config)
+	if err != nil {
+		return err
+	}
+
+	// If the local repo has been deleted, then attem	pt to clone it again
+	_, err = os.Stat(repoDirPath)
+	if os.IsNotExist(err) {
+		err = gitClone(r.Config.URL, repoDirPath)
 		if err != nil {
-			return err
+			return &SyncError{
+				RegistryName: r.Config.Name,
+				Err:          err,
+			}
 		}
+	} else {
+		err = gitPull(repoDirPath, opts.shouldSilentLog)
+		if err != nil {
+			return &SyncError{
+				RegistryName: r.Config.Name,
+				Err:          err,
+			}
+		}
+	}
 
+	err = r.Parse()
+	if err != nil {
+		return &SyncError{
+			RegistryName: r.Config.Name,
+			Err:          err,
+		}
+	}
+
+	err = r.PromptRequiredKeys([]string{})
+	if err != nil {
+		return &SyncError{
+			RegistryName: r.Config.Name,
+			Err:          err,
+		}
+	}
+
+	if err := Sync(r, configFile, opts.isFirstSection, opts.promptUserIfProfileDuplication); err != nil {
+		return err
+	}
+
+	err = configFile.SaveTo(configFilePath)
+	if err != nil {
+		return err
 	}
 
 	return nil
