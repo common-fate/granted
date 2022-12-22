@@ -21,8 +21,8 @@ var AddCommand = cli.Command{
 		&cli.StringFlag{Name: "filename", Aliases: []string{"f"}, Usage: "provide filename if yml file is not granted.yml", DefaultText: "granted.yml"},
 		&cli.IntFlag{Name: "priority", Usage: "profile registry will be sorted by priority descending", Value: 0},
 		&cli.StringFlag{Name: "ref", Hidden: true},
-		&cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"add-prefix-all"}, Usage: "provide this flag if you want to append registry name to all profiles"},
-		&cli.BoolFlag{Name: "prefix-duplicate-profiles", Aliases: []string{"add-prefix-duplicate"}, Usage: "provide this flag if you want to append registry name to duplicate profiles"},
+		&cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"pap"}, Usage: "provide this flag if you want to append registry name to all profiles"},
+		&cli.BoolFlag{Name: "prefix-duplicate-profiles", Aliases: []string{"pdp"}, Usage: "provide this flag if you want to append registry name to duplicate profiles"},
 		&cli.StringSliceFlag{Name: "requiredKey", Aliases: []string{"r"}, Usage: "used to bypass the prompt or override user specific values"}},
 	ArgsUsage: "<repository url> --name <registry_name> --url <git-url>",
 	Action: func(c *cli.Context) error {
