@@ -7,7 +7,10 @@ import (
 	"github.com/common-fate/granted/pkg/granted/registry"
 )
 
-func Run() {
+// shouldFailForRequiredKeys when true will fail the profile registry sync
+// in case where user specific values that are defined in granted.yml's `templateValues` are not available.
+// this is done so that users are aware of required keys when granted credential-process is used thorugh AWS CLI.
+func Run(shouldFailForRequiredKeys bool) {
 	if registry.IsOutdatedConfig() {
 		clio.Warn("Outdated Profile Registry Configuration. Use `granted registry update` to update your configuration.")
 
@@ -37,7 +40,7 @@ func Run() {
 		return
 	}
 
-	err = runSync(rc)
+	err = runSync(rc, shouldFailForRequiredKeys)
 	if err != nil {
 		clio.Debugw("failed to sync profile registries", "error", err)
 		clio.Warn("Failed to sync Profile Registries")

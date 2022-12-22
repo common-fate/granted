@@ -7,7 +7,7 @@ import (
 
 func WithAutosync() cli.BeforeFunc {
 	return func(ctx *cli.Context) error {
-		autosync.Run()
+		autosync.Run(true)
 		return nil
 	}
 }

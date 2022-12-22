@@ -147,7 +147,7 @@ func formatKey(s string) (string, string, error) {
 
 // granted.yml config might contain user specific variables
 // in such case we would prompt users to add them before registry is added.
-func (r Registry) PromptRequiredKeys(passedKeys []string) error {
+func (r Registry) PromptRequiredKeys(passedKeys []string, shouldFailForRequiredKeys bool) error {
 	var requiredKeysThroughFlags = make(map[string]string)
 
 	gConf, err := grantedConfig.Load()
@@ -158,6 +158,7 @@ func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 	for _, v := range r.TemplateValues {
 		for fieldName, values := range v {
 			if isRequiredKey(values) {
+
 				var questions []*survey.Question
 				if len(passedKeys) != 0 {
 					for _, val := range passedKeys {
@@ -187,6 +188,18 @@ func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 					break
 				}
 
+				// if the required key is missing and the command is called through credential process
+				// then instead of asking for prompt we need to fail the process because
+				// credential process might be used with native AWS CLI command which can't have any thing
+				// in it's STDIO expect the JSON output that AWS credential_process expects.
+				// so fail with warning that there are required keys you need to fill by running granted sync.
+				if shouldFailForRequiredKeys {
+					clio.Errorf("Error syncing registry '%s'. You need to enter value for required key: '%s' before you can preceed.", r.Config.Name, fieldName)
+					clio.Errorf("run 'granted registry sync' to enter value for the required key")
+
+					return fmt.Errorf("sync failed")
+				}
+
 				var prompt string
 				for _, j := range values {
 					for k, v := range j {
@@ -195,6 +208,8 @@ func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 						}
 					}
 				}
+
+				withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 
 				qs := survey.Question{
 					Name:     fieldName,
@@ -207,7 +222,7 @@ func (r Registry) PromptRequiredKeys(passedKeys []string) error {
 				if len(questions) > 0 {
 					clio.Info("Your Profile Registry requires you to input values for the following keys:")
 
-					err = survey.Ask(questions, &ansmap)
+					err = survey.Ask(questions, &ansmap, withStdio)
 					if err != nil {
 						return err
 					}

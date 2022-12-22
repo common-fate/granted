@@ -14,7 +14,7 @@ var SyncCommand = cli.Command{
 	Usage:       "Pull the latest change from remote origin and sync aws profiles in aws config files",
 	Description: "Pull the latest change from remote origin and sync aws profiles in aws config files",
 	Action: func(c *cli.Context) error {
-		if err := SyncProfileRegistries(false, true); err != nil {
+		if err := SyncProfileRegistries(false, true, false); err != nil {
 			return err
 		}
 
@@ -26,12 +26,13 @@ type syncOpts struct {
 	isFirstSection                 bool
 	promptUserIfProfileDuplication bool
 	shouldSilentLog                bool
+	shouldFailForRequiredKeys      bool
 }
 
 // Wrapper around sync func. Check if profile registry is configured, pull the latest changes and call sync func.
 // promptUserIfProfileDuplication if true will automatically prefix the duplicate profiles and won't prompt users
 // this is useful when new registry with higher priority is added and there is duplication with lower priority registry.
-func SyncProfileRegistries(shouldSilentLog bool, promptUserIfProfileDuplication bool) error {
+func SyncProfileRegistries(shouldSilentLog bool, promptUserIfProfileDuplication bool, shouldFailForRequiredKeys bool) error {
 	registries, err := GetProfileRegistries()
 	if err != nil {
 		return err
@@ -61,6 +62,7 @@ func SyncProfileRegistries(shouldSilentLog bool, promptUserIfProfileDuplication 
 			isFirstSection:                 isFirstSection,
 			shouldSilentLog:                shouldSilentLog,
 			promptUserIfProfileDuplication: promptUserIfProfileDuplication,
+			shouldFailForRequiredKeys:      shouldFailForRequiredKeys,
 		})
 
 		if err != nil {
@@ -115,15 +117,12 @@ func runSync(r *Registry, configFile *ini.File, configFilePath string, opts sync
 		}
 	}
 
-	err = r.PromptRequiredKeys([]string{})
+	err = r.PromptRequiredKeys([]string{}, opts.shouldFailForRequiredKeys)
 	if err != nil {
-		return &SyncError{
-			RegistryName: r.Config.Name,
-			Err:          err,
-		}
+		return err
 	}
 
-	if err := Sync(r, configFile, opts.isFirstSection, opts.promptUserIfProfileDuplication); err != nil {
+	if err := Sync(r, configFile, opts); err != nil {
 		return err
 	}
 
@@ -140,7 +139,7 @@ func runSync(r *Registry, configFile *ini.File, configFilePath string, opts sync
 
 // Sync function will load all the configs provided in the clonedFile.
 // and generated a new section in the ~/.aws/profile file.
-func Sync(r *Registry, awsConfigFile *ini.File, isFirstSection bool, promptIfDuplication bool) error {
+func Sync(r *Registry, awsConfigFile *ini.File, opts syncOpts) error {
 	clio.Debugf("syncing %s \n", r.Config.Name)
 
 	clonedFile, err := loadClonedConfigs(*r)
@@ -149,7 +148,7 @@ func Sync(r *Registry, awsConfigFile *ini.File, isFirstSection bool, promptIfDup
 	}
 
 	// return custom error that should be catched and skipped.
-	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, isFirstSection, promptIfDuplication)
+	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, opts)
 	if err != nil {
 		return &SyncError{
 			Err:          err,

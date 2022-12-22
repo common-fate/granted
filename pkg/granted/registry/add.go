@@ -94,7 +94,7 @@ var AddCommand = cli.Command{
 			return err
 		}
 
-		err = registry.PromptRequiredKeys(requiredKey)
+		err = registry.PromptRequiredKeys(requiredKey, false)
 		if err != nil {
 			return err
 		}
@@ -127,7 +127,12 @@ var AddCommand = cli.Command{
 			return err
 		}
 
-		if err := Sync(&registry, awsConfigFile, isFirstSection, true); err != nil {
+		if err := Sync(&registry, awsConfigFile, syncOpts{
+			isFirstSection:                 isFirstSection,
+			promptUserIfProfileDuplication: true,
+			shouldSilentLog:                false,
+			shouldFailForRequiredKeys:      false,
+		}); err != nil {
 			return err
 		}
 
@@ -169,7 +174,7 @@ var AddCommand = cli.Command{
 					}
 
 					clio.Debugf("New Registry has higher priority, resyncing all registries in new order...")
-					err = SyncProfileRegistries(false, false)
+					err = SyncProfileRegistries(false, false, false)
 					if err != nil {
 						return err
 					}
