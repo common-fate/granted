@@ -87,6 +87,12 @@ func (p *Profiles) HasProfile(profile string) bool {
 
 // if the profile has a "granted_${name}" key, the value is returned. else an empty string
 func (p *Profile) CustomGrantedProperty(name string) string {
+	// rawConfig can be nil when all the required paraments are pass as arguments
+	// like assume --sso --sso_start-url ...
+	if p.RawConfig == nil {
+		return ""
+	}
+
 	key, err := p.RawConfig.GetKey(fmt.Sprintf("granted_%s", name))
 	if err != nil {
 		return ""
