@@ -2,10 +2,12 @@ package granted
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"runtime"
 	"strings"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
@@ -28,7 +30,7 @@ var TokenCommand = cli.Command{
 var SSOTokensCommand = cli.Command{
 	Name:        "sso-tokens",
 	Usage:       "Manage AWS SSO tokens",
-	Subcommands: []*cli.Command{&ListSSOTokensCommand, &ClearSSOTokensCommand},
+	Subcommands: []*cli.Command{&ListSSOTokensCommand, &ClearSSOTokensCommand, &TokenExpiryCommand},
 	Action:      ListSSOTokensCommand.Action,
 }
 
@@ -56,6 +58,61 @@ var ListSSOTokensCommand = cli.Command{
 
 		for _, key := range keys {
 			clio.Logf("%-*s (%s)", max, key, strings.Join(startUrlMap[key], ", "))
+		}
+		return nil
+	},
+}
+
+var TokenExpiryCommand = cli.Command{
+	Name:        "expiry",
+	Usage:       "Lists expiry status for all access tokens saved in the keyring",
+	Flags: 		 []cli.Flag{&cli.StringFlag{Name: "url", Usage: "If provided, prints the expiry of the token for the specific SSO URL"}},
+	Action: func(ctx *cli.Context) error {
+		url := ctx.String("url")
+		
+		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()		
+
+		if url != ""{			
+			token := secureSSOTokenStorage.GetValidSSOToken(url)
+
+			var expiry string
+			if token == nil{
+				return errors.New("SSO token is expired")
+			}
+			expiry = token.Expiry.Local().Format(time.RFC3339)			
+			fmt.Println(expiry)
+				
+			return nil
+		}
+
+		startUrlMap, err := MapTokens(ctx.Context)
+		if err != nil {
+			return err
+		}
+
+		var max int
+		for k := range startUrlMap {
+			if len(k) > max {
+				max = len(k)
+			}
+		}
+
+		keys, err := secureSSOTokenStorage.SecureStorage.ListKeys()
+		if err != nil {
+			return err
+		}
+
+		for _, key := range keys {
+			token := secureSSOTokenStorage.GetValidSSOToken(key)
+
+			var expiry string
+			if token == nil{
+				expiry = "EXPIRED"
+			}else {
+				expiry = token.Expiry.Local().Format(time.RFC3339)			
+			}
+
+			clio.Logf("%-*s (%s) expires at: %s", max, key, strings.Join(startUrlMap[key], ", "), expiry)
 		}
 		return nil
 	},
