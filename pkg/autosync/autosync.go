@@ -12,9 +12,9 @@ import (
 // this is done so that users are aware of required keys when granted credential-process is used thorugh AWS CLI.
 func Run(shouldFailForRequiredKeys bool) {
 	if registry.IsOutdatedConfig() {
-		clio.Warn("Outdated Profile Registry Configuration. Use `granted registry update` to update your configuration.")
+		clio.Warn("Outdated Profile Registry Configuration. Use `granted registry migrate` to update your configuration.")
 
-		clio.Warn("skipping Profile Registry sync.")
+		clio.Warn("Skipping Profile Registry sync.")
 
 		return
 	}
