@@ -12,10 +12,10 @@ import (
 
 // Profile Registry data structure has been updated to accomodate different registry level options.
 // If any user is using the previous configuration then prompt user to update the registry values.
-var UpdateCommand = cli.Command{
-	Name:        "update",
-	Description: "Update Profile Registry Configuration",
-	Usage:       "Update Profile Registry Configuration",
+var MigrateCommand = cli.Command{
+	Name:        "migrate",
+	Description: "Migrate Profile Registry Configuration",
+	Usage:       "Migrate Profile Registry Configuration",
 
 	Action: func(c *cli.Context) error {
 		gConf, err := grantedConfig.Load()
@@ -55,12 +55,12 @@ var UpdateCommand = cli.Command{
 				return err
 			}
 
-			clio.Success("Successfully updated your configuration.")
+			clio.Success("Successfully migrated your configuration.")
 
 			return nil
 		}
 
-		clio.Infof("Your Profile Registry has updated configuration. No action required.")
+		clio.Infof("Your Profile Registry already has the latest configuration. No action required.")
 
 		return nil
 	},
