@@ -512,9 +512,10 @@ var ExportCredentialsCommand = cli.Command{
 var RotateCredentialsCommand = cli.Command{
 	Name:      "rotate",
 	Usage:     "Generates new access key for the profile in AWS, and updates the profile",
-	ArgsUsage: "[<profile>]",
+	Flags:     []cli.Flag{&cli.StringFlag{Name: "profile", Usage: "If provided, generates new access key for the specified profile"}},
 	Action: func(c *cli.Context) error {
-		profileName := c.Args().First()
+		profileName := c.String("profile")
+
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
 
 		if profileName == "" {
@@ -522,7 +523,7 @@ var RotateCredentialsCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			if profileName == "" && len(profileNames) == 0 {
+			if len(profileNames) == 0 {
 				fmt.Println("No credentials in secure storage")
 				return nil
 			}
@@ -575,8 +576,7 @@ var RotateCredentialsCommand = cli.Command{
 			return err
 		}	
 
-
-		fmt.Printf("Updated %s in secure storage\n", profileName)
+		clio.Successf("Access Key of '%s' profile has been successfully rotated and updated in secure storage\n", profileName)
 
 		return nil		
 	},
