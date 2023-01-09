@@ -219,7 +219,7 @@ func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]SSOProf
 
 func mergeSSOProfiles(config *ini.File, prefix string, ssoProfiles []SSOProfile) error {
 	for _, ssoProfile := range ssoProfiles {
-		sectionName := "profile " + prefix + normalizeAccountName(ssoProfile.AccountName) + "-" + ssoProfile.RoleName
+		sectionName := "profile " + prefix + normalizeAccountName(ssoProfile.AccountName) + "/" + ssoProfile.RoleName
 
 		config.DeleteSection(sectionName)
 		section, err := config.NewSection(sectionName)
