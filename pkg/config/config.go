@@ -26,8 +26,19 @@ type Config struct {
 	// AccessRequestURL is a Granted Approvals URL that users can visit
 	// to request access, in the event that we receive a ForbiddenException
 	// denying access to assume a particular role.
-	AccessRequestURL    string   `toml:",omitempty"`
+	AccessRequestURL string `toml:",omitempty"`
+
+	// depricated in favor of ProfileRegistry
 	ProfileRegistryURLS []string `toml:",omitempty"`
+	ProfileRegistry     struct {
+		// add any global configuration to profile registry here.
+		PrefixAllProfiles       bool
+		PrefixDuplicateProfiles bool
+		SessionName             string            `toml:",omitempty"`
+		RequiredKeys            map[string]string `toml:",omitempty"`
+		Variables               map[string]string `toml:",omitempty"`
+		Registries              []Registry        `toml:",omitempty"`
+	} `toml:",omitempty"`
 }
 
 type KeyringConfig struct {
@@ -35,6 +46,17 @@ type KeyringConfig struct {
 	KeychainName            *string `toml:",omitempty"`
 	FileDir                 *string `toml:",omitempty"`
 	LibSecretCollectionName *string `toml:",omitempty"`
+}
+
+type Registry struct {
+	Name                    string  `toml:"name"`
+	URL                     string  `toml:"url"`
+	Path                    *string `toml:"path,omitempty"`
+	Filename                *string `toml:"filename,omitempty"`
+	Ref                     *string `toml:"ref,omitempty"`
+	Priority                *int    `toml:"priority, omitempty"`
+	PrefixDuplicateProfiles bool    `toml:"prefixDuplicateProfiles,omitempty"`
+	PrefixAllProfiles       bool    `toml:"prefixAllProfiles,omitempty"`
 }
 
 // NewDefaultConfig returns a config with OS specific defaults populated
