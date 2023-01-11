@@ -119,7 +119,7 @@ func SetupShellWizard(autoConfigure bool) error {
 
 	// skip prompt if autoConfigure is set to true
 	if !autoConfigure {
-		clio.Info("To assume roles with Granted, we need to add an alias to your shell profile (https://granted.dev/shell-alias)")
+		clio.Info("To assume roles with Granted, we need to add an alias to your shell profile (https://docs.commonfate.io/granted/internals/shell-alias)")
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
 			Message: fmt.Sprintf("Install %s alias at %s", shell, cfg.File),
