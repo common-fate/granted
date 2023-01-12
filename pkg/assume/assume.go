@@ -447,6 +447,6 @@ func printFlagUsage(region, service string) {
 		m = append(m, "use -s to open a specific service")
 	}
 	if region == "" || service == "" {
-		clio.Infof("%s (https://docs.commonfate.io/granted/usage/console)", strings.Join(m, " or "))
+		clio.Infof("%s ( https://docs.commonfate.io/granted/usage/console )", strings.Join(m, " or "))
 	}
 }
