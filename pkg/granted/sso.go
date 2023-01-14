@@ -5,10 +5,9 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"regexp"
+	"strings"
 	"text/template"
 
-	sprig "github.com/Masterminds/sprig/v3"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
@@ -18,7 +17,9 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-var defaultProfileNameTemplate = "{{.AccountName | replace \" \" \"-\"}}/{{.RoleName}}"
+const profileSectionIllegalChars = ` \][;'"`
+
+var defaultProfileNameTemplate = "{{ .AccountName }}/{{ .RoleName }}"
 
 var SSOCommand = cli.Command{
 	Name:        "sso",
@@ -98,13 +99,8 @@ var PopulateCommand = cli.Command{
 
 func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
 	prefix := c.String("prefix")
-	match, err := regexp.MatchString("^[A-Za-z0-9_-]*$", prefix)
-	if err != nil {
-		return nil, err
-	}
-
-	if !match {
-		return nil, fmt.Errorf("--prefix flag must be alpha-numeric, underscores or hyphens")
+	if strings.ContainsAny(prefix, profileSectionIllegalChars) {
+		return nil, fmt.Errorf("--prefix flag must not contains illegal characters (%s)", profileSectionIllegalChars)
 	}
 
 	ssoRegion, err := cfaws.ExpandRegion(c.String("region"))
@@ -113,6 +109,9 @@ func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
 	}
 
 	profileTemplate := c.String("profile-template")
+	if strings.ContainsAny(profileTemplate, profileSectionIllegalChars) {
+		return nil, fmt.Errorf("--profile-template flag must not contains illegal characters (%s)", profileSectionIllegalChars)
+	}
 
 	if c.Args().Len() != 1 {
 		return nil, fmt.Errorf("please provide an sso start url")
@@ -226,20 +225,19 @@ func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]SSOProf
 }
 
 func mergeSSOProfiles(config *ini.File, prefix string, ssoProfiles []SSOProfile, sectionNameTemplate string) error {
-	sectionNameTempl, err := template.New("").
-		Funcs(sprig.FuncMap()).
-		Parse(sectionNameTemplate)
+	sectionNameTempl, err := template.New("").Parse(sectionNameTemplate)
 	if err != nil {
 		return err
 	}
 
 	for _, ssoProfile := range ssoProfiles {
+		ssoProfile.AccountName = normalizeAccountName(ssoProfile.AccountName)
 		sectionNameBuffer := bytes.NewBufferString("")
 		err := sectionNameTempl.Execute(sectionNameBuffer, ssoProfile)
 		if err != nil {
 			return err
 		}
-		sectionName := "profile " + sectionNameBuffer.String()
+		sectionName := "profile " + prefix + sectionNameBuffer.String()
 
 		config.DeleteSection(sectionName)
 		section, err := config.NewSection(sectionName)
@@ -264,4 +262,8 @@ func mergeSSOProfiles(config *ini.File, prefix string, ssoProfiles []SSOProfile,
 	}
 
 	return nil
+}
+
+func normalizeAccountName(accountName string) string {
+	return strings.ReplaceAll(accountName, " ", "-")
 }
