@@ -1,11 +1,12 @@
 package granted
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"os"
-	"regexp"
 	"strings"
+	"text/template"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -15,6 +16,10 @@ import (
 	"github.com/urfave/cli/v2"
 	"gopkg.in/ini.v1"
 )
+
+const profileSectionIllegalChars = ` \][;'"`
+
+var defaultProfileNameTemplate = "{{ .AccountName }}/{{ .RoleName }}"
 
 var SSOCommand = cli.Command{
 	Name:        "sso",
@@ -26,7 +31,7 @@ var GenerateCommand = cli.Command{
 	Name:      "generate",
 	Usage:     "Prints an AWS configuration file to stdout with profiles from accounts and roles available in AWS SSO",
 	UsageText: "granted [global options] sso generate [command options] [sso-start-url]",
-	Flags:     []cli.Flag{&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"}, &cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"}},
+	Flags:     []cli.Flag{&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"}, &cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"}, &cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: defaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
 		options, err := parseCliOptions(c)
 		if err != nil {
@@ -40,7 +45,7 @@ var GenerateCommand = cli.Command{
 			return err
 		}
 		config := ini.Empty()
-		err = mergeSSOProfiles(config, options.Prefix, ssoProfiles)
+		err = mergeSSOProfiles(config, options.Prefix, ssoProfiles, options.ProfileTemplate)
 		if err != nil {
 			return err
 		}
@@ -53,7 +58,7 @@ var PopulateCommand = cli.Command{
 	Name:      "populate",
 	Usage:     "Populate your local AWS configuration file with profiles from accounts and roles available in AWS SSO",
 	UsageText: "granted [global options] sso populate [command options] [sso-start-url]",
-	Flags:     []cli.Flag{&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"}, &cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"}},
+	Flags:     []cli.Flag{&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"}, &cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"}, &cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: defaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
 		options, err := parseCliOptions(c)
 		if err != nil {
@@ -80,7 +85,7 @@ var PopulateCommand = cli.Command{
 			}
 			config = ini.Empty()
 		}
-		if err := mergeSSOProfiles(config, options.Prefix, ssoProfiles); err != nil {
+		if err := mergeSSOProfiles(config, options.Prefix, ssoProfiles, options.ProfileTemplate); err != nil {
 			return err
 		}
 
@@ -94,18 +99,18 @@ var PopulateCommand = cli.Command{
 
 func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
 	prefix := c.String("prefix")
-	match, err := regexp.MatchString("^[A-Za-z0-9_-]*$", prefix)
-	if err != nil {
-		return nil, err
-	}
-
-	if !match {
-		return nil, fmt.Errorf("--prefix flag must be alpha-numeric, underscores or hyphens")
+	if strings.ContainsAny(prefix, profileSectionIllegalChars) {
+		return nil, fmt.Errorf("--prefix flag must not contains illegal characters (%s)", profileSectionIllegalChars)
 	}
 
 	ssoRegion, err := cfaws.ExpandRegion(c.String("region"))
 	if err != nil {
 		return nil, err
+	}
+
+	profileTemplate := c.String("profile-template")
+	if strings.ContainsAny(profileTemplate, profileSectionIllegalChars) {
+		return nil, fmt.Errorf("--profile-template flag must not contain any of these illegal characters (%s)", profileSectionIllegalChars)
 	}
 
 	if c.Args().Len() != 1 {
@@ -115,18 +120,20 @@ func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
 	startUrl := c.Args().First()
 
 	options := SSOCommonOptions{
-		Prefix:    prefix,
-		StartUrl:  startUrl,
-		SSORegion: ssoRegion,
+		Prefix:          prefix,
+		StartUrl:        startUrl,
+		SSORegion:       ssoRegion,
+		ProfileTemplate: profileTemplate,
 	}
 
 	return &options, nil
 }
 
 type SSOCommonOptions struct {
-	Prefix    string
-	StartUrl  string
-	SSORegion string
+	Prefix          string
+	StartUrl        string
+	SSORegion       string
+	ProfileTemplate string
 }
 
 type ListSSOProfilesInput struct {
@@ -217,9 +224,20 @@ func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]SSOProf
 	return ssoProfiles, nil
 }
 
-func mergeSSOProfiles(config *ini.File, prefix string, ssoProfiles []SSOProfile) error {
+func mergeSSOProfiles(config *ini.File, prefix string, ssoProfiles []SSOProfile, sectionNameTemplate string) error {
+	sectionNameTempl, err := template.New("").Parse(sectionNameTemplate)
+	if err != nil {
+		return err
+	}
+
 	for _, ssoProfile := range ssoProfiles {
-		sectionName := "profile " + prefix + normalizeAccountName(ssoProfile.AccountName) + "/" + ssoProfile.RoleName
+		ssoProfile.AccountName = normalizeAccountName(ssoProfile.AccountName)
+		sectionNameBuffer := bytes.NewBufferString("")
+		err := sectionNameTempl.Execute(sectionNameBuffer, ssoProfile)
+		if err != nil {
+			return err
+		}
+		sectionName := "profile " + prefix + sectionNameBuffer.String()
 
 		config.DeleteSection(sectionName)
 		section, err := config.NewSection(sectionName)
