@@ -110,7 +110,7 @@ func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
 
 	profileTemplate := c.String("profile-template")
 	if strings.ContainsAny(profileTemplate, profileSectionIllegalChars) {
-		return nil, fmt.Errorf("--profile-template flag must not contains illegal characters (%s)", profileSectionIllegalChars)
+		return nil, fmt.Errorf("--profile-template flag must not contain any of these illegal characters (%s)", profileSectionIllegalChars)
 	}
 
 	if c.Args().Len() != 1 {
