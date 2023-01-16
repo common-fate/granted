@@ -9,6 +9,7 @@ import (
 	"github.com/AlecAivazis/survey/v2/core"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"gopkg.in/ini.v1"
 
 	"github.com/common-fate/clio"
@@ -22,7 +23,7 @@ import (
 var CredentialsCommand = cli.Command{
 	Name:        "credentials",
 	Usage:       "Manage secure IAM credentials",
-	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand, &ListCredentialsCommand, &RemoveCredentialsCommand, &ExportCredentialsCommand},
+	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand, &ListCredentialsCommand, &RemoveCredentialsCommand, &ExportCredentialsCommand, &RotateCredentialsCommand},
 }
 
 var AddCredentialsCommand = cli.Command{
@@ -282,6 +283,7 @@ var UpdateCredentialsCommand = cli.Command{
 		if !has {
 			return fmt.Errorf("no credentials exist for %s in secure storage. If you wanted to add a new profile, run '%s credentials add'", profileName, build.GrantedBinaryName())
 		}
+		
 		credentials, err := promptCredentials()
 		if err != nil {
 			return err
@@ -290,7 +292,10 @@ var UpdateCredentialsCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+
+
 		fmt.Printf("Updated %s in secure storage\n", profileName)
+
 		return nil
 	},
 }
@@ -501,5 +506,78 @@ var ExportCredentialsCommand = cli.Command{
 
 		}
 		return nil
+	},
+}
+
+var RotateCredentialsCommand = cli.Command{
+	Name:      "rotate",
+	Usage:     "Generates new access key for the profile in AWS, and updates the profile",
+	Flags:     []cli.Flag{&cli.StringFlag{Name: "profile", Usage: "If provided, generates new access key for the specified profile"}},
+	Action: func(c *cli.Context) error {
+		profileName := c.String("profile")
+
+		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+
+		if profileName == "" {
+			profileNames, err := secureIAMCredentialStorage.SecureStorage.ListKeys()
+			if err != nil {
+				return err
+			}
+			if len(profileNames) == 0 {
+				fmt.Println("No credentials in secure storage")
+				return nil
+			}
+			in := survey.Select{Message: "Profile Name:", Options: profileNames}
+			err = testable.AskOne(&in, &profileName)
+			if err != nil {
+				return err
+			}
+		}
+
+		has, err := secureIAMCredentialStorage.SecureStorage.HasKey(profileName)
+		if err != nil {
+			return err
+		}
+		if !has {
+			return fmt.Errorf("no credentials exist for %s in secure storage. If you wanted to add a new profile, run '%s credentials add'", profileName, build.GrantedBinaryName())
+		}
+
+		var t aws.Credentials
+		err = secureIAMCredentialStorage.SecureStorage.Retrieve(profileName, &t)
+		if err != nil {
+			return err
+		}
+		
+		opts := []func(*config.LoadOptions) error{
+			// load the config profile
+			config.WithSharedConfigProfile(profileName),
+		}
+	
+		//load the creds from the credentials file
+		cfg, err := config.LoadDefaultConfig(c.Context, opts...)
+		if err != nil {
+			return err
+		}
+
+		iamClient := iam.NewFromConfig(cfg)
+
+		res, err := iamClient.CreateAccessKey(c.Context, &iam.CreateAccessKeyInput{})
+		if err != nil {
+			return err
+		}
+
+		err = secureIAMCredentialStorage.StoreCredentials(profileName, aws.Credentials{AccessKeyID: *res.AccessKey.AccessKeyId, SecretAccessKey: *res.AccessKey.SecretAccessKey})
+		if err != nil {
+			return err
+		}
+
+		_, err = iamClient.UpdateAccessKey(c.Context, &iam.UpdateAccessKeyInput{AccessKeyId: &t.AccessKeyID, Status: "Inactive"})
+		if err != nil {
+			return err
+		}	
+
+		clio.Successf("Access Key of '%s' profile has been successfully rotated and updated in secure storage\n", profileName)
+
+		return nil		
 	},
 }
