@@ -161,11 +161,10 @@ func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 	title := cases.Title(language.AmericanEnglish)
 	browserTitle := title.String((strings.ToLower(GetBrowserKey(browserName))))
 	clio.Info("Thanks for using Granted!")
-	clio.Info("Start by configuring which browser to use when launching the AWS console")
 	clio.Infof("By default, Granted will open the AWS console with this browser: %s", browserTitle)
-	clio.Info("Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers). You can change this setting later by running 'granted browser set'")
+	clio.Warn("Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://docs.commonfate.io/granted/introduction#supported-browsers). You can change this setting later by running 'granted browser set'")
 	in := survey.Confirm{
-		Message: "Do you want Granted to use a different installed browser when launching the AWS console?",
+		Message: "Use Firefox as default Granted browser?",
 	}
 	var confirm bool
 	err = testable.AskOne(&in, &confirm, withStdio)
@@ -173,10 +172,7 @@ func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 		return "", err
 	}
 	if confirm {
-		browserName, err = HandleManualBrowserSelection()
-		if err != nil {
-			return "", err
-		}
+		browserName = FirefoxKey
 	}
 
 	return browserName, ConfigureBrowserSelection(browserName, "")
@@ -259,7 +255,7 @@ func GrantedIntroduction() {
 func SSOBrowser(grantedDefaultBrowser string) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := &survey.Confirm{
-		Message: "Do you want to use a browser other than your default browser for SSO logins?",
+		Message: "Use a different browser than your default browser for SSO login?",
 		Default: false,
 		Help:    "For example, if you normally use a password manager in Chrome for your AWS login but Chrome is not your default browser, you would choose to use Chrome for SSO logins. You can change this later by running 'granted browser set-sso'",
 	}
@@ -291,7 +287,7 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 
 func RunFirefoxExtensionPrompts(firefoxPath string) error {
 	clio.Info("In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted")
-	clio.Info("This addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon)")
+	clio.Info("This addon has minimal permissions and does not access any web page content")
 
 	label := "Open Firefox to download the extension?"
 
