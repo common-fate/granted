@@ -287,7 +287,7 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 
 func RunFirefoxExtensionPrompts(firefoxPath string) error {
 	clio.Info("In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted")
-	clio.Info("This addon has minimal permissions and does not access any web page contents")
+	clio.Info("This addon has minimal permissions and does not access any web page content")
 
 	label := "Open Firefox to download the extension?"
 
