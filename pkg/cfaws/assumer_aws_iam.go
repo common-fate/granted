@@ -74,7 +74,10 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 // if required will get a FederationToken to be used to launch the console
 // This is required is the iam profile does not assume a role using sts.AssumeRole
 func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
-	if c.AWSConfig.RoleARN == "" {
+	if c.AWSConfig.Credentials.SessionToken != "" {
+		clio.Debug("found existing session token in credentials for IAM profile, using this to launch the console")
+		return c.AWSConfig.Credentials, nil
+	} else if c.AWSConfig.RoleARN == "" {
 		return getFederationToken(ctx, c)
 	} else {
 		// profile assume a role
