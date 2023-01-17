@@ -28,7 +28,7 @@ func GetCliApp() *cli.App {
 		UsageText:            "granted [global options] command [command options] [arguments...]",
 		Version:              build.Version,
 		HideVersion:          false,
-		Commands:             []*cli.Command{&DefaultBrowserCommand, &settings.SettingsCommand, &CompletionCommand, &TokenCommand, &SSOTokensCommand, &UninstallCommand, &SSOCommand, &CredentialsCommand, middleware.WithBeforeFuncs(&CredentialProcess, middleware.WithAutosync()), &registry.ProfileRegistryCommand},
+		Commands:             []*cli.Command{&DefaultBrowserCommand, &settings.SettingsCommand, &CompletionCommand, &TokenCommand, &SSOTokensCommand, &UninstallCommand, &SSOCommand, &CredentialsCommand, middleware.WithBeforeFuncs(&CredentialProcess, middleware.WithAutosync()), &registry.ProfileRegistryCommand, &ConsoleCommand},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			clio.SetLevelFromEnv("GRANTED_LOG")
