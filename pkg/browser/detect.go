@@ -255,7 +255,7 @@ func GrantedIntroduction() {
 func SSOBrowser(grantedDefaultBrowser string) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := &survey.Confirm{
-		Message: "Use a different browser than your default browser for SSO logins?",
+		Message: "Use a different browser than your default browser for SSO login?",
 		Default: false,
 		Help:    "For example, if you normally use a password manager in Chrome for your AWS login but Chrome is not your default browser, you would choose to use Chrome for SSO logins. You can change this later by running 'granted browser set-sso'",
 	}
