@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -19,6 +20,12 @@ import (
 
 const profileSectionIllegalChars = ` \][;'"`
 
+// regular expression that matches on the characters \][;'" including whitespace, but does not match anything between {{ }} so it does not check inside go templates
+// this regex is used as a basic safeguard to help users avoid mistakes in their templates
+// for example "{{ .AccountName }} {{ .RoleName }}" this is invalid because it has a whitespace separating the template elements
+var profileSectionIllegalCharsRegex = regexp.MustCompile(`(?s)((?:^|[^\{])[\s\][;'"]|[\][;'"][\s]*(?:$|[^\}]))`)
+var matchGoTemplateSection = regexp.MustCompile(`\{\{[\s\S]*?\}\}`)
+
 var defaultProfileNameTemplate = "{{ .AccountName }}/{{ .RoleName }}"
 
 var SSOCommand = cli.Command{
@@ -31,9 +38,12 @@ var GenerateCommand = cli.Command{
 	Name:      "generate",
 	Usage:     "Prints an AWS configuration file to stdout with profiles from accounts and roles available in AWS SSO",
 	UsageText: "granted [global options] sso generate [command options] [sso-start-url]",
-	Flags:     []cli.Flag{&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"}, &cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"}, &cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: defaultProfileNameTemplate}},
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
+		&cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"},
+		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: defaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
-		options, err := parseCliOptions(c)
+		options, err := parseCliOptions(makeCLIOptions(c))
 		if err != nil {
 			return err
 		}
@@ -54,13 +64,25 @@ var GenerateCommand = cli.Command{
 	},
 }
 
+func makeCLIOptions(c *cli.Context) cliOptions {
+	return cliOptions{
+		prefix:          c.String("prefix"),
+		region:          c.String("region"),
+		profileTemplate: c.String("profile-template"),
+		args:            c.Args().Slice(),
+	}
+}
+
 var PopulateCommand = cli.Command{
 	Name:      "populate",
 	Usage:     "Populate your local AWS configuration file with profiles from accounts and roles available in AWS SSO",
 	UsageText: "granted [global options] sso populate [command options] [sso-start-url]",
-	Flags:     []cli.Flag{&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"}, &cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"}, &cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: defaultProfileNameTemplate}},
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
+		&cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"},
+		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: defaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
-		options, err := parseCliOptions(c)
+		options, err := parseCliOptions(makeCLIOptions(c))
 		if err != nil {
 			return err
 		}
@@ -97,33 +119,43 @@ var PopulateCommand = cli.Command{
 	},
 }
 
-func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
-	prefix := c.String("prefix")
-	if strings.ContainsAny(prefix, profileSectionIllegalChars) {
+type cliOptions struct {
+	prefix          string
+	region          string
+	profileTemplate string
+	args            []string
+}
+
+func parseCliOptions(c cliOptions) (*SSOCommonOptions, error) {
+
+	if strings.ContainsAny(c.prefix, profileSectionIllegalChars) {
 		return nil, fmt.Errorf("--prefix flag must not contains illegal characters (%s)", profileSectionIllegalChars)
 	}
 
-	ssoRegion, err := cfaws.ExpandRegion(c.String("region"))
+	ssoRegion, err := cfaws.ExpandRegion(c.region)
 	if err != nil {
 		return nil, err
 	}
 
-	profileTemplate := c.String("profile-template")
-	if strings.ContainsAny(profileTemplate, profileSectionIllegalChars) {
-		return nil, fmt.Errorf("--profile-template flag must not contain any of these illegal characters (%s)", profileSectionIllegalChars)
+	// check the profile template for any invalid section nanem characters
+	if c.profileTemplate != defaultProfileNameTemplate {
+		cleaned := matchGoTemplateSection.ReplaceAllString(c.profileTemplate, "")
+		if profileSectionIllegalCharsRegex.MatchString(cleaned) {
+			return nil, fmt.Errorf("--profile-template flag must not contain any of these illegal characters (%s)", profileSectionIllegalChars)
+		}
 	}
 
-	if c.Args().Len() != 1 {
+	if len(c.args) != 1 {
 		return nil, fmt.Errorf("please provide an sso start url")
 	}
 
-	startUrl := c.Args().First()
+	startUrl := c.args[0]
 
 	options := SSOCommonOptions{
-		Prefix:          prefix,
+		Prefix:          c.prefix,
 		StartUrl:        startUrl,
 		SSORegion:       ssoRegion,
-		ProfileTemplate: profileTemplate,
+		ProfileTemplate: c.profileTemplate,
 	}
 
 	return &options, nil
