@@ -183,6 +183,10 @@ func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *i
 			continue
 		}
 
+		// All section that starts with 'profile' prefix will be considered as AWS profile and will be verified
+		// 1. if they have a correct profile name
+		// 2. if they have duplicate profile names i.e if the new profile name already exists on the aws config file
+		// For any other section, copy the content as it is.
 		if strings.Contains(sec.Name(), "profile") {
 			if cfaws.IsLegalProfileName(strings.TrimPrefix(sec.Name(), "profile ")) {
 

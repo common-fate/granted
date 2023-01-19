@@ -4,6 +4,7 @@ import (
 	"os"
 	"testing"
 
+	"github.com/common-fate/granted/pkg/config"
 	"gopkg.in/ini.v1"
 )
 
@@ -194,6 +195,58 @@ func TestGetGeneratedSectionByName(t *testing.T) {
 	}
 }
 
+func TestGenerateNewRegistrySection(t *testing.T) {
+	tests := []struct {
+		name              string
+		want              []string
+		repoURL           string
+		configFileContent string
+		clonedFile        string
+	}{
+		{
+			name:              "should copy any section that doesnt have profile prefix as well",
+			repoURL:           "https://github.com/octo/repo_two.git",
+			configFileContent: configWithoutGeneratedSections,
+			clonedFile:        ProfileRegistryOne,
+			want:              []string{"DEFAULT", "profile one", "profile two", "profile three", "profile s1.one", "profile s1.two", "dummy s1.dummy", "granted_registry_start registry-one", "granted_registry_end registry-end", "profile uat", "profile prod", "sso-session mysso"},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			f, err := ini.Load([]byte(tt.configFileContent))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			c, err := ini.Load([]byte(tt.clonedFile))
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			r := NewProfileRegistry(registryOptions{})
+
+			r.Config = config.Registry{
+				Name: "registry-one",
+			}
+
+			err = generateNewRegistrySection(&r, f, c, syncOpts{})
+			if err != nil {
+				t.Fatal(err)
+			}
+
+			var got []string
+			for _, sec := range f.Sections() {
+				got = append(got, sec.Name())
+			}
+
+			if len(tt.want) != len(got) {
+				t.Errorf("Got %v Want %v", got, tt.want)
+			}
+		})
+	}
+}
+
 func CheckArrayEquality(want []string, got []string) (bool, []string) {
 	if len(want) != len(got) {
 		return false, []string{}
@@ -298,8 +351,27 @@ region = us-east-2
 [profile s1.two]
 granted_sso_start_url  = https://example.awsapps.com/start
 
-[profile duplicate]
-region = us-east-1
+# this will be ignored
+[profile []sdfa123]
+region = abc-efg
+
+#should add any section
+[dummy s1.dummy]
+one = two 
+
+[profile uat]
+sso_session = my-sso
+sso_account_id = 1616777145260
+sso_role_name = AWSReadOnlyAccess
+
+[profile prod]
+sso_session = my-sso
+sso_account_id = 616777145260
+sso_role_name = AWSAdministratorAccess
+
+[sso-session my-sso]
+sso_region = ap-southeast-2
+sso_start_url = https://d-976708da7d.awsapps.com/start
 `
 
 const ProfileRegistryTwo = `
