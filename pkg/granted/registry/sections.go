@@ -153,16 +153,11 @@ func getNonGrantedProfiles(config *ini.File) []*ini.Section {
 	return nonGrantedProfiles
 }
 
-func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *ini.File, opts syncOpts) error {
+func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *ini.File, gconf *grantedConfig.Config, opts syncOpts) error {
 	sectionName := r.Config.Name
 	clio.Debugf("generating section %s", sectionName)
 
-	gconf, err := grantedConfig.Load()
-	if err != nil {
-		return err
-	}
-
-	err = configFile.NewSections(fmt.Sprintf("granted_registry_start %s", sectionName))
+	err := configFile.NewSections(fmt.Sprintf("granted_registry_start %s", sectionName))
 	if err != nil {
 		return err
 	}

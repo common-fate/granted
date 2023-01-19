@@ -5,6 +5,7 @@ import (
 	"os"
 
 	"github.com/common-fate/clio"
+	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/ini.v1"
 )
@@ -147,8 +148,13 @@ func Sync(r *Registry, awsConfigFile *ini.File, opts syncOpts) error {
 		return err
 	}
 
+	gconf, err := grantedConfig.Load()
+	if err != nil {
+		return err
+	}
+
 	// return custom error that should be catched and skipped.
-	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, opts)
+	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, gconf, opts)
 	if err != nil {
 		return &SyncError{
 			Err:          err,

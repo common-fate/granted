@@ -224,13 +224,17 @@ func TestGenerateNewRegistrySection(t *testing.T) {
 				t.Fatal(err)
 			}
 
-			r := NewProfileRegistry(registryOptions{})
+			r := NewProfileRegistry(registryOptions{
+				prefixAllProfiles: true,
+			})
 
 			r.Config = config.Registry{
 				Name: "registry-one",
 			}
 
-			err = generateNewRegistrySection(&r, f, c, syncOpts{})
+			gconf := config.Config{}
+
+			err = generateNewRegistrySection(&r, f, c, &gconf, syncOpts{isFirstSection: false})
 			if err != nil {
 				t.Fatal(err)
 			}
