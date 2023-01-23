@@ -153,16 +153,11 @@ func getNonGrantedProfiles(config *ini.File) []*ini.Section {
 	return nonGrantedProfiles
 }
 
-func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *ini.File, opts syncOpts) error {
+func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *ini.File, gconf *grantedConfig.Config, opts syncOpts) error {
 	sectionName := r.Config.Name
 	clio.Debugf("generating section %s", sectionName)
 
-	gconf, err := grantedConfig.Load()
-	if err != nil {
-		return err
-	}
-
-	err = configFile.NewSections(fmt.Sprintf("granted_registry_start %s", sectionName))
+	err := configFile.NewSections(fmt.Sprintf("granted_registry_start %s", sectionName))
 	if err != nil {
 		return err
 	}
@@ -183,70 +178,93 @@ func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *i
 			continue
 		}
 
-		// We only care about the non default sections for the credentials file (no profile prefix either)
-		if cfaws.IsLegalProfileName(strings.TrimPrefix(sec.Name(), "profile ")) {
+		// All section that starts with 'profile' prefix will be considered as AWS profile and will be verified
+		// 1. if they have a correct profile name
+		// 2. if they have duplicate profile names i.e if the new profile name already exists on the aws config file
+		// For any other section, copy the content as it is.
+		if strings.Contains(sec.Name(), "profile") {
+			if cfaws.IsLegalProfileName(strings.TrimPrefix(sec.Name(), "profile ")) {
 
-			if gconf.ProfileRegistry.PrefixAllProfiles || r.Config.PrefixAllProfiles {
-				f, err := configFile.NewSection(appendNamespaceToDuplicateSections(sec.Name(), namespace))
-				if err != nil {
-					return err
+				if gconf.ProfileRegistry.PrefixAllProfiles || r.Config.PrefixAllProfiles {
+					f, err := configFile.NewSection(appendNamespaceToDuplicateSections(sec.Name(), namespace))
+					if err != nil {
+						return err
+					}
+
+					err = copySectionContent(r, sec, f)
+					if err != nil {
+						return err
+					}
+
+					continue
 				}
 
-				err = copySectionContent(r, sec, f)
-				if err != nil {
-					return err
-				}
+				if Contains(currentProfiles, sec.Name()) {
+					// check global config to see if we should prefix all duplicate profiles for this registry.
+					if !gconf.ProfileRegistry.PrefixDuplicateProfiles {
+						// check registry level config to see if we should prefix the duplicate profiles
+						if !r.Config.PrefixDuplicateProfiles {
 
-				continue
-			}
+							// automatically add prefix to duplicate profiles without prompting users.
+							clio.Warnf("profile duplication found for '%s'", sec.Name())
+							if opts.promptUserIfProfileDuplication {
 
-			if Contains(currentProfiles, sec.Name()) {
-				// check global config to see if we should prefix all duplicate profiles for this registry.
-				if !gconf.ProfileRegistry.PrefixDuplicateProfiles {
-					// check registry level config to see if we should prefix the duplicate profiles
-					if !r.Config.PrefixDuplicateProfiles {
+								const (
+									DUPLICATE = "Add registry name as prefix to all duplicate profiles for this registry"
+									ABORT     = "Abort, I will manually fix this"
+								)
 
-						// automatically add prefix to duplicate profiles without prompting users.
-						clio.Warnf("profile duplication found for '%s'", sec.Name())
-						if opts.promptUserIfProfileDuplication {
+								options := []string{DUPLICATE, ABORT}
 
-							const (
-								DUPLICATE = "Add registry name as prefix to all duplicate profiles for this registry"
-								ABORT     = "Abort, I will manually fix this"
-							)
-
-							options := []string{DUPLICATE, ABORT}
-
-							in := survey.Select{Message: "Please select which option would you like to choose to resolve: ", Options: options}
-							var selected string
-							err = testable.AskOne(&in, &selected)
-							if err != nil {
-								return err
-							}
-
-							if selected == ABORT {
-								return fmt.Errorf("aborting sync for registry %s", sectionName)
-							}
-						}
-
-						r.Config.PrefixDuplicateProfiles = true
-
-						for i, configRegistry := range gconf.ProfileRegistry.Registries {
-							if configRegistry.Name == r.Config.Name {
-								configRegistry.PrefixDuplicateProfiles = true
-								gconf.ProfileRegistry.Registries[i] = configRegistry
-
-								err := gconf.Save()
+								in := survey.Select{Message: "Please select which option would you like to choose to resolve: ", Options: options}
+								var selected string
+								err = testable.AskOne(&in, &selected)
 								if err != nil {
 									return err
+								}
+
+								if selected == ABORT {
+									return fmt.Errorf("aborting sync for registry %s", sectionName)
+								}
+							}
+
+							r.Config.PrefixDuplicateProfiles = true
+
+							for i, configRegistry := range gconf.ProfileRegistry.Registries {
+								if configRegistry.Name == r.Config.Name {
+									configRegistry.PrefixDuplicateProfiles = true
+									gconf.ProfileRegistry.Registries[i] = configRegistry
+
+									err := gconf.Save()
+									if err != nil {
+										return err
+									}
 								}
 							}
 						}
 					}
+
+					clio.Debugf("Prefixing %s to avoid collision.", sec.Name())
+					f, err := configFile.NewSection(appendNamespaceToDuplicateSections(sec.Name(), namespace))
+					if err != nil {
+						return err
+					}
+
+					err = copySectionContent(r, sec, f)
+					if err != nil {
+						return err
+					}
+
+					if f.Comment == "" {
+						f.Comment = "# profile name has been prefixed due to duplication"
+					} else {
+						f.Comment = "# profile name has been prefixed due to duplication. \n" + sec.Comment
+					}
+
+					continue
 				}
 
-				clio.Debugf("Prefixing %s to avoid collision.", sec.Name())
-				f, err := configFile.NewSection(appendNamespaceToDuplicateSections(sec.Name(), namespace))
+				f, err := configFile.NewSection(sec.Name())
 				if err != nil {
 					return err
 				}
@@ -256,15 +274,11 @@ func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *i
 					return err
 				}
 
-				if f.Comment == "" {
-					f.Comment = "# profile name has been prefixed due to duplication"
-				} else {
-					f.Comment = "# profile name has been prefixed due to duplication. \n" + sec.Comment
-				}
-
-				continue
+				f.Comment = sec.Comment
 			}
 
+		} else {
+			// any other section is copied as it is.
 			f, err := configFile.NewSection(sec.Name())
 			if err != nil {
 				return err
