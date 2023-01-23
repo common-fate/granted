@@ -332,8 +332,10 @@ func AssumeCommand(c *cli.Context) error {
 				clierr.Info(consoleURL),
 			)
 		}
-		return nil
-	} else {
+	}
+
+	// check if it's needed to provide credentials to terminal or default to it if console wasn't specified
+	if assumeFlags.Bool("terminal") || !getConsoleURL	{
 		creds, err := profile.AssumeTerminal(c.Context, configOpts)
 		if err != nil {
 			return err
