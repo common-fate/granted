@@ -30,6 +30,7 @@ if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
   unset AWS_PROFILE
   unset AWS_REGION
   unset AWS_SESSION_EXPIRATION
+  unset AWS_CREDENTIAL_EXPIRATION
 
   unset GRANTED_SSO
   unset GRANTED_SSO_START_URL
@@ -47,6 +48,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   unset AWS_PROFILE
   unset AWS_REGION
   unset AWS_SESSION_EXPIRATION
+  unset AWS_CREDENTIAL_EXPIRATION
 
   unset GRANTED_SSO
   unset GRANTED_SSO_START_URL
@@ -74,8 +76,12 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   if [ ! "${GRANTED_5}" = "None" ]; then
     export AWS_REGION="${GRANTED_5}"
   fi
+  # The following are both variations of the same thing supported by the AWS CLI
+  # AWS_SESSION_EXPIRATION
+  # AWS_CREDENTIAL_EXPIRATION
   if [ ! "${GRANTED_6}" = "None" ]; then
     export AWS_SESSION_EXPIRATION="${GRANTED_6}"
+    export AWS_CREDENTIAL_EXPIRATION="${GRANTED_6}"
   fi
   if [ ! "${GRANTED_7}" = "None" ]; then
     export GRANTED_SSO="${GRANTED_7}"
@@ -113,6 +119,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
       fi
        if [ ! "${GRANTED_6}" = "None" ]; then
         echo export AWS_SESSION_EXPIRATION="${GRANTED_6}"
+        echo export AWS_CREDENTIAL_EXPIRATION="${GRANTED_6}"
       fi
       if [ ! "${GRANTED_7}" = "None" ]; then
         echo export GRANTED_SSO="${GRANTED_7}"
