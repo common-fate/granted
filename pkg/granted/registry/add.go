@@ -23,7 +23,7 @@ var AddCommand = cli.Command{
 		&cli.StringFlag{Name: "ref", Hidden: true},
 		&cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"pap"}, Usage: "provide this flag if you want to append registry name to all profiles"},
 		&cli.BoolFlag{Name: "prefix-duplicate-profiles", Aliases: []string{"pdp"}, Usage: "provide this flag if you want to append registry name to duplicate profiles"},
-		&cli.StringSliceFlag{Name: "requiredKey", Aliases: []string{"r"}, Usage: "used to bypass the prompt or override user specific values"}},
+		&cli.StringSliceFlag{Name: "required-key", Aliases: []string{"r", "requiredKey"}, Usage: "used to bypass the prompt or override user specific values"}},
 	ArgsUsage: "<repository url> --name <registry_name> --url <git-url>",
 	Action: func(c *cli.Context) error {
 		gConf, err := grantedConfig.Load()
@@ -38,7 +38,7 @@ var AddCommand = cli.Command{
 		ref := c.String("ref")
 		prefixAllProfiles := c.Bool("prefix-all-profiles")
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
-		requiredKey := c.StringSlice("requiredKey")
+		requiredKey := c.StringSlice("required-key")
 		priority := c.Int("priority")
 
 		for _, r := range gConf.ProfileRegistry.Registries {
