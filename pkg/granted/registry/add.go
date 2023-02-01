@@ -10,6 +10,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+const (
+	// permission for user to read/write/execute.
+	USER_READ_WRITE_PERM = 0700
+)
+
 var AddCommand = cli.Command{
 	Name:        "add",
 	Description: "Add a Profile Registry that you want to sync with aws config file",
@@ -106,7 +111,7 @@ var AddCommand = cli.Command{
 
 		if _, err := os.Stat(awsConfigPath); os.IsNotExist(err) {
 			clio.Debugf("%s file does not exist. Creating an empty file\n", awsConfigPath)
-			_, err := os.Create(awsConfigPath)
+			err := os.MkdirAll(awsConfigPath, USER_READ_WRITE_PERM)
 			if err != nil {
 				return fmt.Errorf("unable to create : %s", err)
 			}
