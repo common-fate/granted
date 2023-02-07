@@ -48,7 +48,7 @@ func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig *ini.Sectio
 	// remember that not all users of credential process will be using approvals
 	cliError.Messages = append(cliError.Messages,
 		clierr.Info("It looks like you don't have the right permissions to access this role"),
-		clierr.Info("If you are using Granted Approvals to manage this role you can configure the Granted CLI with a request URL so that you can be directed to your Granted Approvals instance to make a new access request the next time you have this error"),
+		clierr.Info("If you are using Common Fate to manage this role you can configure the Granted CLI with a request URL so that you can be directed to your Granted Approvals instance to make a new access request the next time you have this error"),
 		clierr.Info("To configure a URL to request access to this role with 'granted settings request-url set <YOUR_GRANTED_APPROVALS_URL'"),
 	)
 	return cliError
