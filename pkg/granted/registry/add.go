@@ -3,6 +3,7 @@ package registry
 import (
 	"fmt"
 	"os"
+	"path"
 
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
@@ -38,7 +39,7 @@ var AddCommand = cli.Command{
 
 		name := c.String("name")
 		gitURL := c.String("url")
-		path := c.String("path")
+		pathFlag := c.String("path")
 		configFileName := c.String("filename")
 		ref := c.String("ref")
 		prefixAllProfiles := c.Bool("prefix-all-profiles")
@@ -56,7 +57,7 @@ var AddCommand = cli.Command{
 
 		registry := NewProfileRegistry(registryOptions{
 			name:                    name,
-			path:                    path,
+			path:                    pathFlag,
 			configFileName:          configFileName,
 			url:                     gitURL,
 			ref:                     ref,
@@ -111,7 +112,14 @@ var AddCommand = cli.Command{
 
 		if _, err := os.Stat(awsConfigPath); os.IsNotExist(err) {
 			clio.Debugf("%s file does not exist. Creating an empty file\n", awsConfigPath)
-			err := os.MkdirAll(awsConfigPath, USER_READ_WRITE_PERM)
+
+			// create all parent directory if necessary.
+			err := os.MkdirAll(path.Dir(awsConfigPath), USER_READ_WRITE_PERM)
+			if err != nil {
+				return err
+			}
+
+			_, err = os.Create(awsConfigPath)
 			if err != nil {
 				return fmt.Errorf("unable to create : %s", err)
 			}
