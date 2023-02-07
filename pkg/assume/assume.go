@@ -98,7 +98,10 @@ func AssumeCommand(c *cli.Context) error {
 				return err
 			}
 
-			config.SaveTo(configFilename)
+			err = config.SaveTo(configFilename)
+			if err != nil {
+				return err
+			}
 
 			clio.Successf("Saved AWS profile as %s. You can use this profile with the AWS CLI using the '--profile' flags when running AWS commands.", saveProfileName)
 		}
