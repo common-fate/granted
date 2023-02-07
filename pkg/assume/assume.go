@@ -55,6 +55,8 @@ func AssumeCommand(c *cli.Context) error {
 	}
 	activeRoleProfile := assumeFlags.String("active-aws-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
+
+	showRerunCommand := false
 	var profile *cfaws.Profile
 	if assumeFlags.Bool("sso") {
 		profile, err = SSOProfileFromFlags(c)
@@ -103,6 +105,8 @@ func AssumeCommand(c *cli.Context) error {
 
 		// if profile is still "" here, then prompt to select a profile
 		if profileName == "" {
+			// will print a command output for the user so it's easier for them to re run later or learn the commands
+			showRerunCommand = true
 			//load config to check frecency enabled
 			cfg, err := config.Load()
 			if err != nil {
@@ -245,6 +249,11 @@ func AssumeCommand(c *cli.Context) error {
 	// if getConsoleURL is true, we'll use the AWS federated login to retrieve a URL to access the console.
 	// depending on how Granted is configured, this is then printed to the terminal or a browser is launched at the URL automatically.
 	getConsoleURL := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
+
+	// this makes it easy for users to copy the actuall command and avoid needing to lookup profiles
+	if showRerunCommand {
+		clio.Infof("To assume this profile again later without needing to select it, run this command:\n> assume %s %s", profile.Name, strings.Join(os.Args[1:], " "))
+	}
 
 	if getConsoleURL {
 		con := console.AWS{
