@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/urfave/cli/v2"
 )
 
 func TestSSOGenerateParseFlags(t *testing.T) {
@@ -37,10 +38,8 @@ func TestSSOGenerateParseFlags(t *testing.T) {
 	}
 	for _, tc := range testcases {
 		t.Run(tc.name, func(t *testing.T) {
-			c := cliOptions{
-				profileTemplate: tc.giveTemplate,
-				args:            []string{"demo"},
-			}
+			c := &cli.Context{}
+			c.Set("profile-template", tc.giveTemplate)
 			_, err := parseCliOptions(c)
 			if tc.wantErr == nil {
 				assert.NoError(t, err)

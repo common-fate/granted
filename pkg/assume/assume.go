@@ -86,11 +86,12 @@ func AssumeCommand(c *cli.Context) error {
 				SectionNameTemplate: saveProfileName,
 				Profiles: []awsconfigfile.SSOProfile{
 					{
-						StartUrl:    profile.AWSConfig.SSOStartURL,
-						SSORegion:   profile.AWSConfig.SSORegion,
-						AccountId:   profile.AWSConfig.SSOAccountID,
-						AccountName: profile.AWSConfig.SSOAccountID,
-						RoleName:    profile.AWSConfig.SSORoleName,
+						SSOStartURL:   profile.AWSConfig.SSOStartURL,
+						SSORegion:     profile.AWSConfig.SSORegion,
+						AccountID:     profile.AWSConfig.SSOAccountID,
+						AccountName:   profile.AWSConfig.SSOAccountID,
+						RoleName:      profile.AWSConfig.SSORoleName,
+						GeneratedFrom: "commonfate",
 					},
 				},
 			})
@@ -386,7 +387,7 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	// check if it's needed to provide credentials to terminal or default to it if console wasn't specified
-	if assumeFlags.Bool("terminal") || !getConsoleURL	{
+	if assumeFlags.Bool("terminal") || !getConsoleURL {
 		creds, err := profile.AssumeTerminal(c.Context, configOpts)
 		if err != nil {
 			return err

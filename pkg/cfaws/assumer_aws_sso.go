@@ -215,7 +215,6 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 
 	clio.Info("Awaiting AWS authentication in the browser")
 	clio.Info("You will be prompted to authenticate with AWS in the browser, then you will be prompted to 'Allow'")
-	clio.Info("Once you press 'Allow', the sign in process and account fetching should complete in a few seconds (can take longer if SSO has many accounts)")
 	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
 	if err != nil {
 		return nil, err

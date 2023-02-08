@@ -1,17 +1,18 @@
 package granted
 
 import (
-	"bytes"
 	"context"
 	"fmt"
 	"os"
 	"regexp"
 	"strings"
-	"text/template"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
+	"github.com/common-fate/awsconfigfile"
+	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/urfave/cli/v2"
@@ -40,37 +41,48 @@ var GenerateCommand = cli.Command{
 	UsageText: "granted [global options] sso generate [command options] [sso-start-url]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
-		&cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"},
+		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
+		&cli.StringFlag{Name: "region", Usage: "The SSO region. Deprecated, use --sso-region instead. In future, this will be the AWS region for the profile to use", DefaultText: "us-east-1"},
+		&cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: defaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
-		options, err := parseCliOptions(makeCLIOptions(c))
+		startURL := c.Args().First()
+		if startURL == "" {
+			return clierr.New("Usage: granted sso generate [sso-start-url]", clierr.Info("For example, granted sso generate https://example.awsapps.com/start"))
+		}
+		// if neither --sso-region or --region were set, show a warning to the user as we plan to make --sso-region required in future
+		if !c.IsSet("region") && !c.IsSet("sso-region") {
+			clio.Warnf("Please specify the --sso-region flag: 'granted sso populate --sso-region us-east-1 %s'", startURL)
+			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/271)")
+		}
+
+		options, err := parseCliOptions(c)
 		if err != nil {
 			return err
 		}
-		ssoProfiles, err := listSSOProfiles(c.Context, ListSSOProfilesInput{
-			StartUrl:  options.StartUrl,
+
+		profiles, err := listSSOProfiles(c.Context, ListSSOProfilesInput{
+			StartUrl:  startURL,
 			SSORegion: options.SSORegion,
 		})
 		if err != nil {
 			return err
 		}
+
 		config := ini.Empty()
-		err = mergeSSOProfiles(config, options.Prefix, ssoProfiles, options.ProfileTemplate)
+		err = awsconfigfile.Merge(awsconfigfile.MergeOpts{
+			Config:              config,
+			SectionNameTemplate: options.ProfileTemplate,
+			Profiles:            profiles,
+			NoCredentialProcess: c.Bool("no-credential-process"),
+		})
 		if err != nil {
 			return err
 		}
+
 		_, err = config.WriteTo(os.Stdout)
 		return err
 	},
-}
-
-func makeCLIOptions(c *cli.Context) cliOptions {
-	return cliOptions{
-		prefix:          c.String("prefix"),
-		region:          c.String("region"),
-		profileTemplate: c.String("profile-template"),
-		args:            c.Args().Slice(),
-	}
 }
 
 var PopulateCommand = cli.Command{
@@ -79,16 +91,28 @@ var PopulateCommand = cli.Command{
 	UsageText: "granted [global options] sso populate [command options] [sso-start-url]",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
-		&cli.StringFlag{Name: "region", Usage: "Specify the SSO region", DefaultText: "us-east-1"},
+		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
+		&cli.StringFlag{Name: "region", Usage: "The SSO region. Deprecated, use --sso-region instead. In future, this will be the AWS region for the profile to use", DefaultText: "us-east-1"}, &cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: defaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
-		options, err := parseCliOptions(makeCLIOptions(c))
+		startURL := c.Args().First()
+		if startURL == "" {
+			return clierr.New("Usage: granted sso populate [sso-start-url]", clierr.Info("For example, granted sso populate https://example.awsapps.com/start"))
+		}
+
+		// if neither --sso-region or --region were set, show a warning to the user as we plan to make --sso-region required in future
+		if !c.IsSet("region") && !c.IsSet("sso-region") {
+			clio.Warnf("Please specify the --sso-region flag: 'granted sso populate --sso-region us-east-1 %s'", startURL)
+			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/271)")
+		}
+
+		options, err := parseCliOptions(c)
 		if err != nil {
 			return err
 		}
 
-		ssoProfiles, err := listSSOProfiles(c.Context, ListSSOProfilesInput{
-			StartUrl:  options.StartUrl,
+		profiles, err := listSSOProfiles(c.Context, ListSSOProfilesInput{
+			StartUrl:  startURL,
 			SSORegion: options.SSORegion,
 		})
 		if err != nil {
@@ -107,7 +131,14 @@ var PopulateCommand = cli.Command{
 			}
 			config = ini.Empty()
 		}
-		if err := mergeSSOProfiles(config, options.Prefix, ssoProfiles, options.ProfileTemplate); err != nil {
+
+		err = awsconfigfile.Merge(awsconfigfile.MergeOpts{
+			Config:              config,
+			SectionNameTemplate: options.ProfileTemplate,
+			Profiles:            profiles,
+			NoCredentialProcess: c.Bool("no-credential-process"),
+		})
+		if err != nil {
 			return err
 		}
 
@@ -119,43 +150,43 @@ var PopulateCommand = cli.Command{
 	},
 }
 
-type cliOptions struct {
-	prefix          string
-	region          string
-	profileTemplate string
-	args            []string
-}
+func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
+	prefix := c.String("prefix")
 
-func parseCliOptions(c cliOptions) (*SSOCommonOptions, error) {
+	if c.IsSet("region") {
+		clio.Warn("Please use --sso-region rather than --region.")
+		clio.Warn("In a future version of Granted, the --region flag will be used to specify the 'region' field in generated profiles, rather than the 'sso_region' field. (https://github.com/common-fate/granted/issues/271)")
+	}
 
-	if strings.ContainsAny(c.prefix, profileSectionIllegalChars) {
+	// try --sso-region first, then fall back to --region.
+	region := c.String("sso-region")
+	if region == "" {
+		region = c.String("region")
+	}
+
+	profileTemplate := c.String("profile-template")
+
+	if strings.ContainsAny(prefix, profileSectionIllegalChars) {
 		return nil, fmt.Errorf("--prefix flag must not contains illegal characters (%s)", profileSectionIllegalChars)
 	}
 
-	ssoRegion, err := cfaws.ExpandRegion(c.region)
+	ssoRegion, err := cfaws.ExpandRegion(region)
 	if err != nil {
 		return nil, err
 	}
 
-	// check the profile template for any invalid section nanem characters
-	if c.profileTemplate != defaultProfileNameTemplate {
-		cleaned := matchGoTemplateSection.ReplaceAllString(c.profileTemplate, "")
+	// check the profile template for any invalid section name characters
+	if profileTemplate != defaultProfileNameTemplate {
+		cleaned := matchGoTemplateSection.ReplaceAllString(profileTemplate, "")
 		if profileSectionIllegalCharsRegex.MatchString(cleaned) {
 			return nil, fmt.Errorf("--profile-template flag must not contain any of these illegal characters (%s)", profileSectionIllegalChars)
 		}
 	}
 
-	if len(c.args) != 1 {
-		return nil, fmt.Errorf("please provide an sso start url")
-	}
-
-	startUrl := c.args[0]
-
 	options := SSOCommonOptions{
-		Prefix:          c.prefix,
-		StartUrl:        startUrl,
+		Prefix:          prefix,
 		SSORegion:       ssoRegion,
-		ProfileTemplate: c.profileTemplate,
+		ProfileTemplate: profileTemplate,
 	}
 
 	return &options, nil
@@ -163,7 +194,6 @@ func parseCliOptions(c cliOptions) (*SSOCommonOptions, error) {
 
 type SSOCommonOptions struct {
 	Prefix          string
-	StartUrl        string
 	SSORegion       string
 	ProfileTemplate string
 }
@@ -173,17 +203,7 @@ type ListSSOProfilesInput struct {
 	StartUrl  string
 }
 
-type SSOProfile struct {
-	// SSO details
-	StartUrl  string
-	SSORegion string
-	// Account and role details
-	AccountId   string
-	AccountName string
-	RoleName    string
-}
-
-func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]SSOProfile, error) {
+func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]awsconfigfile.SSOProfile, error) {
 	cfg := aws.NewConfig()
 	cfg.Region = input.SSORegion
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
@@ -196,9 +216,11 @@ func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]SSOProf
 		}
 	}
 
+	clio.Info("fetching available profiles from AWS IAM Identity Center...")
+
 	ssoClient := sso.NewFromConfig(*cfg)
 
-	var ssoProfiles []SSOProfile
+	var ssoProfiles []awsconfigfile.SSOProfile
 
 	listAccountsNextToken := ""
 	for {
@@ -229,12 +251,13 @@ func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]SSOProf
 				}
 
 				for _, role := range listAccountRolesOutput.RoleList {
-					ssoProfiles = append(ssoProfiles, SSOProfile{
-						StartUrl:    input.StartUrl,
-						SSORegion:   input.SSORegion,
-						AccountId:   *role.AccountId,
-						AccountName: *account.AccountName,
-						RoleName:    *role.RoleName,
+					ssoProfiles = append(ssoProfiles, awsconfigfile.SSOProfile{
+						SSOStartURL:   input.StartUrl,
+						SSORegion:     input.SSORegion,
+						AccountID:     *role.AccountId,
+						AccountName:   *account.AccountName,
+						RoleName:      *role.RoleName,
+						GeneratedFrom: "aws-sso",
 					})
 				}
 
@@ -254,48 +277,4 @@ func listSSOProfiles(ctx context.Context, input ListSSOProfilesInput) ([]SSOProf
 	}
 
 	return ssoProfiles, nil
-}
-
-func mergeSSOProfiles(config *ini.File, prefix string, ssoProfiles []SSOProfile, sectionNameTemplate string) error {
-	sectionNameTempl, err := template.New("").Parse(sectionNameTemplate)
-	if err != nil {
-		return err
-	}
-
-	for _, ssoProfile := range ssoProfiles {
-		ssoProfile.AccountName = normalizeAccountName(ssoProfile.AccountName)
-		sectionNameBuffer := bytes.NewBufferString("")
-		err := sectionNameTempl.Execute(sectionNameBuffer, ssoProfile)
-		if err != nil {
-			return err
-		}
-		sectionName := "profile " + prefix + sectionNameBuffer.String()
-
-		config.DeleteSection(sectionName)
-		section, err := config.NewSection(sectionName)
-		if err != nil {
-			return err
-		}
-		err = section.ReflectFrom(&struct {
-			SSOStartURL  string `ini:"sso_start_url"`
-			SSORegion    string `ini:"sso_region"`
-			SSOAccountID string `ini:"sso_account_id"`
-			SSORoleName  string `ini:"sso_role_name"`
-		}{
-			SSOStartURL:  ssoProfile.StartUrl,
-			SSORegion:    ssoProfile.SSORegion,
-			SSOAccountID: ssoProfile.AccountId,
-			SSORoleName:  ssoProfile.RoleName,
-		})
-		if err != nil {
-			return err
-		}
-
-	}
-
-	return nil
-}
-
-func normalizeAccountName(accountName string) string {
-	return strings.ReplaceAll(accountName, " ", "-")
 }
