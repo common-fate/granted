@@ -19,6 +19,7 @@ import (
 func GlobalFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
+		&cli.BoolFlag{Name: "terminal", Aliases: []string{"t"}, Usage: "Use this with '-c' to open a console session and export credentials into the terminal at the same time."},
 		&cli.BoolFlag{Name: "env", Aliases: []string{"e"}, Usage: "Export credentials to a .env file"},
 		&cli.BoolFlag{Name: "export", Aliases: []string{"ex"}, Usage: "Export credentials to a ~/.aws/credentials file"},
 		&cli.BoolFlag{Name: "unset", Aliases: []string{"un"}, Usage: "Unset all environment variables configured by Assume"},
@@ -47,16 +48,16 @@ func GetCliApp() *cli.App {
 	}
 
 	app := &cli.App{
-		Name:                 "assume",
-		Writer:               os.Stderr,
-		Usage:                "https://granted.dev",
-		UsageText:            "assume [options][Profile]",
-		Version:              build.Version,
-		HideVersion:          false,
-		Flags:                GlobalFlags(),
-		Action:               AssumeCommand,
-		EnableBashCompletion: true,
-		BashComplete:         Completion,
+		Name:                 	"assume",
+		Writer:               	os.Stderr,
+		Usage:                	"https://granted.dev",
+		UsageText:            	"assume [options][Profile]",
+		Version:              	build.Version,
+		HideVersion:          	false,
+		Flags:                	GlobalFlags(),
+		Action:               	AssumeCommand,
+		EnableBashCompletion: 	true,
+		BashComplete:         	Completion,
 		Before: func(c *cli.Context) error {
 
 			// unsets the exported env vars
