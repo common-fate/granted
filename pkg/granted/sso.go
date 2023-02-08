@@ -8,6 +8,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"github.com/common-fate/awsconfigfile"
+	"github.com/common-fate/cli/pkg/profilesource"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -29,6 +30,7 @@ var GenerateCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
+		&cli.StringSliceFlag{Name: "source", Usage: "The sources to load AWS profiles from (valid values are: 'aws-sso', 'commonfate')", Value: cli.NewStringSlice("aws-sso")},
 		&cli.StringFlag{Name: "region", Usage: "The SSO region. Deprecated, use --sso-region instead. In future, this will be the AWS region for the profile to use", DefaultText: "us-east-1"},
 		&cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
@@ -68,7 +70,15 @@ var GenerateCommand = cli.Command{
 			NoCredentialProcess: c.Bool("no-credential-process"),
 			Prefix:              c.String("prefix"),
 		}
-		g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
+
+		for _, s := range c.StringSlice("source") {
+			switch s {
+			case "aws-sso":
+				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
+			case "commonfate", "common-fate", "cf":
+				g.AddSource(profilesource.Source{SSORegion: region, StartURL: startURL, LoginCommand: "granted login"})
+			}
+		}
 
 		return g.Generate(ctx)
 	},
@@ -81,6 +91,7 @@ var PopulateCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
+		&cli.StringSliceFlag{Name: "sources", Usage: "The sources to load AWS profiles from", Value: cli.NewStringSlice("aws-sso")},
 		&cli.StringFlag{Name: "region", Usage: "The SSO region. Deprecated, use --sso-region instead. In future, this will be the AWS region for the profile to use", DefaultText: "us-east-1"}, &cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
@@ -137,7 +148,15 @@ var PopulateCommand = cli.Command{
 			NoCredentialProcess: c.Bool("no-credential-process"),
 			Prefix:              c.String("prefix"),
 		}
-		g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
+
+		for _, s := range c.StringSlice("source") {
+			switch s {
+			case "aws-sso":
+				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
+			case "commonfate", "common-fate", "cf":
+				g.AddSource(profilesource.Source{SSORegion: region, StartURL: startURL, LoginCommand: "granted login"})
+			}
+		}
 
 		return g.Generate(ctx)
 	},
@@ -164,6 +183,7 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 			return nil, err
 		}
 	}
+	secureSSOTokenStorage.StoreSSOToken(s.StartURL, *ssoToken)
 
 	clio.Info("fetching available profiles from AWS IAM Identity Center...")
 
