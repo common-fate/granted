@@ -16,6 +16,8 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/ansi"
 	"github.com/common-fate/clio/clierr"
@@ -31,6 +33,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/hako/durafmt"
 	"github.com/urfave/cli/v2"
+	"gopkg.in/ini.v1"
 )
 
 // Launchers give a command that we need to run in order to launch a browser, such as
@@ -62,6 +65,45 @@ func AssumeCommand(c *cli.Context) error {
 		profile, err = SSOProfileFromFlags(c)
 		if err != nil {
 			return err
+		}
+
+		// save the profile to the AWS config file, if the user requested it.
+		saveProfileName := assumeFlags.String("save-to")
+		if saveProfileName != "" {
+			configFilename := awsconfig.DefaultSharedConfigFilename()
+			config, err := ini.LoadSources(ini.LoadOptions{
+				AllowNonUniqueSections:  false,
+				SkipUnrecognizableLines: false,
+			}, configFilename)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					return err
+				}
+				config = ini.Empty()
+			}
+			err = awsconfigfile.Merge(awsconfigfile.MergeOpts{
+				Config:              config,
+				SectionNameTemplate: saveProfileName,
+				Profiles: []awsconfigfile.SSOProfile{
+					{
+						StartUrl:    profile.AWSConfig.SSOStartURL,
+						SSORegion:   profile.AWSConfig.SSORegion,
+						AccountId:   profile.AWSConfig.SSOAccountID,
+						AccountName: profile.AWSConfig.SSOAccountID,
+						RoleName:    profile.AWSConfig.SSORoleName,
+					},
+				},
+			})
+			if err != nil {
+				return err
+			}
+
+			err = config.SaveTo(configFilename)
+			if err != nil {
+				return err
+			}
+
+			clio.Successf("Saved AWS profile as %s. You can use this profile with the AWS CLI using the '--profile' flags when running AWS commands.", saveProfileName)
 		}
 	} else if activeRoleFlag && os.Getenv("GRANTED_SSO") == "true" {
 		profile, err = SSOProfileFromEnv()
