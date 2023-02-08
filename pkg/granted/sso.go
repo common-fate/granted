@@ -1,12 +1,17 @@
 package granted
 
 import (
+	"context"
 	"os"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/service/sso"
+	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
-	"github.com/common-fate/granted/pkg/profilegen"
+	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/ini.v1"
 )
@@ -26,7 +31,7 @@ var GenerateCommand = cli.Command{
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
 		&cli.StringFlag{Name: "region", Usage: "The SSO region. Deprecated, use --sso-region instead. In future, this will be the AWS region for the profile to use", DefaultText: "us-east-1"},
 		&cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
-		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: profilegen.DefaultProfileNameTemplate}},
+		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
@@ -56,18 +61,20 @@ var GenerateCommand = cli.Command{
 
 		// end of --region flag behaviour warnings. These can be removed once https://github.com/common-fate/granted/issues/360 is closed.
 
-		g, err := profilegen.New(profilegen.Opts{
-			Output:              os.Stdout,
-			Config:              ini.Empty(),
-			SSORegion:           region,
-			SSOStartURL:         startURL,
-			ProfileNameTemplate: c.String("profile-template"),
-			NoCredentialProcess: c.Bool("no-credential-process"),
-			Prefix:              c.String("prefix"),
-		})
+		var err error
+		region, err = cfaws.ExpandRegion(region)
 		if err != nil {
 			return err
 		}
+
+		g := awsconfigfile.Generator{
+			Output:              os.Stdout,
+			Config:              ini.Empty(),
+			ProfileNameTemplate: c.String("profile-template"),
+			NoCredentialProcess: c.Bool("no-credential-process"),
+			Prefix:              c.String("prefix"),
+		}
+		g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
 
 		return g.Generate(ctx)
 	},
@@ -81,7 +88,7 @@ var PopulateCommand = cli.Command{
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
 		&cli.StringFlag{Name: "region", Usage: "The SSO region. Deprecated, use --sso-region instead. In future, this will be the AWS region for the profile to use", DefaultText: "us-east-1"}, &cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
-		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: profilegen.DefaultProfileNameTemplate}},
+		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
@@ -129,19 +136,96 @@ var PopulateCommand = cli.Command{
 			config = ini.Empty()
 		}
 
-		g, err := profilegen.New(profilegen.Opts{
+		g := awsconfigfile.Generator{
 			Output:              f,
 			Config:              config,
-			SSORegion:           region,
-			SSOStartURL:         startURL,
 			ProfileNameTemplate: c.String("profile-template"),
 			NoCredentialProcess: c.Bool("no-credential-process"),
 			Prefix:              c.String("prefix"),
-		})
-		if err != nil {
-			return err
 		}
+		g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
 
 		return g.Generate(ctx)
 	},
+}
+
+type AWSSSOSource struct {
+	SSORegion string
+	StartURL  string
+}
+
+func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfile, error) {
+	cfg := aws.NewConfig()
+	cfg.Region = s.SSORegion
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	ssoToken := secureSSOTokenStorage.GetValidSSOToken(s.StartURL)
+	var err error
+	if ssoToken == nil {
+		ssoToken, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, s.StartURL)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	clio.Info("fetching available profiles from AWS IAM Identity Center...")
+
+	ssoClient := sso.NewFromConfig(*cfg)
+
+	var ssoProfiles []awsconfigfile.SSOProfile
+
+	listAccountsNextToken := ""
+	for {
+		listAccountsInput := sso.ListAccountsInput{AccessToken: &ssoToken.AccessToken}
+		if listAccountsNextToken != "" {
+			listAccountsInput.NextToken = &listAccountsNextToken
+		}
+
+		listAccountsOutput, err := ssoClient.ListAccounts(ctx, &listAccountsInput)
+		if err != nil {
+			return nil, err
+		}
+
+		for _, account := range listAccountsOutput.AccountList {
+			listAccountRolesNextToken := ""
+			for {
+				listAccountRolesInput := sso.ListAccountRolesInput{
+					AccessToken: &ssoToken.AccessToken,
+					AccountId:   account.AccountId,
+				}
+				if listAccountRolesNextToken != "" {
+					listAccountRolesInput.NextToken = &listAccountRolesNextToken
+				}
+
+				listAccountRolesOutput, err := ssoClient.ListAccountRoles(ctx, &listAccountRolesInput)
+				if err != nil {
+					return nil, err
+				}
+
+				for _, role := range listAccountRolesOutput.RoleList {
+					ssoProfiles = append(ssoProfiles, awsconfigfile.SSOProfile{
+						SSOStartURL:   s.StartURL,
+						SSORegion:     s.SSORegion,
+						AccountID:     *role.AccountId,
+						AccountName:   *account.AccountName,
+						RoleName:      *role.RoleName,
+						GeneratedFrom: "aws-sso",
+					})
+				}
+
+				if listAccountRolesOutput.NextToken == nil {
+					break
+				}
+
+				listAccountRolesNextToken = *listAccountRolesOutput.NextToken
+			}
+		}
+
+		if listAccountsOutput.NextToken == nil {
+			break
+		}
+
+		listAccountsNextToken = *listAccountsOutput.NextToken
+	}
+
+	return ssoProfiles, nil
 }
