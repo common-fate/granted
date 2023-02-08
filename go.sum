@@ -47,6 +47,8 @@ github.com/aws/smithy-go v1.13.5/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J
 github.com/benbjohnson/clock v1.1.0 h1:Q92kusRqC1XV2MjkWETPvjJVqKetz1OzxZB7mHJLju8=
 github.com/common-fate/awsconfigfile v0.4.0 h1:7ylggNqEVc68NNh2zgbSW59FydQvqFuwVSA5OUCXr7U=
 github.com/common-fate/awsconfigfile v0.4.0/go.mod h1:VJibjDtrFRus19rO29z1i5lN0yi7dREk//69YRjKm/M=
+github.com/common-fate/awsconfigfile v0.5.0 h1:UPukgN6hQfE+TmR2nVLRDPDiwpq6fTbKBEEWEzphoGk=
+github.com/common-fate/awsconfigfile v0.5.0/go.mod h1:VJibjDtrFRus19rO29z1i5lN0yi7dREk//69YRjKm/M=
 github.com/common-fate/clio v1.1.0 h1:M5fyMuYHjB+qODYbl0IGT28SBiokxsIlxluUVnD8cOQ=
 github.com/common-fate/clio v1.1.0/go.mod h1:BYm9XmDIsmpQQdw+xbhQO5hbpUhH03Lk6gQmQ6Wpu1k=
 github.com/common-fate/updatecheck v0.3.4 h1:Q2rq3EN7Jbt7z/klAFFCA4qaK3LxP57zIqxscrbDnYo=
