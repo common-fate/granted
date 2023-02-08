@@ -50,13 +50,33 @@ var GenerateCommand = cli.Command{
 		if startURL == "" {
 			return clierr.New("Usage: granted sso generate [sso-start-url]", clierr.Info("For example, granted sso generate https://example.awsapps.com/start"))
 		}
+
+		// the --region flag behaviour will change in future: https://github.com/common-fate/granted/issues/360
+		//
 		// if neither --sso-region or --region were set, show a warning to the user as we plan to make --sso-region required in future
 		if !c.IsSet("region") && !c.IsSet("sso-region") {
 			clio.Warnf("Please specify the --sso-region flag: 'granted sso populate --sso-region us-east-1 %s'", startURL)
-			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/271)")
+			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/360)")
 		}
 
-		options, err := parseCliOptions(c)
+		if c.IsSet("region") {
+			clio.Warn("Please use --sso-region rather than --region.")
+			clio.Warn("In a future version of Granted, the --region flag will be used to specify the 'region' field in generated profiles, rather than the 'sso_region' field. (https://github.com/common-fate/granted/issues/360)")
+		}
+
+		// try --sso-region first, then fall back to --region.
+		region := c.String("sso-region")
+		if region == "" {
+			region = c.String("region")
+		}
+
+		// end of --region flag behaviour warnings. These can be removed once https://github.com/common-fate/granted/issues/360 is closed.
+
+		options, err := parseCliOptions(cliOptions{
+			prefix:          c.String("prefix"),
+			region:          region,
+			profileTemplate: c.String("profile-template"),
+		})
 		if err != nil {
 			return err
 		}
@@ -100,13 +120,32 @@ var PopulateCommand = cli.Command{
 			return clierr.New("Usage: granted sso populate [sso-start-url]", clierr.Info("For example, granted sso populate https://example.awsapps.com/start"))
 		}
 
+		// the --region flag behaviour will change in future: https://github.com/common-fate/granted/issues/360
+		//
 		// if neither --sso-region or --region were set, show a warning to the user as we plan to make --sso-region required in future
 		if !c.IsSet("region") && !c.IsSet("sso-region") {
 			clio.Warnf("Please specify the --sso-region flag: 'granted sso populate --sso-region us-east-1 %s'", startURL)
-			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/271)")
+			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/360)")
 		}
 
-		options, err := parseCliOptions(c)
+		if c.IsSet("region") {
+			clio.Warn("Please use --sso-region rather than --region.")
+			clio.Warn("In a future version of Granted, the --region flag will be used to specify the 'region' field in generated profiles, rather than the 'sso_region' field. (https://github.com/common-fate/granted/issues/360)")
+		}
+
+		// try --sso-region first, then fall back to --region.
+		region := c.String("sso-region")
+		if region == "" {
+			region = c.String("region")
+		}
+
+		// end of --region flag behaviour warnings. These can be removed once https://github.com/common-fate/granted/issues/360 is closed.
+
+		options, err := parseCliOptions(cliOptions{
+			prefix:          c.String("prefix"),
+			region:          region,
+			profileTemplate: c.String("profile-template"),
+		})
 		if err != nil {
 			return err
 		}
@@ -150,43 +189,34 @@ var PopulateCommand = cli.Command{
 	},
 }
 
-func parseCliOptions(c *cli.Context) (*SSOCommonOptions, error) {
-	prefix := c.String("prefix")
+type cliOptions struct {
+	prefix          string
+	region          string
+	profileTemplate string
+}
 
-	if c.IsSet("region") {
-		clio.Warn("Please use --sso-region rather than --region.")
-		clio.Warn("In a future version of Granted, the --region flag will be used to specify the 'region' field in generated profiles, rather than the 'sso_region' field. (https://github.com/common-fate/granted/issues/271)")
+func parseCliOptions(c cliOptions) (*SSOCommonOptions, error) {
+	if strings.ContainsAny(c.prefix, profileSectionIllegalChars) {
+		return nil, fmt.Errorf("--prefix flag must not contain any of these illegal characters (%s)", profileSectionIllegalChars)
 	}
 
-	// try --sso-region first, then fall back to --region.
-	region := c.String("sso-region")
-	if region == "" {
-		region = c.String("region")
-	}
-
-	profileTemplate := c.String("profile-template")
-
-	if strings.ContainsAny(prefix, profileSectionIllegalChars) {
-		return nil, fmt.Errorf("--prefix flag must not contains illegal characters (%s)", profileSectionIllegalChars)
-	}
-
-	ssoRegion, err := cfaws.ExpandRegion(region)
+	ssoRegion, err := cfaws.ExpandRegion(c.region)
 	if err != nil {
 		return nil, err
 	}
 
 	// check the profile template for any invalid section name characters
-	if profileTemplate != defaultProfileNameTemplate {
-		cleaned := matchGoTemplateSection.ReplaceAllString(profileTemplate, "")
+	if c.profileTemplate != defaultProfileNameTemplate {
+		cleaned := matchGoTemplateSection.ReplaceAllString(c.profileTemplate, "")
 		if profileSectionIllegalCharsRegex.MatchString(cleaned) {
 			return nil, fmt.Errorf("--profile-template flag must not contain any of these illegal characters (%s)", profileSectionIllegalChars)
 		}
 	}
 
 	options := SSOCommonOptions{
-		Prefix:          prefix,
+		Prefix:          c.prefix,
 		SSORegion:       ssoRegion,
-		ProfileTemplate: profileTemplate,
+		ProfileTemplate: c.profileTemplate,
 	}
 
 	return &options, nil
