@@ -49,14 +49,8 @@ github.com/aws/smithy-go v1.12.0/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J
 github.com/aws/smithy-go v1.13.5 h1:hgz0X/DX0dGqTYpGALqXJoRKRj5oQ7150i5FdTePzO8=
 github.com/aws/smithy-go v1.13.5/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J3gBHzA=
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
-github.com/common-fate/awsconfigfile v0.5.0 h1:UPukgN6hQfE+TmR2nVLRDPDiwpq6fTbKBEEWEzphoGk=
-github.com/common-fate/awsconfigfile v0.5.0/go.mod h1:VJibjDtrFRus19rO29z1i5lN0yi7dREk//69YRjKm/M=
-github.com/common-fate/cli v0.0.0-20230208140925-17cfc606f0d1 h1:MJMC8bgDoZ8KC+T3kewPWx1zLu1YP/edopSOLBlQybk=
-github.com/common-fate/cli v0.0.0-20230208140925-17cfc606f0d1/go.mod h1:ePgcL+nHvpRmH0J7SKSC60aU8gDL40/NxhgfJ6nfUVw=
-github.com/common-fate/cli v0.0.0-20230208142502-4fcd93b0ac01 h1:nGHwF9RYsPKK5EfeWtasF6dWVW583UgQETgfMyxQWfI=
-github.com/common-fate/cli v0.0.0-20230208142502-4fcd93b0ac01/go.mod h1:ePgcL+nHvpRmH0J7SKSC60aU8gDL40/NxhgfJ6nfUVw=
-github.com/common-fate/cli v0.0.0-20230208145449-39a12a41b669 h1:HzP99xNsmS/l8YrovNaRhWpd+cx8xwEer1mCs3FASsE=
-github.com/common-fate/cli v0.0.0-20230208145449-39a12a41b669/go.mod h1:cqfBk3g/NZlFQmaNWdWPXmy/z2FLoskVKCaCPcj4enQ=
+github.com/common-fate/awsconfigfile v0.7.0 h1:BxmR5Sm6z5ykifLkuuv00gnl0Inspnac3ZfsDaAMMiw=
+github.com/common-fate/awsconfigfile v0.7.0/go.mod h1:VJibjDtrFRus19rO29z1i5lN0yi7dREk//69YRjKm/M=
 github.com/common-fate/cli v0.0.0-20230208150501-80d1cf4b0be9 h1:Tv2zX9oYSxNZpY9GHLzHskqNYE6ztK8ifxuDYF6eg1A=
 github.com/common-fate/cli v0.0.0-20230208150501-80d1cf4b0be9/go.mod h1:cqfBk3g/NZlFQmaNWdWPXmy/z2FLoskVKCaCPcj4enQ=
 github.com/common-fate/clio v1.1.0 h1:M5fyMuYHjB+qODYbl0IGT28SBiokxsIlxluUVnD8cOQ=

@@ -66,7 +66,6 @@ var GenerateCommand = cli.Command{
 		// end of --region flag behaviour warnings. These can be removed once https://github.com/common-fate/granted/issues/360 is closed.
 
 		g := awsconfigfile.Generator{
-			Output:              os.Stdout,
 			Config:              ini.Empty(),
 			ProfileNameTemplate: c.String("profile-template"),
 			NoCredentialProcess: c.Bool("no-credential-process"),
@@ -79,10 +78,22 @@ var GenerateCommand = cli.Command{
 				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
 			case "commonfate", "common-fate", "cf":
 				g.AddSource(profilesource.Source{SSORegion: region, StartURL: startURL, LoginCommand: "granted login"})
+			default:
+				return fmt.Errorf("unknown profile source %s: allowed sources are aws-sso, commonfate", s)
 			}
 		}
 
-		return g.Generate(ctx)
+		err := g.Generate(ctx)
+		if err != nil {
+			return err
+		}
+
+		_, err = g.Config.WriteTo(os.Stdout)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
@@ -93,7 +104,8 @@ var PopulateCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
-		&cli.StringSliceFlag{Name: "sources", Usage: "The sources to load AWS profiles from", Value: cli.NewStringSlice("aws-sso")},
+		&cli.StringSliceFlag{Name: "source", Usage: "The sources to load AWS profiles from", Value: cli.NewStringSlice("aws-sso")},
+		&cli.BoolFlag{Name: "prune", Usage: "Remove any generated profiles with the 'common_fate_generated_from' key which no longer exist"},
 		&cli.StringFlag{Name: "region", Usage: "The SSO region. Deprecated, use --sso-region instead. In future, this will be the AWS region for the profile to use", DefaultText: "us-east-1"}, &cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
@@ -127,16 +139,10 @@ var PopulateCommand = cli.Command{
 		// end of --region flag behaviour warnings. These can be removed once https://github.com/common-fate/granted/issues/360 is closed.
 		configFilename := config.DefaultSharedConfigFilename()
 
-		f, err := os.OpenFile(configFilename, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0644)
-		if err != nil {
-			return err
-		}
-		defer f.Close()
-
 		config, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
-		}, f)
+		}, configFilename)
 		if err != nil {
 			if !os.IsNotExist(err) {
 				return err
@@ -145,11 +151,11 @@ var PopulateCommand = cli.Command{
 		}
 
 		g := awsconfigfile.Generator{
-			Output:              f,
 			Config:              config,
 			ProfileNameTemplate: c.String("profile-template"),
 			NoCredentialProcess: c.Bool("no-credential-process"),
 			Prefix:              c.String("prefix"),
+			Prune:               c.Bool("prune"),
 		}
 
 		for _, s := range c.StringSlice("source") {
@@ -158,10 +164,21 @@ var PopulateCommand = cli.Command{
 				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
 			case "commonfate", "common-fate", "cf":
 				g.AddSource(profilesource.Source{SSORegion: region, StartURL: startURL, LoginCommand: "granted login"})
+			default:
+				return fmt.Errorf("unknown profile source %s: allowed sources are aws-sso, commonfate", s)
 			}
 		}
+		err = g.Generate(ctx)
+		if err != nil {
+			return err
+		}
 
-		return g.Generate(ctx)
+		err = config.SaveTo(configFilename)
+		if err != nil {
+			return err
+		}
+
+		return nil
 	},
 }
 
