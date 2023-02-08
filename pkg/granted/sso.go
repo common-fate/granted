@@ -2,6 +2,7 @@ package granted
 
 import (
 	"context"
+	"fmt"
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -36,17 +37,18 @@ var GenerateCommand = cli.Command{
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
+		fullCommand := fmt.Sprintf("%s %s", c.App.Name, c.Command.FullName()) // e.g. 'granted sso populate'
 
 		startURL := c.Args().First()
 		if startURL == "" {
-			return clierr.New("Usage: granted sso populate [sso-start-url]", clierr.Info("For example, granted sso populate https://example.awsapps.com/start"))
+			return clierr.New(fmt.Sprintf("Usage: %s [sso-start-url]", fullCommand), clierr.Infof("For example, %s https://example.awsapps.com/start", fullCommand))
 		}
 
 		// the --region flag behaviour will change in future: https://github.com/common-fate/granted/issues/360
 		//
 		// if neither --sso-region or --region were set, show a warning to the user as we plan to make --sso-region required in future
 		if !c.IsSet("region") && !c.IsSet("sso-region") {
-			clio.Warnf("Please specify the --sso-region flag: 'granted sso populate --sso-region us-east-1 %s'", startURL)
+			clio.Warnf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
 			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/360)")
 		}
 
@@ -96,17 +98,18 @@ var PopulateCommand = cli.Command{
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
+		fullCommand := fmt.Sprintf("%s %s", c.App.Name, c.Command.FullName()) // e.g. 'granted sso populate'
 
 		startURL := c.Args().First()
 		if startURL == "" {
-			return clierr.New("Usage: granted sso populate [sso-start-url]", clierr.Info("For example, granted sso populate https://example.awsapps.com/start"))
+			return clierr.New(fmt.Sprintf("Usage: %s [sso-start-url]", fullCommand), clierr.Infof("For example, %s https://example.awsapps.com/start", fullCommand))
 		}
 
 		// the --region flag behaviour will change in future: https://github.com/common-fate/granted/issues/360
 		//
 		// if neither --sso-region or --region were set, show a warning to the user as we plan to make --sso-region required in future
 		if !c.IsSet("region") && !c.IsSet("sso-region") {
-			clio.Warnf("Please specify the --sso-region flag: 'granted sso populate --sso-region us-east-1 %s'", startURL)
+			clio.Warnf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
 			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/360)")
 		}
 
@@ -185,7 +188,7 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 	}
 	secureSSOTokenStorage.StoreSSOToken(s.StartURL, *ssoToken)
 
-	clio.Info("fetching available profiles from AWS IAM Identity Center...")
+	clio.Info("listing available profiles from AWS IAM Identity Center...")
 
 	ssoClient := sso.NewFromConfig(*cfg)
 
