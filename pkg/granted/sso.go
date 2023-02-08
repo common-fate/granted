@@ -61,12 +61,6 @@ var GenerateCommand = cli.Command{
 
 		// end of --region flag behaviour warnings. These can be removed once https://github.com/common-fate/granted/issues/360 is closed.
 
-		var err error
-		region, err = cfaws.ExpandRegion(region)
-		if err != nil {
-			return err
-		}
-
 		g := awsconfigfile.Generator{
 			Output:              os.Stdout,
 			Config:              ini.Empty(),
@@ -155,11 +149,15 @@ type AWSSSOSource struct {
 }
 
 func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfile, error) {
+	region, err := cfaws.ExpandRegion(s.SSORegion)
+	if err != nil {
+		return nil, err
+	}
+
 	cfg := aws.NewConfig()
-	cfg.Region = s.SSORegion
+	cfg.Region = region
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	ssoToken := secureSSOTokenStorage.GetValidSSOToken(s.StartURL)
-	var err error
 	if ssoToken == nil {
 		ssoToken, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, s.StartURL)
 		if err != nil {
@@ -204,7 +202,7 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 				for _, role := range listAccountRolesOutput.RoleList {
 					ssoProfiles = append(ssoProfiles, awsconfigfile.SSOProfile{
 						SSOStartURL:   s.StartURL,
-						SSORegion:     s.SSORegion,
+						SSORegion:     region,
 						AccountID:     *role.AccountId,
 						AccountName:   *account.AccountName,
 						RoleName:      *role.RoleName,
