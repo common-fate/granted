@@ -19,7 +19,7 @@ require (
 
 require (
 	github.com/alvaroloes/enumer v1.1.2
-	github.com/common-fate/cli v0.0.0-20230208150501-80d1cf4b0be9
+	github.com/common-fate/cli v0.0.0-20230208161921-36b42145ae73
 	github.com/common-fate/clio v1.1.0
 	github.com/fatih/color v1.13.0
 	gopkg.in/yaml.v3 v3.0.1
