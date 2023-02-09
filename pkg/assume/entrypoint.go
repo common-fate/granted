@@ -10,6 +10,7 @@ import (
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/useragent"
 	"github.com/urfave/cli/v2"
 )
 
@@ -49,16 +50,16 @@ func GetCliApp() *cli.App {
 	}
 
 	app := &cli.App{
-		Name:                 	"assume",
-		Writer:               	os.Stderr,
-		Usage:                	"https://granted.dev",
-		UsageText:            	"assume [options][Profile]",
-		Version:              	build.Version,
-		HideVersion:          	false,
-		Flags:                	GlobalFlags(),
-		Action:               	AssumeCommand,
-		EnableBashCompletion: 	true,
-		BashComplete:         	Completion,
+		Name:                 "assume",
+		Writer:               os.Stderr,
+		Usage:                "https://granted.dev",
+		UsageText:            "assume [options][Profile]",
+		Version:              build.Version,
+		HideVersion:          false,
+		Flags:                GlobalFlags(),
+		Action:               AssumeCommand,
+		EnableBashCompletion: true,
+		BashComplete:         Completion,
 		Before: func(c *cli.Context) error {
 
 			// unsets the exported env vars
@@ -110,6 +111,9 @@ func GetCliApp() *cli.App {
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
 				return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
 			}
+
+			// set the user agent
+			c.Context = useragent.NewContext(c.Context, "granted", build.Version)
 
 			return nil
 		},
