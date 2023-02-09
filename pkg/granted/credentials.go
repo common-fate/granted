@@ -244,7 +244,7 @@ func promptCredentials() (credentials aws.Credentials, err error) {
 	if err != nil {
 		return
 	}
-	in2 := survey.Password{Message: "Secret Sccess Key:"}
+	in2 := survey.Password{Message: "Secret Access Key:"}
 	err = testable.AskOne(&in2, &credentials.SecretAccessKey)
 	if err != nil {
 		return
