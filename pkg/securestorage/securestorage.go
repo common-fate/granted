@@ -169,3 +169,8 @@ func (s *SecureStorage) openKeyring() (keyring.Keyring, error) {
 
 	return k, nil
 }
+
+// Keyring returns the underlying keyring associated with the storage.
+func (s *SecureStorage) Keyring() (keyring.Keyring, error) {
+	return s.openKeyring()
+}

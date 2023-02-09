@@ -9,6 +9,8 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"github.com/common-fate/awsconfigfile"
+	"github.com/common-fate/cli/pkg/client"
+	cfconfig "github.com/common-fate/cli/pkg/config"
 	"github.com/common-fate/cli/pkg/profilesource"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
@@ -77,7 +79,11 @@ var GenerateCommand = cli.Command{
 			case "aws-sso":
 				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
 			case "commonfate", "common-fate", "cf":
-				g.AddSource(profilesource.Source{SSORegion: region, StartURL: startURL, LoginCommand: "granted login"})
+				ps, err := getCFProfileSource(ctx, region, startURL)
+				if err != nil {
+					return err
+				}
+				g.AddSource(ps)
 			default:
 				return fmt.Errorf("unknown profile source %s: allowed sources are aws-sso, commonfate", s)
 			}
@@ -163,7 +169,11 @@ var PopulateCommand = cli.Command{
 			case "aws-sso":
 				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
 			case "commonfate", "common-fate", "cf":
-				g.AddSource(profilesource.Source{SSORegion: region, StartURL: startURL, LoginCommand: "granted login"})
+				ps, err := getCFProfileSource(ctx, region, startURL)
+				if err != nil {
+					return err
+				}
+				g.AddSource(ps)
 			default:
 				return fmt.Errorf("unknown profile source %s: allowed sources are aws-sso, commonfate", s)
 			}
@@ -180,6 +190,29 @@ var PopulateCommand = cli.Command{
 
 		return nil
 	},
+}
+
+func getCFProfileSource(ctx context.Context, region, startURL string) (profilesource.Source, error) {
+	kr, err := securestorage.NewCF().Storage.Keyring()
+	if err != nil {
+		return profilesource.Source{}, err
+	}
+
+	cfg, err := cfconfig.Load()
+	if err != nil {
+		return profilesource.Source{}, err
+	}
+
+	cf, err := client.FromConfig(ctx, cfg,
+		client.WithKeyring(kr),
+		client.WithLoginHint("granted login"),
+	)
+	if err != nil {
+		return profilesource.Source{}, err
+	}
+
+	ps := profilesource.Source{SSORegion: region, StartURL: startURL, Client: cf, DashboardURL: cfg.CurrentOrEmpty().DashboardURL}
+	return ps, nil
 }
 
 type AWSSSOSource struct {

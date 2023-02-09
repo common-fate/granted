@@ -51,8 +51,8 @@ github.com/aws/smithy-go v1.13.5/go.mod h1:Tg+OJXh4MB2R/uN61Ko2f6hTZwB/ZYGOtib8J
 github.com/benbjohnson/clock v1.3.0 h1:ip6w0uFQkncKQ979AypyG0ER7mqUSBdKLOgAle/AT8A=
 github.com/common-fate/awsconfigfile v0.7.0 h1:BxmR5Sm6z5ykifLkuuv00gnl0Inspnac3ZfsDaAMMiw=
 github.com/common-fate/awsconfigfile v0.7.0/go.mod h1:VJibjDtrFRus19rO29z1i5lN0yi7dREk//69YRjKm/M=
-github.com/common-fate/cli v0.0.0-20230208161921-36b42145ae73 h1:gV2mZrxeqC03vAFrsMZWpNAKYYge3Ivrxyyb+QUOS9g=
-github.com/common-fate/cli v0.0.0-20230208161921-36b42145ae73/go.mod h1:cqfBk3g/NZlFQmaNWdWPXmy/z2FLoskVKCaCPcj4enQ=
+github.com/common-fate/cli v0.0.0-20230209172452-3192a69fe5c8 h1:YEU9Pj1wUuNb3hI7JTfgPk7QInNYTrMMQsbnCxnO+Po=
+github.com/common-fate/cli v0.0.0-20230209172452-3192a69fe5c8/go.mod h1:cqfBk3g/NZlFQmaNWdWPXmy/z2FLoskVKCaCPcj4enQ=
 github.com/common-fate/clio v1.1.0 h1:M5fyMuYHjB+qODYbl0IGT28SBiokxsIlxluUVnD8cOQ=
 github.com/common-fate/clio v1.1.0/go.mod h1:BYm9XmDIsmpQQdw+xbhQO5hbpUhH03Lk6gQmQ6Wpu1k=
 github.com/common-fate/common-fate v0.12.3-0.20230208005027-91f4ddb01978 h1:r2X0Oa/gMedqxqNfQtH0aQxBJxPw744c+kL3auww/Wo=

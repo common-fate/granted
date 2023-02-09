@@ -9,7 +9,9 @@ import (
 	"github.com/common-fate/granted/pkg/granted/middleware"
 	"github.com/common-fate/granted/pkg/granted/registry"
 	"github.com/common-fate/granted/pkg/granted/settings"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/useragent"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -42,7 +44,7 @@ func GetCliApp() *cli.App {
 			middleware.WithBeforeFuncs(&CredentialProcess, middleware.WithAutosync()),
 			&registry.ProfileRegistryCommand,
 			&ConsoleCommand,
-			&command.Login,
+			&login,
 		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
@@ -61,4 +63,20 @@ func GetCliApp() *cli.App {
 	}
 
 	return app
+}
+
+var login = cli.Command{
+	Name:  "login",
+	Usage: "Log in to Common Fate",
+	Action: func(c *cli.Context) error {
+		k, err := securestorage.NewCF().Storage.Keyring()
+		if err != nil {
+			return errors.Wrap(err, "loading keyring")
+		}
+
+		// wrap the nested CLI command with the keyring
+		lf := command.LoginFlow{Keyring: k}
+
+		return lf.LoginAction(c)
+	},
 }
