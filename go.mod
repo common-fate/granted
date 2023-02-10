@@ -18,7 +18,7 @@ require (
 )
 
 require (
-	github.com/common-fate/cli v0.0.0-20230209172452-3192a69fe5c8
+	github.com/common-fate/cli v0.0.0-20230210001518-d5b690a993c0
 	github.com/common-fate/clio v1.1.0
 	github.com/fatih/color v1.13.0
 	gopkg.in/yaml.v3 v3.0.1
