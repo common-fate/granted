@@ -9,6 +9,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"github.com/common-fate/awsconfigfile"
+	"github.com/common-fate/cli/cmd/command"
 	"github.com/common-fate/cli/pkg/client"
 	cfconfig "github.com/common-fate/cli/pkg/config"
 	"github.com/common-fate/cli/pkg/profilesource"
@@ -79,7 +80,7 @@ var GenerateCommand = cli.Command{
 			case "aws-sso":
 				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
 			case "commonfate", "common-fate", "cf":
-				ps, err := getCFProfileSource(ctx, region, startURL)
+				ps, err := getCFProfileSource(c, region, startURL)
 				if err != nil {
 					return err
 				}
@@ -169,7 +170,7 @@ var PopulateCommand = cli.Command{
 			case "aws-sso":
 				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
 			case "commonfate", "common-fate", "cf":
-				ps, err := getCFProfileSource(ctx, region, startURL)
+				ps, err := getCFProfileSource(c, region, startURL)
 				if err != nil {
 					return err
 				}
@@ -192,10 +193,19 @@ var PopulateCommand = cli.Command{
 	},
 }
 
-func getCFProfileSource(ctx context.Context, region, startURL string) (profilesource.Source, error) {
+func getCFProfileSource(c *cli.Context, region, startURL string) (profilesource.Source, error) {
 	kr, err := securestorage.NewCF().Storage.Keyring()
 	if err != nil {
 		return profilesource.Source{}, err
+	}
+
+	// login if the CF API isn't configured
+	if !cfconfig.IsConfigured() {
+		lf := command.LoginFlow{Keyring: kr, ForceInteractive: true}
+		err = lf.LoginAction(c)
+		if err != nil {
+			return profilesource.Source{}, err
+		}
 	}
 
 	cfg, err := cfconfig.Load()
@@ -203,7 +213,7 @@ func getCFProfileSource(ctx context.Context, region, startURL string) (profileso
 		return profilesource.Source{}, err
 	}
 
-	cf, err := client.FromConfig(ctx, cfg,
+	cf, err := client.FromConfig(c.Context, cfg,
 		client.WithKeyring(kr),
 		client.WithLoginHint("granted login"),
 	)

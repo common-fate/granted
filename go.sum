@@ -51,6 +51,14 @@ github.com/common-fate/awsconfigfile v0.7.0 h1:BxmR5Sm6z5ykifLkuuv00gnl0Inspnac3
 github.com/common-fate/awsconfigfile v0.7.0/go.mod h1:VJibjDtrFRus19rO29z1i5lN0yi7dREk//69YRjKm/M=
 github.com/common-fate/cli v0.0.0-20230209172452-3192a69fe5c8 h1:YEU9Pj1wUuNb3hI7JTfgPk7QInNYTrMMQsbnCxnO+Po=
 github.com/common-fate/cli v0.0.0-20230209172452-3192a69fe5c8/go.mod h1:cqfBk3g/NZlFQmaNWdWPXmy/z2FLoskVKCaCPcj4enQ=
+github.com/common-fate/cli v0.0.0-20230209234534-f4e04d792cad h1:1AuR1MOwwm/M7lVemLnnADHrwufMYmX+e6MMBuUr7YY=
+github.com/common-fate/cli v0.0.0-20230209234534-f4e04d792cad/go.mod h1:cqfBk3g/NZlFQmaNWdWPXmy/z2FLoskVKCaCPcj4enQ=
+github.com/common-fate/cli v0.0.0-20230210000915-c907266bfe06 h1:LHMocOQb9mO+Q+KOgBHnAgjjWLzno9NZy7gZoSgMwG8=
+github.com/common-fate/cli v0.0.0-20230210000915-c907266bfe06/go.mod h1:cqfBk3g/NZlFQmaNWdWPXmy/z2FLoskVKCaCPcj4enQ=
+github.com/common-fate/cli v0.0.0-20230210001131-67d96f48bf85 h1:X2BipTmysDEsQ+DF8aufrmXbYVI9Q2VQDmcmdDSp3+E=
+github.com/common-fate/cli v0.0.0-20230210001131-67d96f48bf85/go.mod h1:cqfBk3g/NZlFQmaNWdWPXmy/z2FLoskVKCaCPcj4enQ=
+github.com/common-fate/cli v0.0.0-20230210001518-d5b690a993c0 h1:RKd/JCArag2tDenHUr/n9MlL+2FabvyWSvIHCLjqBYY=
+github.com/common-fate/cli v0.0.0-20230210001518-d5b690a993c0/go.mod h1:cqfBk3g/NZlFQmaNWdWPXmy/z2FLoskVKCaCPcj4enQ=
 github.com/common-fate/clio v1.1.0 h1:M5fyMuYHjB+qODYbl0IGT28SBiokxsIlxluUVnD8cOQ=
 github.com/common-fate/clio v1.1.0/go.mod h1:BYm9XmDIsmpQQdw+xbhQO5hbpUhH03Lk6gQmQ6Wpu1k=
 github.com/common-fate/common-fate v0.12.3-0.20230208005027-91f4ddb01978 h1:r2X0Oa/gMedqxqNfQtH0aQxBJxPw744c+kL3auww/Wo=
