@@ -157,12 +157,18 @@ var PopulateCommand = cli.Command{
 			config = ini.Empty()
 		}
 
+		var pruneStartURLs []string
+
+		if c.Bool("prune") {
+			pruneStartURLs = []string{startURL}
+		}
+
 		g := awsconfigfile.Generator{
 			Config:              config,
 			ProfileNameTemplate: c.String("profile-template"),
 			NoCredentialProcess: c.Bool("no-credential-process"),
 			Prefix:              c.String("prefix"),
-			Prune:               c.Bool("prune"),
+			PruneStartURLs:      pruneStartURLs,
 		}
 
 		for _, s := range c.StringSlice("source") {
