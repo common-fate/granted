@@ -62,7 +62,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/iam v1.18.25
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.10 // indirect
 	github.com/aws/smithy-go v1.13.5
-	github.com/common-fate/awsconfigfile v0.7.0
+	github.com/common-fate/awsconfigfile v0.8.0
 	github.com/common-fate/useragent v0.1.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
