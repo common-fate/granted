@@ -28,7 +28,7 @@ func loadCredProcessCreds(ctx context.Context, c *Profile) (aws.Credentials, err
 }
 
 func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
-	// if the profile has parents, then we need to first use credentail process to assume the root profile.
+	// if the profile has parents, then we need to first use credential process to assume the root profile.
 	// then assume each of the chained profiles
 	if len(c.Parents) != 0 {
 		p := c.Parents[0]

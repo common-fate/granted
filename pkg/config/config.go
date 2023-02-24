@@ -28,7 +28,7 @@ type Config struct {
 	// denying access to assume a particular role.
 	AccessRequestURL string `toml:",omitempty"`
 
-	// depricated in favor of ProfileRegistry
+	// deprecated in favor of ProfileRegistry
 	ProfileRegistryURLS []string `toml:",omitempty"`
 	ProfileRegistry     struct {
 		// add any global configuration to profile registry here.

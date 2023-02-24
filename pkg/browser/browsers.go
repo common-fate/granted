@@ -39,7 +39,7 @@ var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program File
 var ChromiumPathWindows = []string{`\Program Files\Chromium\chromium.exe`}
 
 func ChromePathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("google-chrome-stable")
 	if err != nil {
 		path, err = exec.LookPath("google-chrome")
@@ -63,7 +63,7 @@ func ChromePathDefaults() ([]string, error) {
 }
 
 func BravePathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("brave")
 	if err == nil {
 		return []string{path}, nil
@@ -81,7 +81,7 @@ func BravePathDefaults() ([]string, error) {
 }
 
 func EdgePathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("edge")
 	if err == nil {
 		return []string{path}, nil
@@ -99,7 +99,7 @@ func EdgePathDefaults() ([]string, error) {
 }
 
 func FirefoxPathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("firefox")
 	if err == nil {
 		return []string{path}, nil
@@ -117,7 +117,7 @@ func FirefoxPathDefaults() ([]string, error) {
 }
 
 func ChromiumPathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("chromium")
 	if err == nil {
 		return []string{path}, nil

@@ -145,7 +145,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 				return aws.Credentials{}, err
 			}
 			// only print for sub assumes because the final credentials are printed at the end of the assume command
-			// this is here for visibility in to role traversals when assuming a final profile with sso
+			// this is here for visibility into role traversals when assuming a final profile with sso
 			if i < len(toAssume)-1 {
 				durationDescription := durafmt.Parse(time.Until(stsCreds.Expires) * time.Second).LimitFirstN(1).String()
 				clio.Successf("Assumed parent profile: [%s](%s) session credentials will expire %s", p.Name, region, durationDescription)
@@ -185,7 +185,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
 	clio.Info("If the browser does not open automatically, please open this link: " + url)
 
-	//check if sso browser path is set
+	// check if sso browser path is set
 	config, err := grantedConfig.Load()
 	if err != nil {
 		return nil, err
@@ -198,7 +198,7 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 			// fail silently
 			clio.Debug(err.Error())
 		} else {
-			// detatch from this new process because it continues to run
+			// detach from this new process because it continues to run
 			err = cmd.Process.Release()
 			if err != nil {
 				// fail silently

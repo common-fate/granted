@@ -70,7 +70,7 @@ var AddCredentialsCommand = cli.Command{
 	},
 }
 
-// addCredentialProcessToConfigfileProfile creates or updates a profile entry in the aws config file withs a granted credential_process entry
+// addCredentialProcessToConfigfileProfile creates or updates a profile entry in the aws config file with a granted credential_process entry
 // this allows the profile to still work as expected with the AWS cli or other tools using the --profile flag
 //
 //	[profile my-profile]
@@ -283,7 +283,7 @@ var UpdateCredentialsCommand = cli.Command{
 		if !has {
 			return fmt.Errorf("no credentials exist for %s in secure storage. If you wanted to add a new profile, run '%s credentials add'", profileName, build.GrantedBinaryName())
 		}
-		
+
 		credentials, err := promptCredentials()
 		if err != nil {
 			return err
@@ -292,7 +292,6 @@ var UpdateCredentialsCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-
 
 		fmt.Printf("Updated %s in secure storage\n", profileName)
 
@@ -443,7 +442,7 @@ var ExportCredentialsCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			//fetch parsed credentials file
+			// fetch parsed credentials file
 			credentialsFilePath := config.DefaultSharedCredentialsFilename()
 			credentialsFile, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
@@ -484,9 +483,9 @@ var ExportCredentialsCommand = cli.Command{
 			sectionName := "profile " + profileName
 			if section, _ := configFile.GetSection(sectionName); section != nil {
 				if section.HasKey("credential_process") {
-					// if the result of removing the credential process is that the profile has not configuration, then just remove it completely.
+					// if the result of removing the credential process is that the profile has no configuration, then just remove it completely.
 					// the profile in the credential file will suffice
-					// else just remove teh credential process line.
+					// else just remove the credential process line.
 					// this avoids leaving the config file with an empty profile, which appears to be some kind of error when its not
 					if len(section.Keys()) > 1 {
 						section.DeleteKey("credential_process")
@@ -510,9 +509,9 @@ var ExportCredentialsCommand = cli.Command{
 }
 
 var RotateCredentialsCommand = cli.Command{
-	Name:      "rotate",
-	Usage:     "Generates new access key for the profile in AWS, and updates the profile",
-	Flags:     []cli.Flag{&cli.StringFlag{Name: "profile", Usage: "If provided, generates new access key for the specified profile"}},
+	Name:  "rotate",
+	Usage: "Generates new access key for the profile in AWS, and updates the profile",
+	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Usage: "If provided, generates new access key for the specified profile"}},
 	Action: func(c *cli.Context) error {
 		profileName := c.String("profile")
 
@@ -547,13 +546,13 @@ var RotateCredentialsCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		
+
 		opts := []func(*config.LoadOptions) error{
 			// load the config profile
 			config.WithSharedConfigProfile(profileName),
 		}
-	
-		//load the creds from the credentials file
+
+		// load the creds from the credentials file
 		cfg, err := config.LoadDefaultConfig(c.Context, opts...)
 		if err != nil {
 			return err
@@ -574,10 +573,10 @@ var RotateCredentialsCommand = cli.Command{
 		_, err = iamClient.UpdateAccessKey(c.Context, &iam.UpdateAccessKeyInput{AccessKeyId: &t.AccessKeyID, Status: "Inactive"})
 		if err != nil {
 			return err
-		}	
+		}
 
 		clio.Successf("Access Key of '%s' profile has been successfully rotated and updated in secure storage\n", profileName)
 
-		return nil		
+		return nil
 	},
 }

@@ -190,8 +190,8 @@ func (r Registry) PromptRequiredKeys(passedKeys []string, shouldFailForRequiredK
 
 				// if the required key is missing and the command is called through credential process
 				// then instead of asking for prompt we need to fail the process because
-				// credential process might be used with native AWS CLI command which can't have any thing
-				// in it's STDIO expect the JSON output that AWS credential_process expects.
+				// credential process might be used with native the AWS CLI command which can't have any thing
+				// in its STDIO except the JSON output that AWS credential_process expects.
 				// so fail with warning that there are required keys you need to fill by running granted sync.
 				if shouldFailForRequiredKeys {
 					clio.Errorf("Error syncing registry '%s'. You need to enter value for required key: '%s' before you can preceed.", r.Config.Name, fieldName)

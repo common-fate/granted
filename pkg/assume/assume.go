@@ -67,7 +67,7 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 
-		// save the profile to the AWS config file, if the user requested it.
+		// save the profile to the AWS config file if the user requested it.
 		saveProfileName := assumeFlags.String("save-to")
 		if saveProfileName != "" {
 			configFilename := awsconfig.DefaultSharedConfigFilename()
@@ -148,9 +148,9 @@ func AssumeCommand(c *cli.Context) error {
 
 		// if profile is still "" here, then prompt to select a profile
 		if profileName == "" {
-			// will print a command output for the user so it's easier for them to re run later or learn the commands
+			// will print a command output for the user so it's easier for them to re-run later or learn the commands
 			showRerunCommand = true
-			//load config to check frecency enabled
+			// load config to check frecency enabled
 			cfg, err := config.Load()
 			if err != nil {
 				return err
@@ -221,6 +221,7 @@ func AssumeCommand(c *cli.Context) error {
 			if len(profileKeys) == 0 {
 				return clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
 					clierr.Info("You can add profiles to your AWS config by following our guide: "),
+					// TODO: this is a broken link, where should it point to?
 					clierr.Info("https://granted.dev/awsconfig"),
 				)
 			}
@@ -241,7 +242,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 		// ensure that frecency has finished updating before returning from this function
 		defer wg.Wait()
-		//finally, load the profile and initialise it, this builds the parent tree structure
+		// finally, load the profile and initialise it, this builds the parent tree structure
 		profile, err = profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
 			return err
@@ -266,7 +267,7 @@ func AssumeCommand(c *cli.Context) error {
 
 	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
 
-	//attempt to get session duration from profile
+	// attempt to get session duration from profile
 	if profile.AWSConfig.RoleDurationSeconds != nil {
 		configOpts.Duration = *profile.AWSConfig.RoleDurationSeconds
 	}
@@ -293,7 +294,7 @@ func AssumeCommand(c *cli.Context) error {
 	// depending on how Granted is configured, this is then printed to the terminal or a browser is launched at the URL automatically.
 	getConsoleURL := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
 
-	// this makes it easy for users to copy the actuall command and avoid needing to lookup profiles
+	// this makes it easy for users to copy the actual command and avoid needing to lookup profiles
 	if showRerunCommand {
 		clio.Infof("To assume this profile again later without needing to select it, run this command:\n> assume %s %s", profile.Name, strings.Join(os.Args[1:], " "))
 	}
@@ -316,7 +317,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
-			// tranform the URL into the Firefox Tab Container format.
+			// transform the URL into the Firefox Tab Container format.
 			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", profile.Name, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
 		}
 
@@ -433,7 +434,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
-		// the shell script treats "None" as an emprty string and will not set a value for that positional output
+		// the shell script treats "None" as an empty string and will not set a value for that positional output
 		if assumeFlags.Bool("sso") {
 			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
@@ -460,8 +461,8 @@ func PrepareStringsForShellScript(in []string) []interface{} {
 	return out
 }
 
-// RunExecCommandWithCreds takes in a command, which may be a program and arguments sperated by spaces
-// it splits these then runs the command with teh credentials as the environment.
+// RunExecCommandWithCreds takes in a command, which may be a program and arguments separated by spaces
+// it splits these then runs the command with the credentials as the environment.
 // The output of this is returned via the assume script to stdout so it may be processed further by piping
 func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) error {
 	fmt.Print(assumeprint.SafeOutput(""))

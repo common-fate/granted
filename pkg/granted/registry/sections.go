@@ -170,15 +170,15 @@ func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *i
 	currentProfiles := configFile.SectionStrings()
 	namespace := sectionName
 
-	// iterate each profile section from clonned repo
+	// iterate each profile section from cloned repo
 	// add them to aws config file
-	// if there is collision in the profile names then prefix with namespace.
+	// if there is a collision in the profile names then prefix with namespace.
 	for _, sec := range clonedFile.Sections() {
 		if sec.Name() == ini.DefaultSection {
 			continue
 		}
 
-		// All section that starts with 'profile' prefix will be considered as AWS profile and will be verified
+		// All sections that start with 'profile' prefix will be considered as AWS profiles and will be verified
 		// 1. if they have a correct profile name
 		// 2. if they have duplicate profile names i.e if the new profile name already exists on the aws config file
 		// For any other section, copy the content as it is.

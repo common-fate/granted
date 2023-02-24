@@ -9,7 +9,7 @@ import (
 
 func UnsetAction(c *cli.Context) error {
 	clio.Success("Environment variables cleared")
-	//interacts with scripts to unset all the aws environment variables
+	// interacts with scripts to unset all the aws environment variables
 	fmt.Print("GrantedDesume")
 	return nil
 }

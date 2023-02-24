@@ -62,9 +62,9 @@ type Profiles struct {
 func LoadSSOSessions(configFile *ini.File) (map[string]SSOSession, error) {
 	sessions := make(map[string]SSOSession)
 
-	// Itterate through the config sections
+	// Iterate through the config sections
 	for _, section := range configFile.Sections() {
-		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it and only look at 'default'
 		if strings.HasPrefix(section.Name(), "sso-session ") {
 			session := SSOSession{}
 			regionKey, err := section.GetKey("sso_region")
@@ -87,7 +87,7 @@ func (p *Profiles) HasProfile(profile string) bool {
 
 // if the profile has a "granted_${name}" key, the value is returned. else an empty string
 func (p *Profile) CustomGrantedProperty(name string) string {
-	// rawConfig can be nil when all the required paraments are pass as arguments
+	// rawConfig can be nil when all the required parameters are passed as arguments
 	// like assume --sso --sso_start-url ...
 	if p.RawConfig == nil {
 		return ""
@@ -171,7 +171,7 @@ func (p *Profiles) loadDefaultConfigFile(loader ConfigFileLoader) error {
 	if err != nil {
 		return err
 	}
-	// Itterate through the config sections
+	// Iterate through the config sections
 	for _, section := range configFile.Sections() {
 		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
 		if section.Name() != "DEFAULT" {
@@ -208,13 +208,13 @@ func (p *Profiles) loadDefaultConfigFile(loader ConfigFileLoader) error {
 // aws_secret_access_key = xxxxxx
 // ...
 func (p *Profiles) loadDefaultCredentialsFile(loader ConfigFileLoader) error {
-	//fetch parsed credentials file
+	// fetch parsed credentials file
 	credentialsFile, err := loader.Load()
 	if err != nil {
 		return err
 	}
 	for _, section := range credentialsFile.Sections() {
-		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it and only look at 'default'
 		if section.Name() != "DEFAULT" {
 			// We only care about the non default sections for the credentials file (no profile prefix either)
 			if section.Name() != "default" && IsLegalProfileName(section.Name()) {
@@ -235,7 +235,7 @@ func (p *Profiles) loadDefaultCredentialsFile(loader ConfigFileLoader) error {
 // Helper function which returns true if provided profile name string does not contain illegal characters
 func IsLegalProfileName(name string) bool {
 	illegalProfileNameCharacters := regexp.MustCompile(`[\\[\];'" ]`)
-	illegalChars := `\][;'"` // These characters break the config file format and should not be usable for profile names
+	illegalChars := `\][;'"` // These characters break the config file format and are not allowed for profile names
 	if illegalProfileNameCharacters.MatchString(name) {
 		clio.Warnf("The profile %s cannot be loaded because the name contains one or more of these characters '%s'", name, illegalChars)
 		clio.Infof("Try renaming the profile to '%s'", illegalProfileNameCharacters.ReplaceAllString(name, "-"))
@@ -245,7 +245,7 @@ func IsLegalProfileName(name string) bool {
 }
 
 // InitialiseProfilesTree will initialise all profiles
-// this means that the profile prarent relations are walked and the profile type is determined
+// this means that the profile parent relations are walked and the profile type is determined
 // use this if you need to know the type of every profile in the config
 // for large configuations, this may be expensive
 func (p *Profiles) InitialiseProfilesTree(ctx context.Context) {
@@ -402,7 +402,7 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 	return nil
 }
 
-// Region will attempt to load the reason on this profile, if it is not set,
+// Region will attempt to load the region on this profile, if it is not set,
 // attempt to load the parent if it exists
 // else attempts to use the sso-region
 // else attempts to load the default config

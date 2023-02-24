@@ -59,7 +59,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		return aws.Credentials{}, err
 	}
 
-	//inform the user about using the secure storage to securely store IAM user credentials
+	// inform the user about using the secure storage to securely store IAM user credentials
 	// if it has no parents and it reached this point, it must have had plain text credentials
 	// if it has parents, and the root is not a secure storage iam profile, then it has plain text credentials
 	if len(c.Parents) == 0 || !c.Parents[0].HasSecureStorageIAMCredentials {
@@ -72,7 +72,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 }
 
 // if required will get a FederationToken to be used to launch the console
-// This is required is the iam profile does not assume a role using sts.AssumeRole
+// This is required if the iam profile does not assume a role using sts.AssumeRole
 func (aia *AwsIamAssumer) AssumeConsole(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	if c.AWSConfig.Credentials.SessionToken != "" {
 		clio.Debug("found existing session token in credentials for IAM profile, using this to launch the console")
@@ -108,7 +108,7 @@ var allowAllPolicy = `{
     ]
 }`
 
-// GetFederationToken is used when launching a console session with longlived IAM credentials profiles
+// GetFederationToken is used when launching a console session with long-lived IAM credentials profiles
 // GetFederation token uses an allow all IAM policy so that the console session will be able to access everything
 // If this is not provided, the session cannot do anything in the console
 func getFederationToken(ctx context.Context, c *Profile) (aws.Credentials, error) {
@@ -117,7 +117,7 @@ func getFederationToken(ctx context.Context, c *Profile) (aws.Credentials, error
 		config.WithSharedConfigProfile(c.Name),
 	}
 
-	//load the creds from the credentials file
+	// load the creds from the credentials file
 	cfg, err := config.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
 		return aws.Credentials{}, err

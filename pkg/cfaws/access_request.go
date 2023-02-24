@@ -39,7 +39,7 @@ func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig *ini.Sectio
 	if url != "" {
 		// if we have a request URL, we can prompt the user to make a request by visiting the URL.
 		requestURL := buildRequestURL(url, SSORoleName, SSOAccountId)
-		// need to escape the % symbol in the request url which has been query escaped so that fmt does';t try to substitute it
+		// need to escape the % symbol in the request url which has been query escaped so that fmt doesn't try to substitute it
 		cliError.Messages = append(cliError.Messages, clierr.Warn("You need to request access to this role:"), clierr.Warn(requestURL))
 		return cliError
 	}

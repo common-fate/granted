@@ -21,7 +21,7 @@ import (
 
 // Checks the config to see if the user has already set up their default browser
 func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
-	//just check the config file for the default browser efield
+	// just check the config file for the default browser field
 	conf, err := config.Load()
 	if err != nil {
 		return false, err
@@ -31,7 +31,7 @@ func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
 	if conf.DefaultBrowser == StdoutKey || conf.DefaultBrowser == FirefoxStdoutKey {
 		return true, nil
 	}
-	// Due to a change in the behaviour of the browser detection , this is here to migrate existing users who have already configured granted
+	// Due to a change in the behaviour of the browser detection, this is here to migrate existing users who have already configured granted
 	// The change is that the browser path will be saved in the config along with the browser type for all installations, except the Stdout browser types
 	// This can be removed in a future version of granted, when everyone is expected to have migrated
 	if conf.DefaultBrowser != "" && conf.CustomBrowserPath == "" {
@@ -45,7 +45,7 @@ func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
 }
 
 func HandleManualBrowserSelection() (string, error) {
-	//didn't find it request manual input
+	// didn't find it, request manual input
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
@@ -165,6 +165,7 @@ func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 	clio.Warn("Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://docs.commonfate.io/granted/introduction#supported-browsers). You can change this setting later by running 'granted browser set'")
 	in := survey.Confirm{
 		Message: "Use Firefox as default Granted browser?",
+		Default: true,
 	}
 	var confirm bool
 	err = testable.AskOne(&in, &confirm, withStdio)
@@ -184,7 +185,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	title := cases.Title(language.AmericanEnglish)
 	browserTitle := title.String(strings.ToLower(browserKey))
-	// We allow users to configure a custom install path is we cannot detect the installation
+	// We allow users to configure a custom install path if we cannot detect the installation
 	browserPath := path
 	// detect installation
 	if browserKey != FirefoxStdoutKey && browserKey != StdoutKey {
@@ -225,7 +226,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 			}
 		}
 	}
-	//save the detected browser as the default
+	// save the detected browser as the default
 	conf, err := config.Load()
 	if err != nil {
 		return err
@@ -264,7 +265,7 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 	if err != nil {
 		return err
 	}
-	//save the detected browser as the default
+	// save the detected browser as the default
 	conf, err := config.Load()
 	if err != nil {
 		return err
