@@ -37,7 +37,7 @@ func GetCredentialsCreds(ctx context.Context, c *Profile) (aws.Credentials, erro
 	// check to see if the creds are already exported
 	creds, _ := aws.NewCredentialsCache(&CredProv{Credentials: c.AWSConfig.Credentials}).Retrieve(ctx)
 
-	//c heck creds are valid - return them if they are
+	// check creds are valid - return them if they are
 	if creds.HasKeys() && !creds.Expired() {
 		cfg := aws.NewConfig()
 		cfg.Credentials = &CredProv{Credentials: c.AWSConfig.Credentials}
