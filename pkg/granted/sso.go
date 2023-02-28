@@ -243,7 +243,7 @@ var LoginCommand = cli.Command{
 
 			secureSSOTokenStorage.StoreSSOToken(ssoStartUrl, *newSSOToken)
 		} else {
-			clio.Info("Using cached token")
+			clio.Info("Cached token found. Aborting SSO authentication flow.")
 			return nil
 		}
 		clio.Info("Successfully authenticated using sso")
