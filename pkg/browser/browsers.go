@@ -9,12 +9,13 @@ import (
 // A browser supported by Granted.
 const (
 	ChromeKey        string = "CHROME"
-	FirefoxKey       string = "FIREFOX"
-	FirefoxStdoutKey string = "FIREFOX_STDOUT"
-	EdgeKey          string = "EDGE"
 	BraveKey         string = "BRAVE"
-	StdoutKey        string = "STDOUT"
+	EdgeKey          string = "EDGE"
+	FirefoxKey       string = "FIREFOX"
 	ChromiumKey      string = "CHROMIUM"
+	SafariKey        string = "SAFARI"
+	StdoutKey        string = "STDOUT"
+	FirefoxStdoutKey string = "FIREFOX_STDOUT"
 )
 
 // A few default paths to check for the browser
@@ -37,6 +38,8 @@ var FirefoxPathWindows = []string{`\Program Files\Mozilla Firefox\firefox.exe`}
 var ChromiumPathMac = []string{"/Applications/Chromium.app/Contents/MacOS/Chromium"}
 var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program Files/Chromium/chromium.exe`}
 var ChromiumPathWindows = []string{`\Program Files\Chromium\chromium.exe`}
+
+var SafariPathMac = []string{"/Applications/Safari.app/Contents/MacOS/Safari"}
 
 func ChromePathDefaults() ([]string, error) {
 	//check linuxpath for binary install
@@ -129,6 +132,15 @@ func ChromiumPathDefaults() ([]string, error) {
 		return ChromiumPathMac, nil
 	case "linux":
 		return ChromiumPathLinux, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
+func SafariPathDefaults() ([]string, error) {
+	switch runtime.GOOS {
+	case "darwin":
+		return SafariPathMac, nil
 	default:
 		return nil, errors.New("os not supported")
 	}
