@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
@@ -17,6 +18,7 @@ import (
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/securestorage"
+	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/ini.v1"
 )
@@ -24,7 +26,7 @@ import (
 var SSOCommand = cli.Command{
 	Name:        "sso",
 	Usage:       "Manage your local AWS configuration file from information available in AWS SSO",
-	Subcommands: []*cli.Command{&GenerateCommand, &PopulateCommand},
+	Subcommands: []*cli.Command{&GenerateCommand, &PopulateCommand, &LoginCommand},
 }
 
 var GenerateCommand = cli.Command{
@@ -199,33 +201,56 @@ var PopulateCommand = cli.Command{
 	},
 }
 
-// var LoginCommand = cli.Command{
-// 	Name:  "login",
-// 	Usage: "Log in via AWS SSO interactive credential process",
-// 	Flags: []cli.Flag{},
-// 	Action: func(c *cli.Context) error {
-// 		ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
-// 		cfg := aws.NewConfig()
-// 		cfg.Region = rootProfile.AWSConfig.SSORegion
+var LoginCommand = cli.Command{
+	Name:  "login",
+	Usage: "Log in via AWS SSO interactive credential process",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
+		&cli.StringFlag{Name: "sso-start-url", Usage: "Specify the SSO start url"},
+	},
+	Action: func(c *cli.Context) error {
+		ctx := c.Context
+		ssoStartUrl := c.String("sso-start-url")
 
-// 		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
-// 		cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
-// 		var accessToken *string
+		if ssoStartUrl == "" {
+			in1 := survey.Input{Message: "SSO Start Url"}
+			err := testable.AskOne(&in1, &ssoStartUrl)
+			if err != nil {
+				return err
+			}
+		}
 
-// 		if cachedToken == nil {
-// 			newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
-// 			if err != nil {
-// 				return aws.Credentials{}, err
-// 			}
+		ssoRegion := c.String("sso-region")
+		if ssoRegion == "" {
+			in2 := survey.Input{Message: "Region"}
+			err := testable.AskOne(&in2, &ssoRegion)
+			if err != nil {
+				return err
+			}
+		}
 
-// 			secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *newSSOToken)
-// 			accessToken = &newSSOToken.AccessToken
-// 		} else {
-// 			accessToken = &cachedToken.AccessToken
-// 		}
-// 		return nil
-// 	},
-// }
+		cfg := aws.NewConfig()
+		cfg.Region = ssoRegion
+
+		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+		cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoStartUrl)
+
+		if cachedToken == nil {
+			newSSOToken, err := cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, ssoStartUrl)
+			if err != nil {
+				return err
+			}
+
+			secureSSOTokenStorage.StoreSSOToken(ssoStartUrl, *newSSOToken)
+		} else {
+			clio.Info("Using cached token")
+			return nil
+		}
+		clio.Info("Successfully authenticated using sso")
+
+		return nil
+	},
+}
 
 func getCFProfileSource(c *cli.Context, region, startURL string) (profilesource.Source, error) {
 	kr, err := securestorage.NewCF().Storage.Keyring()
