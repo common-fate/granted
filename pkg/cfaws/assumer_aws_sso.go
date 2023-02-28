@@ -65,7 +65,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	var accessToken *string
 	//Dont try device flow if using granted credential process
 	if cachedToken == nil && configOpts.UsingCredentialProcess {
-		return aws.Credentials{}, errors.New("no sso token found. run 'granted sso login'")
+		return aws.Credentials{}, errors.New("error when retrieving credentials from custom process. please login using 'granted sso login'")
 	}
 	if cachedToken == nil {
 		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)

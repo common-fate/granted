@@ -199,6 +199,34 @@ var PopulateCommand = cli.Command{
 	},
 }
 
+// var LoginCommand = cli.Command{
+// 	Name:  "login",
+// 	Usage: "Log in via AWS SSO interactive credential process",
+// 	Flags: []cli.Flag{},
+// 	Action: func(c *cli.Context) error {
+// 		ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
+// 		cfg := aws.NewConfig()
+// 		cfg.Region = rootProfile.AWSConfig.SSORegion
+
+// 		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+// 		cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
+// 		var accessToken *string
+
+// 		if cachedToken == nil {
+// 			newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
+// 			if err != nil {
+// 				return aws.Credentials{}, err
+// 			}
+
+// 			secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *newSSOToken)
+// 			accessToken = &newSSOToken.AccessToken
+// 		} else {
+// 			accessToken = &cachedToken.AccessToken
+// 		}
+// 		return nil
+// 	},
+// }
+
 func getCFProfileSource(c *cli.Context, region, startURL string) (profilesource.Source, error) {
 	kr, err := securestorage.NewCF().Storage.Keyring()
 	if err != nil {
