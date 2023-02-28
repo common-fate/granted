@@ -144,7 +144,6 @@ func DetectInstallation(browserKey string) (string, bool) {
 	default:
 		return "", false
 	}
-	clio.Infof("err: %s", browserKey)
 	if len(bPath) == 0 {
 		return "", false
 	}
