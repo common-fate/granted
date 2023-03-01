@@ -20,8 +20,9 @@ import (
 )
 
 type ConfigOpts struct {
-	Duration time.Duration
-	Args     []string
+	UsingCredentialProcess bool
+	Duration               time.Duration
+	Args                   []string
 }
 
 type SSOSession struct {

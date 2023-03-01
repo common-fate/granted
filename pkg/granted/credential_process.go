@@ -43,7 +43,7 @@ var CredentialProcess = cli.Command{
 			duration = *profile.AWSConfig.RoleDurationSeconds
 		}
 
-		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration})
+		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true})
 		if err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ package cfaws
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os/exec"
 	"time"
@@ -63,6 +64,21 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
 	var accessToken *string
+	//Dont try device flow if using granted credential process
+	if cachedToken == nil && configOpts.UsingCredentialProcess {
+		cmd := "granted sso login"
+		startURL := c.AWSConfig.SSOStartURL
+		if startURL != "" {
+			cmd += " --sso-start-url " + startURL
+		}
+
+		region := c.AWSConfig.SSORegion
+		if region != "" {
+			cmd += " --sso-region " + region
+		}
+
+		return aws.Credentials{}, fmt.Errorf("error when retrieving credentials from custom process. please login using '%s'", cmd)
+	}
 	if cachedToken == nil {
 		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
 		if err != nil {
