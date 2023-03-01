@@ -233,20 +233,15 @@ var LoginCommand = cli.Command{
 		cfg.Region = ssoRegion
 
 		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
-		cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoStartUrl)
 
-		if cachedToken == nil {
-			newSSOToken, err := cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, ssoStartUrl)
-			if err != nil {
-				return err
-			}
-
-			secureSSOTokenStorage.StoreSSOToken(ssoStartUrl, *newSSOToken)
-		} else {
-			clio.Info("Cached token found. Aborting SSO authentication flow.")
-			return nil
+		newSSOToken, err := cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, ssoStartUrl)
+		if err != nil {
+			return err
 		}
-		clio.Info("Successfully authenticated using sso")
+
+		secureSSOTokenStorage.StoreSSOToken(ssoStartUrl, *newSSOToken)
+
+		clio.Successf("Successfully logged into Start URL: %s", ssoStartUrl)
 
 		return nil
 	},
