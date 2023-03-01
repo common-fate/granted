@@ -27,7 +27,7 @@ type Process struct {
 }
 
 // New creates a new Process with the current user's user and group ID.
-// Call Start() on the returned process to actually it.
+// Call Start() on the returned process to actually start it.
 func New(args ...string) (*Process, error) {
 	u, err := user.Current()
 	if err != nil {

@@ -64,24 +64,24 @@ var ListSSOTokensCommand = cli.Command{
 }
 
 var TokenExpiryCommand = cli.Command{
-	Name:        "expiry",
-	Usage:       "Lists expiry status for all access tokens saved in the keyring",
-	Flags: 		 []cli.Flag{&cli.StringFlag{Name: "url", Usage: "If provided, prints the expiry of the token for the specific SSO URL"}},
+	Name:  "expiry",
+	Usage: "Lists expiry status for all access tokens saved in the keyring",
+	Flags: []cli.Flag{&cli.StringFlag{Name: "url", Usage: "If provided, prints the expiry of the token for the specific SSO URL"}},
 	Action: func(ctx *cli.Context) error {
 		url := ctx.String("url")
-		
-		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()		
 
-		if url != ""{			
+		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+
+		if url != "" {
 			token := secureSSOTokenStorage.GetValidSSOToken(url)
 
 			var expiry string
-			if token == nil{
+			if token == nil {
 				return errors.New("SSO token is expired")
 			}
-			expiry = token.Expiry.Local().Format(time.RFC3339)			
+			expiry = token.Expiry.Local().Format(time.RFC3339)
 			fmt.Println(expiry)
-				
+
 			return nil
 		}
 
@@ -106,10 +106,10 @@ var TokenExpiryCommand = cli.Command{
 			token := secureSSOTokenStorage.GetValidSSOToken(key)
 
 			var expiry string
-			if token == nil{
+			if token == nil {
 				expiry = "EXPIRED"
-			}else {
-				expiry = token.Expiry.Local().Format(time.RFC3339)			
+			} else {
+				expiry = token.Expiry.Local().Format(time.RFC3339)
 			}
 
 			clio.Logf("%-*s (%s) expires at: %s", max, key, strings.Join(startUrlMap[key], ", "), expiry)
@@ -118,9 +118,9 @@ var TokenExpiryCommand = cli.Command{
 	},
 }
 
-// granted token -> lists all tick
-// granted token list -> lists all tick
-// granted token clear -> prompts for selection // promt confirm?
+// granted token -> lists all tokens
+// granted token list -> lists all tokens
+// granted token clear -> prompts for selection // prompt confirm?
 // granted token clear --all or -a -> clear all
 // granted token clear profilename -> clear profile
 // granted token clear profilename --confirm -> skip confirm prompt

@@ -90,7 +90,7 @@ func runSync(r *Registry, configFile *ini.File, configFilePath string, opts sync
 		return err
 	}
 
-	// If the local repo has been deleted, then attem	pt to clone it again
+	// If the local repo has been deleted, then attempt to clone it again
 	_, err = os.Stat(repoDirPath)
 	if os.IsNotExist(err) {
 		err = gitClone(r.Config.URL, repoDirPath)
@@ -136,10 +136,10 @@ func runSync(r *Registry, configFile *ini.File, configFilePath string, opts sync
 }
 
 // when there is new duplication when running sync command
-// and if user choses to duplicate then currenlty the config is not saved to gconfig.
+// and if user chooses to duplicate then currently the config is not saved to gconfig.
 
 // Sync function will load all the configs provided in the clonedFile.
-// and generated a new section in the ~/.aws/profile file.
+// and generate a new section in the ~/.aws/profile file.
 func Sync(r *Registry, awsConfigFile *ini.File, opts syncOpts) error {
 	clio.Debugf("syncing %s \n", r.Config.Name)
 
@@ -153,7 +153,7 @@ func Sync(r *Registry, awsConfigFile *ini.File, opts syncOpts) error {
 		return err
 	}
 
-	// return custom error that should be catched and skipped.
+	// return custom error that should be caught and skipped.
 	err = generateNewRegistrySection(r, awsConfigFile, clonedFile, gconf, opts)
 	if err != nil {
 		return &SyncError{

@@ -23,7 +23,7 @@ func TestValidateCredentialProcess(t *testing.T) {
 			name:        "valid argument with incorrect profile name",
 			arg:         "granted credential-process --profile abc",
 			profileName: "develop",
-			wantErr:     "unmatched profile names. The profile name 'abc' provided to 'granted credential-process' doesnot match AWS profile name 'develop'",
+			wantErr:     "unmatched profile names. The profile name 'abc' provided to 'granted credential-process' does not match AWS profile name 'develop'",
 		},
 		{
 			name:        "invalid argument",

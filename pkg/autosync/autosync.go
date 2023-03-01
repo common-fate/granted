@@ -9,7 +9,7 @@ import (
 
 // shouldFailForRequiredKeys when true will fail the profile registry sync
 // in case where user specific values that are defined in granted.yml's `templateValues` are not available.
-// this is done so that users are aware of required keys when granted credential-process is used thorugh AWS CLI.
+// this is done so that users are aware of required keys when granted's credential-process is used through the AWS CLI.
 func Run(shouldFailForRequiredKeys bool) {
 	if registry.IsOutdatedConfig() {
 		clio.Warn("Outdated Profile Registry Configuration. Use `granted registry migrate` to update your configuration.")
