@@ -222,7 +222,7 @@ func AssumeCommand(c *cli.Context) error {
 				return clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
 					clierr.Info("You can add profiles to your AWS config by following our guide: "),
 					// TODO: this is a broken link, where should it point to?
-					clierr.Info("https://granted.dev/awsconfig"),
+					clierr.Info("https://docs.commonfate.io/granted/getting-started#set-up-your-aws-profile-file"),
 				)
 			}
 
