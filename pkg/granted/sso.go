@@ -213,7 +213,7 @@ var LoginCommand = cli.Command{
 		ssoStartUrl := c.String("sso-start-url")
 
 		if ssoStartUrl == "" {
-			in1 := survey.Input{Message: "SSO Start Url"}
+			in1 := survey.Input{Message: "SSO Start URL"}
 			err := testable.AskOne(&in1, &ssoStartUrl)
 			if err != nil {
 				return err
