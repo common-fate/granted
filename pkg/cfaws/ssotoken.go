@@ -5,7 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -156,7 +156,7 @@ func ReadCreds() (SSOPlainTextOut, error) {
 				return SSOPlainTextOut{}, err
 			}
 			// read the file
-			data, err := ioutil.ReadAll(f)
+			data, err := io.ReadAll(f)
 			if err != nil {
 				return SSOPlainTextOut{}, err
 			}
