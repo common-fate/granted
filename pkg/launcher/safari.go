@@ -11,3 +11,5 @@ func (l Safari) LaunchCommand(url string, profile string) []string {
 	cmd := browser.OpenCommand()
 	return []string{cmd, "-a", "Safari", url}
 }
+
+func (l Safari) UseForkProcess() bool { return false }

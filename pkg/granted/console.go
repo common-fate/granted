@@ -4,8 +4,10 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"os/exec"
 	"path"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/assume"
 	"github.com/common-fate/granted/pkg/browser"
@@ -95,18 +97,30 @@ var ConsoleCommand = cli.Command{
 				l = launcher.Firefox{
 					ExecutablePath: cfg.CustomBrowserPath,
 				}
+			case browser.SafariKey:
+				l = launcher.Safari{}
 			default:
 				l = launcher.Open{}
 			}
 		}
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
 		args := l.LaunchCommand(consoleURL, con.Profile)
-		cmd, err := forkprocess.New(args...)
-		if err != nil {
-			return err
+
+		var startErr error
+		if l.UseForkProcess() {
+			clio.Debugf("running command using forkprocess: %s", args)
+			cmd, err := forkprocess.New(args...)
+			if err != nil {
+				return err
+			}
+			startErr = cmd.Start()
+		} else {
+			clio.Debugf("running command without forkprocess: %s", args)
+			cmd := exec.Command(args[0], args[1:]...)
+			startErr = cmd.Start()
 		}
-		err = cmd.Start()
-		if err != nil {
+
+		if startErr != nil {
 			return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", err.Error()),
 				// allow them to try open the url manually
 				clierr.Info("You can open the browser session manually using the following url:"),

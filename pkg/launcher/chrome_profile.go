@@ -33,3 +33,5 @@ func chromeProfileName(profile string) string {
 	hash := fmt.Sprint(h.Sum32())
 	return hash
 }
+
+func (l ChromeProfile) UseForkProcess() bool { return true }
