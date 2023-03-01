@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -27,6 +28,8 @@ var SSOCommand = cli.Command{
 	Subcommands: []*cli.Command{&GenerateCommand, &PopulateCommand},
 }
 
+// in dev:
+// go run ./cmd/granted/main.go sso generate --sso-region ap-southeast-2 [url]
 var GenerateCommand = cli.Command{
 	Name:      "generate",
 	Usage:     "Prints an AWS configuration file to stdout with profiles from accounts and roles available in AWS SSO",
@@ -246,23 +249,46 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 	cfg.Region = region
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	ssoToken := secureSSOTokenStorage.GetValidSSOToken(s.StartURL)
+
 	if ssoToken == nil {
-		ssoToken, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, s.StartURL)
-		if err != nil {
-			return nil, err
+		// if there is no valid token in the cache, check in ~/.aws/sso/cahe
+		if cfaws.SsoCredsAreInConfigCache() {
+			creds, err := cfaws.ReadCreds()
+			if err != nil {
+				return nil, err
+			}
+			ssoToken = &securestorage.SSOToken{}
+			ssoToken.AccessToken = creds.AccessToken
+
+			// from iso string to time.Time
+			ssoToken.Expiry, err = time.Parse(time.RFC3339, creds.ExpiresAt)
+			if err != nil {
+				return nil, err
+			}
+			secureSSOTokenStorage.StoreSSOToken(s.StartURL, *ssoToken)
+		} else {
+			// otherwise, login with SSO
+			ssoToken, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, s.StartURL)
+			if err != nil {
+				return nil, err
+			}
+			secureSSOTokenStorage.StoreSSOToken(s.StartURL, *ssoToken)
 		}
 	}
-	secureSSOTokenStorage.StoreSSOToken(s.StartURL, *ssoToken)
 
 	clio.Info("listing available profiles from AWS IAM Identity Center...")
 
 	ssoClient := sso.NewFromConfig(*cfg)
 
-	var ssoProfiles []awsconfigfile.SSOProfile
+	accessToken := ssoToken.AccessToken
 
+	// if the token is nill fetch it from config instead
+	var ssoProfiles []awsconfigfile.SSOProfile
 	listAccountsNextToken := ""
 	for {
-		listAccountsInput := sso.ListAccountsInput{AccessToken: &ssoToken.AccessToken}
+		listAccountsInput := sso.ListAccountsInput{
+			AccessToken: &accessToken,
+		}
 		if listAccountsNextToken != "" {
 			listAccountsInput.NextToken = &listAccountsNextToken
 		}
@@ -276,7 +302,7 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 			listAccountRolesNextToken := ""
 			for {
 				listAccountRolesInput := sso.ListAccountRolesInput{
-					AccessToken: &ssoToken.AccessToken,
+					AccessToken: &accessToken,
 					AccountId:   account.AccountId,
 				}
 				if listAccountRolesNextToken != "" {
