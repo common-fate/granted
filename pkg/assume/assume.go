@@ -41,6 +41,13 @@ import (
 // with each element being an argument. (e.g. []string{"firefox", "--new-tab", "<URL>"})
 type Launcher interface {
 	LaunchCommand(url string, profile string) []string
+	// UseForkProcess returns true if the launcher implementation should call
+	// the forkprocess library.
+	//
+	// For launchers that use 'open' commands, this should be false,
+	// as the forkprocess library causes the following error to appear:
+	// 	fork/exec open: no such file or directory
+	UseForkProcess() bool
 }
 
 func AssumeCommand(c *cli.Context) error {
@@ -363,6 +370,8 @@ func AssumeCommand(c *cli.Context) error {
 			l = launcher.Firefox{
 				ExecutablePath: browserPath,
 			}
+		case browser.SafariKey:
+			l = launcher.Safari{}
 		default:
 			l = launcher.Open{}
 		}
@@ -372,12 +381,22 @@ func AssumeCommand(c *cli.Context) error {
 
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
 		args := l.LaunchCommand(consoleURL, con.Profile)
-		cmd, err := forkprocess.New(args...)
-		if err != nil {
-			return err
+
+		var startErr error
+		if l.UseForkProcess() {
+			clio.Debugf("running command using forkprocess: %s", args)
+			cmd, err := forkprocess.New(args...)
+			if err != nil {
+				return err
+			}
+			startErr = cmd.Start()
+		} else {
+			clio.Debugf("running command without forkprocess: %s", args)
+			cmd := exec.Command(args[0], args[1:]...)
+			startErr = cmd.Start()
 		}
-		err = cmd.Start()
-		if err != nil {
+
+		if startErr != nil {
 			return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", err.Error()),
 				// allow them to try open the url manually
 				clierr.Info("You can open the browser session manually using the following url:"),

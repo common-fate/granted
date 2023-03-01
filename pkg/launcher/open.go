@@ -11,3 +11,5 @@ func (l Open) LaunchCommand(url string, profile string) []string {
 	cmd := browser.OpenCommand()
 	return []string{cmd, url}
 }
+
+func (l Open) UseForkProcess() bool { return false }
