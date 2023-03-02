@@ -182,3 +182,27 @@ func ReadPlaintextSsoCreds(startUrl string) (SSOPlainTextOut, error) {
 	}
 	return SSOPlainTextOut{}, fmt.Errorf("no valid sso token found")
 }
+
+func GetValidSSOTokenFromPlaintextCache(startUrl string) *securestorage.SSOToken {
+	if SsoCredsAreInConfigCache() {
+		creds, err := ReadPlaintextSsoCreds(startUrl)
+		if err != nil {
+			return nil
+		}
+		var ssoPlaintextOutput securestorage.SSOToken
+		ssoPlaintextOutput.AccessToken = creds.AccessToken
+
+		// from iso string to time.Time
+		ssoPlaintextOutput.Expiry, err = time.Parse(time.RFC3339, creds.ExpiresAt)
+		if err != nil {
+			return nil
+		}
+		// if it's expired return nil
+		if ssoPlaintextOutput.Expiry.Before(time.Now()) {
+			return nil
+		}
+
+		return &ssoPlaintextOutput
+	}
+	return nil
+}

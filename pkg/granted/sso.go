@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"os"
-	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -248,39 +247,35 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 	cfg := aws.NewConfig()
 	cfg.Region = region
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
-	ssoToken := secureSSOTokenStorage.GetValidSSOToken(s.StartURL)
+	ssoTokenFromSecureCache := secureSSOTokenStorage.GetValidSSOToken(s.StartURL)
+	ssoTokenFromPlainText := cfaws.GetValidSSOTokenFromPlaintextCache(s.StartURL)
 
-	if ssoToken == nil {
-		// if there is no valid token in the cache, check in ~/.aws/sso/cahe
-		if cfaws.SsoCredsAreInConfigCache() {
-			creds, err := cfaws.ReadPlaintextSsoCreds(s.StartURL)
-			if err != nil {
-				return nil, err
-			}
-			ssoToken = &securestorage.SSOToken{}
-			ssoToken.AccessToken = creds.AccessToken
+	// depending on whether creds come from secure storage or ~/.aws/sso/cache, we need to use different access tokens
+	accessToken := ""
 
-			// from iso string to time.Time
-			ssoToken.Expiry, err = time.Parse(time.RFC3339, creds.ExpiresAt)
-			if err != nil {
-				return nil, err
-			}
-			secureSSOTokenStorage.StoreSSOToken(s.StartURL, *ssoToken)
-		} else {
-			// otherwise, login with SSO
-			ssoToken, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, s.StartURL)
-			if err != nil {
-				return nil, err
-			}
-			secureSSOTokenStorage.StoreSSOToken(s.StartURL, *ssoToken)
+	// we also want to store this in the secure cache to prevent subsequent logins
+	if ssoTokenFromPlainText != nil {
+		secureSSOTokenStorage.StoreSSOToken(s.StartURL, *ssoTokenFromPlainText)
+	}
+
+	if ssoTokenFromSecureCache == nil && ssoTokenFromPlainText == nil {
+		// otherwise, login with SSO
+		ssoTokenFromSecureCache, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, s.StartURL)
+		if err != nil {
+			return nil, err
 		}
+		secureSSOTokenStorage.StoreSSOToken(s.StartURL, *ssoTokenFromSecureCache)
+	}
+
+	if ssoTokenFromSecureCache != nil {
+		accessToken = ssoTokenFromSecureCache.AccessToken
+	} else {
+		accessToken = ssoTokenFromPlainText.AccessToken
 	}
 
 	clio.Info("listing available profiles from AWS IAM Identity Center...")
 
 	ssoClient := sso.NewFromConfig(*cfg)
-
-	accessToken := ssoToken.AccessToken
 
 	// if the token is nill fetch it from config instead
 	var ssoProfiles []awsconfigfile.SSOProfile
