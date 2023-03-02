@@ -277,7 +277,7 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 
 	ssoClient := sso.NewFromConfig(*cfg)
 
-	// if the token is nill fetch it from config instead
+	// if the token is nil fetch it from config instead
 	var ssoProfiles []awsconfigfile.SSOProfile
 	listAccountsNextToken := ""
 	for {
