@@ -119,7 +119,7 @@ func SsoCredsAreInConfigCache() bool {
 	return true
 }
 
-func ReadCreds() (SSOPlainTextOut, error) {
+func ReadPlaintextSsoCreds(startUrl string) (SSOPlainTextOut, error) {
 
 	/**
 
@@ -173,7 +173,10 @@ func ReadCreds() (SSOPlainTextOut, error) {
 				if err != nil {
 					return SSOPlainTextOut{}, err
 				}
-				return sso, nil
+				// check if the startUrl matches
+				if sso.StartUrl == startUrl {
+					return sso, nil
+				}
 			}
 		}
 	}

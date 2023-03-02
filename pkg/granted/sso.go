@@ -253,7 +253,7 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 	if ssoToken == nil {
 		// if there is no valid token in the cache, check in ~/.aws/sso/cahe
 		if cfaws.SsoCredsAreInConfigCache() {
-			creds, err := cfaws.ReadCreds()
+			creds, err := cfaws.ReadPlaintextSsoCreds(s.StartURL)
 			if err != nil {
 				return nil, err
 			}
