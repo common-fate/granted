@@ -79,7 +79,7 @@ func GetShellFromShellEnv(shellEnv string) (string, error) {
 		return "zsh", nil
 
 	} else {
-		return "", fmt.Errorf("we couldn't detect your shell type (%s). Please follow the steps at https://granted.dev/shell-alias to assume roles with Granted", shellEnv)
+		return "", fmt.Errorf("we couldn't detect your shell type (%s). Please follow the steps at https://docs.commonfate.io/granted/internals/shell-alias to assume roles with Granted", shellEnv)
 	}
 }
 
