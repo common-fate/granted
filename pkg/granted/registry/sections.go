@@ -302,13 +302,14 @@ func generateNewRegistrySection(r *Registry, configFile *ini.File, clonedFile *i
 	return nil
 }
 
+// copy section content from source profile to destination profile.
 func copySectionContent(r *Registry, s *ini.Section, d *ini.Section) error {
 	for _, key := range s.KeyStrings() {
 		value := s.Key(key).Value()
 
 		// check if the value contains go-template
 		if containsTemplate(value) {
-			output, err := interpolateVariables(r, value, strings.TrimPrefix(s.Name(), "profile "))
+			output, err := interpolateVariables(r, value, strings.TrimPrefix(d.Name(), "profile "))
 			if err != nil {
 				return err
 			}
