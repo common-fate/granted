@@ -12,6 +12,7 @@ import (
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/useragent"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/zap"
 )
 
 // Prevent issues where these flags are initialised in some part of the program then used by another part
@@ -72,6 +73,7 @@ func GetCliApp() *cli.App {
 			}
 
 			clio.SetLevelFromEnv("GRANTED_LOG")
+			zap.ReplaceGlobals(clio.G())
 			if c.Bool("verbose") {
 				clio.SetLevelFromString("debug")
 			}

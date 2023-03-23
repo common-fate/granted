@@ -6,6 +6,7 @@ import (
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/granted/exp"
 	"github.com/common-fate/granted/pkg/granted/middleware"
 	"github.com/common-fate/granted/pkg/granted/registry"
 	"github.com/common-fate/granted/pkg/granted/settings"
@@ -13,6 +14,7 @@ import (
 	"github.com/common-fate/useragent"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/zap"
 )
 
 func GetCliApp() *cli.App {
@@ -45,10 +47,12 @@ func GetCliApp() *cli.App {
 			&registry.ProfileRegistryCommand,
 			&ConsoleCommand,
 			&login,
+			&exp.Command,
 		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			clio.SetLevelFromEnv("GRANTED_LOG")
+			zap.ReplaceGlobals(clio.G())
 			if c.Bool("verbose") {
 				clio.SetLevelFromString("debug")
 			}
