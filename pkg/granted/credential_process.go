@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/urfave/cli/v2"
 )
 
@@ -24,28 +25,45 @@ type awsCredsStdOut struct {
 var CredentialProcess = cli.Command{
 	Name:  "credential-process",
 	Usage: "Exports AWS session credentials for use with AWS CLI credential_process",
-	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}, &cli.StringFlag{Name: "url"}},
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "profile", Required: true},
+		&cli.StringFlag{Name: "url"},
+		&cli.DurationFlag{Name: "window", Value: 15 * time.Minute},
+	},
 	Action: func(c *cli.Context) error {
 
 		profileName := c.String("profile")
-		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+
+		secureSessionCredentialStorage := securestorage.NewSecureSessionCredentialStorage()
+		creds, ok, err := secureSessionCredentialStorage.GetCredentials(profileName)
 		if err != nil {
 			return err
 		}
 
-		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
-		if err != nil {
-			return err
-		}
+		if !ok || (creds.CanExpire && time.Now().After(creds.Expires.Add(-c.Duration("window")))) {
+			profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+			if err != nil {
+				return err
+			}
 
-		duration := time.Hour
-		if profile.AWSConfig.RoleDurationSeconds != nil {
-			duration = *profile.AWSConfig.RoleDurationSeconds
-		}
+			profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
+			if err != nil {
+				return err
+			}
 
-		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true})
-		if err != nil {
-			return err
+			duration := time.Hour
+			if profile.AWSConfig.RoleDurationSeconds != nil {
+				duration = *profile.AWSConfig.RoleDurationSeconds
+			}
+
+			creds, err = profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true})
+			if err != nil {
+				return err
+			}
+
+			if err := secureSessionCredentialStorage.StoreCredentials(profileName, creds); err != nil {
+				return err
+			}
 		}
 
 		out := awsCredsStdOut{
