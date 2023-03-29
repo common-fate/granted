@@ -15,9 +15,9 @@ var SetConfigCommand = cli.Command{
 	Usage: "Set a value in settings",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "setting", Aliases: []string{"s"}, Usage: "The name of a configuration setting, currently only string, int and bool types are supported. e.g 'DisableUsageTips'. For other configuration, set the value using builtin commands or by directly modifying the config file for advanced use cases."},
-		&cli.StringFlag{Name: "string-value"},
-		&cli.BoolFlag{Name: "bool-value"},
-		&cli.IntFlag{Name: "int-value"},
+		&cli.StringFlag{Name: "value-string", Aliases: []string{"vs"}},
+		&cli.BoolFlag{Name: "value-bool", Aliases: []string{"vb"}},
+		&cli.IntFlag{Name: "valie-int", Aliases: []string{"vi"}},
 	},
 	Action: func(c *cli.Context) error {
 		cfg, err := config.Load()
@@ -71,7 +71,7 @@ var SetConfigCommand = cli.Command{
 		var prompt survey.Prompt
 		switch selectedField.ftype.Type.Kind() {
 		case reflect.Bool:
-			if c.Count("bool-value") == 0 {
+			if c.Count("value-bool") == 0 {
 				prompt = &survey.Confirm{
 					Message: fmt.Sprintf("Enter new value for %s:", selectedFieldName),
 					Default: selectedField.fvalue.Bool(),
@@ -81,11 +81,11 @@ var SetConfigCommand = cli.Command{
 					return err
 				}
 			} else {
-				value = c.Bool("bool-value")
+				value = c.Bool("value-bool")
 			}
 
 		case reflect.String:
-			if c.Count("string-value") == 0 {
+			if c.Count("value-string") == 0 {
 				var str string
 				prompt = &survey.Input{
 					Message: fmt.Sprintf("Enter new value for %s:", selectedFieldName),
@@ -97,10 +97,10 @@ var SetConfigCommand = cli.Command{
 				}
 				value = str
 			} else {
-				value = c.String("string-value")
+				value = c.String("value-string")
 			}
 		case reflect.Int:
-			if c.Count("int-value") == 0 {
+			if c.Count("valie-int") == 0 {
 				prompt = &survey.Input{
 					Message: fmt.Sprintf("Enter new value for %s:", selectedFieldName),
 					Default: fmt.Sprintf("%v", selectedField.fvalue.Interface()),
@@ -110,7 +110,7 @@ var SetConfigCommand = cli.Command{
 					return err
 				}
 			} else {
-				value = c.Int("int-value")
+				value = c.Int("valie-int")
 			}
 		}
 
