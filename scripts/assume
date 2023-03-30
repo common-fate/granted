@@ -98,46 +98,6 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   if [ ! "${GRANTED_11}" = "None" ]; then
     export GRANTED_SSO_ACCOUNT_ID="${GRANTED_11}"
   fi
-
-  for GRANTED_var in "$@"
-  do
-    if [[ "$GRANTED_var" == "-s"* ]]; then
-      if [ ! "${GRANTED_1}" = "None" ]; then
-        echo export AWS_ACCESS_KEY_ID="${GRANTED_1}"
-      fi
-      if [ ! "${GRANTED_2}" = "None" ]; then
-        echo export AWS_SECRET_ACCESS_KEY="${GRANTED_2}"
-      fi
-      if [ ! "${GRANTED_3}" = "None" ]; then
-        echo export AWS_SESSION_TOKEN="${GRANTED_3}"
-      fi
-      if [ ! "${GRANTED_4}" = "None" ]; then
-        echo export AWS_PROFILE="${GRANTED_4}"
-      fi
-      if [ ! "${GRANTED_5}" = "None" ]; then
-        echo export AWS_REGION="${GRANTED_5}"
-      fi
-       if [ ! "${GRANTED_6}" = "None" ]; then
-        echo export AWS_SESSION_EXPIRATION="${GRANTED_6}"
-        echo export AWS_CREDENTIAL_EXPIRATION="${GRANTED_6}"
-      fi
-      if [ ! "${GRANTED_7}" = "None" ]; then
-        echo export GRANTED_SSO="${GRANTED_7}"
-      fi
-      if [ ! "${GRANTED_8}" = "None" ]; then
-        echo export GRANTED_SSO_START_URL="${GRANTED_8}"
-      fi
-      if [ ! "${GRANTED_9}" = "None" ]; then
-        echo export GRANTED_SSO_ROLE_NAME="${GRANTED_9}"
-      fi      
-      if [ ! "${GRANTED_10}" = "None" ]; then
-        echo export GRANTED_SSO_REGION="${GRANTED_10}"
-      fi      
-      if [ ! "${GRANTED_11}" = "None" ]; then
-        echo export GRANTED_SSO_ACCOUNT_ID="${GRANTED_11}"
-      fi      
-    fi
-  done
 fi
 
 # Mark: Automatically re-assume when credentials expire.
