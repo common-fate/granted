@@ -7,7 +7,9 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/urfave/cli/v2"
 )
 
@@ -24,28 +26,58 @@ type awsCredsStdOut struct {
 var CredentialProcess = cli.Command{
 	Name:  "credential-process",
 	Usage: "Exports AWS session credentials for use with AWS CLI credential_process",
-	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Required: true}, &cli.StringFlag{Name: "url"}},
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "profile", Required: true},
+		&cli.StringFlag{Name: "url"},
+		&cli.DurationFlag{Name: "window", Value: 15 * time.Minute},
+	},
 	Action: func(c *cli.Context) error {
 
 		profileName := c.String("profile")
-		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+
+		secureSessionCredentialStorage := securestorage.NewSecureSessionCredentialStorage()
+		creds, ok, err := secureSessionCredentialStorage.GetCredentials(profileName)
 		if err != nil {
 			return err
 		}
 
-		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
-		if err != nil {
-			return err
+		var needsRefresh bool
+
+		now := time.Now()
+		refreshTime := creds.Expires.Add(-c.Duration("window"))
+
+		if !ok {
+			clio.Debugw("refreshing credentials", "reason", "not found")
+			needsRefresh = true
+		} else if creds.CanExpire && now.After(refreshTime) {
+			clio.Debugw("refreshing credentials", "reason", "after refresh time", "now", now.String(), "refresh_time", refreshTime.String())
+			needsRefresh = true
 		}
 
-		duration := time.Hour
-		if profile.AWSConfig.RoleDurationSeconds != nil {
-			duration = *profile.AWSConfig.RoleDurationSeconds
-		}
+		if needsRefresh {
+			profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+			if err != nil {
+				return err
+			}
 
-		creds, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true})
-		if err != nil {
-			return err
+			profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
+			if err != nil {
+				return err
+			}
+
+			duration := time.Hour
+			if profile.AWSConfig.RoleDurationSeconds != nil {
+				duration = *profile.AWSConfig.RoleDurationSeconds
+			}
+
+			creds, err = profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true})
+			if err != nil {
+				return err
+			}
+
+			if err := secureSessionCredentialStorage.StoreCredentials(profileName, creds); err != nil {
+				return err
+			}
 		}
 
 		out := awsCredsStdOut{
