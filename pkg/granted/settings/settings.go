@@ -9,6 +9,6 @@ import (
 var SettingsCommand = cli.Command{
 	Name:        "settings",
 	Usage:       "Manage Granted settings",
-	Subcommands: []*cli.Command{&PrintCommand, &ProfileOrderingCommand, &ExportSettingsCommand, &requesturl.Commands},
+	Subcommands: []*cli.Command{&PrintCommand, &ProfileOrderingCommand, &ExportSettingsCommand, &requesturl.Commands, &SetConfigCommand},
 	Action:      PrintCommand.Action,
 }

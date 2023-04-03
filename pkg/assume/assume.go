@@ -301,7 +301,7 @@ func AssumeCommand(c *cli.Context) error {
 	getConsoleURL := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
 
 	// this makes it easy for users to copy the actual command and avoid needing to lookup profiles
-	if showRerunCommand {
+	if !cfg.DisableUsageTips && showRerunCommand {
 		clio.Infof("To assume this profile again later without needing to select it, run this command:\n> assume %s %s", profile.Name, strings.Join(os.Args[1:], " "))
 	}
 
