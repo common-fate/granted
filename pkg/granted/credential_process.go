@@ -7,6 +7,7 @@ import (
 
 	"github.com/pkg/errors"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/urfave/cli/v2"
@@ -40,7 +41,20 @@ var CredentialProcess = cli.Command{
 			return err
 		}
 
-		if !ok || (creds.CanExpire && time.Now().After(creds.Expires.Add(-c.Duration("window")))) {
+		var needsRefresh bool
+
+		now := time.Now()
+		refreshTime := creds.Expires.Add(-c.Duration("window"))
+
+		if !ok {
+			clio.Debugw("refreshing credentials", "reason", "not found")
+			needsRefresh = true
+		} else if creds.CanExpire && now.After(refreshTime) {
+			clio.Debugw("refreshing credentials", "reason", "after refresh time", "now", now.String(), "refresh_time", refreshTime.String())
+			needsRefresh = true
+		}
+
+		if needsRefresh {
 			profiles, err := cfaws.LoadProfilesFromDefaultFiles()
 			if err != nil {
 				return err
