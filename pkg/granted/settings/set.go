@@ -3,6 +3,7 @@ package settings
 import (
 	"fmt"
 	"reflect"
+	"strconv"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
@@ -15,9 +16,7 @@ var SetConfigCommand = cli.Command{
 	Usage: "Set a value in settings",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "setting", Aliases: []string{"s"}, Usage: "The name of a configuration setting, currently only string, int and bool types are supported. e.g 'DisableUsageTips'. For other configuration, set the value using builtin commands or by directly modifying the config file for advanced use cases."},
-		&cli.StringFlag{Name: "value-string", Aliases: []string{"vs"}},
-		&cli.BoolFlag{Name: "value-bool", Aliases: []string{"vb"}},
-		&cli.IntFlag{Name: "valie-int", Aliases: []string{"vi"}},
+		&cli.StringFlag{Name: "value", Aliases: []string{"v"}, Usage: "The value to set the configuration setting to"},
 	},
 	Action: func(c *cli.Context) error {
 		cfg, err := config.Load()
@@ -71,7 +70,7 @@ var SetConfigCommand = cli.Command{
 		var prompt survey.Prompt
 		switch selectedField.ftype.Type.Kind() {
 		case reflect.Bool:
-			if c.Count("value-bool") == 0 {
+			if !c.IsSet("value") {
 				prompt = &survey.Confirm{
 					Message: fmt.Sprintf("Enter new value for %s:", selectedFieldName),
 					Default: selectedField.fvalue.Bool(),
@@ -81,11 +80,15 @@ var SetConfigCommand = cli.Command{
 					return err
 				}
 			} else {
-				value = c.Bool("value-bool")
+				valueStr := c.String("value")
+				value, err = strconv.ParseBool(valueStr)
+				if err != nil {
+					return err
+				}
 			}
 
 		case reflect.String:
-			if c.Count("value-string") == 0 {
+			if !c.IsSet("value") {
 				var str string
 				prompt = &survey.Input{
 					Message: fmt.Sprintf("Enter new value for %s:", selectedFieldName),
@@ -97,10 +100,10 @@ var SetConfigCommand = cli.Command{
 				}
 				value = str
 			} else {
-				value = c.String("value-string")
+				value = c.String("value")
 			}
 		case reflect.Int:
-			if c.Count("valie-int") == 0 {
+			if !c.IsSet("value") {
 				prompt = &survey.Input{
 					Message: fmt.Sprintf("Enter new value for %s:", selectedFieldName),
 					Default: fmt.Sprintf("%v", selectedField.fvalue.Interface()),
@@ -110,7 +113,11 @@ var SetConfigCommand = cli.Command{
 					return err
 				}
 			} else {
-				value = c.Int("valie-int")
+				valueInt := c.String("value")
+				value, err = strconv.Atoi(valueInt)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
@@ -128,7 +135,6 @@ var SetConfigCommand = cli.Command{
 			return err
 		}
 		clio.Success("Config updated successfully")
-		// Call the Save method to save the updated struct
 		return nil
 	},
 }
