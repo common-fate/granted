@@ -28,6 +28,9 @@ type Config struct {
 	// denying access to assume a particular role.
 	AccessRequestURL string `toml:",omitempty"`
 
+	// Set this to true to disable usage tips like `To assume this profile again later without needing to select it, run this command:`
+	DisableUsageTips bool `toml:",omitempty"`
+
 	// deprecated in favor of ProfileRegistry
 	ProfileRegistryURLS []string `toml:",omitempty"`
 	ProfileRegistry     struct {
