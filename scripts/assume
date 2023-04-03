@@ -194,5 +194,5 @@ if [ "$GRANTED_FLAG" = "GrantedOutput" ]; then
 fi
 
 if [ "$GRANTED_RETURN_STATUS" = "true" ]; then
-  return $GRANTED_STATUS
+  exit $GRANTED_STATUS
 fi
