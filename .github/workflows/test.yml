@@ -114,7 +114,7 @@ jobs:
           aws_secret_access_key=${TEST_ACCESS_KEY}
           EOF
       - name: bash
-        run: SHELL=/bin/bash dassume -auto-configure-shell
+        run: SHELL=/bin/bash dassume --auto-configure-shell
       # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
       # the below does not work
       # - name: assume bash
@@ -126,7 +126,7 @@ jobs:
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
       - name: zsh
-        run: SHELL=/bin/zsh dassume -auto-configure-shell
+        run: SHELL=/bin/zsh dassume --auto-configure-shell
         shell: zsh {0}
       - name: assume zsh
         run: |
@@ -136,7 +136,7 @@ jobs:
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
       - name: fish
-        run: SHELL=fish dassume -auto-configure-shell
+        run: SHELL=fish dassume --auto-configure-shell
         shell: fish {0}
       - name: assume zsh
         run: |
