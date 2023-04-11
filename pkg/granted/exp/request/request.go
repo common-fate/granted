@@ -2,6 +2,7 @@ package request
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/url"
 	"os"
@@ -11,10 +12,11 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/briandowns/spinner"
 	"github.com/common-fate/cli/pkg/client"
-	"github.com/common-fate/cli/pkg/config"
+	cfconfig "github.com/common-fate/cli/pkg/config"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/common-fate/pkg/types"
 	"github.com/common-fate/granted/pkg/cache/models"
+	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/hako/durafmt"
 	"github.com/pkg/errors"
@@ -43,7 +45,7 @@ var awsCommand = cli.Command{
 			return err
 		}
 
-		cfcfg, err := config.Load()
+		cfcfg, err := cfconfig.Load()
 		if err != nil {
 			return err
 		}
@@ -60,19 +62,9 @@ var awsCommand = cli.Command{
 
 		depID := cfcfg.CurrentOrEmpty().DashboardURL
 
-		existingRules := map[string]models.AccessRule{}
-
-		rows, err := db.Queryx("SELECT * FROM cf_access_rules WHERE deployment_id = $1", depID)
+		existingRules, err := getCachedAccessRules(depID)
 		if err != nil {
 			return err
-		}
-		for rows.Next() {
-			var r models.AccessRule
-			err := rows.StructScan(&r)
-			if err != nil {
-				return err
-			}
-			existingRules[r.ID] = r
 		}
 
 		clio.Debugw("got cached access rules", "rules", existingRules)
@@ -102,17 +94,9 @@ var awsCommand = cli.Command{
 		}
 
 		// refresh the cache
-		rows, err = db.Queryx("SELECT * FROM cf_access_rules WHERE deployment_id = $1", depID)
+		existingRules, err = getCachedAccessRules(depID)
 		if err != nil {
 			return err
-		}
-		for rows.Next() {
-			var r models.AccessRule
-			err := rows.StructScan(&r)
-			if err != nil {
-				return err
-			}
-			existingRules[r.ID] = r
 		}
 
 		// note: we use a map here to de-duplicate accounts.
@@ -123,24 +107,49 @@ var awsCommand = cli.Command{
 		// a map of access rule IDs that match each account ID
 		// Prod (123456789012) -> {"rul_123": true}
 		accessRulesForAccount := map[string]map[string]bool{}
-		rows, err = db.Queryx("SELECT * FROM cf_access_targets WHERE type = 'accountId'")
-		if err != nil {
-			return err
-		}
+		// rows, err = db.Queryx("SELECT * FROM cf_access_targets WHERE type = 'accountId'")
+		// if err != nil {
+		// 	return err
+		// }
 
-		for rows.Next() {
-			var t models.AccessTarget
-			err := rows.StructScan(&t)
-			if err != nil {
-				return err
+		// for rows.Next() {
+		// 	var t models.AccessTarget
+		// 	err := rows.StructScan(&t)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	accounts[t.Value] = t
+
+		// 	if _, ok := accessRulesForAccount[t.Value]; !ok {
+		// 		accessRulesForAccount[t.Value] = map[string]bool{}
+		// 	}
+
+		// 	accessRulesForAccount[t.Value][t.RuleID] = true
+		// }
+
+		// note: we use a map here to de-duplicate accounts.
+		// this means that the RuleID in the accounts map is not necessarily
+		// the *only* Access Rule which grants access to that account.
+		permissionSets := map[string]models.AccessTarget{}
+
+		for _, rule := range existingRules {
+			for _, t := range rule.Targets {
+				if t.Type == "accountId" {
+					if _, ok := accessRulesForAccount[t.Value]; !ok {
+						accessRulesForAccount[t.Value] = map[string]bool{}
+					}
+
+					accessRulesForAccount[t.Value][rule.ID] = true
+				}
+
+				if t.Type == "permissionSetArn" {
+					if _, ok := accessRulesForAccount[t.Value]; !ok {
+						accessRulesForAccount[t.Value] = map[string]bool{}
+					}
+
+					permissionSets[t.Value] = t
+				}
 			}
-			accounts[t.Value] = t
-
-			if _, ok := accessRulesForAccount[t.Value]; !ok {
-				accessRulesForAccount[t.Value] = map[string]bool{}
-			}
-
-			accessRulesForAccount[t.Value][t.RuleID] = true
 		}
 
 		// a mapping of the selected survey prompt option, back to the actual value
@@ -176,30 +185,26 @@ var awsCommand = cli.Command{
 
 		// find Access Rules that match the selected account
 
-		// note: we use a map here to de-duplicate accounts.
-		// this means that the RuleID in the accounts map is not necessarily
-		// the *only* Access Rule which grants access to that account.
-		permissionSets := map[string]models.AccessTarget{}
-		query, args, err := sqlx.In("SELECT * FROM cf_access_targets WHERE type = 'permissionSetArn' AND rule_id IN (?)", queryRuleIDs)
-		if err != nil {
-			return err
-		}
+		// query, args, err := sqlx.In("SELECT * FROM cf_access_targets WHERE type = 'permissionSetArn' AND rule_id IN (?)", queryRuleIDs)
+		// if err != nil {
+		// 	return err
+		// }
 
-		query = db.Rebind(query)
+		// query = db.Rebind(query)
 
-		rows, err = db.Queryx(query, args...)
-		if err != nil {
-			return err
-		}
+		// rows, err = db.Queryx(query, args...)
+		// if err != nil {
+		// 	return err
+		// }
 
-		for rows.Next() {
-			var t models.AccessTarget
-			err := rows.StructScan(&t)
-			if err != nil {
-				return err
-			}
-			permissionSets[t.Value] = t
-		}
+		// for rows.Next() {
+		// 	var t models.AccessTarget
+		// 	err := rows.StructScan(&t)
+		// 	if err != nil {
+		// 		return err
+		// 	}
+		// 	permissionSets[t.Value] = t
+		// }
 
 		// map of permission set option label to Access Rule ID
 		// AdminAccess -> {"rul_123": true}
@@ -391,6 +396,94 @@ var awsCommand = cli.Command{
 	},
 }
 
+func getCachedAccessRules(depID string) (map[string]models.AccessRule, error) {
+	configFolder, err := config.GrantedConfigFolder()
+	if err != nil {
+		return nil, err
+	}
+	depURL, err := url.Parse(depID)
+	if err != nil {
+		return nil, err
+	}
+
+	// ~/.granted/common-fate-cache/commonfate.example.com/access-rules
+	cacheFolder := path.Join(configFolder, "common-fate-cache", depURL.Hostname(), "access-rules")
+
+	if _, err := os.Stat(cacheFolder); err == os.ErrNotExist {
+		clio.Debugw("cache folder does not exist, returning", "folder", cacheFolder, "error", err)
+		return nil, nil
+	}
+
+	files, err := os.ReadDir(cacheFolder)
+	if err != nil {
+		return nil, err
+	}
+
+	// map of rule ID to the rule itself
+	rules := map[string]models.AccessRule{}
+
+	for _, f := range files {
+		// the name of the file is the rule ID (e.g. `rul_123`)
+		ruleBytes, err := os.ReadFile(path.Join(cacheFolder, f.Name()))
+		if err != nil {
+			return nil, err
+		}
+		var rule models.AccessRule
+		err = json.Unmarshal(ruleBytes, &rule)
+		if err != nil {
+			return nil, err
+		}
+
+		rules[f.Name()] = rule
+	}
+
+	return rules, nil
+}
+
+func getCachedAccessTargets(depID string) (map[string]models.AccessRule, error) {
+	configFolder, err := config.GrantedConfigFolder()
+	if err != nil {
+		return nil, err
+	}
+	depURL, err := url.Parse(depID)
+	if err != nil {
+		return nil, err
+	}
+
+	// ~/.granted/common-fate-cache/commonfate.example.com/access-targets/aws/account
+	cacheFolder := path.Join(configFolder, "common-fate-cache", depURL.Hostname(), "access-targets", "aws", "account")
+
+	if _, err := os.Stat(cacheFolder); err == os.ErrNotExist {
+		clio.Debugw("cache folder does not exist, returning", "folder", cacheFolder, "error", err)
+		return nil, nil
+	}
+
+	files, err := os.ReadDir(cacheFolder)
+	if err != nil {
+		return nil, err
+	}
+
+	// map of rule ID to the rule itself
+	rules := map[string]models.AccessRule{}
+
+	for _, f := range files {
+		// the name of the file is the rule ID (e.g. `rul_123`)
+		ruleBytes, err := os.ReadFile(path.Join(cacheFolder, f.Name()))
+		if err != nil {
+			return nil, err
+		}
+		var rule models.AccessRule
+		err = json.Unmarshal(ruleBytes, &rule)
+		if err != nil {
+			return nil, err
+		}
+
+		rules[f.Name()] = rule
+	}
+
+	return rules, nil
+}
+
 type updateCacheOpts struct {
 	Rule         types.AccessRule
 	Existing     map[string]models.AccessRule
@@ -508,138 +601,3 @@ func updateCachedAccessRule(ctx context.Context, opts updateCacheOpts) error {
 
 	return nil
 }
-
-// var groupCommand = cli.Command{
-// 	Name:  "group",
-// 	Usage: "Create a group of permissions to request access to",
-// 	Flags: []cli.Flag{
-// 		&cli.StringFlag{Name: "name", Required: true},
-// 	},
-// 	Action: func(c *cli.Context) error {
-// 		ctx := c.Context
-// 		db, err := sqlx.Open("sqlite3", "file:granted.db")
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		cfcfg, err := config.Load()
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		k, err := securestorage.NewCF().Storage.Keyring()
-// 		if err != nil {
-// 			return errors.Wrap(err, "loading keyring")
-// 		}
-
-// 		cf, err := client.FromConfig(ctx, cfcfg, client.WithKeyring(k))
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		rules, err := cf.UserListAccessRulesWithResponse(ctx)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		depID := cfcfg.CurrentOrEmpty().DashboardURL
-
-// 		existingRules := map[string]models.AccessRule{}
-
-// 		rows, err := db.Queryx("SELECT * FROM cf_access_rules WHERE deployment_id = $1", depID)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		for rows.Next() {
-// 			var r models.AccessRule
-// 			err := rows.StructScan(&r)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			existingRules[r.ID] = r
-// 		}
-
-// 		clio.Debugw("got cached access rules", "rules", existingRules)
-
-// 		for _, r := range rules.JSON200.AccessRules {
-// 			var g errgroup.Group
-
-// 			g.Go(func() error {
-// 				return updateCachedAccessRule(ctx, updateCacheOpts{
-// 					Rule:         r,
-// 					Existing:     existingRules,
-// 					DB:           db,
-// 					DeploymentID: depID,
-// 					CF:           cf,
-// 				})
-// 			})
-
-// 			err = g.Wait()
-// 			if err != nil {
-// 				return err
-// 			}
-// 		}
-
-// 		var accessRules []models.AccessRule
-// 		rows, err = db.Queryx("SELECT * FROM cf_access_rules WHERE deployment_id = $1", depID)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		for rows.Next() {
-// 			var r models.AccessRule
-// 			err := rows.StructScan(&r)
-// 			if err != nil {
-// 				return err
-// 			}
-// 			accessRules = append(accessRules, r)
-// 		}
-
-// 		var options []string
-
-// 		for _, r := range accessRules {
-// 			clio.Debugw("building options for rule", "rule", r)
-// 			rows, err := db.Queryx("SELECT * FROM cf_access_targets WHERE type = 'accountId' AND rule_id = $1", r.ID)
-// 			if err != nil {
-// 				return err
-// 			}
-
-// 			for rows.Next() {
-// 				var account models.AccessTarget
-// 				err := rows.StructScan(&account)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				// find permission sets for the rule
-// 				psRows, err := db.Queryx("SELECT * FROM cf_access_targets WHERE type = 'permissionSetArn' AND rule_id = $1", r.ID)
-// 				if err != nil {
-// 					return err
-// 				}
-
-// 				for psRows.Next() {
-// 					var ps models.AccessTarget
-// 					err := psRows.StructScan(&ps)
-// 					if err != nil {
-// 						return err
-// 					}
-
-// 					option := fmt.Sprintf("%s/%s", account.Label, ps.Label)
-// 					options = append(options, option)
-// 				}
-// 			}
-// 		}
-// 		var chosen []string
-
-// 		prompt := &survey.MultiSelect{
-// 			Message: "Permissions",
-// 			Options: options,
-// 		}
-
-// 		err = survey.AskOne(prompt, &chosen)
-// 		if err != nil {
-// 			return err
-// 		}
-
-// 		return nil
-// 	},
-// }
