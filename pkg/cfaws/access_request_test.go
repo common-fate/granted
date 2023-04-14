@@ -110,6 +110,7 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 				Messages: []clierr.Printer{
 					clierr.Warn("You need to request access to this role:"),
 					clierr.Warn("https://example.com/access?accountId=123456789012&permissionSetArn.label=test&type=commonfate%2Faws-sso"),
+					clierr.Warn("or run: 'granted exp request latest'"),
 				},
 			},
 		},
@@ -128,6 +129,7 @@ func TestGetGrantedApprovalsURL(t *testing.T) {
 				Messages: []clierr.Printer{
 					clierr.Warn("You need to request access to this role:"),
 					clierr.Warn("https://override.example.com/access?accountId=123456789012&permissionSetArn.label=test&type=commonfate%2Faws-sso"),
+					clierr.Warn("or run: 'granted exp request latest'"),
 				},
 			},
 		},
