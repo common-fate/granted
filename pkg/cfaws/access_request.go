@@ -44,7 +44,7 @@ func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig *ini.Sectio
 		}
 		err := latestRole.Save()
 		if err != nil {
-			return err
+			clio.Errorw("error saving latest role", "error", err)
 		}
 
 		// if we have a request URL, we can prompt the user to make a request by visiting the URL.
