@@ -1,8 +1,6 @@
 package cfaws
 
 import (
-	"fmt"
-	"net/url"
 	"regexp"
 
 	"github.com/common-fate/clio"
@@ -88,19 +86,4 @@ func parseURLFlagFromConfig(rawConfig *ini.Section) string {
 		return matchedValues[1]
 	}
 	return ""
-}
-
-func buildRequestURL(grantedUrl string, SSORoleName string, SSOAccountId string) string {
-	u, err := url.Parse(grantedUrl)
-	if err != nil {
-		return fmt.Sprintf("error building access request URL: %s", err.Error())
-	}
-	u.Path = "access"
-	q := u.Query()
-	q.Add("type", "commonfate/aws-sso")
-	q.Add("permissionSetArn.label", SSORoleName)
-	q.Add("accountId", SSOAccountId)
-	u.RawQuery = q.Encode()
-
-	return u.String()
 }
