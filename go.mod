@@ -21,7 +21,7 @@ require (
 	github.com/briandowns/spinner v1.23.0
 	github.com/common-fate/cli v0.3.2-0.20230320155355-6137b0acd142
 	github.com/common-fate/clio v1.1.0
-	github.com/common-fate/common-fate v0.15.1-0.20230321161540-f3b6e3da8d3c
+	github.com/common-fate/common-fate v0.15.0
 	github.com/fatih/color v1.13.0
 	github.com/lithammer/fuzzysearch v1.1.5
 	go.uber.org/zap v1.23.0

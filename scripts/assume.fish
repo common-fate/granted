@@ -80,28 +80,6 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
     set -gx GRANTED_SSO_ACCOUNT_ID $GRANTED_11
   end
 
-  if contains -- -s $argv
-    if test "$GRANTED_1" != "None"
-      echo set -gx AWS_ACCESS_KEY_ID $GRANTED_1
-    end
-    if test "$GRANTED_2" != "None"
-      echo set -gx AWS_SECRET_ACCESS_KEY $GRANTED_2
-    end
-    if test "$GRANTED_3" != "None"
-      echo set -gx AWS_SESSION_TOKEN $GRANTED_3
-    end
-    if test "$GRANTED_4" != "None"
-      echo set -gx AWS_PROFILE $GRANTED_4
-    end
-    if test "$GRANTED_5" != "None"
-      echo set -gx AWS_REGION $GRANTED_5
-    end
-    if test "$GRANTED_6" != "None"
-      echo set -gx AWS_SESSION_EXPIRATION $GRANTED_6
-      echo set -gx AWS_CREDENTIAL_EXPIRATION $GRANTED_6
-    end
-  end
-
 else if test "$GRANTED_FLAG" = "GrantedOutput"
   for line in $GRANTED_OUTPUT
       if test "$line" != "GrantedOutput"
