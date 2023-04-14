@@ -7,6 +7,7 @@ import (
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
+	"github.com/common-fate/granted/pkg/accessrequest"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"gopkg.in/ini.v1"
 )
@@ -37,10 +38,19 @@ func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig *ini.Sectio
 	}
 
 	if url != "" {
+		latestRole := accessrequest.Role{
+			Account: SSOAccountId,
+			Role:    SSORoleName,
+		}
+		err := latestRole.Save()
+		if err != nil {
+			return err
+		}
+
 		// if we have a request URL, we can prompt the user to make a request by visiting the URL.
-		requestURL := buildRequestURL(url, SSORoleName, SSOAccountId)
+		requestURL := latestRole.URL(url)
 		// need to escape the % symbol in the request url which has been query escaped so that fmt doesn't try to substitute it
-		cliError.Messages = append(cliError.Messages, clierr.Warn("You need to request access to this role:"), clierr.Warn(requestURL))
+		cliError.Messages = append(cliError.Messages, clierr.Warn("You need to request access to this role:"), clierr.Warn(requestURL), clierr.Warn("or run: 'granted exp request latest'"))
 		return cliError
 	}
 

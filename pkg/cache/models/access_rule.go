@@ -9,7 +9,7 @@ type AccessRule struct {
 	CreatedAt          int64          `json:"created_at"`
 	UpdatedAt          int64          `json:"updated_at"`
 	DurationSeconds    int            `json:"duration_seconds"`
-	RequiresApproval   int            `json:"requires_approval"`
+	RequiresApproval   bool           `json:"requires_approval"`
 	Targets            []AccessTarget `json:"targets"`
 }
 

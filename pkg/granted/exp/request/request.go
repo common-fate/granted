@@ -7,24 +7,27 @@ import (
 	"net/url"
 	"os"
 	"path"
+	"path/filepath"
 	"time"
+
+	"github.com/lithammer/fuzzysearch/fuzzy"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/briandowns/spinner"
 	"github.com/common-fate/cli/pkg/client"
 	cfconfig "github.com/common-fate/cli/pkg/config"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/common-fate/pkg/types"
+	"github.com/common-fate/granted/pkg/accessrequest"
 	"github.com/common-fate/granted/pkg/cache/models"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/frecency"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/hako/durafmt"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
-
-	"github.com/jmoiron/sqlx"
-	_ "github.com/mattn/go-sqlite3"
 )
 
 var Command = cli.Command{
@@ -32,137 +35,147 @@ var Command = cli.Command{
 	Usage: "Request access to a role",
 	Subcommands: []*cli.Command{
 		&awsCommand,
+		&latestCommand,
 	},
 }
 
 var awsCommand = cli.Command{
 	Name:  "aws",
 	Usage: "Request access to an AWS role",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "account", Usage: "the AWS account ID"},
+		&cli.StringFlag{Name: "role", Usage: "the AWS role"},
+		&cli.StringFlag{Name: "reason", Usage: "a reason for access"},
+	},
 	Action: func(c *cli.Context) error {
-		ctx := c.Context
-		db, err := sqlx.Open("sqlite3", "file:granted.db")
+		return requestAccess(c.Context, requestAccessOpts{
+			account: c.String("account"),
+			role:    c.String("role"),
+			reason:  c.String("reason"),
+		})
+	},
+}
+
+var latestCommand = cli.Command{
+	Name:  "latest",
+	Usage: "Request access to the latest AWS role you attempted to use",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "reason", Usage: "a reason for access"},
+	},
+	Action: func(c *cli.Context) error {
+		role, err := accessrequest.LatestRole()
 		if err != nil {
 			return err
 		}
 
-		cfcfg, err := cfconfig.Load()
-		if err != nil {
-			return err
-		}
+		clio.Infof("requesting access to account %s with role %s", role.Account, role.Role)
 
-		k, err := securestorage.NewCF().Storage.Keyring()
-		if err != nil {
-			return errors.Wrap(err, "loading keyring")
-		}
+		return requestAccess(c.Context, requestAccessOpts{
+			account: role.Account,
+			role:    role.Role,
+			reason:  c.String("reason"),
+		})
+	},
+}
 
-		cf, err := client.FromConfig(ctx, cfcfg, client.WithKeyring(k))
-		if err != nil {
-			return err
-		}
+type requestAccessOpts struct {
+	account string
+	role    string
+	reason  string
+}
 
-		depID := cfcfg.CurrentOrEmpty().DashboardURL
+func requestAccess(ctx context.Context, opts requestAccessOpts) error {
+	cfcfg, err := cfconfig.Load()
+	if err != nil {
+		return err
+	}
 
-		existingRules, err := getCachedAccessRules(depID)
-		if err != nil {
-			return err
-		}
+	k, err := securestorage.NewCF().Storage.Keyring()
+	if err != nil {
+		return errors.Wrap(err, "loading keyring")
+	}
 
-		clio.Debugw("got cached access rules", "rules", existingRules)
+	cf, err := client.FromConfig(ctx, cfcfg, client.WithKeyring(k), client.WithLoginHint("granted login"))
+	if err != nil {
+		return err
+	}
 
-		rules, err := cf.UserListAccessRulesWithResponse(ctx)
-		if err != nil {
-			return err
-		}
+	depID := cfcfg.CurrentOrEmpty().DashboardURL
 
-		for _, r := range rules.JSON200.AccessRules {
-			var g errgroup.Group
+	existingRules, err := getCachedAccessRules(depID)
+	if err != nil {
+		return err
+	}
 
-			g.Go(func() error {
-				return updateCachedAccessRule(ctx, updateCacheOpts{
-					Rule:         r,
-					Existing:     existingRules,
-					DB:           db,
-					DeploymentID: depID,
-					CF:           cf,
-				})
+	clio.Debugw("got cached access rules", "rules", existingRules)
+
+	rules, err := cf.UserListAccessRulesWithResponse(ctx)
+	if err != nil {
+		return err
+	}
+
+	for _, r := range rules.JSON200.AccessRules {
+		var g errgroup.Group
+
+		g.Go(func() error {
+			return updateCachedAccessRule(ctx, updateCacheOpts{
+				Rule:         r,
+				Existing:     existingRules,
+				DeploymentID: depID,
+				CF:           cf,
 			})
+		})
 
-			err = g.Wait()
-			if err != nil {
-				return err
-			}
-		}
-
-		// refresh the cache
-		existingRules, err = getCachedAccessRules(depID)
+		err = g.Wait()
 		if err != nil {
 			return err
 		}
+	}
 
-		// note: we use a map here to de-duplicate accounts.
-		// this means that the RuleID in the accounts map is not necessarily
-		// the *only* Access Rule which grants access to that account.
-		accounts := map[string]models.AccessTarget{}
+	// refresh the cache
+	existingRules, err = getCachedAccessRules(depID)
+	if err != nil {
+		return err
+	}
 
-		// a map of access rule IDs that match each account ID
-		// Prod (123456789012) -> {"rul_123": true}
-		accessRulesForAccount := map[string]map[string]bool{}
-		// rows, err = db.Queryx("SELECT * FROM cf_access_targets WHERE type = 'accountId'")
-		// if err != nil {
-		// 	return err
-		// }
+	clio.Debugw("refreshed cache", "rules", existingRules)
 
-		// for rows.Next() {
-		// 	var t models.AccessTarget
-		// 	err := rows.StructScan(&t)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	accounts[t.Value] = t
+	// note: we use a map here to de-duplicate accounts.
+	// this means that the RuleID in the accounts map is not necessarily
+	// the *only* Access Rule which grants access to that account.
+	accounts := map[string]models.AccessTarget{}
 
-		// 	if _, ok := accessRulesForAccount[t.Value]; !ok {
-		// 		accessRulesForAccount[t.Value] = map[string]bool{}
-		// 	}
+	// a map of access rule IDs that match each account ID
+	// Prod (123456789012) -> {"rul_123": true}
+	accessRulesForAccount := map[string]map[string]bool{}
 
-		// 	accessRulesForAccount[t.Value][t.RuleID] = true
-		// }
-
-		// note: we use a map here to de-duplicate accounts.
-		// this means that the RuleID in the accounts map is not necessarily
-		// the *only* Access Rule which grants access to that account.
-		permissionSets := map[string]models.AccessTarget{}
-
-		for _, rule := range existingRules {
-			for _, t := range rule.Targets {
-				if t.Type == "accountId" {
-					if _, ok := accessRulesForAccount[t.Value]; !ok {
-						accessRulesForAccount[t.Value] = map[string]bool{}
-					}
-
-					accessRulesForAccount[t.Value][rule.ID] = true
+	for _, rule := range existingRules {
+		for _, t := range rule.Targets {
+			if t.Type == "accountId" {
+				if _, ok := accessRulesForAccount[t.Value]; !ok {
+					accessRulesForAccount[t.Value] = map[string]bool{}
 				}
-
-				if t.Type == "permissionSetArn" {
-					if _, ok := accessRulesForAccount[t.Value]; !ok {
-						accessRulesForAccount[t.Value] = map[string]bool{}
-					}
-
-					permissionSets[t.Value] = t
-				}
+				accounts[t.Value] = t
+				accessRulesForAccount[t.Value][rule.ID] = true
 			}
 		}
+	}
 
-		// a mapping of the selected survey prompt option, back to the actual value
-		// e.g. "my-account-name (123456789012)" -> 123456789012
-		selectedAccountMap := map[string]string{}
-		var accountOptions []string
-		for _, a := range accounts {
-			option := fmt.Sprintf("%s (%s)", a.Label, a.Value)
-			accountOptions = append(accountOptions, option)
-			selectedAccountMap[option] = a.Value
-		}
+	// a mapping of the selected survey prompt option, back to the actual value
+	// e.g. "my-account-name (123456789012)" -> 123456789012
+	selectedAccountMap := map[string]string{}
+	var accountOptions []string
+	for _, a := range accounts {
+		option := fmt.Sprintf("%s (%s)", a.Label, a.Value)
+		accountOptions = append(accountOptions, option)
+		selectedAccountMap[option] = a.Value
+	}
 
-		var selectedAccountOption string
+	var selectedAccountOption string
+	selectedAccountID := opts.account
+
+	if selectedAccountID == "" {
+		clio.Debugw("prompting for accounts", "accounts", accounts)
 
 		prompt := &survey.Select{
 			Message: "Account",
@@ -173,61 +186,58 @@ var awsCommand = cli.Command{
 			return err
 		}
 
-		selectedAccountID := selectedAccountMap[selectedAccountOption]
-		selectedAccountInfo := accounts[selectedAccountID]
-		ruleIDs := accessRulesForAccount[selectedAccountID]
+		selectedAccountID = selectedAccountMap[selectedAccountOption]
+	}
 
-		// rule IDs to include in the SQL query
-		var queryRuleIDs []string
-		for ruleID := range ruleIDs {
-			queryRuleIDs = append(queryRuleIDs, ruleID)
+	selectedAccountInfo, ok := accounts[selectedAccountID]
+	if !ok {
+		return clierr.New(fmt.Sprintf("account %s not found", selectedAccountID), clierr.Info("run 'granted exp request aws' to see a list of available accounts"))
+	}
+
+	ruleIDs := accessRulesForAccount[selectedAccountID]
+
+	// note: we use a map here to de-duplicate accounts.
+	// this means that the RuleID in the accounts map is not necessarily
+	// the *only* Access Rule which grants access to that account.
+	permissionSets := map[string]models.AccessTarget{}
+
+	for _, rule := range existingRules {
+		if _, ok := ruleIDs[rule.ID]; !ok {
+			continue
 		}
 
-		// find Access Rules that match the selected account
-
-		// query, args, err := sqlx.In("SELECT * FROM cf_access_targets WHERE type = 'permissionSetArn' AND rule_id IN (?)", queryRuleIDs)
-		// if err != nil {
-		// 	return err
-		// }
-
-		// query = db.Rebind(query)
-
-		// rows, err = db.Queryx(query, args...)
-		// if err != nil {
-		// 	return err
-		// }
-
-		// for rows.Next() {
-		// 	var t models.AccessTarget
-		// 	err := rows.StructScan(&t)
-		// 	if err != nil {
-		// 		return err
-		// 	}
-		// 	permissionSets[t.Value] = t
-		// }
-
-		// map of permission set option label to Access Rule ID
-		// AdminAccess -> {"rul_123": true}
-		permissionSetRuleIDs := map[string]map[string]bool{}
-
-		// map of permission set option label to permission set value
-		permissionSetValues := map[string]string{}
-
-		var permissionSetOptions []string
-		for _, a := range permissionSets {
-			permissionSetOptions = append(permissionSetOptions, a.Label) // label only for permission sets (the ARN is difficult to interpret and the labels are unique)
-
-			if _, ok := permissionSetRuleIDs[a.Label]; !ok {
-				permissionSetRuleIDs[a.Label] = map[string]bool{}
+		for _, t := range rule.Targets {
+			if t.Type != "permissionSetArn" {
+				continue
 			}
 
-			permissionSetRuleIDs[a.Label][a.RuleID] = true
-			permissionSetValues[a.Label] = a.Value
+			permissionSets[t.Value] = t
+		}
+	}
+
+	// map of permission set option label to Access Rule ID
+	// AdminAccess -> {"rul_123": true}
+	permissionSetRuleIDs := map[string]map[string]bool{}
+
+	// map of permission set option label to permission set value
+	permissionSetValues := map[string]string{}
+
+	var permissionSetOptions []string
+	for _, a := range permissionSets {
+		permissionSetOptions = append(permissionSetOptions, a.Label) // label only for permission sets (the ARN is difficult to interpret and the labels are unique)
+
+		if _, ok := permissionSetRuleIDs[a.Label]; !ok {
+			permissionSetRuleIDs[a.Label] = map[string]bool{}
 		}
 
-		var selectedRole string
+		permissionSetRuleIDs[a.Label][a.RuleID] = true
+		permissionSetValues[a.Label] = a.Value
+	}
 
-		prompt = &survey.Select{
+	selectedRole := opts.role
+
+	if selectedRole == "" {
+		prompt := &survey.Select{
 			Message: "Role",
 			Options: permissionSetOptions,
 		}
@@ -235,232 +245,198 @@ var awsCommand = cli.Command{
 		if err != nil {
 			return err
 		}
+	}
 
-		permissionSetArn := permissionSetValues[selectedRole]
+	permissionSetArn, ok := permissionSetValues[selectedRole]
+	if !ok {
+		return clierr.New(fmt.Sprintf("role %s not found", selectedAccountID), clierr.Infof("run 'granted exp request aws --account %s' to see a list of available roles", selectedAccountID))
+	}
 
-		selectedPermissionSetRuleIDs := permissionSetRuleIDs[selectedRole]
+	selectedPermissionSetRuleIDs := permissionSetRuleIDs[selectedRole]
 
-		// find Access Rules that match the permission set and the account
-		// we need to find the intersection between permissionSetRuleIDs and accessRulesForAccount
-		// matchingAccessRule tracks the current Access Rule which we'll use to request access against.
-		var matchingAccessRule *models.AccessRule
+	// find Access Rules that match the permission set and the account
+	// we need to find the intersection between permissionSetRuleIDs and accessRulesForAccount
+	// matchingAccessRule tracks the current Access Rule which we'll use to request access against.
+	var matchingAccessRule *models.AccessRule
 
-		for ruleID := range ruleIDs {
-			if _, ok := selectedPermissionSetRuleIDs[ruleID]; ok {
+	for ruleID := range ruleIDs {
+		if _, ok := selectedPermissionSetRuleIDs[ruleID]; ok {
 
-				// the Access Rule matches both the account and the permission set and could be selected
-				rule := existingRules[ruleID]
+			// the Access Rule matches both the account and the permission set and could be selected
+			rule := existingRules[ruleID]
 
-				clio.Debugw("considering access rule", "rule.proposed", rule, "rule.matched", matchingAccessRule)
+			clio.Debugw("considering access rule", "rule.proposed", rule, "rule.matched", matchingAccessRule)
 
-				// if we haven't found a match yet, set the matching access rule as this one.
-				if matchingAccessRule == nil {
-					matchingAccessRule = &rule
-					continue
-				}
+			// if we haven't found a match yet, set the matching access rule as this one.
+			if matchingAccessRule == nil {
+				matchingAccessRule = &rule
+				continue
+			}
 
-				// if we've found a match, use this rule if it's lesser "resistance" than the existing
-				// matched one.
+			// if we've found a match, use this rule if it's lesser "resistance" than the existing
+			// matched one.
 
-				// the proposed rule will take priority if it doesn't require approval
-				if matchingAccessRule.RequiresApproval == 1 && rule.RequiresApproval == 0 {
-					matchingAccessRule = &rule
-					continue
-				}
+			// the proposed rule will take priority if it doesn't require approval
+			if matchingAccessRule.RequiresApproval && !rule.RequiresApproval {
+				matchingAccessRule = &rule
+				continue
+			}
 
-				// the proposed rule will take priority if it has a longer duration
-				if matchingAccessRule.RequiresApproval == rule.RequiresApproval &&
-					matchingAccessRule.DurationSeconds < rule.DurationSeconds {
-					matchingAccessRule = &rule
-					continue
-				}
+			// the proposed rule will take priority if it has a longer duration
+			if matchingAccessRule.RequiresApproval == rule.RequiresApproval &&
+				matchingAccessRule.DurationSeconds < rule.DurationSeconds {
+				matchingAccessRule = &rule
+				continue
 			}
 		}
+	}
 
-		clio.Debugw("matched access rule", "rule.matched", matchingAccessRule)
+	clio.Debugw("matched access rule", "rule.matched", matchingAccessRule)
 
-		var reason string
+	reason := opts.reason
+
+	fr, err := frecency.Load("reasons")
+	if err != nil {
+		return err
+	}
+
+	if reason == "" {
+		var suggestions []string
+		for _, entry := range fr.Entries {
+			e := entry.Entry.(string)
+			suggestions = append(suggestions, e)
+		}
 
 		reasonPrompt := &survey.Input{
 			Message: "Reason for access:",
 			Help:    "Will be stored in audit trails and associated with you",
 			Suggest: func(toComplete string) []string {
-				return []string{"dev work", "resolving issue for CS-123"}
+				var matched []string
+				for _, s := range suggestions {
+					if fuzzy.Match(toComplete, s) {
+						matched = append(matched, s)
+					}
+				}
+
+				return matched
 			},
 		}
 		err = survey.AskOne(reasonPrompt, &reason)
 		if err != nil {
 			return err
 		}
+	}
 
+	err = fr.Upsert(reason)
+	if err != nil {
+		clio.Errorw("error updating frecency log", "error", err)
+	}
+
+	// only print the one-liner if --reason wasn't provided
+	if opts.reason == "" {
 		clio.NewLine()
-		clio.Infof("Run this one-liner command to request access in future:\ngranted request aws --account %s --role %s --reason \"%s\"", selectedAccountID, selectedRole, reason)
+		clio.Infof("Run this one-liner command to request access in future:\ngranted exp request aws --account %s --role %s --reason \"%s\"", selectedAccountID, selectedRole, reason)
 		clio.NewLine()
+	}
 
-		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		si.Suffix = " requesting access..."
-		si.Writer = os.Stderr
-		si.Start()
+	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+	si.Suffix = " requesting access..."
+	si.Writer = os.Stderr
+	si.Start()
 
-		// the current version of the API requires `With` fields to be provided
-		// *only* if the Access Rule has multiple options for that field.
-		var with []types.CreateRequestWith
+	// the current version of the API requires `With` fields to be provided
+	// *only* if the Access Rule has multiple options for that field.
+	var with []types.CreateRequestWith
 
-		// check if the 'accountId' field needs to be included
-		rows, err = db.Queryx("SELECT COUNT(*) FROM cf_access_targets WHERE type = 'accountId' AND rule_id = $1", matchingAccessRule.ID)
-		if err != nil {
-			return err
+	var accountIdCount, permissionSetCount int
+
+	for _, t := range matchingAccessRule.Targets {
+		if t.Type == "accountId" {
+			accountIdCount++
 		}
-		defer rows.Close()
-
-		var count int
-		for rows.Next() {
-			if err := rows.Scan(&count); err != nil {
-				return err
-			}
+		if t.Type == "permissionSetArn" {
+			permissionSetCount++
 		}
+	}
 
-		if count > 1 {
-			with = append(with, types.CreateRequestWith{
-				AdditionalProperties: map[string][]string{
-					"accountId": {selectedAccountID},
-				},
-			})
-		}
-
-		// check if the 'permissionSetArn' field needs to be included
-		rows, err = db.Queryx("SELECT COUNT(*) FROM cf_access_targets WHERE type = 'permissionSetArn' AND rule_id = $1", matchingAccessRule.ID)
-		if err != nil {
-			return err
-		}
-		defer rows.Close()
-
-		for rows.Next() {
-			if err := rows.Scan(&count); err != nil {
-				return err
-			}
-		}
-
-		if count > 1 {
-			with = append(with, types.CreateRequestWith{
-				AdditionalProperties: map[string][]string{
-					"permissionSetArn": {permissionSetArn},
-				},
-			})
-		}
-
-		// withPtr is set to null if the `With` field doesn't contain anything.
-		// it is used to avoid API bad request errors.
-		var withPtr *[]types.CreateRequestWith
-		if len(with) > 0 {
-			withPtr = &with
-		}
-
-		res, err := cf.UserCreateRequestWithResponse(ctx, types.UserCreateRequestJSONRequestBody{
-			AccessRuleId: matchingAccessRule.ID,
-			Reason:       &reason,
-			Timing: types.RequestTiming{
-				// use the maximum allowed time on the rule by default
-				// to minimise the number of prompts to users.
-				DurationSeconds: matchingAccessRule.DurationSeconds,
+	// check if the 'accountId' field needs to be included
+	if accountIdCount > 1 {
+		with = append(with, types.CreateRequestWith{
+			AdditionalProperties: map[string][]string{
+				"accountId": {selectedAccountID},
 			},
-			With: withPtr,
 		})
-		if err != nil {
-			return err
-		}
+	}
 
-		si.Stop()
+	// check if the 'permissionSetArn' field needs to be included
+	if permissionSetCount > 1 {
+		with = append(with, types.CreateRequestWith{
+			AdditionalProperties: map[string][]string{
+				"permissionSetArn": {permissionSetArn},
+			},
+		})
+	}
 
-		// should only have a single request here
-		for _, r := range res.JSON200.Requests {
-			clio.Infof("Access Request %s - %s", r.ID, r.Status)
-			reqURL, err := url.Parse(cfcfg.CurrentOrEmpty().DashboardURL)
-			if err != nil {
-				return err
-			}
-			reqURL.Path = path.Join("/requests", r.ID)
-			clio.Infof("URL: %s", reqURL)
+	// withPtr is set to null if the `With` field doesn't contain anything.
+	// it is used to avoid API bad request errors.
+	var withPtr *[]types.CreateRequestWith
+	if len(with) > 0 {
+		withPtr = &with
+	}
 
-			fullName := fmt.Sprintf("%s/%s", selectedAccountInfo.Label, selectedRole)
-			clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
-			clio.NewLine()
+	_, err = cf.UserCreateRequestWithResponse(ctx, types.UserCreateRequestJSONRequestBody{
+		AccessRuleId: matchingAccessRule.ID,
+		Reason:       &reason,
+		Timing: types.RequestTiming{
+			// use the maximum allowed time on the rule by default
+			// to minimise the number of prompts to users.
+			DurationSeconds: matchingAccessRule.DurationSeconds,
+		},
+		With: withPtr,
+	})
+	if err != nil {
+		return err
+	}
 
-			if r.Status == types.RequestStatusAPPROVED {
-				durationDescription := durafmt.Parse(time.Duration(matchingAccessRule.DurationSeconds) * time.Second).LimitFirstN(1).String()
-				clio.Successf("[%s] Access is activated (expires in %s)", fullName, durationDescription)
-			}
-		}
+	si.Stop()
 
-		return nil
-	},
+	// find the latest Access Request
+	res, err := cf.UserListRequestsWithResponse(ctx, &types.UserListRequestsParams{})
+	if err != nil {
+		return err
+	}
+
+	latestRequest := res.JSON200.Requests[0]
+
+	clio.Infof("Access Request %s - %s", latestRequest.ID, latestRequest.Status)
+	reqURL, err := url.Parse(cfcfg.CurrentOrEmpty().DashboardURL)
+	if err != nil {
+		return err
+	}
+	reqURL.Path = path.Join("/requests", latestRequest.ID)
+	clio.Infof("URL: %s", reqURL)
+
+	fullName := fmt.Sprintf("%s/%s", selectedAccountInfo.Label, selectedRole)
+	clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
+	clio.NewLine()
+
+	if latestRequest.Status == types.RequestStatusAPPROVED {
+		durationDescription := durafmt.Parse(time.Duration(matchingAccessRule.DurationSeconds) * time.Second).LimitFirstN(1).String()
+		clio.Successf("[%s] Access is activated (expires in %s)", fullName, durationDescription)
+	}
+
+	return nil
 }
 
 func getCachedAccessRules(depID string) (map[string]models.AccessRule, error) {
-	configFolder, err := config.GrantedConfigFolder()
+	cacheFolder, err := getCacheFolder(depID)
 	if err != nil {
 		return nil, err
-	}
-	depURL, err := url.Parse(depID)
-	if err != nil {
-		return nil, err
-	}
-
-	// ~/.granted/common-fate-cache/commonfate.example.com/access-rules
-	cacheFolder := path.Join(configFolder, "common-fate-cache", depURL.Hostname(), "access-rules")
-
-	if _, err := os.Stat(cacheFolder); err == os.ErrNotExist {
-		clio.Debugw("cache folder does not exist, returning", "folder", cacheFolder, "error", err)
-		return nil, nil
 	}
 
 	files, err := os.ReadDir(cacheFolder)
 	if err != nil {
-		return nil, err
-	}
-
-	// map of rule ID to the rule itself
-	rules := map[string]models.AccessRule{}
-
-	for _, f := range files {
-		// the name of the file is the rule ID (e.g. `rul_123`)
-		ruleBytes, err := os.ReadFile(path.Join(cacheFolder, f.Name()))
-		if err != nil {
-			return nil, err
-		}
-		var rule models.AccessRule
-		err = json.Unmarshal(ruleBytes, &rule)
-		if err != nil {
-			return nil, err
-		}
-
-		rules[f.Name()] = rule
-	}
-
-	return rules, nil
-}
-
-func getCachedAccessTargets(depID string) (map[string]models.AccessRule, error) {
-	configFolder, err := config.GrantedConfigFolder()
-	if err != nil {
-		return nil, err
-	}
-	depURL, err := url.Parse(depID)
-	if err != nil {
-		return nil, err
-	}
-
-	// ~/.granted/common-fate-cache/commonfate.example.com/access-targets/aws/account
-	cacheFolder := path.Join(configFolder, "common-fate-cache", depURL.Hostname(), "access-targets", "aws", "account")
-
-	if _, err := os.Stat(cacheFolder); err == os.ErrNotExist {
-		clio.Debugw("cache folder does not exist, returning", "folder", cacheFolder, "error", err)
-		return nil, nil
-	}
-
-	files, err := os.ReadDir(cacheFolder)
-	if err != nil {
-		return nil, err
+		return nil, errors.Wrap(err, "reading cache folder")
 	}
 
 	// map of rule ID to the rule itself
@@ -487,7 +463,6 @@ func getCachedAccessTargets(depID string) (map[string]models.AccessRule, error) 
 type updateCacheOpts struct {
 	Rule         types.AccessRule
 	Existing     map[string]models.AccessRule
-	DB           *sqlx.DB
 	DeploymentID string
 	CF           *client.Client
 }
@@ -510,55 +485,37 @@ func updateCachedAccessRule(ctx context.Context, opts updateCacheOpts) error {
 			return nil
 		}
 		clio.Debugw("rule is out of date", "rule.id", r.ID, "cache.updated_at", cacheUpdatedAt.Unix(), "rule.updated_at", opts.Rule.UpdatedAt.Unix())
-	} else {
-		// doesn't exist in the cache
-		row := models.AccessRule{
-			ID:                 r.ID,
-			Name:               r.Name,
-			DeploymentID:       opts.DeploymentID,
-			TargetProviderID:   r.Target.Provider.Id,
-			TargetProviderType: r.Target.Provider.Type,
-			CreatedAt:          r.CreatedAt.Unix(),
-			UpdatedAt:          r.UpdatedAt.Unix(),
-			DurationSeconds:    r.TimeConstraints.MaxDurationSeconds,
-		}
+	}
 
-		_, err := opts.DB.NamedExecContext(ctx, `INSERT INTO cf_access_rules (id, deployment_id, name, target_provider_id, target_provider_type, created_at, updated_at, duration_seconds, requires_approval) 
-			VALUES (:id, :deployment_id, :name, :target_provider_id, :target_provider_type, :created_at, :updated_at, :duration_seconds, :requires_approval)`, &row)
-		if err != nil {
-			return err
-		}
+	// otherwise, update the cache
+	row := models.AccessRule{
+		ID:                 r.ID,
+		Name:               r.Name,
+		DeploymentID:       opts.DeploymentID,
+		TargetProviderID:   r.Target.Provider.Id,
+		TargetProviderType: r.Target.Provider.Type,
+		CreatedAt:          r.CreatedAt.Unix(),
+		UpdatedAt:          r.UpdatedAt.Unix(),
+		DurationSeconds:    r.TimeConstraints.MaxDurationSeconds,
 	}
 
 	// our API doesn't easily expose whether manual approval is required
 	// on an Access Rule, so we need to fetch approvers separately.
-
 	approvers, err := opts.CF.UserGetAccessRuleApproversWithResponse(ctx, r.ID)
 	if err != nil {
 		return err
 	}
 
-	// SQLite uses an int to store booleans. 0 = false, 1 = true
-	var requiresApproval int
-
 	if len(approvers.JSON200.Users) > 0 {
-		requiresApproval = 1
+		row.RequiresApproval = true
 	}
 
-	_, err = opts.DB.ExecContext(ctx, "UPDATE cf_access_rules SET requires_approval = $1 WHERE id = $2", requiresApproval, r.ID)
-	if err != nil {
-		return err
-	}
+	clio.Debugw("updated requires approval", "rule.id", r.ID, "requires_approval", row.RequiresApproval)
 
-	clio.Debugw("updated requires approval", "rule.id", r.ID, "requires_approval", requiresApproval)
-
-	// if we get here, we need to sync the resources that the rule grants access to
 	details, err := opts.CF.UserGetAccessRuleWithResponse(ctx, r.ID)
 	if err != nil {
 		return err
 	}
-
-	var targets []models.AccessTarget
 
 	for k, v := range details.JSON200.Target.Arguments.AdditionalProperties {
 		for _, o := range v.Options {
@@ -572,32 +529,52 @@ func updateCachedAccessRule(ctx context.Context, opts updateCacheOpts) error {
 			if o.Description != nil {
 				t.Description = *o.Description
 			}
-			targets = append(targets, t)
+			row.Targets = append(row.Targets, t)
 		}
 	}
 
-	tx, err := opts.DB.BeginTxx(ctx, nil)
+	clio.Debugw("updated access targets", "rule.id", r.ID, "targets.count", len(row.Targets))
+
+	cacheFolder, err := getCacheFolder(opts.DeploymentID)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.ExecContext(ctx, "DELETE FROM cf_access_targets WHERE rule_id = $1", r.ID)
+	filename := filepath.Join(cacheFolder, r.ID)
+
+	ruleBytes, err := json.Marshal(row)
 	if err != nil {
 		return err
 	}
 
-	_, err = tx.NamedExec(`INSERT INTO cf_access_targets (rule_id, type, label, description, value)
-        VALUES (:rule_id, :type, :label, :description, :value)`, targets)
+	err = os.WriteFile(filename, ruleBytes, 0644)
 	if err != nil {
 		return err
 	}
-
-	err = tx.Commit()
-	if err != nil {
-		return err
-	}
-
-	clio.Debugw("updated access targets", "rule.id", r.ID, "targets.count", len(targets))
 
 	return nil
+}
+
+func getCacheFolder(depID string) (string, error) {
+	configFolder, err := config.GrantedConfigFolder()
+	if err != nil {
+		return "", err
+	}
+	depURL, err := url.Parse(depID)
+	if err != nil {
+		return "", err
+	}
+
+	// ~/.granted/common-fate-cache/commonfate.example.com/access-rules
+	cacheFolder := path.Join(configFolder, "common-fate-cache", depURL.Hostname(), "access-rules")
+
+	if _, err := os.Stat(cacheFolder); os.IsNotExist(err) {
+		clio.Debugw("cache folder does not exist, creating", "folder", cacheFolder, "error", err)
+		err = os.MkdirAll(cacheFolder, 0755)
+		if err != nil {
+			return "", errors.Wrapf(err, "creating cache folder %s", cacheFolder)
+		}
+	}
+
+	return cacheFolder, nil
 }

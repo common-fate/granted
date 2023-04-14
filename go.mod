@@ -23,8 +23,7 @@ require (
 	github.com/common-fate/clio v1.1.0
 	github.com/common-fate/common-fate v0.15.1-0.20230321161540-f3b6e3da8d3c
 	github.com/fatih/color v1.13.0
-	github.com/jmoiron/sqlx v1.3.5
-	github.com/mattn/go-sqlite3 v1.14.16
+	github.com/lithammer/fuzzysearch v1.1.5
 	go.uber.org/zap v1.23.0
 	gopkg.in/yaml.v3 v3.0.1
 )
