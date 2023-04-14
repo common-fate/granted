@@ -160,8 +160,6 @@ func ReadPlaintextSsoCreds(startUrl string) (SSOPlainTextOut, error) {
 			if err != nil {
 				return SSOPlainTextOut{}, err
 			}
-			// print the file name
-			fmt.Println(file.Name())
 
 			// if file doesn't start with botocore
 			if !strings.HasPrefix(file.Name(), "botocore") {
