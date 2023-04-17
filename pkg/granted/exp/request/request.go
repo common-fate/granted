@@ -43,9 +43,9 @@ var awsCommand = cli.Command{
 	Name:  "aws",
 	Usage: "Request access to an AWS role",
 	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "account", Usage: "the AWS account ID"},
-		&cli.StringFlag{Name: "role", Usage: "the AWS role"},
-		&cli.StringFlag{Name: "reason", Usage: "a reason for access"},
+		&cli.StringFlag{Name: "account", Usage: "The AWS account ID"},
+		&cli.StringFlag{Name: "role", Usage: "The AWS role"},
+		&cli.StringFlag{Name: "reason", Usage: "A reason for access"},
 	},
 	Action: func(c *cli.Context) error {
 		return requestAccess(c.Context, requestAccessOpts{
@@ -60,7 +60,7 @@ var latestCommand = cli.Command{
 	Name:  "latest",
 	Usage: "Request access to the latest AWS role you attempted to use",
 	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "reason", Usage: "a reason for access"},
+		&cli.StringFlag{Name: "reason", Usage: "A reason for access"},
 	},
 	Action: func(c *cli.Context) error {
 		role, err := accessrequest.LatestRole()
