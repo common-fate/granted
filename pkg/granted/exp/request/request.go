@@ -20,7 +20,7 @@ import (
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/common-fate/pkg/types"
 	"github.com/common-fate/granted/pkg/accessrequest"
-	"github.com/common-fate/granted/pkg/cache/models"
+	"github.com/common-fate/granted/pkg/cache"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/frecency"
 	"github.com/common-fate/granted/pkg/securestorage"
@@ -143,7 +143,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	// note: we use a map here to de-duplicate accounts.
 	// this means that the RuleID in the accounts map is not necessarily
 	// the *only* Access Rule which grants access to that account.
-	accounts := map[string]models.AccessTarget{}
+	accounts := map[string]cache.AccessTarget{}
 
 	// a map of access rule IDs that match each account ID
 	// Prod (123456789012) -> {"rul_123": true}
@@ -199,7 +199,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	// note: we use a map here to de-duplicate accounts.
 	// this means that the RuleID in the accounts map is not necessarily
 	// the *only* Access Rule which grants access to that account.
-	permissionSets := map[string]models.AccessTarget{}
+	permissionSets := map[string]cache.AccessTarget{}
 
 	for _, rule := range existingRules {
 		if _, ok := ruleIDs[rule.ID]; !ok {
@@ -257,7 +257,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	// find Access Rules that match the permission set and the account
 	// we need to find the intersection between permissionSetRuleIDs and accessRulesForAccount
 	// matchingAccessRule tracks the current Access Rule which we'll use to request access against.
-	var matchingAccessRule *models.AccessRule
+	var matchingAccessRule *cache.AccessRule
 
 	for ruleID := range ruleIDs {
 		if _, ok := selectedPermissionSetRuleIDs[ruleID]; ok {
@@ -428,7 +428,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	return nil
 }
 
-func getCachedAccessRules(depID string) (map[string]models.AccessRule, error) {
+func getCachedAccessRules(depID string) (map[string]cache.AccessRule, error) {
 	cacheFolder, err := getCacheFolder(depID)
 	if err != nil {
 		return nil, err
@@ -440,7 +440,7 @@ func getCachedAccessRules(depID string) (map[string]models.AccessRule, error) {
 	}
 
 	// map of rule ID to the rule itself
-	rules := map[string]models.AccessRule{}
+	rules := map[string]cache.AccessRule{}
 
 	for _, f := range files {
 		// the name of the file is the rule ID (e.g. `rul_123`)
@@ -448,7 +448,7 @@ func getCachedAccessRules(depID string) (map[string]models.AccessRule, error) {
 		if err != nil {
 			return nil, err
 		}
-		var rule models.AccessRule
+		var rule cache.AccessRule
 		err = json.Unmarshal(ruleBytes, &rule)
 		if err != nil {
 			return nil, err
@@ -462,7 +462,7 @@ func getCachedAccessRules(depID string) (map[string]models.AccessRule, error) {
 
 type updateCacheOpts struct {
 	Rule         types.AccessRule
-	Existing     map[string]models.AccessRule
+	Existing     map[string]cache.AccessRule
 	DeploymentID string
 	CF           *client.Client
 }
@@ -488,7 +488,7 @@ func updateCachedAccessRule(ctx context.Context, opts updateCacheOpts) error {
 	}
 
 	// otherwise, update the cache
-	row := models.AccessRule{
+	row := cache.AccessRule{
 		ID:                 r.ID,
 		Name:               r.Name,
 		DeploymentID:       opts.DeploymentID,
@@ -519,7 +519,7 @@ func updateCachedAccessRule(ctx context.Context, opts updateCacheOpts) error {
 
 	for k, v := range details.JSON200.Target.Arguments.AdditionalProperties {
 		for _, o := range v.Options {
-			t := models.AccessTarget{
+			t := cache.AccessTarget{
 				RuleID: r.ID,
 				Type:   k,
 				Label:  o.Label,

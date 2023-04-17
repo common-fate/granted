@@ -1,4 +1,4 @@
-package models
+package cache
 
 type AccessRule struct {
 	ID                 string         `json:"id"`
