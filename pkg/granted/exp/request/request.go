@@ -416,12 +416,13 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	reqURL.Path = path.Join("/requests", latestRequest.ID)
 	clio.Infof("URL: %s", reqURL)
 
+	fullName := fmt.Sprintf("%s/%s", selectedAccountInfo.Label, selectedRole)
+
 	if latestRequest.Status == types.RequestStatusAPPROVED {
 		durationDescription := durafmt.Parse(time.Duration(matchingAccessRule.DurationSeconds) * time.Second).LimitFirstN(1).String()
 		clio.Successf("[%s] Access is activated (expires in %s)", fullName, durationDescription)
 	}
 
-	fullName := fmt.Sprintf("%s/%s", selectedAccountInfo.Label, selectedRole)
 	clio.NewLine()
 	clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 
