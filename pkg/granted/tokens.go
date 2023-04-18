@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"os"
-	"runtime"
 	"strings"
 	"time"
 
@@ -228,27 +227,9 @@ func clearAllTokens() error {
 		return err
 	}
 	for _, k := range keys {
-		err = clearToken(k)
-		if err != nil {
+		if err := secureSSOTokenStorage.SecureStorage.Clear(key); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-// clearToken has some specific behaviour for darwin systems
-func clearToken(key string) error {
-	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
-	// Specific to the mac keychain, the granted binary will not have access to delete the items set by the assume binary without the user granting access.
-	// So, first ask the user to allow access, then attempt to delete the item.
-	if runtime.GOOS == "darwin" {
-		clio.Warn("If you are using the mac keychain, choose to 'Always Allow' when prompted to allow Granted access to the item")
-		clio.Warn("This will allow the item to be deleted by this command")
-		var t interface{}
-		err := secureSSOTokenStorage.SecureStorage.Retrieve(key, &t)
-		if err != nil {
-			return err
-		}
-	}
-	return secureSSOTokenStorage.SecureStorage.Clear(key)
 }
