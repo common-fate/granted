@@ -210,7 +210,9 @@ var ClearSSOTokensCommand = cli.Command{
 			selection = selectionsMap[out]
 		}
 
-		err = clearToken(selection)
+		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+
+		err = secureSSOTokenStorage.SecureStorage.Clear(selection)
 		if err != nil {
 			return err
 		}
@@ -227,7 +229,7 @@ func clearAllTokens() error {
 		return err
 	}
 	for _, k := range keys {
-		if err := secureSSOTokenStorage.SecureStorage.Clear(key); err != nil {
+		if err := secureSSOTokenStorage.SecureStorage.Clear(k); err != nil {
 			return err
 		}
 	}
