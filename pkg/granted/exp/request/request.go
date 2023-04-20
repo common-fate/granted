@@ -347,6 +347,9 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	// the current version of the API requires `With` fields to be provided
 	// *only* if the Access Rule has multiple options for that field.
 	var with []types.CreateRequestWith
+	request := types.CreateRequestWith{
+		AdditionalProperties: make(map[string][]string),
+	}
 
 	var accountIdCount, permissionSetCount int
 
@@ -361,26 +364,19 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 
 	// check if the 'accountId' field needs to be included
 	if accountIdCount > 1 {
-		with = append(with, types.CreateRequestWith{
-			AdditionalProperties: map[string][]string{
-				"accountId": {selectedAccountID},
-			},
-		})
+		request.AdditionalProperties["accountId"] = []string{selectedAccountID}
 	}
 
 	// check if the 'permissionSetArn' field needs to be included
 	if permissionSetCount > 1 {
-		with = append(with, types.CreateRequestWith{
-			AdditionalProperties: map[string][]string{
-				"permissionSetArn": {permissionSetArn},
-			},
-		})
+		request.AdditionalProperties["permissionSetArn"] = []string{permissionSetArn}
 	}
 
 	// withPtr is set to null if the `With` field doesn't contain anything.
 	// it is used to avoid API bad request errors.
 	var withPtr *[]types.CreateRequestWith
-	if len(with) > 0 {
+	if len(request.AdditionalProperties) > 0 {
+		with = append(with, request)
 		withPtr = &with
 	}
 
