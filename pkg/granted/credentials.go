@@ -3,6 +3,7 @@ package granted
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -126,7 +127,8 @@ func validateProfileForImport(ctx context.Context, profiles *cfaws.Profiles, pro
 	if existsInSecureStorage && !overwrite {
 		return fmt.Errorf("profile %s is already stored in secure storage.\nIf you were trying to update the credentials in secure storage, you can use '%s credentials update %s', or to overwrite the credentials in secure storage, run '%s credentials import --overwrite %s'", profileName, build.GrantedBinaryName(), profileName, build.GrantedBinaryName(), profileName)
 	}
-	if !profile.AWSConfig.Credentials.HasKeys() {
+	_, keyExistsInEnv := os.LookupEnv("AWS_ACCESS_KEY_ID")
+	if !profile.AWSConfig.Credentials.HasKeys() && !keyExistsInEnv {
 		return fmt.Errorf("profile %s does not have IAM credentials configured", profileName)
 	}
 	return nil
@@ -134,10 +136,10 @@ func validateProfileForImport(ctx context.Context, profiles *cfaws.Profiles, pro
 
 var ImportCredentialsCommand = cli.Command{
 	Name:      "import",
-	Usage:     "Import plaintext IAM user credentials from AWS credentials file into secure storage",
+	Usage:     "Import plaintext IAM user credentials from AWS credentials file or environment variables into secure storage",
 	ArgsUsage: "[<profile>]",
 	Flags: []cli.Flag{
-		&cli.BoolFlag{Name: "overwrite", Usage: "Overwrite an existing profile saved in secure storage with values from the AWS credentials file"},
+		&cli.BoolFlag{Name: "overwrite", Usage: "Overwrite an existing profile saved in secure storage with values from the AWS credentials file or environment variables"},
 	},
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
@@ -176,6 +178,52 @@ var ImportCredentialsCommand = cli.Command{
 		err = updateOrCreateProfileWithCredentialProcess(profileName)
 		if err != nil {
 			return err
+		}
+
+		// Tools like aws-vault put access keys in environment variables. Check if they are configured as environment variables
+		accessKeyFromEnv, accessKeyFromEnvExists := os.LookupEnv("AWS_ACCESS_KEY_ID")
+		secretAccessKeyFromEnv, secretAccessKeyFromEnvExists := os.LookupEnv("AWS_ACCESS_KEY_ID")
+
+		// If the access keys exist as Env vars, use them instead of a credentials file
+		if accessKeyFromEnvExists && secretAccessKeyFromEnvExists {
+
+			configPath := config.DefaultSharedConfigFilename()
+			configFile, err := ini.LoadSources(ini.LoadOptions{
+				AllowNonUniqueSections:  false,
+				SkipUnrecognizableLines: false,
+			}, configPath)
+			if err != nil {
+				return err
+			}
+			sectionName := "profile " + profileName
+
+			// if the same option is configured in the config file profile it takes precedence
+			section, err := configFile.GetSection(sectionName)
+			if err != nil {
+				return err
+			}
+			if !section.HasKey("aws_access_key_id") {
+				_, err = section.NewKey("aws_access_key_id", accessKeyFromEnv)
+				if err != nil {
+					return err
+				}
+			}
+			if !section.HasKey("aws_secret_access_key") {
+				_, err = section.NewKey("aws_secret_access_key", secretAccessKeyFromEnv)
+				if err != nil {
+					return err
+				}
+			}
+
+			// save the updated config file after merging
+			err = configFile.SaveTo(configPath)
+			if err != nil {
+				return err
+			}
+
+			fmt.Printf("Saved %s from ENV vars to secure storage\n", profileName)
+
+			return nil
 		}
 
 		// remove the profile from the credentials file
