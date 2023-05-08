@@ -3,7 +3,10 @@ package granted
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os"
+	"regexp"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -223,11 +226,35 @@ var LoginCommand = cli.Command{
 		}
 
 		ssoRegion := c.String("sso-region")
+
 		if ssoRegion == "" {
-			in2 := survey.Input{Message: "Region"}
-			err := testable.AskOne(&in2, &ssoRegion)
+
+			// fetch the start url to extract the region from the html
+			resp, err := http.Get(ssoStartUrl)
 			if err != nil {
 				return err
+			}
+			defer resp.Body.Close()
+
+			// extract the region using a regex on the meta tag "region"
+			re := regexp.MustCompile(`<meta\s+name="region"\s+content="(.*?)"/>`)
+			body, err := ioutil.ReadAll(resp.Body)
+			if err != nil {
+				return err
+			}
+
+			match := re.FindStringSubmatch(string(body))
+			if len(match) == 2 {
+				ssoRegion = match[1]
+			}
+
+			// Fallback to user input
+			if ssoRegion == "" {
+				in2 := survey.Input{Message: "Region"}
+				err := testable.AskOne(&in2, &ssoRegion)
+				if err != nil {
+					return err
+				}
 			}
 		}
 
