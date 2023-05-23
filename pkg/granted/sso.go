@@ -3,7 +3,8 @@ package granted
 import (
 	"context"
 	"fmt"
-	"io/ioutil"
+	"io"
+
 	"net/http"
 	"os"
 	"regexp"
@@ -238,7 +239,7 @@ var LoginCommand = cli.Command{
 
 			// extract the region using a regex on the meta tag "region"
 			re := regexp.MustCompile(`<meta\s+name="region"\s+content="(.*?)"/>`)
-			body, err := ioutil.ReadAll(resp.Body)
+			body, err := io.ReadAll(resp.Body)
 			if err != nil {
 				return err
 			}
