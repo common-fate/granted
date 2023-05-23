@@ -56,6 +56,10 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 
 	// sanity check to verify if the provided value is a valid url
 	_, err = url.ParseRequestURI(cfg.SSOStartURL)
+	
+	// normalize the url to remove trailing slashes if they exist
+	cfg.SSOStartURL = strings.TrimSuffix(cfg.SSOStartURL, "/")
+
 	if err != nil {
 		clio.Debug(err)
 		return nil, fmt.Errorf("invalid value '%s' provided for 'granted_sso_start_url'", cfg.SSOStartURL)
