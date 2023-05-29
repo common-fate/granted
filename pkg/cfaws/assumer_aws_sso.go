@@ -48,7 +48,6 @@ func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProf
 }
 
 func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
-
 	rootProfile := c
 	requiresAssuming := false
 	if len(c.Parents) > 0 {
@@ -61,11 +60,17 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	cfg := aws.NewConfig()
 	cfg.Region = rootProfile.AWSConfig.SSORegion
 
+	gConf, loadErr := grantedConfig.Load()
+	if loadErr != nil {
+		clio.Debugf(errors.Wrapf(loadErr, "loading Granted config during SSO login: %s", loadErr.Error()).Error())
+		return aws.Credentials{}, loadErr
+	}
+
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
 	var accessToken *string
-	//Dont try device flow if using granted credential process
-	if cachedToken == nil && configOpts.UsingCredentialProcess {
+	// Don't try device flow in headless mode
+	if cachedToken == nil && gConf.HeadlessMode {
 		cmd := "granted sso login"
 		startURL := c.AWSConfig.SSOStartURL
 		if startURL != "" {
@@ -79,6 +84,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 
 		return aws.Credentials{}, fmt.Errorf("error when retrieving credentials from custom process. please login using '%s'", cmd)
 	}
+
 	if cachedToken == nil {
 		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
 		if err != nil {
