@@ -11,9 +11,10 @@ import (
 )
 
 type AWS struct {
-	Profile string
-	Region  string
-	Service string
+	Profile     string
+	Region      string
+	Service     string
+	Destination string
 }
 
 // awsSession is the JSON payload sent to AWS
@@ -22,7 +23,7 @@ type awsSession struct {
 	// SessionID maps to AWS Access Key ID
 	SessionID string `json:"sessionId"`
 	// SessionKey maps to AWS Secret Access Key
-	SesssionKey string `json:"sessionKey"`
+	SessionKey string `json:"sessionKey"`
 	// SessionToken maps to AWS Session Token
 	SessionToken string `json:"sessionToken"`
 }
@@ -34,7 +35,7 @@ type awsSession struct {
 func (a AWS) URL(creds aws.Credentials) (string, error) {
 	sess := awsSession{
 		SessionID:    creds.AccessKeyID,
-		SesssionKey:  creds.SecretAccessKey,
+		SessionKey:   creds.SecretAccessKey,
 		SessionToken: creds.SessionToken,
 	}
 	sessJSON, err := json.Marshal(sess)
@@ -47,7 +48,7 @@ func (a AWS) URL(creds aws.Credentials) (string, error) {
 
 	u := url.URL{
 		Scheme: "https",
-		Host:   partition.HostString(),
+		Host:   partition.RegionalHostString(a.Region),
 		Path:   "/federation",
 	}
 	q := u.Query()
@@ -74,11 +75,11 @@ func (a AWS) URL(creds aws.Credentials) (string, error) {
 
 	u = url.URL{
 		Scheme: "https",
-		Host:   partition.HostString(),
+		Host:   partition.RegionalHostString(a.Region),
 		Path:   "/federation",
 	}
 
-	dest, err := makeDestinationURL(a.Service, a.Region)
+	dest, err := makeDestinationURL(a.Service, a.Region, a.Destination)
 
 	if err != nil {
 		return "", err
@@ -86,15 +87,19 @@ func (a AWS) URL(creds aws.Credentials) (string, error) {
 	q = u.Query()
 	q.Add("Action", "login")
 	q.Add("Issuer", "")
-	q.Add("Destination", dest)
 	q.Add("SigninToken", token.SigninToken)
+	q.Add("Destination", dest)
 	u.RawQuery = q.Encode()
 	return u.String(), nil
 }
 
-func makeDestinationURL(service string, region string) (string, error) {
+func makeDestinationURL(service string, region string, destination string) (string, error) {
+	// if destination is provided, use it
+	if destination != "" {
+		return destination, nil
+	}
 	partition := GetPartitionFromRegion(region)
-	prefix := partition.ConsoleHostString()
+	prefix := partition.RegionalConsoleHostString(region)
 	if ServiceMap[service] == "" {
 		clio.Warnf("We don't recognize service %s but we'll try and open it anyway (you may receive a 404 page)\n", service)
 	} else {

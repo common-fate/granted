@@ -28,6 +28,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "url", Aliases: []string{"u"}, Usage: "Get an active console session url"},
 		&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Like --c, but opens to a specified service"},
 		&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "region to launch the console or export to the terminal"},
+		&cli.StringFlag{Name: "console-destination", Aliases: []string{"cd"}, Usage: "Open a web console at this destination"},
 		&cli.StringSliceFlag{Name: "pass-through", Aliases: []string{"pt"}, Usage: "Pass args to proxy assumer"},
 		&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
