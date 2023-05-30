@@ -30,7 +30,8 @@ type Config struct {
 
 	// Set this to true to disable usage tips like `To assume this profile again later without needing to select it, run this command:`
 	DisableUsageTips bool `toml:",omitempty"`
-
+	// Set this to true to disable credential caching feature when using credential process
+	DisableCredentialProcessCache bool `toml:",omitempty"`
 	// deprecated in favor of ProfileRegistry
 	ProfileRegistryURLS []string `toml:",omitempty"`
 	ProfileRegistry     struct {
