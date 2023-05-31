@@ -56,6 +56,7 @@ var ServiceMap = map[string]string{
 	"param":          "systems-manager/parameters",
 	"redshift":       "redshiftv2",
 	"sagemaker":      "sagemaker",
+	"sm":             "secrets-manager",
 	"ssm":            "systems-manager",
 }
 
