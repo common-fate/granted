@@ -26,6 +26,7 @@ var ConsoleCommand = cli.Command{
 
 		&cli.StringFlag{Name: "service"},
 		&cli.StringFlag{Name: "region", EnvVars: []string{"AWS_REGION"}},
+		&cli.StringFlag{Name: "destination", Usage: "The destination URL for the console"},
 		&cli.BoolFlag{Name: "url", Usage: "Return the URL to stdout instead of launching the browser"},
 		&cli.BoolFlag{Name: "firefox", Usage: "Generate the Firefox container URL"},
 		&cli.StringFlag{Name: "color", Usage: "When the firefox flag is true, this specifies the color of the container tab"},
@@ -36,8 +37,9 @@ var ConsoleCommand = cli.Command{
 		ctx := c.Context
 		credentials := cfaws.GetEnvCredentials(ctx)
 		con := console.AWS{
-			Service: c.String("service"),
-			Region:  c.String("region"),
+			Service:     c.String("service"),
+			Region:      c.String("region"),
+			Destination: c.String("destination"),
 		}
 
 		consoleURL, err := con.URL(credentials)
@@ -50,7 +52,7 @@ var ConsoleCommand = cli.Command{
 			return err
 		}
 		if c.Bool("firefox") || cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
-			// tranform the URL into the Firefox Tab Container format.
+			// transform the URL into the Firefox Tab Container format.
 			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", c.String("container-name"), url.QueryEscape(consoleURL), c.String("color"), c.String("icon"))
 		}
 

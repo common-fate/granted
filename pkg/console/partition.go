@@ -29,29 +29,40 @@ func (p PartitionHost) String() string {
 }
 
 func (p PartitionHost) HostString() string {
+	return p.RegionalHostString("")
+}
+
+func (p PartitionHost) RegionalHostString(region string) string {
+	regionPrefix := GetRegionPrefixFromRegion(region)
 	switch p {
 	case Default:
-		return "signin.aws.amazon.com"
+		return regionPrefix + "signin.aws.amazon.com"
 	case Gov:
-		return "signin.amazonaws-us-gov.com"
+		return regionPrefix + "signin.amazonaws-us-gov.com"
 	case Cn:
-		return "signin.amazonaws.cn"
+		return regionPrefix + "signin.amazonaws.cn"
 	}
+
 	// Note: we're not handling the ISO and ISOB cases, I don't think they are supported by a public AWS console
-	return "signin.aws.amazon.com"
+	return regionPrefix + "signin.aws.amazon.com"
 }
 
 func (p PartitionHost) ConsoleHostString() string {
+	return p.RegionalConsoleHostString("")
+}
+
+func (p PartitionHost) RegionalConsoleHostString(region string) string {
+	regionPrefix := GetRegionPrefixFromRegion(region)
 	switch p {
 	case Default:
-		return "https://console.aws.amazon.com/"
+		return "https://" + regionPrefix + "console.aws.amazon.com/"
 	case Gov:
-		return "https://console.amazonaws-us-gov.com/"
+		return "https://" + regionPrefix + "console.amazonaws-us-gov.com/"
 	case Cn:
-		return "https://console.amazonaws.cn/"
+		return "https://" + regionPrefix + "console.amazonaws.cn/"
 	}
 	// Note: we're not handling the ISO and ISOB cases, I don't think they are supported by a public AWS console
-	return "https://console.aws.amazon.com/"
+	return "https://" + regionPrefix + "console.aws.amazon.com/"
 }
 
 func GetPartitionFromRegion(region string) PartitionHost {
@@ -71,4 +82,12 @@ func GetPartitionFromRegion(region string) PartitionHost {
 		}
 	}
 	return PartitionHost(Default)
+}
+
+func GetRegionPrefixFromRegion(region string) string {
+	if region == "us-east-1" || region == "" || region == "cn-north-1" || region == "us-gov-west-1" {
+		return ""
+	} else {
+		return region + "."
+	}
 }
