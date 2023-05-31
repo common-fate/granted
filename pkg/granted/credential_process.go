@@ -32,6 +32,7 @@ var CredentialProcess = cli.Command{
 		&cli.StringFlag{Name: "profile", Required: true},
 		&cli.StringFlag{Name: "url"},
 		&cli.DurationFlag{Name: "window", Value: 15 * time.Minute},
+		&cli.BoolFlag{Name: "auto-login", Usage: "automatically open the configured browser to log in if needed"},
 	},
 	Action: func(c *cli.Context) error {
 		cfg, err := config.Load()
@@ -41,6 +42,7 @@ var CredentialProcess = cli.Command{
 		var needsRefresh bool
 		var credentials aws.Credentials
 		profileName := c.String("profile")
+		autoLogin := c.Bool("auto-login")
 		secureSessionCredentialStorage := securestorage.NewSecureSessionCredentialStorage()
 		clio.Debugw("running credential process with config", "profile", profileName, "url", c.String("url"), "window", c.Duration("window"), "disableCredentialProcessCache", cfg.DisableCredentialProcessCache)
 		if !cfg.DisableCredentialProcessCache {
@@ -82,7 +84,7 @@ var CredentialProcess = cli.Command{
 				duration = *profile.AWSConfig.RoleDurationSeconds
 			}
 
-			credentials, err = profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true})
+			credentials, err = profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true, CredentialProcessAutoLogin: autoLogin})
 			if err != nil {
 				return err
 			}

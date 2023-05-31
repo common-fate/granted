@@ -20,10 +20,11 @@ import (
 )
 
 type ConfigOpts struct {
-	UsingCredentialProcess bool
-	Duration               time.Duration
-	Args                   []string
-	ShouldRetryAssuming    *bool
+	UsingCredentialProcess     bool
+	CredentialProcessAutoLogin bool
+	Duration                   time.Duration
+	Args                       []string
+	ShouldRetryAssuming        *bool
 }
 
 type SSOSession struct {
