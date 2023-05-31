@@ -5,11 +5,11 @@ go 1.19
 require (
 	github.com/99designs/keyring v1.2.2
 	github.com/AlecAivazis/survey/v2 v2.3.6
-	github.com/aws/aws-sdk-go-v2 v1.17.5
-	github.com/aws/aws-sdk-go-v2/config v1.18.15
-	github.com/aws/aws-sdk-go-v2/service/sso v1.12.4
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.4
-	github.com/aws/aws-sdk-go-v2/service/sts v1.18.5
+	github.com/aws/aws-sdk-go-v2 v1.17.7
+	github.com/aws/aws-sdk-go-v2/config v1.18.19
+	github.com/aws/aws-sdk-go-v2/service/sso v1.12.6
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.6
+	github.com/aws/aws-sdk-go-v2/service/sts v1.18.7
 	github.com/common-fate/updatecheck v0.3.4
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
@@ -19,7 +19,7 @@ require (
 
 require (
 	github.com/briandowns/spinner v1.23.0
-	github.com/common-fate/cli v0.3.2-0.20230320155355-6137b0acd142
+	github.com/common-fate/cli v0.4.2
 	github.com/common-fate/clio v1.1.0
 	github.com/common-fate/common-fate v0.15.0
 	github.com/fatih/color v1.13.0
@@ -57,13 +57,13 @@ require (
 require (
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
 	github.com/BurntSushi/toml v1.2.1
-	github.com/aws/aws-sdk-go-v2/credentials v1.13.15
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.12.23 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.29 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.23 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.30 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.13.18
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.13.1 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.1.31 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.4.25 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.3.32 // indirect
 	github.com/aws/aws-sdk-go-v2/service/iam v1.18.25
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.23 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.9.25 // indirect
 	github.com/aws/smithy-go v1.13.5
 	github.com/common-fate/awsconfigfile v0.8.0
 	github.com/common-fate/useragent v0.1.0
