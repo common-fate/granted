@@ -9,7 +9,6 @@ import (
 	"os"
 	"path"
 	"runtime"
-	"time"
 
 	"github.com/BurntSushi/toml"
 
@@ -21,10 +20,29 @@ type Config struct {
 	// used to override the builtin filepaths for custom installation locations
 	CustomBrowserPath      string
 	CustomSSOBrowserPath   string
-	LastCheckForUpdates    time.Weekday
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
+	// AccessRequestURL is a Granted Approvals URL that users can visit
+	// to request access, in the event that we receive a ForbiddenException
+	// denying access to assume a particular role.
+	AccessRequestURL string `toml:",omitempty"`
+
+	// Set this to true to disable usage tips like `To assume this profile again later without needing to select it, run this command:`
+	DisableUsageTips bool `toml:",omitempty"`
+	// Set this to true to disable credential caching feature when using credential process
+	DisableCredentialProcessCache bool `toml:",omitempty"`
+	// deprecated in favor of ProfileRegistry
+	ProfileRegistryURLS []string `toml:",omitempty"`
+	ProfileRegistry     struct {
+		// add any global configuration to profile registry here.
+		PrefixAllProfiles       bool
+		PrefixDuplicateProfiles bool
+		SessionName             string            `toml:",omitempty"`
+		RequiredKeys            map[string]string `toml:",omitempty"`
+		Variables               map[string]string `toml:",omitempty"`
+		Registries              []Registry        `toml:",omitempty"`
+	} `toml:",omitempty"`
 }
 
 type KeyringConfig struct {
@@ -32,6 +50,17 @@ type KeyringConfig struct {
 	KeychainName            *string `toml:",omitempty"`
 	FileDir                 *string `toml:",omitempty"`
 	LibSecretCollectionName *string `toml:",omitempty"`
+}
+
+type Registry struct {
+	Name                    string  `toml:"name"`
+	URL                     string  `toml:"url"`
+	Path                    *string `toml:"path,omitempty"`
+	Filename                *string `toml:"filename,omitempty"`
+	Ref                     *string `toml:"ref,omitempty"`
+	Priority                *int    `toml:"priority, omitempty"`
+	PrefixDuplicateProfiles bool    `toml:"prefixDuplicateProfiles,omitempty"`
+	PrefixAllProfiles       bool    `toml:"prefixAllProfiles,omitempty"`
 }
 
 // NewDefaultConfig returns a config with OS specific defaults populated
@@ -141,8 +170,7 @@ func Load() (*Config, error) {
 	return &c, nil
 }
 
-func (store *Config) Save() error {
-
+func (c *Config) Save() error {
 	grantedFolder, err := GrantedConfigFolder()
 	if err != nil {
 		return err
@@ -154,5 +182,5 @@ func (store *Config) Save() error {
 		return err
 	}
 	defer file.Close()
-	return toml.NewEncoder(file).Encode(store)
+	return toml.NewEncoder(file).Encode(c)
 }

@@ -29,7 +29,7 @@ func EndTesting() {
 	isTesting = false
 }
 
-// Configure this with a function that retruns the next input required for a cli test
+// Configure this with a function that returns the next input required for a cli test
 func WithNextSurveyInputFunc(next func() StringOrBool) {
 	nextSurveyInput = next
 }
@@ -65,30 +65,3 @@ func Fprintf(w io.Writer, format string, a ...interface{}) (n int, err error) {
 	n, err = fmt.Fprintf(w, format, a...)
 	return
 }
-
-// func Fprintln(w io.Writer, a ...interface{}) (n int, err error) {
-// 	if isTesting {
-// 		validateNextOutput(format, a...)
-// 		return len([]byte(fmt.Sprintf(format, a...))), nil
-// 	}
-// 	n, err = fmt.Fprintln(w, a...)
-// 	return
-// }
-// func Fprint(w io.Writer, a ...interface{}) (n int, err error) {
-// 	n, err = fmt.Fprint(w, a...)
-// 	return
-// }
-
-// func Print(format string, a ...interface{}) (n int, err error) {
-// 	n, err = Fprintf(os.Stdout, format, a...)
-// 	return
-// }
-// func Printf(format string, a ...interface{}) (n int, err error) {
-// 	n, err = Fprintf(os.Stdout, format, a...)
-// 	return
-// }
-
-// func Println(format string, a ...interface{}) (n int, err error) {
-// 	n, err = Fprintln(os.Stdout, a...)
-// 	return
-// }

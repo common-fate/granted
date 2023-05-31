@@ -3,13 +3,10 @@ PREFIX?=/usr/local
 go-binary:
 	go build -o ./bin/dgranted cmd/granted/main.go
 
-assume-binary:
-	go build -o ./bin/dassumego cmd/assume/main.go
-
-cli: go-binary assume-binary
+cli: go-binary
 	mv ./bin/dgranted ${PREFIX}/bin/
-	mv ./bin/dassumego ${PREFIX}/bin/
-	# replace references to "assumego" (the production binary) with "dassumego"
+	ln -sf dgranted ${PREFIX}/bin/dassumego
+	# replace references to "assumego" (the production symlink) with "dassumego"
 	cat scripts/assume | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume && chmod +x ${PREFIX}/bin/dassume
 	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.fish && chmod +x ${PREFIX}/bin/dassume.fish
 
@@ -33,19 +30,30 @@ test-creds-binary:
 
 test-binaries: test-browser-binary test-creds-binary
 
-
 ci-cli-all-platforms: test-binaries
 	# build steps
 	GOOS=linux go build -o ./bin/linux/dgranted cmd/granted/main.go
 	GOOS=darwin GOARCH=amd64 go build -o ./bin/macos/dgranted cmd/granted/main.go
 	GOOS=windows go build -o ./bin/windows/dgranted.exe cmd/granted/main.go
-	GOOS=linux go build -o ./bin/linux/dassumego cmd/assume/main.go
-	GOOS=darwin GOARCH=amd64 go build -o ./bin/macos/dassumego cmd/assume/main.go
-	GOOS=windows go build -o ./bin/windows/dassumego.exe cmd/assume/main.go
-	# replace references to "assumego" (the production binary) with "dassumego"
+	# symlink steps
+	ln -sf dgranted ./bin/linux/dassumego
+	ln -sf dgranted ./bin/macos/dassumego
+	ln -sf dgranted.exe ./bin/windows/dassumego.exe
+	# replace references to "assumego" (the production symlink) with "dassumego"
 	cat scripts/assume | sed 's/assumego/dassumego/g' > bin/linux/dassume && chmod +x bin/linux/dassume
 	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > bin/linux/dassume.fish && chmod +x bin/linux/dassume.fish
 	cp bin/linux/dassume bin/macos/dassume
 	cp bin/linux/dassume.fish bin/macos/dassume.fish
 	cat scripts/assume.bat | sed 's/assumego/dassumego/g' > bin/windows/dassume.bat
 	cat scripts/assume.ps1 | sed 's/assumego/dassumego/g' > bin/windows/dassume.ps1
+
+## This will use the 'granted' binary and 'assume' symlink for dev build.
+## Helpful to use dev build using 'granted' and 'assume' before release.
+cli-act-prod: go-binary assume-binary
+	mv ./bin/dgranted ${PREFIX}/bin/granted
+	ln -s granted ${PREFIX}/bin/dassumego
+	# replace references to "assumego" (the production binary) with "dassumego"
+	cat scripts/assume | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume && chmod +x ${PREFIX}/bin/dassume
+	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.fish && chmod +x ${PREFIX}/bin/dassume.fish
+	mv ${PREFIX}/bin/dassume ${PREFIX}/bin/assume
+	mv ${PREFIX}/bin/dassume.fish ${PREFIX}/bin/assume.fish

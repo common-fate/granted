@@ -9,8 +9,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
-	"github.com/bigkevmcd/go-configparser"
-	"github.com/fatih/color"
+	"gopkg.in/ini.v1"
 )
 
 // Implements Assumer
@@ -22,9 +21,9 @@ type AwsGoogleAuthAssumer struct {
 func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
 	cmd := exec.Command("aws-google-auth", fmt.Sprintf("--profile=%s", c.Name))
 
-	cmd.Stdout = color.Error
+	cmd.Stdout = os.Stderr
 	cmd.Stdin = os.Stdin
-	cmd.Stderr = color.Error
+	cmd.Stderr = os.Stderr
 	err := cmd.Run()
 	if err != nil {
 		return aws.Credentials{}, err
@@ -46,8 +45,8 @@ func (aia *AwsGoogleAuthAssumer) Type() string {
 }
 
 // inspect for any items on the profile prefixed with "google_config."
-func (aia *AwsGoogleAuthAssumer) ProfileMatchesType(rawProfile configparser.Dict, parsedProfile config.SharedConfig) bool {
-	for k := range rawProfile {
+func (aia *AwsGoogleAuthAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProfile config.SharedConfig) bool {
+	for _, k := range rawProfile.KeyStrings() {
 		if strings.HasPrefix(k, "google_config.") {
 			return true
 		}

@@ -1,11 +1,9 @@
 package granted
 
 import (
-	"fmt"
-
-	"github.com/common-fate/granted/pkg/browsers"
+	"github.com/common-fate/clio"
+	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -14,12 +12,12 @@ var DefaultBrowserCommand = cli.Command{
 	Usage:       "View the web browser that Granted uses to open cloud consoles",
 	Subcommands: []*cli.Command{&SetBrowserCommand, &SetSSOBrowserCommand},
 	Action: func(c *cli.Context) error {
-		//return the default browser that is set
+		// return the default browser that is set
 		conf, err := config.Load()
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(color.Error, "Granted is using %s. To change this run `granted browser set`.\n", conf.DefaultBrowser)
+		clio.Infof("Granted is using %s. To change this run `granted browser set`", conf.DefaultBrowser)
 
 		return nil
 	},
@@ -36,15 +34,15 @@ var SetBrowserCommand = cli.Command{
 
 		if outcome == "" {
 			if path != "" {
-				fmt.Fprintln(color.Error, "-path flag must be used with -browser flag, provided path will be ignored.")
+				clio.Info("-path flag must be used with -browser flag, provided path will be ignored")
 			}
-			outcome, err = browsers.HandleManualBrowserSelection()
+			outcome, err = browser.HandleManualBrowserSelection()
 			if err != nil {
 				return err
 			}
 		}
 
-		return browsers.ConfigureBrowserSelection(outcome, path)
+		return browser.ConfigureBrowserSelection(outcome, path)
 	},
 }
 
@@ -56,7 +54,7 @@ var SetSSOBrowserCommand = cli.Command{
 	Action: func(c *cli.Context) (err error) {
 		outcome := c.String("browser")
 		path := c.String("path")
-		//save the detected browser as the default
+		// save the detected browser as the default
 		conf, err := config.Load()
 		if err != nil {
 			return err
@@ -65,9 +63,9 @@ var SetSSOBrowserCommand = cli.Command{
 
 		if outcome == "" {
 			if path != "" {
-				fmt.Fprintln(color.Error, "-path flag must be used with -browser flag, provided path will be ignored.")
+				clio.Info("-path flag must be used with -browser flag, provided path will be ignored")
 			}
-			customBrowserPath, err := browsers.AskAndGetBrowserPath()
+			customBrowserPath, err := browser.AskAndGetBrowserPath()
 			if err != nil {
 				return err
 			}
@@ -80,11 +78,7 @@ var SetSSOBrowserCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-
-		alert := color.New(color.Bold, color.FgGreen).SprintfFunc()
-
-		fmt.Fprintf(color.Error, "\n%s\n", alert("✅  Granted will default to using %s for SSO flows.", browserPath))
-
+		clio.Successf("Granted will default to using %s for SSO flows.", browserPath)
 		return nil
 	},
 }

@@ -1,13 +1,12 @@
 package granted
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -29,7 +28,7 @@ var UninstallCommand = cli.Command{
 
 			err = alias.UninstallDefaultShellAlias()
 			if err != nil {
-				fmt.Fprintln(color.Error, err)
+				clio.Error(err.Error())
 			}
 			grantedFolder, err := config.GrantedConfigFolder()
 			if err != nil {
@@ -40,8 +39,7 @@ var UninstallCommand = cli.Command{
 				return err
 			}
 
-			fmt.Printf("removed Granted config folder %s\n", grantedFolder)
-			fmt.Fprintln(color.Error, "[✔] all Granted config has been removed")
+			clio.Successf("Removed Granted config folder %s\n", grantedFolder)
 		}
 		return nil
 	},

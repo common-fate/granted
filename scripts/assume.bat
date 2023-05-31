@@ -17,6 +17,7 @@ for /f "tokens=1,2,3,4,5,6,7,8,9,10,11 delims= " %%a in ("%ASSUME_OUTPUT%") do (
 		set AWS_PROFILE=
 		set AWS_REGION=
         set AWS_SESSION_EXPIRATION=
+        set AWS_CREDENTIAL_EXPIRATION=
 
         set GRANTED_SSO=
         set GRANTED_SSO_START_URL=
@@ -33,7 +34,8 @@ for /f "tokens=1,2,3,4,5,6,7,8,9,10,11 delims= " %%a in ("%ASSUME_OUTPUT%") do (
 		set AWS_PROFILE=
 		set AWS_REGION=
         set AWS_SESSION_EXPIRATION=
-        
+        set AWS_CREDENTIAL_EXPIRATION=
+
         set GRANTED_SSO=
         set GRANTED_SSO_START_URL=
         set GRANTED_SSO_ROLE_NAME=
@@ -56,8 +58,9 @@ for /f "tokens=1,2,3,4,5,6,7,8,9,10,11 delims= " %%a in ("%ASSUME_OUTPUT%") do (
             set AWS_REGION=%%f)
 
         if "%%g" NEQ "None" (
-            set AWS_SESSION_EXPIRATION=%%g)
-
+            set AWS_SESSION_EXPIRATION=%%g
+            set AWS_CREDENTIAL_EXPIRATION=%%g)
+            
         if "%%h" NEQ "None" (
             set GRANTED_SSO=%%g)
 

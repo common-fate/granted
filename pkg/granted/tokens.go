@@ -2,26 +2,38 @@ package granted
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
-	"runtime"
 	"strings"
+	"time"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
-	"github.com/common-fate/granted/pkg/credstore"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
 )
 
+// TokenCommand has been deprecated in favour of 'sso-tokens'
+// @TODO: remove this when suitable after deprecation
 var TokenCommand = cli.Command{
-	Name:        "token",
-	Usage:       "Manage aws access tokens",
-	Subcommands: []*cli.Command{&TokenListCommand, &ClearTokensCommand},
-	Action:      TokenListCommand.Action,
+	Name:  "token",
+	Usage: "Deprecated: Use 'sso-tokens' instead",
+	Action: func(ctx *cli.Context) error {
+		fmt.Println("The 'token' command has been deprecated and will be removed in a future release, it has been renamed to 'sso-tokens'")
+		return SSOTokensCommand.Run(ctx)
+	},
+}
+var SSOTokensCommand = cli.Command{
+	Name:        "sso-tokens",
+	Usage:       "Manage AWS SSO tokens",
+	Subcommands: []*cli.Command{&ListSSOTokensCommand, &ClearSSOTokensCommand, &TokenExpiryCommand},
+	Action:      ListSSOTokensCommand.Action,
 }
 
-var TokenListCommand = cli.Command{
+var ListSSOTokensCommand = cli.Command{
 	Name:  "list",
 	Usage: "Lists all access tokens saved in the keyring",
 	Action: func(ctx *cli.Context) error {
@@ -37,33 +49,89 @@ var TokenListCommand = cli.Command{
 				max = len(k)
 			}
 		}
-
-		tokens, err := credstore.ListKeys()
+		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+		keys, err := secureSSOTokenStorage.SecureStorage.ListKeys()
 		if err != nil {
 			return err
 		}
 
-		for _, token := range tokens {
-			fmt.Fprintf(os.Stderr, "%s\n", fmt.Sprintf("%-*s (%s)", max, token, strings.Join(startUrlMap[token], ", ")))
+		for _, key := range keys {
+			clio.Logf("%-*s (%s)", max, key, strings.Join(startUrlMap[key], ", "))
 		}
 		return nil
 	},
 }
 
-// granted token -> lists all tick
-// granted token list -> lists all tick
-// granted token clear -> prompts for selection // promt confirm?
+var TokenExpiryCommand = cli.Command{
+	Name:  "expiry",
+	Usage: "Lists expiry status for all access tokens saved in the keyring",
+	Flags: []cli.Flag{&cli.StringFlag{Name: "url", Usage: "If provided, prints the expiry of the token for the specific SSO URL"}},
+	Action: func(ctx *cli.Context) error {
+		url := ctx.String("url")
+
+		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+
+		if url != "" {
+			token := secureSSOTokenStorage.GetValidSSOToken(url)
+
+			var expiry string
+			if token == nil {
+				return errors.New("SSO token is expired")
+			}
+			expiry = token.Expiry.Local().Format(time.RFC3339)
+			fmt.Println(expiry)
+
+			return nil
+		}
+
+		startUrlMap, err := MapTokens(ctx.Context)
+		if err != nil {
+			return err
+		}
+
+		var max int
+		for k := range startUrlMap {
+			if len(k) > max {
+				max = len(k)
+			}
+		}
+
+		keys, err := secureSSOTokenStorage.SecureStorage.ListKeys()
+		if err != nil {
+			return err
+		}
+
+		for _, key := range keys {
+			token := secureSSOTokenStorage.GetValidSSOToken(key)
+
+			var expiry string
+			if token == nil {
+				expiry = "EXPIRED"
+			} else {
+				expiry = token.Expiry.Local().Format(time.RFC3339)
+			}
+
+			clio.Logf("%-*s (%s) expires at: %s", max, key, strings.Join(startUrlMap[key], ", "), expiry)
+		}
+		return nil
+	},
+}
+
+// granted token -> lists all tokens
+// granted token list -> lists all tokens
+// granted token clear -> prompts for selection // prompt confirm?
 // granted token clear --all or -a -> clear all
 // granted token clear profilename -> clear profile
 // granted token clear profilename --confirm -> skip confirm prompt
 
 func MapTokens(ctx context.Context) (map[string][]string, error) {
-	keys, err := credstore.ListKeys()
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	keys, err := secureSSOTokenStorage.SecureStorage.ListKeys()
 	if err != nil {
 		return nil, err
 	}
 
-	profiles, err := cfaws.LoadProfiles()
+	profiles, err := cfaws.LoadProfilesFromDefaultFiles()
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +156,7 @@ func MapTokens(ctx context.Context) (map[string][]string, error) {
 	return startUrlMap, nil
 }
 
-var ClearTokensCommand = cli.Command{
+var ClearSSOTokensCommand = cli.Command{
 	Name:  "clear",
 	Usage: "Remove a selected token from the keyring",
 	Flags: []cli.Flag{
@@ -101,7 +169,7 @@ var ClearTokensCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			fmt.Fprintf(os.Stderr, "Cleared all saved tokens")
+			clio.Success("Cleared all saved tokens")
 			return nil
 		}
 		var selection string
@@ -133,7 +201,7 @@ var ClearTokensCommand = cli.Command{
 				Message: "Select a token to remove from keyring",
 				Options: tokenList,
 			}
-			fmt.Fprintln(os.Stderr)
+			clio.NewLine()
 			var out string
 			err = testable.AskOne(&in, &out, withStdio)
 			if err != nil {
@@ -142,41 +210,28 @@ var ClearTokensCommand = cli.Command{
 			selection = selectionsMap[out]
 		}
 
-		err = clearToken(selection)
+		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+
+		err = secureSSOTokenStorage.SecureStorage.Clear(selection)
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(os.Stderr, "Cleared %s", selection)
+		clio.Successf("Cleared %s", selection)
 		return nil
 	},
 }
 
 // clearAllTokens calls clearToken for each key in the keyring
 func clearAllTokens() error {
-	keys, err := credstore.ListKeys()
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	keys, err := secureSSOTokenStorage.SecureStorage.ListKeys()
 	if err != nil {
 		return err
 	}
 	for _, k := range keys {
-		err = clearToken(k)
-		if err != nil {
+		if err := secureSSOTokenStorage.SecureStorage.Clear(k); err != nil {
 			return err
 		}
 	}
 	return nil
-}
-
-// clearToken has some specific behaviour for darwin systems
-func clearToken(key string) error {
-	// Specific to the mac keychain, the granted binary will not have access to delete the items set by the assume binary without the user granting access.
-	// So, first ask the user to allow access, then attempt to delete the item.
-	if runtime.GOOS == "darwin" {
-		fmt.Fprintf(os.Stderr, "If you are using the mac keychain, choose to 'Always Allow' when prompted to allow Granted access to the item.\nThis will allow the item to be deleted by this command.\n")
-		var t interface{}
-		err := credstore.Retrieve(key, &t)
-		if err != nil {
-			return err
-		}
-	}
-	return credstore.Clear(key)
 }

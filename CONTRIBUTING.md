@@ -8,7 +8,7 @@ The development instructions below pertain to Unix-based systems like Linux and 
 
 In order to develop Granted you'll need the following:
 
-- [Go 1.17](https://go.dev/doc/install)
+- [Go 1.19](https://go.dev/doc/install)
 
 ## Getting started
 
@@ -32,13 +32,13 @@ The CLI should now be available on your PATH as `dgranted` and `dassume`.
 
 ## Creating a bug report
 
-Receiving bug reports is great, its helps us the identify and patch issues in the application so that the users have as good experience as possible. But it's important to include the necessary information in the bug report so that the maintainers are able to get to the bottom of the problem with as much context as possible.
+Receiving bug reports is great, it helps us identify and patch issues in the application so that the users have the best possible experience. But it's important to include the necessary information in the bug report so that the maintainers are able to get to the bottom of the problem with as much context as possible.
 
 When opening a bug report we ask that you please include the following information:
 
 - Your Granted version `granted -v`
 - If applicable and relevant your .aws config file, found at `~/.aws/config` **(excluding any account IDs or SSO start URLs)**
-- Details surrouding the bug and steps to replicate
+- Details surrounding the bug and steps to replicate
 - If possible an example of the bug
 
 Some things to try before opening a new issue:
@@ -73,7 +73,7 @@ Some things to try before opening a new issue:
 
 # Technical Notes
 
-Before you get started developing on Granted, these notes will help to explain some key comcepts in the codebase.
+Before you get started developing on Granted, these notes will help to explain some key concepts in the codebase.
 
 ## IO
 
@@ -81,9 +81,15 @@ Granted consists of 2 binaries, `granted` and `assumego`.
 When you run `assume` a shell script will run which wraps the assumego binary.
 This is required so that assume can set environment variables in your terminal.
 
-For this reason, output to the terminal from print statements should specify os.Stderr as the writer.
-For example
+For this reason, informational output should be made to os.StdErr. We use a logging library called clio
+The library is configured in the entry point of granted and assume with the correct output writers.
+
+So when logging simply use the relevant log type
 
 ```go
-    fmt.Fprintln(os.Stderr, "hello world")
+    clio.Info("hello")
+    clio.Warn("hello")
+    clio.Success("hello")
+    clio.Error("hello")
+    clio.Error("hello")
 ```

@@ -5,9 +5,9 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/testable"
-	"github.com/fatih/color"
 	"github.com/urfave/cli/v2"
 )
 
@@ -20,12 +20,8 @@ var ProfileOrderingCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-
-		green := color.New(color.FgGreen)
-
-		green.Fprintln(color.Error, "Current profile ordering method: ", cfg.Ordering)
+		fmt.Println(cfg.Ordering)
 		return nil
-
 	},
 }
 
@@ -43,7 +39,7 @@ var SetProfileOrderingCommand = cli.Command{
 			Options: []string{"Frecency", "Alphabetical"},
 		}
 		var selection string
-		fmt.Fprintln(color.Error)
+		clio.NewLine()
 		err = testable.AskOne(&in, &selection, withStdio)
 		if err != nil {
 			return err
@@ -55,9 +51,7 @@ var SetProfileOrderingCommand = cli.Command{
 			return err
 		}
 
-		green := color.New(color.FgGreen)
-
-		green.Fprintln(color.Error, "Set profile ordering to: ", selection)
+		clio.Success("Set profile ordering to: ", selection)
 		return nil
 
 	},

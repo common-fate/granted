@@ -1,9 +1,13 @@
 package assume
 
 import (
+	"errors"
 	"fmt"
+	"net/url"
 	"os/exec"
+	"path"
 	"runtime"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -12,17 +16,42 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/common-fate/granted/pkg/browsers"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/common-fate/awsconfigfile"
+	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/ansi"
+	"github.com/common-fate/clio/clierr"
+	"github.com/common-fate/granted/pkg/assumeprint"
+	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/console"
+	"github.com/common-fate/granted/pkg/forkprocess"
+	"github.com/common-fate/granted/pkg/launcher"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/fatih/color"
+	"github.com/hako/durafmt"
 	"github.com/urfave/cli/v2"
+	"gopkg.in/ini.v1"
 )
 
+// Launchers give a command that we need to run in order to launch a browser, such as
+// 'open <URL>' or 'firefox --new-tab <URL'. The returned command is a string slice,
+// with each element being an argument. (e.g. []string{"firefox", "--new-tab", "<URL>"})
+type Launcher interface {
+	LaunchCommand(url string, profile string) []string
+	// UseForkProcess returns true if the launcher implementation should call
+	// the forkprocess library.
+	//
+	// For launchers that use 'open' commands, this should be false,
+	// as the forkprocess library causes the following error to appear:
+	// 	fork/exec open: no such file or directory
+	UseForkProcess() bool
+}
+
 func AssumeCommand(c *cli.Context) error {
-	// this custom behavious allows flags to be passed on either side of the role arg
+	// assumeFlags allows flags to be passed on either side of the role argument.
 	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
 	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
@@ -30,15 +59,59 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	if assumeFlags.String("exec") != "" && runtime.GOOS == "windows" {
-		return fmt.Errorf("--exec flag is not currently supported on Windows. Let us know if you'd like support for this: https://github.com/common-fate/granted/issues/new")
+		return clierr.New("--exec flag is not currently supported on Windows",
+			clierr.Info("Let us know if you'd like support for this by creating an issue on our Github repo: https://github.com/common-fate/granted/issues/new"),
+		)
 	}
 	activeRoleProfile := assumeFlags.String("active-aws-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
+
+	showRerunCommand := false
 	var profile *cfaws.Profile
 	if assumeFlags.Bool("sso") {
 		profile, err = SSOProfileFromFlags(c)
 		if err != nil {
 			return err
+		}
+
+		// save the profile to the AWS config file if the user requested it.
+		saveProfileName := assumeFlags.String("save-to")
+		if saveProfileName != "" {
+			configFilename := awsconfig.DefaultSharedConfigFilename()
+			config, err := ini.LoadSources(ini.LoadOptions{
+				AllowNonUniqueSections:  false,
+				SkipUnrecognizableLines: false,
+			}, configFilename)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					return err
+				}
+				config = ini.Empty()
+			}
+			err = awsconfigfile.Merge(awsconfigfile.MergeOpts{
+				Config:              config,
+				SectionNameTemplate: saveProfileName,
+				Profiles: []awsconfigfile.SSOProfile{
+					{
+						SSOStartURL:   profile.AWSConfig.SSOStartURL,
+						SSORegion:     profile.AWSConfig.SSORegion,
+						AccountID:     profile.AWSConfig.SSOAccountID,
+						AccountName:   profile.AWSConfig.SSOAccountID,
+						RoleName:      profile.AWSConfig.SSORoleName,
+						GeneratedFrom: "commonfate",
+					},
+				},
+			})
+			if err != nil {
+				return err
+			}
+
+			err = config.SaveTo(configFilename)
+			if err != nil {
+				return err
+			}
+
+			clio.Successf("Saved AWS profile as %s. You can use this profile with the AWS CLI using the '--profile' flags when running AWS commands.", saveProfileName)
 		}
 	} else if activeRoleFlag && os.Getenv("GRANTED_SSO") == "true" {
 		profile, err = SSOProfileFromEnv()
@@ -49,7 +122,7 @@ func AssumeCommand(c *cli.Context) error {
 		var wg sync.WaitGroup
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		profiles, err := cfaws.LoadProfiles()
+		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
 		if err != nil {
 			return err
 		}
@@ -57,18 +130,18 @@ func AssumeCommand(c *cli.Context) error {
 		profileName := c.Args().First()
 		if profileName != "" {
 			if !profiles.HasProfile(profileName) {
-				fmt.Fprintf(color.Error, "%s does not match any profiles in your AWS config or credentials files\n", profileName)
+				clio.Warnf("%s does not match any profiles in your AWS config or credentials files", profileName)
 				profileName = ""
 			}
 		}
 
-		//set the sesh creds using the active role if we have one and the flag is set
+		//set the session creds using the active role if we have one and the flag is set
 		if activeRoleFlag && activeRoleProfile != "" {
 			if !profiles.HasProfile(activeRoleProfile) {
-				fmt.Fprintf(color.Error, "you tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files\n", activeRoleProfile)
+				clio.Warnf("You tried to use the -active-role flag but %s does not match any profiles in your AWS config or credentials files", activeRoleProfile)
 			} else {
 				profileName = activeRoleProfile
-				fmt.Fprintf(color.Error, "using active profile: %s\n", profileName)
+				clio.Infof("Using active profile: %s", profileName)
 			}
 		}
 		if profileName != "" {
@@ -82,7 +155,9 @@ func AssumeCommand(c *cli.Context) error {
 
 		// if profile is still "" here, then prompt to select a profile
 		if profileName == "" {
-			//load config to check frecency enabled
+			// will print a command output for the user so it's easier for them to re-run later or learn the commands
+			showRerunCommand = true
+			// load config to check frecency enabled
 			cfg, err := config.Load()
 			if err != nil {
 				return err
@@ -92,23 +167,78 @@ func AssumeCommand(c *cli.Context) error {
 			if cfg.Ordering == "Alphabetical" {
 				profileNames = profiles.ProfileNames
 			}
-			fmt.Fprintln(color.Error, "")
+			profileNameMap := make(map[string]string)
+			profileKeys := make([]string, len(profileNames))
+			var longestProfileNameLength int
+			for _, pn := range profileNames {
+				if len(pn) > longestProfileNameLength {
+					longestProfileNameLength = len(pn)
+				}
+			}
+			lightBlack := ansi.ColorFunc(ansi.LightBlack)
+			var hasDescriptions bool
+			for i, pn := range profileNames {
+				var description string
+				p, _ := profiles.Profile(pn)
+
+				if p != nil && p.CustomGrantedProperty("description") != "" {
+					hasDescriptions = true
+					description = p.CustomGrantedProperty("description")
+				}
+
+				stringKey := fmt.Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", pn, lightBlack(description))
+
+				profileNameMap[stringKey] = pn
+				profileKeys[i] = stringKey
+			}
+			var promptHeader string
+			// only add the description headers if there are profiles using descriptions
+			if hasDescriptions {
+				promptHeader = fmt.Sprintf(`{{- "  %s\n"}}`, color.New(color.Underline, color.Bold).Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", "Profile", "Description"))
+			}
+			// This overrides the default prompt template to add a header row above the options
+			// this should be reset back to the original template after the call to AskOne
+			originalSelectTemplate := survey.SelectQuestionTemplate
+			survey.SelectQuestionTemplate = fmt.Sprintf(`
+{{- define "option"}}
+	{{- if eq .SelectedIndex .CurrentIndex }}{{color .Config.Icons.SelectFocus.Format }}{{ .Config.Icons.SelectFocus.Text }} {{else}}{{color "default"}}  {{end}}
+	{{- .CurrentOpt.Value}}
+{{- color "reset"}}
+{{end}}
+{{- if .ShowHelp }}{{- color .Config.Icons.Help.Format }}{{ .Config.Icons.Help.Text }} {{ .Help }}{{color "reset"}}{{"\n"}}{{end}}
+{{- color .Config.Icons.Question.Format }}{{ .Config.Icons.Question.Text }} {{color "reset"}}
+{{- color "default+hb"}}{{ .Message }}{{ .FilterMessage }}{{color "reset"}}
+{{- if .ShowAnswer}}{{color "cyan"}} {{.Answer}}{{color "reset"}}{{"\n"}}
+{{- else}}
+  {{- "  "}}{{- color "cyan"}}[Use arrows to move, type to filter{{- if and .Help (not .ShowHelp)}}, {{ .Config.HelpInput }} for more help{{end}}]{{color "reset"}}
+  {{- "\n"}}
+  %s
+  {{- range $ix, $option := .PageEntries}}
+	{{- template "option" $.IterateOption $ix $option}}
+  {{- end}}
+{{- end}}`, promptHeader)
+
+			clio.NewLine()
 			// Replicate the logic from original assume fn.
 			in := survey.Select{
 				Message: "Please select the profile you would like to assume:",
-				Options: profileNames,
+				Options: profileKeys,
 				Filter:  filterMultiToken,
 			}
-			if len(profileNames) == 0 {
-				fmt.Fprintln(color.Error, "ℹ️ Granted couldn't find any aws roles")
-				fmt.Fprintln(color.Error, "You can add roles to your aws config by following our guide: ")
-				fmt.Fprintln(color.Error, "https://granted.dev/awsconfig")
-				return nil
+			if len(profileKeys) == 0 {
+				return clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
+					clierr.Info("You can add profiles to your AWS config by following our guide: "),
+					clierr.Info("https://docs.commonfate.io/granted/getting-started#set-up-your-aws-profile-file"),
+				)
 			}
+
 			err = testable.AskOne(&in, &profileName, withStdio)
 			if err != nil {
 				return err
 			}
+			// Reset the template for select questions to the original
+			survey.SelectQuestionTemplate = originalSelectTemplate
+			profileName = profileNameMap[profileName]
 			// background task to update the frecency cache
 			wg.Add(1)
 			go func() {
@@ -118,7 +248,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 		// ensure that frecency has finished updating before returning from this function
 		defer wg.Wait()
-		//finally, load the profile and initialise it, this builds the parent tree structure
+		// finally, load the profile and initialise it, this builds the parent tree structure
 		profile, err = profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
 			return err
@@ -143,7 +273,7 @@ func AssumeCommand(c *cli.Context) error {
 
 	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
 
-	//attempt to get session duration from profile
+	// attempt to get session duration from profile
 	if profile.AWSConfig.RoleDurationSeconds != nil {
 		configOpts.Duration = *profile.AWSConfig.RoleDurationSeconds
 	}
@@ -165,64 +295,140 @@ func AssumeCommand(c *cli.Context) error {
 	if err != nil {
 		return err
 	}
-	openBrower := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
 
-	if openBrower {
-		// these are just labels for the tabs so we may need to updates these for the sso role context
+	// if getConsoleURL is true, we'll use the AWS federated login to retrieve a URL to access the console.
+	// depending on how Granted is configured, this is then printed to the terminal or a browser is launched at the URL automatically.
+	getConsoleURL := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url"))
 
-		browserOpts := browsers.BrowserOpts{Profile: profile.Name}
-		service := assumeFlags.String("service")
+	// this makes it easy for users to copy the actual command and avoid needing to lookup profiles
+	if !cfg.DisableUsageTips && showRerunCommand {
+		clio.Infof("To assume this profile again later without needing to select it, run this command:\n> assume %s %s", profile.Name, strings.Join(os.Args[1:], " "))
+	}
 
-		browserOpts.Region = region
-		browserOpts.Service = service
+	if getConsoleURL {
+		con := console.AWS{
+			Profile: profile.Name,
+			Service: assumeFlags.String("service"),
+			Region:  region,
+		}
 
-		var creds aws.Credentials
-
-		creds, err = profile.AssumeConsole(c.Context, configOpts)
+		creds, err := profile.AssumeConsole(c.Context, configOpts)
 		if err != nil {
 			return err
 		}
 
-		if assumeFlags.Bool("url") || cfg.DefaultBrowser == browsers.StdoutKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
-			url, err := browsers.MakeUrl(browsers.SessionFromCredentials(creds), browserOpts, service, region)
+		consoleURL, err := con.URL(creds)
+		if err != nil {
+			return err
+		}
+
+		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
+			// transform the URL into the Firefox Tab Container format.
+			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", profile.Name, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
+		}
+
+		justPrintURL := assumeFlags.Bool("url") || cfg.DefaultBrowser == browser.StdoutKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey
+		if justPrintURL {
+			// return the url via stdout through the CLI wrapper script and return early.
+			fmt.Print(assumeprint.SafeOutput(consoleURL))
+			return nil
+		}
+
+		browserPath := cfg.CustomBrowserPath
+		if browserPath == "" {
+			return errors.New("default browser not configured. run `granted browser set` to configure")
+		}
+
+		grantedFolder, err := config.GrantedConfigFolder()
+		if err != nil {
+			return err
+		}
+
+		var l Launcher
+		switch cfg.DefaultBrowser {
+		case browser.ChromeKey:
+			l = launcher.ChromeProfile{
+				ExecutablePath: browserPath,
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "1"), // held over for backwards compatibility, "1" indicates Chrome profiles
+			}
+		case browser.BraveKey:
+			l = launcher.ChromeProfile{
+				ExecutablePath: browserPath,
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "2"), // held over for backwards compatibility, "2" indicates Brave profiles
+			}
+		case browser.EdgeKey:
+			l = launcher.ChromeProfile{
+				ExecutablePath: browserPath,
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "3"), // held over for backwards compatibility, "3" indicates Edge profiles
+			}
+		case browser.ChromiumKey:
+			l = launcher.ChromeProfile{
+				ExecutablePath: browserPath,
+				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "4"), // held over for backwards compatibility, "4" indicates Chromium profiles
+			}
+		case browser.FirefoxKey:
+			l = launcher.Firefox{
+				ExecutablePath: browserPath,
+			}
+		case browser.SafariKey:
+			l = launcher.Safari{}
+		default:
+			l = launcher.Open{}
+		}
+
+		printFlagUsage(con.Region, con.Service)
+		clio.Infof("Opening a console for %s in your browser...", profile.Name)
+
+		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
+		args := l.LaunchCommand(consoleURL, con.Profile)
+
+		var startErr error
+		if l.UseForkProcess() {
+			clio.Debugf("running command using forkprocess: %s", args)
+			cmd, err := forkprocess.New(args...)
 			if err != nil {
 				return err
 			}
-			if cfg.DefaultBrowser == browsers.FirefoxKey || cfg.DefaultBrowser == browsers.FirefoxStdoutKey {
-				url = browsers.MakeFirefoxContainerURL(url, browserOpts)
-				if err != nil {
-					return err
-				}
-			}
-			// return the url via stdout through the cli wrapper script
-			fmt.Print(MakeGrantedOutput(url))
+			startErr = cmd.Start()
 		} else {
-			browsers.PromoteUseFlags(browserOpts)
-			fmt.Fprintf(color.Error, "\nOpening a console for %s in your browser...\n", profile.Name)
-			return browsers.LaunchConsoleSession(browsers.SessionFromCredentials(creds), browserOpts, service, region)
+			clio.Debugf("running command without forkprocess: %s", args)
+			cmd := exec.Command(args[0], args[1:]...)
+			startErr = cmd.Start()
 		}
 
-	} else {
+		if startErr != nil {
+			return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", startErr.Error()),
+				// allow them to try open the url manually
+				clierr.Info("You can open the browser session manually using the following url:"),
+				clierr.Info(consoleURL),
+			)
+		}
+	}
+
+	// check if it's needed to provide credentials to terminal or default to it if console wasn't specified
+	if assumeFlags.Bool("terminal") || !getConsoleURL {
 		creds, err := profile.AssumeTerminal(c.Context, configOpts)
 		if err != nil {
 			return err
 		}
 		sessionExpiration := ""
-		green := color.New(color.FgGreen)
 		if creds.CanExpire {
 			sessionExpiration = creds.Expires.Local().Format(time.RFC3339)
+			// We add 10 seconds here as a fudge factor, the credentials will be a
+			// few seconds old already.
+			durationDescription := durafmt.Parse(time.Until(creds.Expires) + 10*time.Second).LimitFirstN(1).String()
 			if os.Getenv("GRANTED_QUIET") != "true" {
-				green.Fprintf(color.Error, "\n[%s](%s) session credentials will expire %s\n", profile.Name, region, creds.Expires.Local().String())
+				clio.Successf("[%s](%s) session credentials will expire in %s", profile.Name, region, durationDescription)
 			}
 		} else if os.Getenv("GRANTED_QUIET") != "true" {
-			green.Fprintf(color.Error, "\n[%s](%s) session credentials ready\n", profile.Name, region)
+			clio.Successf("[%s](%s) session credentials ready", profile.Name, region)
 		}
 		if assumeFlags.Bool("env") {
 			err = cfaws.WriteCredentialsToDotenv(region, creds)
 			if err != nil {
 				return err
 			}
-			green.Fprintln(color.Error, "Exported credentials to .env file successfully")
+			clio.Success("Exported credentials to .env file successfully")
 		}
 
 		if assumeFlags.Bool("export") {
@@ -236,20 +442,17 @@ func AssumeCommand(c *cli.Context) error {
 
 			} else {
 				profileName = profile.Name
-				yellow := color.New(color.FgYellow)
-
-				yellow.Fprintln(color.Error, "No credential suffix found. This can cause issues with using exported credentials if conflicting profiles exist. Run `granted settings export-suffix set` to set one.")
-
+				clio.Warn("No credential suffix found. This can cause issues with using exported credentials if conflicting profiles exist. Run `granted settings export-suffix set` to set one.")
 			}
 
-			green.Fprintln(color.Error, fmt.Sprintf("Exported credentials to ~.aws/credentials file as %s successfully", profileName))
+			clio.Successf("Exported credentials to ~/.aws/credentials file as %s successfully", profileName)
 		}
 		if assumeFlags.String("exec") != "" {
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
 		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
-		// the shell script treats "None" as an emprty string and will not set a value for that positional output
+		// the shell script treats "None" as an empty string and will not set a value for that positional output
 		if assumeFlags.Bool("sso") {
 			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
@@ -257,7 +460,6 @@ func AssumeCommand(c *cli.Context) error {
 			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "false", "", "", "", ""})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 		}
-
 	}
 	return nil
 }
@@ -277,15 +479,15 @@ func PrepareStringsForShellScript(in []string) []interface{} {
 	return out
 }
 
-// RunExecCommandWithCreds takes in a command, which may be a program and arguments sperated by spaces
-// it splits these then runs the command with teh credentials as the environment.
+// RunExecCommandWithCreds takes in a command, which may be a program and arguments separated by spaces
+// it splits these then runs the command with the credentials as the environment.
 // The output of this is returned via the assume script to stdout so it may be processed further by piping
 func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) error {
-	fmt.Print(MakeGrantedOutput(""))
+	fmt.Print(assumeprint.SafeOutput(""))
 	args := strings.Split(cmd, " ")
 	c := exec.Command(args[0], args[1:]...)
 	c.Stdout = os.Stdout
-	c.Stderr = color.Error
+	c.Stderr = os.Stderr
 	c.Env = append(os.Environ(), EnvKeys(creds, region)...)
 	return c.Run()
 }
@@ -298,26 +500,6 @@ func EnvKeys(creds aws.Credentials, region string) []string {
 		"AWS_REGION=" + region}
 }
 
-// MakeGrantedOutput formats a string to match the requirements of granted output in the shell script
-// Currently in windows, the grantedoutput is handled differently, as linux and mac support the exec cli flag whereas windows does not yet have support
-// this method may be changed in future if we implement support for "--exec" in windows
-func MakeGrantedOutput(s string) string {
-	// if the GRANTED_ALIAS_CONFIGURED env variable isn't set,
-	// we aren't running in the context of the `assume` shell script.
-	// If this is the case, don't add a prefix to the output as we don't have the
-	// wrapper shell script to parse it.
-	if os.Getenv("GRANTED_ALIAS_CONFIGURED") != "true" {
-		return ""
-	}
-	out := "GrantedOutput"
-	if runtime.GOOS != "windows" {
-		out += "\n"
-	} else {
-		out += " "
-	}
-	return out + s
-}
-
 func filterMultiToken(filterValue string, optValue string, optIndex int) bool {
 	optValue = strings.ToLower(optValue)
 	filters := strings.Split(strings.ToLower(filterValue), " ")
@@ -327,4 +509,17 @@ func filterMultiToken(filterValue string, optValue string, optIndex int) bool {
 		}
 	}
 	return true
+}
+
+func printFlagUsage(region, service string) {
+	var m []string
+	if region == "" {
+		m = append(m, "use -r to open a specific region")
+	}
+	if service == "" {
+		m = append(m, "use -s to open a specific service")
+	}
+	if region == "" || service == "" {
+		clio.Infof("%s ( https://docs.commonfate.io/granted/usage/console )", strings.Join(m, " or "))
+	}
 }

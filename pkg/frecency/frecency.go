@@ -46,7 +46,7 @@ func max(a, b int) int {
 	return b
 }
 
-// Returns the cached entries stored in decending order by frecency, optionally limit the returned results
+// Returns the cached entries stored in descending order by frecency, optionally limit the returned results
 func (store *FrecencyStore) GetFrecentEntriess(optionalLimit *int) []interface{} {
 	entries := []interface{}{}
 	limit := len(store.Entries)

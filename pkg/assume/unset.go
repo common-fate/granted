@@ -3,14 +3,13 @@ package assume
 import (
 	"fmt"
 
-	"github.com/fatih/color"
+	"github.com/common-fate/clio"
 	"github.com/urfave/cli/v2"
 )
 
 func UnsetAction(c *cli.Context) error {
-	//interacts with scripts to unset all the aws environment variables
+	clio.Success("Environment variables cleared")
+	// interacts with scripts to unset all the aws environment variables
 	fmt.Print("GrantedDesume")
-	green := color.New(color.FgGreen)
-	green.Fprintf(color.Error, "\nEnvironment variables cleared\n\n")
 	return nil
 }
