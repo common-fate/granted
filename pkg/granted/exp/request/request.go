@@ -424,7 +424,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		}
 
 		if profile == nil {
-			clio.Warn("Unable to auto assume into this configuration. You need to run `assume` with correct profile.")
+			clio.Warn("Unable to automatically detect whether this profile is ready, you can try assuming it now.")
 			return nil
 		}
 		ssoAssumer := cfaws.AwsSsoAssumer{}
@@ -432,7 +432,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 
 		clio.Debugf("Auto assuming to %s", profile.Name)
 		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		si.Suffix = " auto assuming to " + profile.Name + "..."
+		si.Suffix = "waiting for the profile to be ready..."
 		si.Writer = os.Stderr
 		si.Start()
 
