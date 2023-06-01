@@ -102,65 +102,10 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 
 	depID := cfcfg.CurrentOrEmpty().DashboardURL
 
-	existingRules, err := getCachedAccessRules(depID)
+	accounts, existingRules, accessRulesForAccount, err := RefreshCachedAccessRules(ctx, depID, cf)
 	if err != nil {
 		return err
 	}
-
-	clio.Debugw("got cached access rules", "rules", existingRules)
-
-	rules, err := cf.UserListAccessRulesWithResponse(ctx)
-	if err != nil {
-		return err
-	}
-
-	for _, r := range rules.JSON200.AccessRules {
-		var g errgroup.Group
-
-		g.Go(func() error {
-			return updateCachedAccessRule(ctx, updateCacheOpts{
-				Rule:         r,
-				Existing:     existingRules,
-				DeploymentID: depID,
-				CF:           cf,
-			})
-		})
-
-		err = g.Wait()
-		if err != nil {
-			return err
-		}
-	}
-
-	// refresh the cache
-	existingRules, err = getCachedAccessRules(depID)
-	if err != nil {
-		return err
-	}
-
-	clio.Debugw("refreshed cache", "rules", existingRules)
-
-	// note: we use a map here to de-duplicate accounts.
-	// this means that the RuleID in the accounts map is not necessarily
-	// the *only* Access Rule which grants access to that account.
-	accounts := map[string]cache.AccessTarget{}
-
-	// a map of access rule IDs that match each account ID
-	// Prod (123456789012) -> {"rul_123": true}
-	accessRulesForAccount := map[string]map[string]bool{}
-
-	for _, rule := range existingRules {
-		for _, t := range rule.Targets {
-			if t.Type == "accountId" {
-				if _, ok := accessRulesForAccount[t.Value]; !ok {
-					accessRulesForAccount[t.Value] = map[string]bool{}
-				}
-				accounts[t.Value] = t
-				accessRulesForAccount[t.Value][rule.ID] = true
-			}
-		}
-	}
-
 	// a mapping of the selected survey prompt option, back to the actual value
 	// e.g. "my-account-name (123456789012)" -> 123456789012
 	selectedAccountMap := map[string]string{}
@@ -191,7 +136,25 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 
 	selectedAccountInfo, ok := accounts[selectedAccountID]
 	if !ok {
-		return clierr.New(fmt.Sprintf("account %s not found", selectedAccountID), clierr.Info("run 'granted exp request aws' to see a list of available accounts"))
+		clio.Info("account not found in cache, refreshing cache...")
+
+		err = clearCachedAccessRules(depID)
+		if err != nil {
+			return err
+		}
+
+		accounts, _, accessRulesForAccount, err = RefreshCachedAccessRules(ctx, depID, cf)
+		if err != nil {
+			return err
+		}
+		selectedAccountID := opts.account
+
+		selectedAccountInfo, ok = accounts[selectedAccountID]
+
+		if !ok {
+			return clierr.New(fmt.Sprintf("account %s not found", selectedAccountID), clierr.Info("run 'granted exp request aws' to see a list of available accounts"))
+		}
+
 	}
 
 	ruleIDs := accessRulesForAccount[selectedAccountID]
@@ -425,6 +388,65 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	return nil
 }
 
+func RefreshCachedAccessRules(ctx context.Context, depID string, cf *types.ClientWithResponses) (accounts map[string]cache.AccessTarget, existingRules map[string]cache.AccessRule, accessRulesForAccount map[string]map[string]bool, err error) {
+	//try refreshing the cache and repulling accounts
+	// note: we use a map here to de-duplicate accounts.
+	// this means that the RuleID in the accounts map is not necessarily
+	// the *only* Access Rule which grants access to that account.
+	accounts = map[string]cache.AccessTarget{}
+
+	existingRules, err = getCachedAccessRules(depID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	rules, err := cf.UserListAccessRulesWithResponse(ctx)
+	if err != nil {
+		return nil, nil, nil, err
+
+	}
+
+	for _, r := range rules.JSON200.AccessRules {
+		var g errgroup.Group
+
+		g.Go(func() error {
+			return updateCachedAccessRule(ctx, updateCacheOpts{
+				Rule:         r,
+				Existing:     existingRules,
+				DeploymentID: depID,
+				CF:           cf,
+			})
+		})
+
+		err = g.Wait()
+		if err != nil {
+			return nil, nil, nil, err
+		}
+
+	}
+
+	// refresh the cache
+	newexistingRules, err := getCachedAccessRules(depID)
+	if err != nil {
+		return nil, nil, nil, err
+	}
+	accessRulesForAccount = map[string]map[string]bool{}
+
+	for _, rule := range newexistingRules {
+		for _, t := range rule.Targets {
+			if t.Type == "accountId" {
+				if _, ok := accessRulesForAccount[t.Value]; !ok {
+					accessRulesForAccount[t.Value] = map[string]bool{}
+				}
+				accounts[t.Value] = t
+				accessRulesForAccount[t.Value][rule.ID] = true
+			}
+		}
+	}
+
+	return accounts, existingRules, accessRulesForAccount, nil
+}
+
 func getCachedAccessRules(depID string) (map[string]cache.AccessRule, error) {
 	cacheFolder, err := getCacheFolder(depID)
 	if err != nil {
@@ -455,6 +477,15 @@ func getCachedAccessRules(depID string) (map[string]cache.AccessRule, error) {
 	}
 
 	return rules, nil
+}
+
+func clearCachedAccessRules(depID string) error {
+	cacheFolder, err := getCacheFolder(depID)
+	if err != nil {
+		return err
+	}
+
+	return os.RemoveAll(cacheFolder)
 }
 
 type updateCacheOpts struct {
