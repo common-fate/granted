@@ -10,9 +10,8 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/lithammer/fuzzysearch/fuzzy"
-
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/briandowns/spinner"
 	"github.com/common-fate/cli/pkg/client"
 	cfconfig "github.com/common-fate/cli/pkg/config"
@@ -21,10 +20,12 @@ import (
 	"github.com/common-fate/common-fate/pkg/types"
 	"github.com/common-fate/granted/pkg/accessrequest"
 	"github.com/common-fate/granted/pkg/cache"
+	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/frecency"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/hako/durafmt"
+	"github.com/lithammer/fuzzysearch/fuzzy"
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
@@ -85,6 +86,7 @@ type requestAccessOpts struct {
 }
 
 func requestAccess(ctx context.Context, opts requestAccessOpts) error {
+
 	cfcfg, err := cfconfig.Load()
 	if err != nil {
 		return err
@@ -416,6 +418,33 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 
 	if latestRequest.Status == types.RequestStatusAPPROVED {
 		durationDescription := durafmt.Parse(time.Duration(matchingAccessRule.DurationSeconds) * time.Second).LimitFirstN(1).String()
+		profile, err := cfaws.LoadProfileByAccountIdAndRole(selectedAccountID, selectedRole)
+		if err != nil {
+			return err
+		}
+
+		if profile == nil {
+			clio.Warn("Unable to auto assume into this configuration. You need to run `assume` with correct profile.")
+			return nil
+		}
+		ssoAssumer := cfaws.AwsSsoAssumer{}
+		profile.ProfileType = ssoAssumer.Type()
+
+		clio.Debugf("Auto assuming to %s", profile.Name)
+		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
+		si.Suffix = " auto assuming to " + profile.Name + "..."
+		si.Writer = os.Stderr
+		si.Start()
+
+		// run assume with retry such that even if assume fails due to latency issue in provisioning, user will not have to rerun the command.
+		_, err = profile.AssumeTerminal(ctx, cfaws.ConfigOpts{
+			ShouldRetryAssuming: aws.Bool(true),
+		})
+		if err != nil {
+			return err
+		}
+		si.Stop()
+
 		clio.Successf("[%s] Access is activated (expires in %s)", fullName, durationDescription)
 	}
 
