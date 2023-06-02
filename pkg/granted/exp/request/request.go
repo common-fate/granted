@@ -420,7 +420,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		durationDescription := durafmt.Parse(time.Duration(matchingAccessRule.DurationSeconds) * time.Second).LimitFirstN(1).String()
 		profile, err := cfaws.LoadProfileByAccountIdAndRole(selectedAccountID, selectedRole)
 		if err != nil {
-clio.Debugw("error while trying to automatically detect if profile is active","error",err)
+			clio.Debugw("error while trying to automatically detect if profile is active","error",err)
 			clio.Warn("Unable to automatically detect whether this profile is ready, however you can try assuming it now.")
 			return nil
 		}
@@ -443,7 +443,7 @@ clio.Debugw("error while trying to automatically detect if profile is active","e
 			ShouldRetryAssuming: aws.Bool(true),
 		})
 		if err != nil {
-clio.Debugw("error while trying to automatically detect if profile is active","error",err)
+			clio.Debugw("error while trying to automatically detect if profile is active","error",err)
 			clio.Warn("Unable to automatically detect whether this profile is ready, however you can try assuming it now.")
 			return nil
 		}
