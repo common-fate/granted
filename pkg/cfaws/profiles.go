@@ -23,6 +23,7 @@ type ConfigOpts struct {
 	UsingCredentialProcess bool
 	Duration               time.Duration
 	Args                   []string
+	ShouldRetryAssuming    *bool
 }
 
 type SSOSession struct {
@@ -152,6 +153,46 @@ func LoadProfiles(configFileLoader, credentialsFileLoader ConfigFileLoader) (*Pr
 	}
 	sort.Strings(p.ProfileNames)
 	return &p, nil
+}
+
+// Note, this function doesn't handle the condition when there are same accountId & role in different regions.
+func LoadProfileByAccountIdAndRole(accountId string, role string) (*Profile, error) {
+
+	profiles, err := LoadProfilesFromDefaultFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range profiles.profiles {
+		if p.RawConfig != nil {
+
+			g_accountId, err := p.RawConfig.GetKey("granted_sso_account_id")
+			if err != nil {
+				continue
+			}
+
+			if g_accountId.Value() != accountId {
+				continue
+			}
+
+			g_roleName, err := p.RawConfig.GetKey("granted_sso_role_name")
+			if err != nil {
+				continue
+			}
+
+			if accountId == g_accountId.Value() && role == g_roleName.Value() {
+
+				p, err := profiles.LoadInitialisedProfile(context.TODO(), p.Name)
+				if err != nil {
+					return nil, err
+				}
+
+				return p, nil
+			}
+		}
+	}
+
+	return nil, err
 }
 
 // .aws/config files are structured as follows,

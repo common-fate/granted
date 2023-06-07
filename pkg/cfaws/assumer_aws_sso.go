@@ -93,37 +93,62 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 
 	// create sso client
 	ssoClient := sso.NewFromConfig(*cfg)
-	res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: accessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
-	if err != nil {
-		serr, ok := err.(*smithy.OperationError)
-		if ok {
-			// If the err is of type ForbiddenRequest then user may be able
-			// to request access to the role if they are using Granted Approvals.
-			// Display an error message with the request URL, or a prompt
-			// to set up the request URL if it's empty.
-			if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
-				if httpErr.HTTPStatusCode() == http.StatusForbidden {
-					if c.RawConfig != nil && hasGrantedSSOPrefix(c.RawConfig) {
-						gConf, loadErr := grantedConfig.Load()
-						if loadErr != nil {
-							clio.Debugf(errors.Wrapf(err, "loading Granted config during sso error handling: %s", loadErr.Error()).Error())
-							return aws.Credentials{}, serr
+	var res *ssotypes.RoleCredentials
+
+	if configOpts.ShouldRetryAssuming != nil && *configOpts.ShouldRetryAssuming {
+		roleCredentials, err := c.getRoleCredentialsWithRetry(ctx, ssoClient, accessToken, rootProfile)
+		if err != nil {
+			var unauthorised *ssotypes.UnauthorizedException
+			if errors.As(err, &unauthorised) {
+				// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
+				secureSSOTokenStorage.ClearSSOToken(ssoTokenKey)
+			}
+			return aws.Credentials{}, err
+		}
+		res = roleCredentials
+	} else {
+		role, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: accessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
+		if err != nil {
+			serr, ok := err.(*smithy.OperationError)
+			if ok {
+				// If the err is of type ForbiddenRequest then user may be able
+				// to request access to the role if they are using Granted Approvals.
+				// Display an error message with the request URL, or a prompt
+				// to set up the request URL if it's empty.
+				if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
+					if httpErr.HTTPStatusCode() == http.StatusForbidden {
+						if c.RawConfig != nil && hasGrantedSSOPrefix(c.RawConfig) {
+							gConf, loadErr := grantedConfig.Load()
+							if loadErr != nil {
+								clio.Debugf(errors.Wrapf(err, "loading Granted config during sso error handling: %s", loadErr.Error()).Error())
+								return aws.Credentials{}, serr
+							}
+
+							// granted exp request latest will try to auto assume after the request is approved.
+							// It is possible that user might still get forbidden access due to some latency is provisioning sso credentials.
+							// In such case, let's retry the logic before showing them this error
+							if configOpts.ShouldRetryAssuming != nil && *configOpts.ShouldRetryAssuming {
+								fmt.Println("add retry logic here")
+							}
+							return aws.Credentials{}, FormatAWSErrorWithGrantedApprovalsURL(serr, c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
 						}
-						return aws.Credentials{}, FormatAWSErrorWithGrantedApprovalsURL(serr, c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
 					}
 				}
+
 			}
 
+			var unauthorised *ssotypes.UnauthorizedException
+			if errors.As(err, &unauthorised) {
+				// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
+				secureSSOTokenStorage.ClearSSOToken(ssoTokenKey)
+			}
+			return aws.Credentials{}, err
 		}
 
-		var unauthorised *ssotypes.UnauthorizedException
-		if errors.As(err, &unauthorised) {
-			// possible error with the access token we used, in this case we should clear our cached token and request a new one if the user tries again
-			secureSSOTokenStorage.ClearSSOToken(ssoTokenKey)
-		}
-		return aws.Credentials{}, err
+		res = role.RoleCredentials
 	}
-	rootCreds := TypeRoleCredsToAwsCreds(*res.RoleCredentials)
+
+	rootCreds := TypeRoleCredsToAwsCreds(*res)
 	credProvider := &CredProv{rootCreds}
 
 	if requiresAssuming {
@@ -172,6 +197,34 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	}
 	return credProvider.Credentials, nil
 
+}
+
+func (c *Profile) getRoleCredentialsWithRetry(ctx context.Context, ssoClient *sso.Client, accessToken *string, rootProfile *Profile) (*ssotypes.RoleCredentials, error) {
+	maxRetry := 5
+	var er error
+	for i := 0; i < maxRetry; i++ {
+		res, err := ssoClient.GetRoleCredentials(ctx, &sso.GetRoleCredentialsInput{AccessToken: accessToken, AccountId: &rootProfile.AWSConfig.SSOAccountID, RoleName: &rootProfile.AWSConfig.SSORoleName})
+		if err == nil {
+			return res.RoleCredentials, nil
+		} else {
+			serr, ok := err.(*smithy.OperationError)
+			if ok {
+				// If the err is of type ForbiddenRequest then retry
+				if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
+					if httpErr.HTTPStatusCode() == http.StatusForbidden {
+						clio.Debugf("failed assuming attempt %d", i)
+						time.Sleep(time.Second * 2)
+					}
+				}
+			} else {
+				return nil, err
+			}
+
+			er = err
+		}
+	}
+
+	return nil, errors.Wrap(er, "max retried exceeded")
 }
 
 // SSODeviceCodeFlowFromStartUrl contains all the steps to complete a device code flow to retrieve an SSO token
