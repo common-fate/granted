@@ -420,19 +420,20 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		durationDescription := durafmt.Parse(time.Duration(matchingAccessRule.DurationSeconds) * time.Second).LimitFirstN(1).String()
 		profile, err := cfaws.LoadProfileByAccountIdAndRole(selectedAccountID, selectedRole)
 		if err != nil {
-			clio.Debugw("error while trying to automatically detect if profile is active","error",err)
-			clio.Warn("Unable to automatically detect whether this profile is ready, however you can try assuming it now.")
+			clio.Debugw("error while trying to automatically detect if profile is active", "error", err)
+			clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 			return nil
 		}
 
 		if profile == nil {
-			clio.Warn("Unable to automatically detect whether this profile is ready, however you can try assuming it now.")
+			clio.Debugw("unable to automatically await access because profile was not found")
+			clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 			return nil
 		}
 		ssoAssumer := cfaws.AwsSsoAssumer{}
 		profile.ProfileType = ssoAssumer.Type()
 
-		clio.Debugf("Auto assuming to %s", profile.Name)
+		clio.Debugf("attempting to assume the profile: %s to see that it is ready for use.", profile.Name)
 		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 		si.Suffix = "waiting for the profile to be ready..."
 		si.Writer = os.Stderr
@@ -443,17 +444,20 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 			ShouldRetryAssuming: aws.Bool(true),
 		})
 		if err != nil {
-			clio.Debugw("error while trying to automatically detect if profile is active","error",err)
-			clio.Warn("Unable to automatically detect whether this profile is ready, however you can try assuming it now.")
+			clio.Debugw("error while trying to automatically detect if profile is active", "error", err)
+			clio.Infof("Unable to automatically detect whether this profile is ready")
+			clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 			return nil
 		}
 		si.Stop()
 
-		clio.Successf("[%s] Access is activated (expires in %s)", fullName, durationDescription)
+		clio.Successf("[%s] Acc1ess is activated (expires in %s)", fullName, durationDescription)
+		clio.NewLine()
+		clio.Infof("To use the profile with the AWS CLI, run:\nexport AWS_PROFILE=%s", fullName)
+		return nil
 	}
-
 	clio.NewLine()
-	clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
+	clio.Infof("Your request is not yet approved, to use the profile with the AWS CLI once it is approved, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 
 	return nil
 }
