@@ -414,7 +414,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		}
 		si.Stop()
 
-		clio.Successf("[%s] Acc1ess is activated (expires in %s)", fullName, durationDescription)
+		clio.Successf("[%s] Access is activated (expires in %s)", fullName, durationDescription)
 		clio.NewLine()
 		clio.Infof("To use the profile with the AWS CLI, run:\nexport AWS_PROFILE=%s", fullName)
 		return nil

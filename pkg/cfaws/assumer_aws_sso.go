@@ -127,9 +127,9 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 							// granted exp request latest will try to auto assume after the request is approved.
 							// It is possible that user might still get forbidden access due to some latency is provisioning sso credentials.
 							// In such case, let's retry the logic before showing them this error
-							if configOpts.ShouldRetryAssuming != nil && *configOpts.ShouldRetryAssuming {
-								fmt.Println("add retry logic here")
-							}
+							// if configOpts.ShouldRetryAssuming != nil && *configOpts.ShouldRetryAssuming {
+							// 	fmt.Println("add retry logic here")
+							// }
 							return aws.Credentials{}, FormatAWSErrorWithGrantedApprovalsURL(serr, c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
 						}
 					}
