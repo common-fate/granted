@@ -8,6 +8,7 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -102,6 +103,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		return errors.Wrap(err, "loading keyring")
 	}
 
+	// creates the Common Fate API client
 	cf, err := client.FromConfig(ctx, cfcfg, client.WithKeyring(k), client.WithLoginHint("granted login"))
 	if err != nil {
 		return err
@@ -365,8 +367,13 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		},
 		With: withPtr,
 	})
+
 	if err != nil {
-		return err
+		if strings.Contains(err.Error(), "this request overlaps an existing grant") {
+			clio.Warn("This request has already been approved, continuing anyway...")
+		} else {
+			return err
+		}
 	}
 
 	si.Stop()
