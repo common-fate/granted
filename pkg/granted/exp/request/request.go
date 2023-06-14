@@ -47,12 +47,14 @@ var awsCommand = cli.Command{
 		&cli.StringFlag{Name: "account", Usage: "The AWS account ID"},
 		&cli.StringFlag{Name: "role", Usage: "The AWS role"},
 		&cli.StringFlag{Name: "reason", Usage: "A reason for access"},
+		&cli.DurationFlag{Name: "duration", Usage: "Duration of request, defaults to max duration of the access rule."},
 	},
 	Action: func(c *cli.Context) error {
 		return requestAccess(c.Context, requestAccessOpts{
-			account: c.String("account"),
-			role:    c.String("role"),
-			reason:  c.String("reason"),
+			account:   c.String("account"),
+			role:      c.String("role"),
+			reason:    c.String("reason"),
+			duratiuon: c.Duration("duration"),
 		})
 	},
 }
@@ -62,6 +64,7 @@ var latestCommand = cli.Command{
 	Usage: "Request access to the latest AWS role you attempted to use",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "reason", Usage: "A reason for access"},
+		&cli.DurationFlag{Name: "duration", Usage: "Duration of request, defaults to max duration of the access rule."},
 	},
 	Action: func(c *cli.Context) error {
 		role, err := accessrequest.LatestRole()
@@ -72,17 +75,19 @@ var latestCommand = cli.Command{
 		clio.Infof("requesting access to account %s with role %s", role.Account, role.Role)
 
 		return requestAccess(c.Context, requestAccessOpts{
-			account: role.Account,
-			role:    role.Role,
-			reason:  c.String("reason"),
+			account:   role.Account,
+			role:      role.Role,
+			reason:    c.String("reason"),
+			duratiuon: c.Duration("duration"),
 		})
 	},
 }
 
 type requestAccessOpts struct {
-	account string
-	role    string
-	reason  string
+	account   string
+	role      string
+	reason    string
+	duratiuon time.Duration
 }
 
 func requestAccess(ctx context.Context, opts requestAccessOpts) error {
@@ -345,13 +350,18 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		withPtr = &with
 	}
 
+	requestDuration := matchingAccessRule.DurationSeconds
+	if opts.duratiuon != 0 && int(opts.duratiuon.Seconds()) < requestDuration {
+		requestDuration = int(opts.duratiuon.Seconds())
+	}
+
 	_, err = cf.UserCreateRequestWithResponse(ctx, types.UserCreateRequestJSONRequestBody{
 		AccessRuleId: matchingAccessRule.ID,
 		Reason:       &reason,
 		Timing: types.RequestTiming{
 			// use the maximum allowed time on the rule by default
 			// to minimise the number of prompts to users.
-			DurationSeconds: matchingAccessRule.DurationSeconds,
+			DurationSeconds: requestDuration,
 		},
 		With: withPtr,
 	})
