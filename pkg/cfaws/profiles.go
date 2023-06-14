@@ -326,7 +326,11 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 				pr.AWSConfig = awsConfig
 				pr.AWSConfig.CredentialProcess = ""
 				pr.Initialised = true
-				pr.ProfileType = "AWS_IAM"
+				if pr.AWSConfig.MFASerial == "" {
+					pr.ProfileType = "AWS_IAM"
+				} else {
+					pr.ProfileType = "AWS_IAM_MFA"
+				}
 				pr.HasSecureStorageIAMCredentials = true
 				return pr, nil
 			}
