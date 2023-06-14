@@ -28,6 +28,9 @@ type Config struct {
 	// denying access to assume a particular role.
 	AccessRequestURL string `toml:",omitempty"`
 
+	CommonFateDefaultSSOStartURL string `toml:",omitempty"`
+	CommonFateDefaultSSORegion   string `toml:",omitempty"`
+
 	// Set this to true to disable usage tips like `To assume this profile again later without needing to select it, run this command:`
 	DisableUsageTips bool `toml:",omitempty"`
 	// Set this to true to disable credential caching feature when using credential process

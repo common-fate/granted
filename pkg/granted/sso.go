@@ -306,6 +306,9 @@ func getCFProfileSource(c *cli.Context, region, startURL string) (profilesource.
 	}
 
 	ps := profilesource.Source{SSORegion: region, StartURL: startURL, Client: cf, DashboardURL: cfg.CurrentOrEmpty().DashboardURL}
+
+	clio.Infof("listing available profiles from Common Fate (%s)", ps.DashboardURL)
+
 	return ps, nil
 }
 
