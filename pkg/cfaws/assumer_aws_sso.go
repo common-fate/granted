@@ -64,8 +64,9 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
 	var accessToken *string
-	//Dont try device flow if using granted credential process
-	if cachedToken == nil && configOpts.UsingCredentialProcess {
+
+	skipAutoLogin := configOpts.UsingCredentialProcess && !configOpts.CredentialProcessAutoLogin
+	if skipAutoLogin && cachedToken == nil {
 		cmd := "granted sso login"
 		startURL := c.AWSConfig.SSOStartURL
 		if startURL != "" {
