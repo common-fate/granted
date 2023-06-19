@@ -355,14 +355,14 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	requestDuration := matchingAccessRule.DurationSeconds
 	if opts.duratiuon != 0 && int(opts.duratiuon.Seconds()) < requestDuration {
 		requestDuration = int(opts.duratiuon.Seconds())
+	} else if int(opts.duratiuon.Seconds()) > requestDuration {
+		clio.Warn("The maximum time set for this access request is ", durafmt.Parse(time.Duration(requestDuration)*time.Second).LimitFirstN(1).String())
 	}
 
 	_, err = cf.UserCreateRequestWithResponse(ctx, types.UserCreateRequestJSONRequestBody{
 		AccessRuleId: matchingAccessRule.ID,
 		Reason:       &reason,
 		Timing: types.RequestTiming{
-			// use the maximum allowed time on the rule by default
-			// to minimise the number of prompts to users.
 			DurationSeconds: requestDuration,
 		},
 		With: withPtr,
@@ -397,7 +397,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	fullName := fmt.Sprintf("%s/%s", selectedAccountInfo.Label, selectedRole)
 
 	if latestRequest.Status == types.RequestStatusAPPROVED {
-		durationDescription := durafmt.Parse(time.Duration(matchingAccessRule.DurationSeconds) * time.Second).LimitFirstN(1).String()
+		durationDescription := durafmt.Parse(time.Duration(requestDuration) * time.Second).LimitFirstN(1).String()
 		profile, err := cfaws.LoadProfileByAccountIdAndRole(selectedAccountID, selectedRole)
 		if err != nil {
 			clio.Debugw("error while trying to automatically detect if profile is active", "error", err)
