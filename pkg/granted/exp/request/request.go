@@ -13,9 +13,12 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/briandowns/spinner"
+	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/cli/pkg/client"
 	cfconfig "github.com/common-fate/cli/pkg/config"
+	"github.com/common-fate/cli/pkg/profilesource"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/common-fate/pkg/types"
@@ -23,6 +26,7 @@ import (
 	"github.com/common-fate/granted/pkg/cache"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
+	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/frecency"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/hako/durafmt"
@@ -30,6 +34,9 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
+	"gopkg.in/ini.v1"
 )
 
 var Command = cli.Command{
@@ -115,6 +122,46 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	if err != nil {
 		return err
 	}
+
+	gConf, err := grantedConfig.Load()
+	if err != nil {
+		return errors.Wrap(err, "unable to load granted config")
+	}
+
+	if gConf.CommonFateDefaultSSORegion == "" || gConf.CommonFateDefaultSSOStartURL == "" {
+		clio.Info("We need to do some once-off set up so that we can automatically populate your AWS config file (~/.aws/config) with the latest profiles after an Access Request is approved")
+	}
+
+	if gConf.CommonFateDefaultSSORegion == "" {
+		p := &survey.Input{
+			Message: "Your AWS SSO region:",
+			Help:    "The AWS region that your IAM Identity Center instance is hosted in.",
+		}
+		err = survey.AskOne(p, &gConf.CommonFateDefaultSSORegion)
+		if err != nil {
+			return err
+		}
+		err = gConf.Save()
+		if err != nil {
+			return err
+		}
+	}
+
+	if gConf.CommonFateDefaultSSOStartURL == "" {
+		p := &survey.Input{
+			Message: "Your AWS SSO Start URL:",
+			Help:    "The sign in URL for AWS SSO (e.g. 'https://example.awsapps.com/start')",
+		}
+		err = survey.AskOne(p, &gConf.CommonFateDefaultSSOStartURL)
+		if err != nil {
+			return err
+		}
+		err = gConf.Save()
+		if err != nil {
+			return err
+		}
+	}
+
 	// a mapping of the selected survey prompt option, back to the actual value
 	// e.g. "my-account-name (123456789012)" -> 123456789012
 	selectedAccountMap := map[string]string{}
@@ -378,6 +425,49 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 
 	si.Stop()
 
+	// Call granted sso populate here
+
+	startURL := gConf.CommonFateDefaultSSOStartURL
+
+	region := gConf.CommonFateDefaultSSORegion
+
+	configFilename := awsconfig.DefaultSharedConfigFilename()
+
+	config, err := ini.LoadSources(ini.LoadOptions{
+		AllowNonUniqueSections:  false,
+		SkipUnrecognizableLines: false,
+	}, configFilename)
+	if err != nil {
+		if !os.IsNotExist(err) {
+			return err
+		}
+		config = ini.Empty()
+	}
+
+	pruneStartURLs := []string{startURL}
+
+	g := awsconfigfile.Generator{
+		Config:              config,
+		ProfileNameTemplate: awsconfigfile.DefaultProfileNameTemplate,
+		NoCredentialProcess: false,
+		Prefix:              "",
+		PruneStartURLs:      pruneStartURLs,
+	}
+
+	ps := profilesource.Source{SSORegion: region, StartURL: startURL, Client: cf, DashboardURL: cfcfg.CurrentOrEmpty().DashboardURL}
+
+	g.AddSource(ps)
+	clio.Info("Updating your AWS config file (~/.aws/config) with profiles from Common Fate...")
+	err = g.Generate(ctx)
+	if err != nil {
+		return err
+	}
+
+	err = config.SaveTo(configFilename)
+	if err != nil {
+		return err
+	}
+
 	// find the latest Access Request
 	res, err := cf.UserListRequestsWithResponse(ctx, &types.UserListRequestsParams{})
 	if err != nil {
@@ -386,13 +476,14 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 
 	latestRequest := res.JSON200.Requests[0]
 
-	clio.Infof("Access Request %s - %s", latestRequest.ID, latestRequest.Status)
 	reqURL, err := url.Parse(cfcfg.CurrentOrEmpty().DashboardURL)
 	if err != nil {
 		return err
 	}
 	reqURL.Path = path.Join("/requests", latestRequest.ID)
-	clio.Infof("URL: %s", reqURL)
+
+	// Access Request: Approved (https://commonfate.example.com/requests/req_12345)
+	clio.Infof("Access Request: %s (%s)", cases.Title(language.English).String(strings.ToLower(string(latestRequest.Status))), reqURL)
 
 	fullName := fmt.Sprintf("%s/%s", selectedAccountInfo.Label, selectedRole)
 
@@ -400,13 +491,13 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		durationDescription := durafmt.Parse(time.Duration(requestDuration) * time.Second).LimitFirstN(1).String()
 		profile, err := cfaws.LoadProfileByAccountIdAndRole(selectedAccountID, selectedRole)
 		if err != nil {
-			clio.Debugw("error while trying to automatically detect if profile is active", "error", err)
+			clio.Errorw("error while trying to automatically detect if profile is active", "error", err)
 			clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 			return nil
 		}
 
 		if profile == nil {
-			clio.Debugw("unable to automatically await access because profile was not found")
+			clio.Errorw("unable to automatically await access because profile was not found")
 			clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 			return nil
 		}
@@ -424,8 +515,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 			ShouldRetryAssuming: aws.Bool(true),
 		})
 		if err != nil {
-			clio.Debugw("error while trying to automatically detect if profile is active", "error", err)
-			clio.Infof("Unable to automatically detect whether this profile is ready")
+			clio.Errorw("error while trying to automatically detect if profile is active", "error", err)
 			clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 			return nil
 		}
