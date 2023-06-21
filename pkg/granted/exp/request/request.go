@@ -506,7 +506,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 
 		clio.Debugf("attempting to assume the profile: %s to see that it is ready for use.", profile.Name)
 		si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
-		si.Suffix = "waiting for the profile to be ready..."
+		si.Suffix = " waiting for the profile to be ready..."
 		si.Writer = os.Stderr
 		si.Start()
 
