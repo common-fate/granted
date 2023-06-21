@@ -20,7 +20,7 @@ IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRAN
 # # unset the exported GRANTED_ALIAS_CONFIGURED flag
 unset GRANTED_ALIAS_CONFIGURED
 
-# remove carraige return
+# remove carriage return
 GRANTED_FLAG=$(echo "$GRANTED_FLAG" | tr -d '\r')
 
 if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
@@ -118,23 +118,20 @@ granted_auto_reassume() {
 
   if ! _is_assume_expired; then return 0; fi
 
-  if [[ "${GRANTED_QUIET}" != "true" ]]
+  if [[ "${GRANTED_QUIET:-}" != "true" ]]
   then
     echo "granted session expired; reassuming ${AWS_PROFILE}." >&2
   fi
   assume "${AWS_PROFILE}"
 }
 
-if [[ -n "${ZSH_NAME}" ]]
+if [[ -n "${ZSH_NAME:-}" && "${GRANTED_ENABLE_AUTO_REASSUME:-}" = "true" ]]
 then
-  if [[ "${GRANTED_ENABLE_AUTO_REASSUME}" = "true" ]]
+  # shellcheck disable=SC2154
+  if ! [[ " ${preexec_functions[*]} " =~ " granted_auto_reassume " ]]
   then
-    # shellcheck disable=SC2154
-    if ! [[ " ${preexec_functions[*]} " =~ " granted_auto_reassume " ]]
-    then
-      autoload -Uz add-zsh-hook
-      add-zsh-hook preexec granted_auto_reassume
-    fi
+    autoload -Uz add-zsh-hook
+    add-zsh-hook preexec granted_auto_reassume
   fi
 fi
 
