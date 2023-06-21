@@ -34,6 +34,8 @@ import (
 	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"golang.org/x/sync/errgroup"
+	"golang.org/x/text/cases"
+	"golang.org/x/text/language"
 	"gopkg.in/ini.v1"
 )
 
@@ -465,7 +467,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	reqURL.Path = path.Join("/requests", latestRequest.ID)
 
 	// Access Request: Approved (https://commonfate.example.com/requests/req_12345)
-	clio.Infof("Access Request: %s (%s)", strings.Title(strings.ToLower(string(latestRequest.Status))), reqURL)
+	clio.Infof("Access Request: %s (%s)", cases.Title(language.English).String(strings.ToLower(string(latestRequest.Status))), reqURL)
 
 	fullName := fmt.Sprintf("%s/%s", selectedAccountInfo.Label, selectedRole)
 
