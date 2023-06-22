@@ -29,9 +29,9 @@ func init() {
 	_, color.NoColor = os.LookupEnv("NO_COLOR")
 }
 
-const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`
+const fishAlias = `alias assume="source (brew --prefix)/assume.fish"`
 const defaultAlias = `alias assume="source assume"`
-const devFishAlias = `alias dassume="source /usr/local/bin/dassume.fish"`
+const devFishAlias = `alias dassume="source (brew --prefix)/dassume.fish"`
 const devDefaultAlias = `alias dassume="source dassume"`
 
 func GetDefaultAlias() string {
