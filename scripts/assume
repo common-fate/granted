@@ -4,9 +4,13 @@
 #GRANTED_n - the data from assumego
 
 # pass an environment variable to the Go binary if the Granted alias hasn't been configured
-_this_type=$(type -- "$0")
-if [ "${_this_type#*alias}" = "$_this_type" ]; then
-  # The word 'alias' was not found in the type definition
+_this_type=$(type -- "${0##*/}" 2>&1)
+# If the type command failed, this is probably a sourced
+# file because $0 will be the login shell, e.g., -bash.
+# In that case the output will typically contain 'not found'.
+# In the case of zsh, the output will contain the word 'alias'.
+if [ "${_this_type#*not found}" != "$_this_type" ] ||
+    [ "${_this_type#*alias}" != "$_this_type" ]; then
   GRANTED_RETURN_STATUS="true"
   export GRANTED_ALIAS_CONFIGURED="true"
 fi
@@ -148,5 +152,7 @@ if [ "$GRANTED_FLAG" = "GrantedOutput" ]; then
 fi
 
 if [ "$GRANTED_RETURN_STATUS" = "true" ]; then
-  exit $GRANTED_STATUS
+  # We definitely want return here and not exit because we are operating within
+  # a sourced file. Calling exit would exit the login shell.
+  return $GRANTED_STATUS
 fi
