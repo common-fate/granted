@@ -491,7 +491,10 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		durationDescription := durafmt.Parse(time.Duration(requestDuration) * time.Second).LimitFirstN(1).String()
 		profile, err := cfaws.LoadProfileByAccountIdAndRole(selectedAccountID, selectedRole)
 		if err != nil {
-			clio.Errorw("error while trying to automatically detect if profile is active", "error", err)
+			// make sure to print err.Error(), rather than just err.
+			// If the argument to Errorw is an error rather than a string, zap will print the stack trace from where the error originated.
+			// This makes the log output look quite messy.
+			clio.Errorw("error while trying to automatically detect if profile is active", "error", err.Error())
 			clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 			return nil
 		}
@@ -515,7 +518,10 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 			ShouldRetryAssuming: aws.Bool(true),
 		})
 		if err != nil {
-			clio.Errorw("error while trying to automatically detect if profile is active", "error", err)
+			// make sure to print err.Error(), rather than just err.
+			// If the argument to Errorw is an error rather than a string, zap will print the stack trace from where the error originated.
+			// This makes the log output look quite messy.
+			clio.Errorw("error while trying to automatically detect if profile is active by assuming the role", "error", err.Error())
 			clio.Infof("To use the profile with the AWS CLI, sync your ~/.aws/config by running 'granted sso populate'. Then, run:\nexport AWS_PROFILE=%s", fullName)
 			return nil
 		}
