@@ -138,6 +138,8 @@ github.com/common-fate/cli v0.4.2 h1:6Rf01VR2z2KkRjaPgfhK5UGfvUBH8reljPQZaoMsoiM
 github.com/common-fate/cli v0.4.2/go.mod h1:CSq3HFjg3se/IFujNdp8LDEKlAKVMoMOQz+oeLlNFu0=
 github.com/common-fate/cli v0.4.3 h1:y5IfbccuJCFcz5QyicDXL+7U3G3lN8UmPBIGKnqA1D4=
 github.com/common-fate/cli v0.4.3/go.mod h1:CSq3HFjg3se/IFujNdp8LDEKlAKVMoMOQz+oeLlNFu0=
+github.com/common-fate/cli v0.4.4 h1:oNaw3bJ+2636/Hx+lq8orWDx+DUoB7/qXPJ7jADBWzw=
+github.com/common-fate/cli v0.4.4/go.mod h1:CSq3HFjg3se/IFujNdp8LDEKlAKVMoMOQz+oeLlNFu0=
 github.com/common-fate/clio v1.1.0 h1:M5fyMuYHjB+qODYbl0IGT28SBiokxsIlxluUVnD8cOQ=
 github.com/common-fate/clio v1.1.0/go.mod h1:BYm9XmDIsmpQQdw+xbhQO5hbpUhH03Lk6gQmQ6Wpu1k=
 github.com/common-fate/cloudform v0.6.0 h1:VDme3jSJAltnF8OlSdqxjHn8YnvIoknARvISN+OHkdQ=
@@ -474,6 +476,7 @@ go.uber.org/atomic v1.7.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/atomic v1.9.0 h1:ECmE8Bn/WFTYwEW/bpKD3M8VtR/zQVbavAoalC1PYyE=
 go.uber.org/atomic v1.9.0/go.mod h1:fEN4uk6kAWBTFdckzkM89CLk9XfWZrxpCo0nPH17wJc=
 go.uber.org/goleak v1.1.11 h1:wy28qYRKZgnJTxGxvye5/wgWr1EKjmUDGYox5mGlRlI=
+go.uber.org/goleak v1.1.11/go.mod h1:cwTWslyiVhfpKIDGSZEM2HlOvcqm+tG4zioyIeLoqMQ=
 go.uber.org/multierr v1.1.0/go.mod h1:wR5kodmAFQ0UK8QlbwjlSNy0Z68gJhDJUG5sjR94q/0=
 go.uber.org/multierr v1.8.0 h1:dg6GjLku4EH+249NNmoIciG9N/jURbDG+pFlTkhzIC8=
 go.uber.org/multierr v1.8.0/go.mod h1:7EAYxJLBy9rStEaz58O2t4Uvip6FSURkq8/ppBp95ak=
