@@ -28,6 +28,7 @@ import (
 	"github.com/common-fate/granted/pkg/console"
 	"github.com/common-fate/granted/pkg/forkprocess"
 	"github.com/common-fate/granted/pkg/launcher"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/fatih/color"
@@ -408,10 +409,51 @@ func AssumeCommand(c *cli.Context) error {
 
 	// check if it's needed to provide credentials to terminal or default to it if console wasn't specified
 	if assumeFlags.Bool("terminal") || !getConsoleURL {
-		creds, err := profile.AssumeTerminal(c.Context, configOpts)
-		if err != nil {
-			return err
+		// this is identical to the code in credential_process
+		// and should probably be DRYd up
+		var needsRefresh bool
+		var creds aws.Credentials
+
+		secureSessionCredentialStorage := securestorage.NewSecureSessionCredentialStorage()
+
+		if !cfg.DisableCredentialProcessCache {
+			var ok bool
+			creds, ok, err = secureSessionCredentialStorage.GetCredentials(profile.Name)
+			if err != nil {
+				return err
+			}
+			if !ok {
+				clio.Debugw("refreshing credentials", "reason", "not found")
+				needsRefresh = true
+			} else {
+				clio.Debugw("credentials found in cache", "expires", creds.Expires.String(), "canExpire", creds.CanExpire, "timeNow", time.Now().String(), "refreshIfBeforeNow", creds.Expires.Add(-c.Duration("window")).String())
+				if creds.CanExpire && creds.Expires.Add(-c.Duration("window")).Before(time.Now()) {
+					clio.Debugw("refreshing credentials", "reason", "credentials are expired")
+					needsRefresh = true
+				} else {
+					clio.Debugw("using cached credentials")
+					needsRefresh = false
+				}
+			}
+		} else {
+			clio.Debugw("refreshing credentials", "reason", "credential process cache is disabled via config")
+			needsRefresh = true
 		}
+
+		if needsRefresh {
+		        creds, err = profile.AssumeTerminal(c.Context, configOpts)
+			if err != nil {
+				return err
+			}
+			if !cfg.DisableCredentialProcessCache {
+				clio.Debugw("storing refreshed credentials in credential process cache", "expires", creds.Expires.String(), "canExpire", creds.CanExpire, "timeNow", time.Now().String())
+				if err := secureSessionCredentialStorage.StoreCredentials(profile.Name, creds); err != nil {
+					return err
+				}
+			}
+		}
+		// END should be dried up with credential_process.go
+
 		sessionExpiration := ""
 		if creds.CanExpire {
 			sessionExpiration = creds.Expires.Local().Format(time.RFC3339)
