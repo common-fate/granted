@@ -486,6 +486,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	clio.Infof("Access Request: %s (%s)", cases.Title(language.English).String(strings.ToLower(string(latestRequest.Status))), reqURL)
 
 	fullName := fmt.Sprintf("%s/%s", selectedAccountInfo.Label, selectedRole)
+	fullName = strings.ReplaceAll(fullName, " ", "-") // Replacing spaces with "-" to make export AWS_PROFILE work properly
 
 	if latestRequest.Status == types.RequestStatusAPPROVED {
 		durationDescription := durafmt.Parse(time.Duration(requestDuration) * time.Second).LimitFirstN(1).String()
