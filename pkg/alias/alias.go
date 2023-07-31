@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -29,9 +30,10 @@ func init() {
 	_, color.NoColor = os.LookupEnv("NO_COLOR")
 }
 
-const fishAlias = `alias assume="source (brew --prefix)/assume.fish"`
+const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`
+const fishAliasBrew = `alias assume="source (brew --prefix)/assume.fish"`
 const defaultAlias = `alias assume="source assume"`
-const devFishAlias = `alias dassume="source (brew --prefix)/dassume.fish"`
+const devFishAlias = `alias dassume="source /usr/local/bin/dassume.fish"`
 const devDefaultAlias = `alias dassume="source dassume"`
 
 func GetDefaultAlias() string {
@@ -44,6 +46,13 @@ func GetFishAlias() string {
 	if build.IsDev() {
 		return devFishAlias
 	}
+
+	// if 'brew' exists on the path, use the brew prefix rather than /usr/local/bin when installing the alias.
+	// chrnorm: there's not really a better way to determine if we've been installed with brew or not.
+	if _, err := exec.LookPath("brew"); err == nil {
+		return fishAliasBrew
+	}
+
 	return fishAlias
 }
 
