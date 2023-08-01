@@ -20,7 +20,7 @@ require (
 require (
 	github.com/briandowns/spinner v1.23.0
 	github.com/common-fate/cli v0.4.4
-	github.com/common-fate/clio v1.1.0
+	github.com/common-fate/clio v1.1.1-0.20230801053624-539d17a2c7c7
 	github.com/common-fate/common-fate v0.15.0
 	github.com/fatih/color v1.13.0
 	github.com/lithammer/fuzzysearch v1.1.5
@@ -75,6 +75,7 @@ require (
 	golang.org/x/oauth2 v0.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
 
 require (

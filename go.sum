@@ -142,6 +142,8 @@ github.com/common-fate/cli v0.4.4 h1:oNaw3bJ+2636/Hx+lq8orWDx+DUoB7/qXPJ7jADBWzw
 github.com/common-fate/cli v0.4.4/go.mod h1:CSq3HFjg3se/IFujNdp8LDEKlAKVMoMOQz+oeLlNFu0=
 github.com/common-fate/clio v1.1.0 h1:M5fyMuYHjB+qODYbl0IGT28SBiokxsIlxluUVnD8cOQ=
 github.com/common-fate/clio v1.1.0/go.mod h1:BYm9XmDIsmpQQdw+xbhQO5hbpUhH03Lk6gQmQ6Wpu1k=
+github.com/common-fate/clio v1.1.1-0.20230801053624-539d17a2c7c7 h1:r8Eb0kF05E31JmpCIAdHy89C1sivCUQJsOLmEOxs9nU=
+github.com/common-fate/clio v1.1.1-0.20230801053624-539d17a2c7c7/go.mod h1:NkozaS15SA+6Y9zb+82eIj1i41aWShorTqA01GKQ7A8=
 github.com/common-fate/cloudform v0.6.0 h1:VDme3jSJAltnF8OlSdqxjHn8YnvIoknARvISN+OHkdQ=
 github.com/common-fate/cloudform v0.6.0/go.mod h1:lWkYU3gfk0ohl66sdML9qCYxe5nSdbcqS6U9j/ewmjw=
 github.com/common-fate/common-fate v0.15.0 h1:ZDpc1x6DctuU2l5ILt5q8MB4V9beYfliQ40t9XGMtkw=
@@ -663,6 +665,8 @@ gopkg.in/errgo.v2 v2.1.0/go.mod h1:hNsd1EY+bozCKY1Ytp96fpM3vjJbqLJn88ws8XvfDNI=
 gopkg.in/ini.v1 v1.51.0/go.mod h1:pNLf8WUiyNEtQjuu5G5vTm06TEv9tsIgeAvK8hOrP4k=
 gopkg.in/ini.v1 v1.67.0 h1:Dgnx+6+nfE+IfzjUEISNeydPJh9AXNNsWbGP9KzCsOA=
 gopkg.in/ini.v1 v1.67.0/go.mod h1:pNLf8WUiyNEtQjuu5G5vTm06TEv9tsIgeAvK8hOrP4k=
+gopkg.in/natefinch/lumberjack.v2 v2.2.1 h1:bBRl1b0OH9s/DuPhuXpNl+VtCaJXFZ5/uEFST95x9zc=
+gopkg.in/natefinch/lumberjack.v2 v2.2.1/go.mod h1:YD8tP3GAjkrDg1eZH7EGmyESg/lsYskCTPBJVb9jqSc=
 gopkg.in/resty.v1 v1.12.0/go.mod h1:mDo4pnntr5jdWRML875a/NmxYqAlA73dVijT2AXvQQo=
 gopkg.in/yaml.v2 v2.0.0-20170812160011-eb3733d160e7/go.mod h1:JAlM8MvJe8wmxCU4Bli9HhUf9+ttbYbLASfIpnQbh74=
 gopkg.in/yaml.v2 v2.2.1/go.mod h1:hI93XBmqTisBFMUTm0b8Fm+jr3Dg1NNxqwp+5A1VGuI=
