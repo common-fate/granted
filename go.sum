@@ -140,6 +140,8 @@ github.com/common-fate/cli v0.4.3 h1:y5IfbccuJCFcz5QyicDXL+7U3G3lN8UmPBIGKnqA1D4
 github.com/common-fate/cli v0.4.3/go.mod h1:CSq3HFjg3se/IFujNdp8LDEKlAKVMoMOQz+oeLlNFu0=
 github.com/common-fate/cli v0.4.4 h1:oNaw3bJ+2636/Hx+lq8orWDx+DUoB7/qXPJ7jADBWzw=
 github.com/common-fate/cli v0.4.4/go.mod h1:CSq3HFjg3se/IFujNdp8LDEKlAKVMoMOQz+oeLlNFu0=
+github.com/common-fate/cli v0.4.5 h1:WEuUVtWmsDRmYt69eBRX/Bv9Dj65qHy0p28aIXlYbh4=
+github.com/common-fate/cli v0.4.5/go.mod h1:CSq3HFjg3se/IFujNdp8LDEKlAKVMoMOQz+oeLlNFu0=
 github.com/common-fate/clio v1.1.0 h1:M5fyMuYHjB+qODYbl0IGT28SBiokxsIlxluUVnD8cOQ=
 github.com/common-fate/clio v1.1.0/go.mod h1:BYm9XmDIsmpQQdw+xbhQO5hbpUhH03Lk6gQmQ6Wpu1k=
 github.com/common-fate/clio v1.1.1-0.20230801053624-539d17a2c7c7 h1:r8Eb0kF05E31JmpCIAdHy89C1sivCUQJsOLmEOxs9nU=
