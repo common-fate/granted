@@ -19,7 +19,7 @@ require (
 
 require (
 	github.com/briandowns/spinner v1.23.0
-	github.com/common-fate/cli v0.4.4
+	github.com/common-fate/cli v0.4.6-0.20230801090344-f6d04b0f51c9
 	github.com/common-fate/clio v1.1.0
 	github.com/common-fate/common-fate v0.15.0
 	github.com/fatih/color v1.13.0
