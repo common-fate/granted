@@ -2,8 +2,10 @@ package assume
 
 import (
 	"os"
+	"path"
 
 	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/cliolog"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/autosync"
@@ -82,6 +84,16 @@ func GetCliApp() *cli.App {
 			if err != nil {
 				return err
 			}
+
+			grantedFolder, err := config.GrantedConfigFolder()
+			if err != nil {
+				return err
+			}
+
+			logfilepath := path.Join(grantedFolder, "log")
+			clio.SetFileLogging(cliolog.FileLoggerConfig{
+				Filename: logfilepath,
+			})
 
 			if err := config.SetupConfigFolder(); err != nil {
 				return err
