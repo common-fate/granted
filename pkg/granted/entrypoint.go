@@ -1,8 +1,11 @@
 package granted
 
 import (
+	"path"
+
 	"github.com/common-fate/cli/cmd/command"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/cliolog"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/config"
@@ -52,6 +55,18 @@ func GetCliApp() *cli.App {
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			clio.SetLevelFromEnv("GRANTED_LOG")
+
+			grantedFolder, err := config.GrantedConfigFolder()
+			if err != nil {
+				return err
+			}
+
+			logfilepath := path.Join(grantedFolder, "log")
+
+			clio.SetFileLogging(cliolog.FileLoggerConfig{
+				Filename: logfilepath,
+			})
+
 			zap.ReplaceGlobals(clio.G())
 			if c.Bool("verbose") {
 				clio.SetLevelFromString("debug")
