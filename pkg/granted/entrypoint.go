@@ -88,7 +88,7 @@ var login = cli.Command{
 	Name:  "login",
 	Usage: "Log in to Common Fate",
 	Flags: []cli.Flag{
-		&cli.BoolFlag{Name: "lazy", Usage: "the lazy flag lets granted decide whether a new login flow should be initiated based on the token expiry"},
+		&cli.BoolFlag{Name: "lazy", Usage: "When the lazy flag is used, a login flow will only be started when the access token is expired"},
 	},
 	Action: func(c *cli.Context) error {
 		k, err := securestorage.NewCF().Storage.Keyring()
