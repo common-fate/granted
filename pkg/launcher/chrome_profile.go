@@ -144,3 +144,5 @@ func getLocalStatePath(browserType string) (stateFile string, err error) {
 	}
 	return stateFile, nil
 }
+
+func (l ChromeProfile) UseForkProcess() bool { return true }

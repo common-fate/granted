@@ -9,12 +9,13 @@ import (
 // A browser supported by Granted.
 const (
 	ChromeKey        string = "CHROME"
-	FirefoxKey       string = "FIREFOX"
-	FirefoxStdoutKey string = "FIREFOX_STDOUT"
-	EdgeKey          string = "EDGE"
 	BraveKey         string = "BRAVE"
-	StdoutKey        string = "STDOUT"
+	EdgeKey          string = "EDGE"
+	FirefoxKey       string = "FIREFOX"
 	ChromiumKey      string = "CHROMIUM"
+	SafariKey        string = "SAFARI"
+	StdoutKey        string = "STDOUT"
+	FirefoxStdoutKey string = "FIREFOX_STDOUT"
 )
 
 // A few default paths to check for the browser
@@ -38,8 +39,10 @@ var ChromiumPathMac = []string{"/Applications/Chromium.app/Contents/MacOS/Chromi
 var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program Files/Chromium/chromium.exe`}
 var ChromiumPathWindows = []string{`\Program Files\Chromium\chromium.exe`}
 
+var SafariPathMac = []string{"/Applications/Safari.app/Contents/MacOS/Safari"}
+
 func ChromePathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("google-chrome-stable")
 	if err != nil {
 		path, err = exec.LookPath("google-chrome")
@@ -63,7 +66,7 @@ func ChromePathDefaults() ([]string, error) {
 }
 
 func BravePathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("brave")
 	if err == nil {
 		return []string{path}, nil
@@ -81,7 +84,7 @@ func BravePathDefaults() ([]string, error) {
 }
 
 func EdgePathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("edge")
 	if err == nil {
 		return []string{path}, nil
@@ -99,7 +102,7 @@ func EdgePathDefaults() ([]string, error) {
 }
 
 func FirefoxPathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("firefox")
 	if err == nil {
 		return []string{path}, nil
@@ -117,7 +120,7 @@ func FirefoxPathDefaults() ([]string, error) {
 }
 
 func ChromiumPathDefaults() ([]string, error) {
-	//check linuxpath for binary install
+	// check linuxpath for binary install
 	path, err := exec.LookPath("chromium")
 	if err == nil {
 		return []string{path}, nil
@@ -129,6 +132,15 @@ func ChromiumPathDefaults() ([]string, error) {
 		return ChromiumPathMac, nil
 	case "linux":
 		return ChromiumPathLinux, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
+func SafariPathDefaults() ([]string, error) {
+	switch runtime.GOOS {
+	case "darwin":
+		return SafariPathMac, nil
 	default:
 		return nil, errors.New("os not supported")
 	}

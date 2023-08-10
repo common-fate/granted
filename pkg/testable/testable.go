@@ -29,7 +29,7 @@ func EndTesting() {
 	isTesting = false
 }
 
-// Configure this with a function that retruns the next input required for a cli test
+// Configure this with a function that returns the next input required for a cli test
 func WithNextSurveyInputFunc(next func() StringOrBool) {
 	nextSurveyInput = next
 }

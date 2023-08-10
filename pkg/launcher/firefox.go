@@ -12,3 +12,5 @@ func (l Firefox) LaunchCommand(url string, profile string) []string {
 		url,
 	}
 }
+
+func (l Firefox) UseForkProcess() bool { return true }

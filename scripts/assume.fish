@@ -9,7 +9,7 @@ set -gx GRANTED_ALIAS_CONFIGURED "true"
 
 set GRANTED_OUTPUT (assumego $argv)
 set GRANTED_STATUS $status
-echo $GRANTED_OUTPUT | read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11
+echo $GRANTED_OUTPUT | IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11
 
 
 # remove carriage return
@@ -24,6 +24,7 @@ else if test "$GRANTED_FLAG" = "GrantedDesume"
   set -e AWS_PROFILE
   set -e AWS_REGION
   set -e AWS_SESSION_EXPIRATION
+  set -e AWS_CREDENTIAL_EXPIRATION
   set -e GRANTED_SSO
   set -e GRANTED_SSO_START_URL
   set -e GRANTED_SSO_ROLE_NAME
@@ -36,6 +37,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_PROFILE
   set -e AWS_REGION
   set -e AWS_SESSION_EXPIRATION
+  set -e AWS_CREDENTIAL_EXPIRATION
   set -e GRANTED_SSO
   set -e GRANTED_SSO_START_URL
   set -e GRANTED_SSO_ROLE_NAME
@@ -60,6 +62,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   end
   if test "$GRANTED_6" != "None"
     set -gx AWS_SESSION_EXPIRATION $GRANTED_6
+    set -gx AWS_CREDENTIAL_EXPIRATION $GRANTED_6
   end
   if test "$GRANTED_7" != "None"
     set -gx GRANTED_SSO $GRANTED_7
@@ -75,27 +78,6 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   end
   if test "$GRANTED_11" != "None"
     set -gx GRANTED_SSO_ACCOUNT_ID $GRANTED_11
-  end
-
-  if contains -- -s $argv
-    if test "$GRANTED_1" != "None"
-      echo set -gx AWS_ACCESS_KEY_ID $GRANTED_1
-    end
-    if test "$GRANTED_2" != "None"
-      echo set -gx AWS_SECRET_ACCESS_KEY $GRANTED_2
-    end
-    if test "$GRANTED_3" != "None"
-      echo set -gx AWS_SESSION_TOKEN $GRANTED_3
-    end
-    if test "$GRANTED_4" != "None"
-      echo set -gx AWS_PROFILE $GRANTED_4
-    end
-    if test "$GRANTED_5" != "None"
-      echo set -gx AWS_REGION $GRANTED_5
-    end
-    if test "$GRANTED_6" != "None"
-      echo set -gx AWS_SESSION_EXPIRATION $GRANTED_6
-    end
   end
 
 else if test "$GRANTED_FLAG" = "GrantedOutput"

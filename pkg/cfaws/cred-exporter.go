@@ -15,7 +15,7 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 	// fetch the parsed cred file
 	credPath := config.DefaultSharedCredentialsFilename()
 
-	//create it if it doesn't exist
+	// create it if it doesn't exist
 	if _, err := os.Stat(credPath); os.IsNotExist(err) {
 
 		f, err := os.Create(credPath)
@@ -52,7 +52,7 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 	if err != nil {
 		return err
 	}
-	//put the creds into options
+	// put the creds into options
 	err = section.ReflectFrom(&struct {
 		AWSAccessKeyID     string `ini:"aws_access_key_id"`
 		AWSSecretAccessKey string `ini:"aws_secret_access_key"`

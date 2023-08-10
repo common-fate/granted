@@ -15,12 +15,12 @@ GRANTED_OUTPUT=$(assumego "$@")
 
 GRANTED_STATUS=$?
 # shellcheck disable=SC2162
-read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11<<< "${GRANTED_OUTPUT}"
+IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11<<< "${GRANTED_OUTPUT}"
 
 # # unset the exported GRANTED_ALIAS_CONFIGURED flag
 unset GRANTED_ALIAS_CONFIGURED
 
-# remove carraige return
+# remove carriage return
 GRANTED_FLAG=$(echo "$GRANTED_FLAG" | tr -d '\r')
 
 if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
@@ -30,6 +30,7 @@ if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
   unset AWS_PROFILE
   unset AWS_REGION
   unset AWS_SESSION_EXPIRATION
+  unset AWS_CREDENTIAL_EXPIRATION
 
   unset GRANTED_SSO
   unset GRANTED_SSO_START_URL
@@ -47,6 +48,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   unset AWS_PROFILE
   unset AWS_REGION
   unset AWS_SESSION_EXPIRATION
+  unset AWS_CREDENTIAL_EXPIRATION
 
   unset GRANTED_SSO
   unset GRANTED_SSO_START_URL
@@ -74,8 +76,12 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   if [ ! "${GRANTED_5}" = "None" ]; then
     export AWS_REGION="${GRANTED_5}"
   fi
+  # The following are both variations of the same thing supported by the AWS CLI
+  # AWS_SESSION_EXPIRATION
+  # AWS_CREDENTIAL_EXPIRATION
   if [ ! "${GRANTED_6}" = "None" ]; then
     export AWS_SESSION_EXPIRATION="${GRANTED_6}"
+    export AWS_CREDENTIAL_EXPIRATION="${GRANTED_6}"
   fi
   if [ ! "${GRANTED_7}" = "None" ]; then
     export GRANTED_SSO="${GRANTED_7}"
@@ -92,45 +98,6 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   if [ ! "${GRANTED_11}" = "None" ]; then
     export GRANTED_SSO_ACCOUNT_ID="${GRANTED_11}"
   fi
-
-  for GRANTED_var in "$@"
-  do
-    if [[ "$GRANTED_var" == "-s"* ]]; then
-      if [ ! "${GRANTED_1}" = "None" ]; then
-        echo export AWS_ACCESS_KEY_ID="${GRANTED_1}"
-      fi
-      if [ ! "${GRANTED_2}" = "None" ]; then
-        echo export AWS_SECRET_ACCESS_KEY="${GRANTED_2}"
-      fi
-      if [ ! "${GRANTED_3}" = "None" ]; then
-        echo export AWS_SESSION_TOKEN="${GRANTED_3}"
-      fi
-      if [ ! "${GRANTED_4}" = "None" ]; then
-        echo export AWS_PROFILE="${GRANTED_4}"
-      fi
-      if [ ! "${GRANTED_5}" = "None" ]; then
-        echo export AWS_REGION="${GRANTED_5}"
-      fi
-       if [ ! "${GRANTED_6}" = "None" ]; then
-        echo export AWS_SESSION_EXPIRATION="${GRANTED_6}"
-      fi
-      if [ ! "${GRANTED_7}" = "None" ]; then
-        echo export GRANTED_SSO="${GRANTED_7}"
-      fi
-      if [ ! "${GRANTED_8}" = "None" ]; then
-        echo export GRANTED_SSO_START_URL="${GRANTED_8}"
-      fi
-      if [ ! "${GRANTED_9}" = "None" ]; then
-        echo export GRANTED_SSO_ROLE_NAME="${GRANTED_9}"
-      fi      
-      if [ ! "${GRANTED_10}" = "None" ]; then
-        echo export GRANTED_SSO_REGION="${GRANTED_10}"
-      fi      
-      if [ ! "${GRANTED_11}" = "None" ]; then
-        echo export GRANTED_SSO_ACCOUNT_ID="${GRANTED_11}"
-      fi      
-    fi
-  done
 fi
 
 # Mark: Automatically re-assume when credentials expire.
@@ -151,23 +118,20 @@ granted_auto_reassume() {
 
   if ! _is_assume_expired; then return 0; fi
 
-  if [[ "${GRANTED_QUIET}" != "true" ]]
+  if [[ "${GRANTED_QUIET:-}" != "true" ]]
   then
     echo "granted session expired; reassuming ${AWS_PROFILE}." >&2
   fi
   assume "${AWS_PROFILE}"
 }
 
-if [[ -n "${ZSH_NAME}" ]]
+if [[ -n "${ZSH_NAME:-}" && "${GRANTED_ENABLE_AUTO_REASSUME:-}" = "true" ]]
 then
-  if [[ "${GRANTED_ENABLE_AUTO_REASSUME}" = "true" ]]
+  # shellcheck disable=SC2154
+  if ! [[ " ${preexec_functions[*]} " =~ " granted_auto_reassume " ]]
   then
-    # shellcheck disable=SC2154
-    if ! [[ " ${preexec_functions[*]} " =~ " granted_auto_reassume " ]]
-    then
-      autoload -Uz add-zsh-hook
-      add-zsh-hook preexec granted_auto_reassume
-    fi
+    autoload -Uz add-zsh-hook
+    add-zsh-hook preexec granted_auto_reassume
   fi
 fi
 

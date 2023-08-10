@@ -56,6 +56,10 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 
 	// sanity check to verify if the provided value is a valid url
 	_, err = url.ParseRequestURI(cfg.SSOStartURL)
+	
+	// normalize the url to remove trailing slashes if they exist
+	cfg.SSOStartURL = strings.TrimSuffix(cfg.SSOStartURL, "/")
+
 	if err != nil {
 		clio.Debug(err)
 		return nil, fmt.Errorf("invalid value '%s' provided for 'granted_sso_start_url'", cfg.SSOStartURL)
@@ -94,7 +98,7 @@ func IsValidGrantedProfile(profile *Profile) error {
 	return nil
 }
 
-// check if the config section shas any keys prefixed with "granted_sso_"
+// check if the config section has any keys prefixed with "granted_sso_"
 func hasGrantedSSOPrefix(rawConfig *ini.Section) bool {
 	for _, v := range rawConfig.KeyStrings() {
 		if strings.HasPrefix(v, "granted_sso_") {
@@ -122,12 +126,12 @@ func validateCredentialProcess(arg string, awsProfileName string) error {
 			return fmt.Errorf("profile name not provided. Try adding profile name like 'granted credential-process --profile <profile-name>'")
 		}
 
-		// if matches then do nth.
+		// if matches then do nothing.
 		if profileName == awsProfileName {
 			return nil
 		}
 
-		return fmt.Errorf("unmatched profile names. The profile name '%s' provided to 'granted credential-process' doesnot match AWS profile name '%s'", profileName, awsProfileName)
+		return fmt.Errorf("unmatched profile names. The profile name '%s' provided to 'granted credential-process' does not match AWS profile name '%s'", profileName, awsProfileName)
 	}
 
 	return fmt.Errorf("unable to parse 'credential_process'. Looks like your credential_process isn't configured correctly. \n You need to add 'granted credential-process --profile <profile-name>'")

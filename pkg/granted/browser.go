@@ -12,7 +12,7 @@ var DefaultBrowserCommand = cli.Command{
 	Usage:       "View the web browser that Granted uses to open cloud consoles",
 	Subcommands: []*cli.Command{&SetBrowserCommand, &SetSSOBrowserCommand},
 	Action: func(c *cli.Context) error {
-		//return the default browser that is set
+		// return the default browser that is set
 		conf, err := config.Load()
 		if err != nil {
 			return err
@@ -54,7 +54,7 @@ var SetSSOBrowserCommand = cli.Command{
 	Action: func(c *cli.Context) (err error) {
 		outcome := c.String("browser")
 		path := c.String("path")
-		//save the detected browser as the default
+		// save the detected browser as the default
 		conf, err := config.Load()
 		if err != nil {
 			return err

@@ -20,8 +20,11 @@ import (
 )
 
 type ConfigOpts struct {
-	Duration time.Duration
-	Args     []string
+	UsingCredentialProcess     bool
+	CredentialProcessAutoLogin bool
+	Duration                   time.Duration
+	Args                       []string
+	ShouldRetryAssuming        *bool
 }
 
 type SSOSession struct {
@@ -62,9 +65,9 @@ type Profiles struct {
 func LoadSSOSessions(configFile *ini.File) (map[string]SSOSession, error) {
 	sessions := make(map[string]SSOSession)
 
-	// Itterate through the config sections
+	// Iterate through the config sections
 	for _, section := range configFile.Sections() {
-		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it and only look at 'default'
 		if strings.HasPrefix(section.Name(), "sso-session ") {
 			session := SSOSession{}
 			regionKey, err := section.GetKey("sso_region")
@@ -87,6 +90,12 @@ func (p *Profiles) HasProfile(profile string) bool {
 
 // if the profile has a "granted_${name}" key, the value is returned. else an empty string
 func (p *Profile) CustomGrantedProperty(name string) string {
+	// rawConfig can be nil when all the required parameters are passed as arguments
+	// like assume --sso --sso_start-url ...
+	if p.RawConfig == nil {
+		return ""
+	}
+
 	key, err := p.RawConfig.GetKey(fmt.Sprintf("granted_%s", name))
 	if err != nil {
 		return ""
@@ -147,6 +156,46 @@ func LoadProfiles(configFileLoader, credentialsFileLoader ConfigFileLoader) (*Pr
 	return &p, nil
 }
 
+// Note, this function doesn't handle the condition when there are same accountId & role in different regions.
+func LoadProfileByAccountIdAndRole(accountId string, role string) (*Profile, error) {
+
+	profiles, err := LoadProfilesFromDefaultFiles()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, p := range profiles.profiles {
+		if p.RawConfig != nil {
+
+			g_accountId, err := p.RawConfig.GetKey("granted_sso_account_id")
+			if err != nil {
+				continue
+			}
+
+			if g_accountId.Value() != accountId {
+				continue
+			}
+
+			g_roleName, err := p.RawConfig.GetKey("granted_sso_role_name")
+			if err != nil {
+				continue
+			}
+
+			if accountId == g_accountId.Value() && role == g_roleName.Value() {
+
+				p, err := profiles.LoadInitialisedProfile(context.TODO(), p.Name)
+				if err != nil {
+					return nil, err
+				}
+
+				return p, nil
+			}
+		}
+	}
+
+	return nil, err
+}
+
 // .aws/config files are structured as follows,
 //
 // [profile cf-dev]
@@ -165,7 +214,7 @@ func (p *Profiles) loadDefaultConfigFile(loader ConfigFileLoader) error {
 	if err != nil {
 		return err
 	}
-	// Itterate through the config sections
+	// Iterate through the config sections
 	for _, section := range configFile.Sections() {
 		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
 		if section.Name() != "DEFAULT" {
@@ -202,13 +251,13 @@ func (p *Profiles) loadDefaultConfigFile(loader ConfigFileLoader) error {
 // aws_secret_access_key = xxxxxx
 // ...
 func (p *Profiles) loadDefaultCredentialsFile(loader ConfigFileLoader) error {
-	//fetch parsed credentials file
+	// fetch parsed credentials file
 	credentialsFile, err := loader.Load()
 	if err != nil {
 		return err
 	}
 	for _, section := range credentialsFile.Sections() {
-		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
+		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it and only look at 'default'
 		if section.Name() != "DEFAULT" {
 			// We only care about the non default sections for the credentials file (no profile prefix either)
 			if section.Name() != "default" && IsLegalProfileName(section.Name()) {
@@ -229,7 +278,7 @@ func (p *Profiles) loadDefaultCredentialsFile(loader ConfigFileLoader) error {
 // Helper function which returns true if provided profile name string does not contain illegal characters
 func IsLegalProfileName(name string) bool {
 	illegalProfileNameCharacters := regexp.MustCompile(`[\\[\];'" ]`)
-	illegalChars := `\][;'"` // These characters break the config file format and should not be usable for profile names
+	illegalChars := `\][;'"` // These characters break the config file format and are not allowed for profile names
 	if illegalProfileNameCharacters.MatchString(name) {
 		clio.Warnf("The profile %s cannot be loaded because the name contains one or more of these characters '%s'", name, illegalChars)
 		clio.Infof("Try renaming the profile to '%s'", illegalProfileNameCharacters.ReplaceAllString(name, "-"))
@@ -239,7 +288,7 @@ func IsLegalProfileName(name string) bool {
 }
 
 // InitialiseProfilesTree will initialise all profiles
-// this means that the profile prarent relations are walked and the profile type is determined
+// this means that the profile parent relations are walked and the profile type is determined
 // use this if you need to know the type of every profile in the config
 // for large configuations, this may be expensive
 func (p *Profiles) InitialiseProfilesTree(ctx context.Context) {
@@ -278,7 +327,11 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 				pr.AWSConfig = awsConfig
 				pr.AWSConfig.CredentialProcess = ""
 				pr.Initialised = true
-				pr.ProfileType = "AWS_IAM"
+				if pr.AWSConfig.MFASerial == "" {
+					pr.ProfileType = "AWS_IAM"
+				} else {
+					pr.ProfileType = "AWS_IAM_MFA"
+				}
 				pr.HasSecureStorageIAMCredentials = true
 				return pr, nil
 			}
@@ -396,7 +449,7 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 	return nil
 }
 
-// Region will attempt to load the reason on this profile, if it is not set,
+// Region will attempt to load the region on this profile, if it is not set,
 // attempt to load the parent if it exists
 // else attempts to use the sso-region
 // else attempts to load the default config

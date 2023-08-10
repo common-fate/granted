@@ -21,7 +21,7 @@ import (
 
 // Checks the config to see if the user has already set up their default browser
 func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
-	//just check the config file for the default browser efield
+	// just check the config file for the default browser field
 	conf, err := config.Load()
 	if err != nil {
 		return false, err
@@ -31,7 +31,7 @@ func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
 	if conf.DefaultBrowser == StdoutKey || conf.DefaultBrowser == FirefoxStdoutKey {
 		return true, nil
 	}
-	// Due to a change in the behaviour of the browser detection , this is here to migrate existing users who have already configured granted
+	// Due to a change in the behaviour of the browser detection, this is here to migrate existing users who have already configured granted
 	// The change is that the browser path will be saved in the config along with the browser type for all installations, except the Stdout browser types
 	// This can be removed in a future version of granted, when everyone is expected to have migrated
 	if conf.DefaultBrowser != "" && conf.CustomBrowserPath == "" {
@@ -45,12 +45,12 @@ func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
 }
 
 func HandleManualBrowserSelection() (string, error) {
-	//didn't find it request manual input
+	// didn't find it, request manual input
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
 		Message: "Select one of the browsers from the list",
-		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Chromium", "Stdout", "FirefoxStdout"},
+		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Chromium", "Safari", "Stdout", "FirefoxStdout"},
 	}
 	var selection string
 	clio.NewLine()
@@ -103,21 +103,23 @@ func GetBrowserKey(b string) string {
 	if strings.Contains(strings.ToLower(b), "chrome") {
 		return ChromeKey
 	}
-
-	if strings.Contains(strings.ToLower(b), "chromium") {
-		return ChromiumKey
-	}
 	if strings.Contains(strings.ToLower(b), "brave") {
 		return BraveKey
 	}
 	if strings.Contains(strings.ToLower(b), "edge") {
 		return EdgeKey
 	}
-	if strings.Contains(strings.ToLower(b), "firefoxstdout") {
-		return FirefoxStdoutKey
-	}
 	if strings.Contains(strings.ToLower(b), "firefox") || strings.Contains(strings.ToLower(b), "mozilla") {
 		return FirefoxKey
+	}
+	if strings.Contains(strings.ToLower(b), "chromium") {
+		return ChromiumKey
+	}
+	if strings.Contains(strings.ToLower(b), "safari") {
+		return SafariKey
+	}
+	if strings.Contains(strings.ToLower(b), "firefoxstdout") {
+		return FirefoxStdoutKey
 	}
 	return StdoutKey
 }
@@ -137,6 +139,8 @@ func DetectInstallation(browserKey string) (string, bool) {
 		bPath, _ = FirefoxPathDefaults()
 	case ChromiumKey:
 		bPath, _ = ChromiumPathDefaults()
+	case SafariKey:
+		bPath, _ = SafariPathDefaults()
 	default:
 		return "", false
 	}
@@ -161,11 +165,11 @@ func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 	title := cases.Title(language.AmericanEnglish)
 	browserTitle := title.String((strings.ToLower(GetBrowserKey(browserName))))
 	clio.Info("Thanks for using Granted!")
-	clio.Info("Start by configuring which browser to use when launching the AWS console")
 	clio.Infof("By default, Granted will open the AWS console with this browser: %s", browserTitle)
-	clio.Info("Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://granted.dev/browsers). You can change this setting later by running 'granted browser set'")
+	clio.Warn("Granted works best with Firefox but also supports Chrome, Brave, and Edge (https://docs.commonfate.io/granted/introduction#supported-browsers). You can change this setting later by running 'granted browser set'")
 	in := survey.Confirm{
-		Message: "Do you want Granted to use a different installed browser when launching the AWS console?",
+		Message: "Use Firefox as default Granted browser?",
+		Default: true,
 	}
 	var confirm bool
 	err = testable.AskOne(&in, &confirm, withStdio)
@@ -173,10 +177,7 @@ func HandleBrowserWizard(ctx *cli.Context) (string, error) {
 		return "", err
 	}
 	if confirm {
-		browserName, err = HandleManualBrowserSelection()
-		if err != nil {
-			return "", err
-		}
+		browserName = FirefoxKey
 	}
 
 	return browserName, ConfigureBrowserSelection(browserName, "")
@@ -188,7 +189,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	title := cases.Title(language.AmericanEnglish)
 	browserTitle := title.String(strings.ToLower(browserKey))
-	// We allow users to configure a custom install path is we cannot detect the installation
+	// We allow users to configure a custom install path if we cannot detect the installation
 	browserPath := path
 	// detect installation
 	if browserKey != FirefoxStdoutKey && browserKey != StdoutKey {
@@ -229,7 +230,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 			}
 		}
 	}
-	//save the detected browser as the default
+	// save the detected browser as the default
 	conf, err := config.Load()
 	if err != nil {
 		return err
@@ -259,7 +260,7 @@ func GrantedIntroduction() {
 func SSOBrowser(grantedDefaultBrowser string) error {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := &survey.Confirm{
-		Message: "Do you want to use a browser other than your default browser for SSO logins?",
+		Message: "Use a different browser than your default browser for SSO login?",
 		Default: false,
 		Help:    "For example, if you normally use a password manager in Chrome for your AWS login but Chrome is not your default browser, you would choose to use Chrome for SSO logins. You can change this later by running 'granted browser set-sso'",
 	}
@@ -268,7 +269,7 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 	if err != nil {
 		return err
 	}
-	//save the detected browser as the default
+	// save the detected browser as the default
 	conf, err := config.Load()
 	if err != nil {
 		return err
@@ -291,7 +292,7 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 
 func RunFirefoxExtensionPrompts(firefoxPath string) error {
 	clio.Info("In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted")
-	clio.Info("This addon has minimal permissions and does not access any web page contents (https://granted.dev/firefox-addon)")
+	clio.Info("This addon has minimal permissions and does not access any web page content")
 
 	label := "Open Firefox to download the extension?"
 

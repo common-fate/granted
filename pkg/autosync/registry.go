@@ -16,10 +16,10 @@ func (e *RegistrySyncError) Error() string {
 	return fmt.Sprintf("error syncing profile registry with err: %s", e.err.Error())
 }
 
-func runSync(rc RegistrySyncConfig) error {
+func runSync(rc RegistrySyncConfig, shouldFailForRequiredKeys bool) error {
 	clio.Info("Syncing Profile Registries")
 	shouldSilentLog := true
-	err := registry.SyncProfileRegistries(shouldSilentLog)
+	err := registry.SyncProfileRegistries(shouldSilentLog, false, shouldFailForRequiredKeys)
 	if err != nil {
 		return &RegistrySyncError{err: err}
 	}

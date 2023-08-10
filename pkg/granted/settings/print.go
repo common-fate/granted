@@ -22,7 +22,7 @@ var PrintCommand = cli.Command{
 			{"update-checker-api-url", c.String("update-checker-api-url")},
 		}
 		// display config, this uses reflection to convert the config struct to a map
-		// it will always show all teh values in teh config without us having to update it
+		// it will always show all the values in the config without us having to update it
 		for k, v := range structs.Map(cfg) {
 			data = append(data, []string{k, fmt.Sprint(v)})
 		}

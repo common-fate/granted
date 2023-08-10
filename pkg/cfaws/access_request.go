@@ -1,12 +1,11 @@
 package cfaws
 
 import (
-	"fmt"
-	"net/url"
 	"regexp"
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
+	"github.com/common-fate/granted/pkg/accessrequest"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"gopkg.in/ini.v1"
 )
@@ -37,10 +36,19 @@ func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig *ini.Sectio
 	}
 
 	if url != "" {
+		latestRole := accessrequest.Role{
+			Account: SSOAccountId,
+			Role:    SSORoleName,
+		}
+		err := latestRole.Save()
+		if err != nil {
+			clio.Errorw("error saving latest role", "error", err)
+		}
+
 		// if we have a request URL, we can prompt the user to make a request by visiting the URL.
-		requestURL := buildRequestURL(url, SSORoleName, SSOAccountId)
-		// need to escape the % symbol in the request url which has been query escaped so that fmt does';t try to substitute it
-		cliError.Messages = append(cliError.Messages, clierr.Warn("You need to request access to this role:"), clierr.Warn(requestURL))
+		requestURL := latestRole.URL(url)
+		// need to escape the % symbol in the request url which has been query escaped so that fmt doesn't try to substitute it
+		cliError.Messages = append(cliError.Messages, clierr.Warn("You need to request access to this role:"), clierr.Warn(requestURL), clierr.Warn("or run: 'granted exp request latest'"))
 		return cliError
 	}
 
@@ -48,7 +56,7 @@ func FormatAWSErrorWithGrantedApprovalsURL(awsError error, rawConfig *ini.Sectio
 	// remember that not all users of credential process will be using approvals
 	cliError.Messages = append(cliError.Messages,
 		clierr.Info("It looks like you don't have the right permissions to access this role"),
-		clierr.Info("If you are using Granted Approvals to manage this role you can configure the Granted CLI with a request URL so that you can be directed to your Granted Approvals instance to make a new access request the next time you have this error"),
+		clierr.Info("If you are using Common Fate to manage this role you can configure the Granted CLI with a request URL so that you can be directed to your Granted Approvals instance to make a new access request the next time you have this error"),
 		clierr.Info("To configure a URL to request access to this role with 'granted settings request-url set <YOUR_GRANTED_APPROVALS_URL'"),
 	)
 	return cliError
@@ -78,19 +86,4 @@ func parseURLFlagFromConfig(rawConfig *ini.Section) string {
 		return matchedValues[1]
 	}
 	return ""
-}
-
-func buildRequestURL(grantedUrl string, SSORoleName string, SSOAccountId string) string {
-	u, err := url.Parse(grantedUrl)
-	if err != nil {
-		return fmt.Sprintf("error building access request URL: %s", err.Error())
-	}
-	u.Path = "access"
-	q := u.Query()
-	q.Add("type", "commonfate/aws-sso")
-	q.Add("permissionSetArn.label", SSORoleName)
-	q.Add("accountId", SSOAccountId)
-	u.RawQuery = q.Encode()
-
-	return u.String()
 }

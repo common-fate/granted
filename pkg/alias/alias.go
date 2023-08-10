@@ -10,6 +10,7 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
@@ -30,6 +31,7 @@ func init() {
 }
 
 const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`
+const fishAliasBrew = `alias assume="source (brew --prefix)/assume.fish"`
 const defaultAlias = `alias assume="source assume"`
 const devFishAlias = `alias dassume="source /usr/local/bin/dassume.fish"`
 const devDefaultAlias = `alias dassume="source dassume"`
@@ -44,6 +46,13 @@ func GetFishAlias() string {
 	if build.IsDev() {
 		return devFishAlias
 	}
+
+	// if 'brew' exists on the path, use the brew prefix rather than /usr/local/bin when installing the alias.
+	// chrnorm: there's not really a better way to determine if we've been installed with brew or not.
+	if _, err := exec.LookPath("brew"); err == nil {
+		return fishAliasBrew
+	}
+
 	return fishAlias
 }
 
@@ -79,7 +88,7 @@ func GetShellFromShellEnv(shellEnv string) (string, error) {
 		return "zsh", nil
 
 	} else {
-		return "", fmt.Errorf("we couldn't detect your shell type (%s). Please follow the steps at https://granted.dev/shell-alias to assume roles with Granted", shellEnv)
+		return "", fmt.Errorf("we couldn't detect your shell type (%s). Please follow the steps at https://docs.commonfate.io/granted/internals/shell-alias to assume roles with Granted", shellEnv)
 	}
 }
 
@@ -119,7 +128,7 @@ func SetupShellWizard(autoConfigure bool) error {
 
 	// skip prompt if autoConfigure is set to true
 	if !autoConfigure {
-		clio.Info("To assume roles with Granted, we need to add an alias to your shell profile (https://granted.dev/shell-alias)")
+		clio.Info("To assume roles with Granted, we need to add an alias to your shell profile (https://docs.commonfate.io/granted/internals/shell-alias)")
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := &survey.Confirm{
 			Message: fmt.Sprintf("Install %s alias at %s", shell, cfg.File),

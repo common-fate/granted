@@ -20,31 +20,37 @@ func getDefaultAWSConfigLocation() (string, error) {
 	return configPath, nil
 }
 
-func loadAWSConfigFile() (*ini.File, error) {
-	p, err := getDefaultAWSConfigLocation()
+func loadAWSConfigFile() (*ini.File, string, error) {
+	filepath, err := getDefaultAWSConfigLocation()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
 	awsConfig, err := ini.LoadSources(ini.LoadOptions{
 		SkipUnrecognizableLines: true,
 		AllowNonUniqueSections:  true,
-	}, p)
+	}, filepath)
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
 
-	return awsConfig, nil
+	return awsConfig, filepath, nil
 }
 
 // load all cloned configs of a single repo into one ini object.
 // this will overwrite if there are duplicate profiles with same name.
-func loadClonedConfigs(r Registry, repoDirPath string) (*ini.File, error) {
+func loadClonedConfigs(r Registry) (*ini.File, error) {
 	clonedFile := ini.Empty()
+
+	repoDirPath, err := getRegistryLocation(r.Config)
+	if err != nil {
+		return nil, err
+	}
+
 	for _, cfile := range r.AwsConfigPaths {
 		var filepath string
-		if r.Url.Subpath != "" {
-			filepath = path.Join(repoDirPath, r.Url.Subpath, cfile)
+		if r.Config.Path != nil {
+			filepath = path.Join(repoDirPath, *r.Config.Path, cfile)
 		} else {
 			filepath = path.Join(repoDirPath, cfile)
 		}

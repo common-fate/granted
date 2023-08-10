@@ -6,7 +6,7 @@ import (
 )
 
 // SafeOutput formats a string to match the requirements of granted output in the shell script
-// Currently in windows, the grantedoutput is handled differently, as linux and mac support the exec cli flag whereas windows does not yet have support
+// Currently in windows, the granted output is handled differently, as linux and mac support the exec cli flag whereas windows does not yet have support
 // this method may be changed in future if we implement support for "--exec" in windows
 func SafeOutput(s string) string {
 	// if the GRANTED_ALIAS_CONFIGURED env variable isn't set,

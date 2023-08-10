@@ -43,12 +43,12 @@ var CompletionCommand = cli.Command{
 		case "bash":
 			err = installBashCompletions(c)
 		default:
-			clio.Info("To install completions for other shells, please see our docs: https://granted.dev/autocompletion")
+			clio.Info("To install completions for other shells, please see our docs: https://docs.commonfate.io/granted/configuration#autocompletion")
 		}
 		return err
 	},
 
-	Description: "Install completions for fish, zsh, or bash. To install completions for other shells, please see our docs:\nhttps://granted.dev/autocompletion\n",
+	Description: "Install completions for fish, zsh, or bash. To install completions for other shells, please see our docs:\nhttps://docs.commonfate.io/granted/configuration#autocompletion\n",
 }
 
 func installFishCompletions(c *cli.Context) error {
@@ -59,12 +59,12 @@ func installFishCompletions(c *cli.Context) error {
 	assumeAppOutput, _ := assumeApp.ToFishCompletion()
 	combinedOutput := fmt.Sprintf("%s\n%s", grantedAppOutput, assumeAppOutput)
 
-	// try fetch user home dir
+	// try to fetch user home dir
 	user, _ := user.Current()
 
 	executableDir := user.HomeDir + "/.config/fish/completions/granted_completer_fish.fish"
 
-	// Try create a file
+	// Try to create a file
 	err := os.WriteFile(executableDir, []byte(combinedOutput), 0600)
 	if err != nil {
 		return fmt.Errorf("Something went wrong when saving fish autocompletions: " + err.Error())

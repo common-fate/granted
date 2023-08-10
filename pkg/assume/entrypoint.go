@@ -2,15 +2,19 @@ package assume
 
 import (
 	"os"
+	"path"
 
 	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/cliolog"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/autosync"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/useragent"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/zap"
 )
 
 // Prevent issues where these flags are initialised in some part of the program then used by another part
@@ -19,12 +23,14 @@ import (
 func GlobalFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
+		&cli.BoolFlag{Name: "terminal", Aliases: []string{"t"}, Usage: "Use this with '-c' to open a console session and export credentials into the terminal at the same time."},
 		&cli.BoolFlag{Name: "env", Aliases: []string{"e"}, Usage: "Export credentials to a .env file"},
 		&cli.BoolFlag{Name: "export", Aliases: []string{"ex"}, Usage: "Export credentials to a ~/.aws/credentials file"},
 		&cli.BoolFlag{Name: "unset", Aliases: []string{"un"}, Usage: "Unset all environment variables configured by Assume"},
 		&cli.BoolFlag{Name: "url", Aliases: []string{"u"}, Usage: "Get an active console session url"},
 		&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Like --c, but opens to a specified service"},
 		&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "region to launch the console or export to the terminal"},
+		&cli.StringFlag{Name: "console-destination", Aliases: []string{"cd"}, Usage: "Open a web console at this destination"},
 		&cli.StringSliceFlag{Name: "pass-through", Aliases: []string{"pt"}, Usage: "Pass args to proxy assumer"},
 		&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
@@ -39,6 +45,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "account-id", Usage: "Use this in conjunction with --sso, the account-id"},
 		&cli.StringFlag{Name: "role-name", Usage: "Use this in conjunction with --sso, the role-name"},
 		&cli.StringFlag{Name: "browser-profile", Aliases: []string{"bp"}, Usage: "Use a pre-existing profile in your browser"},
+		&cli.StringFlag{Name: "save-to", Usage: "Use this in conjunction with --sso, the profile name to save the role to in your AWS config file"},
 	}
 }
 
@@ -70,6 +77,7 @@ func GetCliApp() *cli.App {
 			}
 
 			clio.SetLevelFromEnv("GRANTED_LOG")
+			zap.ReplaceGlobals(clio.G())
 			if c.Bool("verbose") {
 				clio.SetLevelFromString("debug")
 			}
@@ -77,6 +85,16 @@ func GetCliApp() *cli.App {
 			if err != nil {
 				return err
 			}
+
+			grantedFolder, err := config.GrantedConfigFolder()
+			if err != nil {
+				return err
+			}
+
+			logfilepath := path.Join(grantedFolder, "log")
+			clio.SetFileLogging(cliolog.FileLoggerConfig{
+				Filename: logfilepath,
+			})
 
 			if err := config.SetupConfigFolder(); err != nil {
 				return err
@@ -92,7 +110,7 @@ func GetCliApp() *cli.App {
 					return err
 				}
 
-				//see if they want to set their sso browser the same as their granted default
+				// see if they want to set their sso browser the same as their granted default
 				err = browser.SSOBrowser(browserName)
 				if err != nil {
 					return err
@@ -103,12 +121,15 @@ func GetCliApp() *cli.App {
 				browser.GrantedIntroduction()
 			}
 			// Sync granted profile registries if enabled
-			autosync.Run()
+			autosync.Run(false)
 
 			// Setup the shell alias
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
 				return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
 			}
+
+			// set the user agent
+			c.Context = useragent.NewContext(c.Context, "granted", build.Version)
 
 			return nil
 		},

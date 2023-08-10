@@ -32,7 +32,7 @@ The CLI should now be available on your PATH as `dgranted` and `dassume`.
 
 ## Creating a bug report
 
-Receiving bug reports is great, its helps us the identify and patch issues in the application so that the users have as good experience as possible. But it's important to include the necessary information in the bug report so that the maintainers are able to get to the bottom of the problem with as much context as possible.
+Receiving bug reports is great, it helps us identify and patch issues in the application so that the users have the best possible experience. But it's important to include the necessary information in the bug report so that the maintainers are able to get to the bottom of the problem with as much context as possible.
 
 When opening a bug report we ask that you please include the following information:
 

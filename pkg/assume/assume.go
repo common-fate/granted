@@ -16,6 +16,8 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
+	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/ansi"
 	"github.com/common-fate/clio/clierr"
@@ -31,6 +33,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/hako/durafmt"
 	"github.com/urfave/cli/v2"
+	"gopkg.in/ini.v1"
 )
 
 // Launchers give a command that we need to run in order to launch a browser, such as
@@ -38,6 +41,13 @@ import (
 // with each element being an argument. (e.g. []string{"firefox", "--new-tab", "<URL>"})
 type Launcher interface {
 	LaunchCommand(url string, profile string) []string
+	// UseForkProcess returns true if the launcher implementation should call
+	// the forkprocess library.
+	//
+	// For launchers that use 'open' commands, this should be false,
+	// as the forkprocess library causes the following error to appear:
+	// 	fork/exec open: no such file or directory
+	UseForkProcess() bool
 }
 
 func AssumeCommand(c *cli.Context) error {
@@ -55,11 +65,53 @@ func AssumeCommand(c *cli.Context) error {
 	}
 	activeRoleProfile := assumeFlags.String("active-aws-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
+
+	showRerunCommand := false
 	var profile *cfaws.Profile
 	if assumeFlags.Bool("sso") {
 		profile, err = SSOProfileFromFlags(c)
 		if err != nil {
 			return err
+		}
+
+		// save the profile to the AWS config file if the user requested it.
+		saveProfileName := assumeFlags.String("save-to")
+		if saveProfileName != "" {
+			configFilename := awsconfig.DefaultSharedConfigFilename()
+			config, err := ini.LoadSources(ini.LoadOptions{
+				AllowNonUniqueSections:  false,
+				SkipUnrecognizableLines: false,
+			}, configFilename)
+			if err != nil {
+				if !os.IsNotExist(err) {
+					return err
+				}
+				config = ini.Empty()
+			}
+			err = awsconfigfile.Merge(awsconfigfile.MergeOpts{
+				Config:              config,
+				SectionNameTemplate: saveProfileName,
+				Profiles: []awsconfigfile.SSOProfile{
+					{
+						SSOStartURL:   profile.AWSConfig.SSOStartURL,
+						SSORegion:     profile.AWSConfig.SSORegion,
+						AccountID:     profile.AWSConfig.SSOAccountID,
+						AccountName:   profile.AWSConfig.SSOAccountID,
+						RoleName:      profile.AWSConfig.SSORoleName,
+						GeneratedFrom: "commonfate",
+					},
+				},
+			})
+			if err != nil {
+				return err
+			}
+
+			err = config.SaveTo(configFilename)
+			if err != nil {
+				return err
+			}
+
+			clio.Successf("Saved AWS profile as %s. You can use this profile with the AWS CLI using the '--profile' flags when running AWS commands.", saveProfileName)
 		}
 	} else if activeRoleFlag && os.Getenv("GRANTED_SSO") == "true" {
 		profile, err = SSOProfileFromEnv()
@@ -103,7 +155,9 @@ func AssumeCommand(c *cli.Context) error {
 
 		// if profile is still "" here, then prompt to select a profile
 		if profileName == "" {
-			//load config to check frecency enabled
+			// will print a command output for the user so it's easier for them to re-run later or learn the commands
+			showRerunCommand = true
+			// load config to check frecency enabled
 			cfg, err := config.Load()
 			if err != nil {
 				return err
@@ -174,7 +228,7 @@ func AssumeCommand(c *cli.Context) error {
 			if len(profileKeys) == 0 {
 				return clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
 					clierr.Info("You can add profiles to your AWS config by following our guide: "),
-					clierr.Info("https://granted.dev/awsconfig"),
+					clierr.Info("https://docs.commonfate.io/granted/getting-started#set-up-your-aws-profile-file"),
 				)
 			}
 
@@ -194,7 +248,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 		// ensure that frecency has finished updating before returning from this function
 		defer wg.Wait()
-		//finally, load the profile and initialise it, this builds the parent tree structure
+		// finally, load the profile and initialise it, this builds the parent tree structure
 		profile, err = profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
 			return err
@@ -219,7 +273,7 @@ func AssumeCommand(c *cli.Context) error {
 
 	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
 
-	//attempt to get session duration from profile
+	// attempt to get session duration from profile
 	if profile.AWSConfig.RoleDurationSeconds != nil {
 		configOpts.Duration = *profile.AWSConfig.RoleDurationSeconds
 	}
@@ -244,13 +298,19 @@ func AssumeCommand(c *cli.Context) error {
 
 	// if getConsoleURL is true, we'll use the AWS federated login to retrieve a URL to access the console.
 	// depending on how Granted is configured, this is then printed to the terminal or a browser is launched at the URL automatically.
-	getConsoleURL := !assumeFlags.Bool("env") && (assumeFlags.Bool("console") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url") || assumeFlags.String("browser-profile") != "")
+	getConsoleURL := !assumeFlags.Bool("env") && ((assumeFlags.Bool("console") || assumeFlags.String("console-destination") != "") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url") || assumeFlags.String("browser-profile") != "")
+
+	// this makes it easy for users to copy the actual command and avoid needing to lookup profiles
+	if !cfg.DisableUsageTips && showRerunCommand {
+		clio.Infof("To assume this profile again later without needing to select it, run this command:\n> assume %s %s", profile.Name, strings.Join(os.Args[1:], " "))
+	}
 
 	if getConsoleURL {
 		con := console.AWS{
-			Profile: profile.Name,
-			Service: assumeFlags.String("service"),
-			Region:  region,
+			Profile:     profile.Name,
+			Service:     assumeFlags.String("service"),
+			Region:      region,
+			Destination: assumeFlags.String("console-destination"),
 		}
 
 		creds, err := profile.AssumeConsole(c.Context, configOpts)
@@ -324,6 +384,8 @@ func AssumeCommand(c *cli.Context) error {
 			l = launcher.Firefox{
 				ExecutablePath: browserPath,
 			}
+		case browser.SafariKey:
+			l = launcher.Safari{}
 		default:
 			l = launcher.Open{}
 		}
@@ -336,22 +398,33 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
-		args := l.LaunchCommand(consoleURL, containerProfile)
+		args := l.LaunchCommand(consoleURL, con.Profile)
 
-		cmd, err := forkprocess.New(args...)
-		if err != nil {
-			return err
+		var startErr error
+		if l.UseForkProcess() {
+			clio.Debugf("running command using forkprocess: %s", args)
+			cmd, err := forkprocess.New(args...)
+			if err != nil {
+				return err
+			}
+			startErr = cmd.Start()
+		} else {
+			clio.Debugf("running command without forkprocess: %s", args)
+			cmd := exec.Command(args[0], args[1:]...)
+			startErr = cmd.Start()
 		}
-		err = cmd.Start()
-		if err != nil {
-			return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", err.Error()),
+
+		if startErr != nil {
+			return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", startErr.Error()),
 				// allow them to try open the url manually
 				clierr.Info("You can open the browser session manually using the following url:"),
 				clierr.Info(consoleURL),
 			)
 		}
-		return nil
-	} else {
+	}
+
+	// check if it's needed to provide credentials to terminal or default to it if console wasn't specified
+	if assumeFlags.Bool("terminal") || !getConsoleURL {
 		creds, err := profile.AssumeTerminal(c.Context, configOpts)
 		if err != nil {
 			return err
@@ -397,7 +470,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
-		// the shell script treats "None" as an emprty string and will not set a value for that positional output
+		// the shell script treats "None" as an empty string and will not set a value for that positional output
 		if assumeFlags.Bool("sso") {
 			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
@@ -424,8 +497,8 @@ func PrepareStringsForShellScript(in []string) []interface{} {
 	return out
 }
 
-// RunExecCommandWithCreds takes in a command, which may be a program and arguments sperated by spaces
-// it splits these then runs the command with teh credentials as the environment.
+// RunExecCommandWithCreds takes in a command, which may be a program and arguments separated by spaces
+// it splits these then runs the command with the credentials as the environment.
 // The output of this is returned via the assume script to stdout so it may be processed further by piping
 func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) error {
 	fmt.Print(assumeprint.SafeOutput(""))
@@ -465,6 +538,6 @@ func printFlagUsage(region, service string) {
 		m = append(m, "use -s to open a specific service")
 	}
 	if region == "" || service == "" {
-		clio.Infof("%s (https://docs.commonfate.io/granted/usage/console)", strings.Join(m, " or "))
+		clio.Infof("%s ( https://docs.commonfate.io/granted/usage/console )", strings.Join(m, " or "))
 	}
 }

@@ -13,7 +13,7 @@ import (
 
 var setRequestURLCommand = cli.Command{
 	Name:  "set",
-	Usage: "Set the request URL for Granted Approvals",
+	Usage: "Set the request URL for Common Fate",
 	Action: func(c *cli.Context) error {
 		var approvalsURL string
 		gConf, err := grantedConfig.Load()
@@ -24,8 +24,8 @@ var setRequestURLCommand = cli.Command{
 		approvalsURL = c.Args().First()
 		if approvalsURL == "" {
 			in := &survey.Input{
-				Message: "What is the URL of your Granted Approvals deployment?",
-				Help:    "URL for your Granted Approvals dashboard from where users can request access \n for e.g: https://example.com",
+				Message: "What is the URL of your Common Fate deployment?",
+				Help:    "URL for your Common Fate dashboard from where users can request access \n for e.g: https://example.com",
 			}
 			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 			err := survey.AskOne(in, &approvalsURL, withStdio)
@@ -34,7 +34,7 @@ var setRequestURLCommand = cli.Command{
 			}
 
 			if approvalsURL == "" {
-				fmt.Println("Granted Approval URL not provided. Command aborted.")
+				fmt.Println("Common Fate URL not provided. Command aborted.")
 				return nil
 			}
 		}
@@ -50,7 +50,7 @@ var setRequestURLCommand = cli.Command{
 			return err
 		}
 
-		fmt.Printf("Request URL for Granted Approvals has been set to '%s'\n", approvalsURL)
+		fmt.Printf("Common Fate URL has been set to '%s'\n", approvalsURL)
 		return nil
 	},
 }

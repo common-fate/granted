@@ -16,18 +16,18 @@ import (
 type AwsAzureLoginAssumer struct {
 }
 
-//https://github.com/sportradar/aws-azure-login
+// https://github.com/sportradar/aws-azure-login
 
 // then fetch them from the environment for use
 func (aal *AwsAzureLoginAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
-	//check to see if the creds are already exported
+	// check to see if the creds are already exported
 	creds, err := GetCredentialsCreds(ctx, c)
 
 	if err == nil {
 		return creds, nil
 	}
 
-	//request for the creds if they are invalid
+	// request for the creds if they are invalid
 	a := []string{fmt.Sprintf("--profile=%s", c.Name)}
 	a = append(a, configOpts.Args...)
 
