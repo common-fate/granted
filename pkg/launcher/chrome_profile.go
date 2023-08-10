@@ -23,7 +23,6 @@ type ChromeProfile struct {
 
 func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
 	profileName, _ := FindBrowserProfile(profile, l.BrowserType)
-	// profileName = chromeProfileName(profileName)
 
 	return []string{
 		l.ExecutablePath,
