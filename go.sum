@@ -152,6 +152,8 @@ github.com/common-fate/provider-registry-sdk-go v0.17.5 h1:iTg45GATsQkXT7U16Vs4H
 github.com/common-fate/provider-registry-sdk-go v0.17.5/go.mod h1:nD5qKGinFLxxhISpWHYCv5v7bQhB1wKap4jA8bmztOw=
 github.com/common-fate/updatecheck v0.3.4 h1:Q2rq3EN7Jbt7z/klAFFCA4qaK3LxP57zIqxscrbDnYo=
 github.com/common-fate/updatecheck v0.3.4/go.mod h1:gmcVk40eNrJG09zg31JYUf3Yn6rzA7498fibqO2j1SU=
+github.com/common-fate/updatecheck v0.3.5 h1:UGIKMnYwuHjbhhCaisLz1pNPg8Z1nXEoWcfqT+4LkAg=
+github.com/common-fate/updatecheck v0.3.5/go.mod h1:fru9yoUXmM3QVAUdDDqKQeDoln20Pkji/7EH64gVHMs=
 github.com/common-fate/useragent v0.1.0 h1:RLmkIiJXcOUJAUyXWc/zCaGbrGmlCbHBGMx99ztQ3ZU=
 github.com/common-fate/useragent v0.1.0/go.mod h1:GjXGR6cDiMboDP04qlfDfA5HTbeoRSoNgQWDAyOdW9o=
 github.com/coreos/bbolt v1.3.2/go.mod h1:iRUV2dpdMOn7Bo10OQBFzIJO9kkE559Wcmn+qkEiiKk=
