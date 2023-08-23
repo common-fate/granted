@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"strings"
+	"time"
 
 	"net/http"
 	"os"
@@ -317,6 +319,23 @@ type AWSSSOSource struct {
 	StartURL  string
 }
 
+func listAccountRoles(ctx context.Context, ssoClient sso.Client, listAccountRolesInput sso.ListAccountRolesInput, attemptCount int) (*sso.ListAccountRolesOutput, error) {
+	listAccountRolesOutput, err := ssoClient.ListAccountRoles(ctx, &listAccountRolesInput)
+	if err != nil {
+		if strings.Contains(err.Error(), "StatusCode: 429") {
+			if attemptCount > 3 {
+				return nil, err
+			}
+			attemptCount += 1
+			clio.Debugf("Encountered StatusCode 429...doing backoff...attempt count: %d", attemptCount)
+			time.Sleep(time.Second * time.Duration(attemptCount))
+			return listAccountRoles(ctx, ssoClient, listAccountRolesInput, attemptCount)
+		}
+		return nil, err
+	}
+	return listAccountRolesOutput, err
+}
+
 func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfile, error) {
 	region, err := cfaws.ExpandRegion(s.SSORegion)
 	if err != nil {
@@ -383,7 +402,7 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 					listAccountRolesInput.NextToken = &listAccountRolesNextToken
 				}
 
-				listAccountRolesOutput, err := ssoClient.ListAccountRoles(ctx, &listAccountRolesInput)
+				listAccountRolesOutput, err := listAccountRoles(ctx, *ssoClient, listAccountRolesInput, 0)
 				if err != nil {
 					return nil, err
 				}
