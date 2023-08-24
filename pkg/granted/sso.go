@@ -436,7 +436,10 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 
 					listAccountRolesNextToken = *listAccountRolesOutput.NextToken
 				}
-				bar.Add(1)
+				err = bar.Add(1)
+				if err != nil {
+					return err
+				}
 				return nil
 			})
 		}
@@ -452,6 +455,9 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 		return nil, err
 	}
 	bar.ChangeMax(bar.GetMax() - 1)
-	bar.Finish()
+	err = bar.Finish()
+	if err != nil {
+		return nil, err
+	}
 	return ssoProfiles, nil
 }
