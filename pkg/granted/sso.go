@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"sync"
 
 	"net/http"
 	"os"
@@ -11,6 +12,8 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/aws/ratelimit"
+	"github.com/aws/aws-sdk-go-v2/aws/retry"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	"github.com/common-fate/awsconfigfile"
@@ -23,7 +26,10 @@ import (
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/granted/pkg/testable"
+	"github.com/schollz/progressbar/v3"
 	"github.com/urfave/cli/v2"
+	uberratelimit "go.uber.org/ratelimit"
+	"golang.org/x/sync/errgroup"
 	"gopkg.in/ini.v1"
 )
 
@@ -323,7 +329,17 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 		return nil, err
 	}
 
-	cfg := aws.NewConfig()
+	cfg, err := config.LoadDefaultConfig(ctx, config.WithRetryer(func() aws.Retryer {
+		return retry.NewStandard(func(so *retry.StandardOptions) {
+			// We've disabled the built-in AWS client rate limiting below because we're using uber's rate limit package to rate limit the AWS SSO API calls
+			// The issue is caused because all Go routines use the same token bucket and it runs out of tokens. Link to the solution: https://github.com/aws/aws-sdk-go-v2/issues/1665
+			so.RateLimiter = ratelimit.NewTokenRateLimit(100000)
+			so.MaxAttempts = 15
+		})
+	}))
+	if err != nil {
+		return nil, err
+	}
 	cfg.Region = region
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	ssoTokenFromSecureCache := secureSSOTokenStorage.GetValidSSOToken(s.StartURL)
@@ -339,7 +355,7 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 
 	if ssoTokenFromSecureCache == nil && ssoTokenFromPlainText == nil {
 		// otherwise, login with SSO
-		ssoTokenFromSecureCache, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, s.StartURL)
+		ssoTokenFromSecureCache, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, cfg, s.StartURL)
 		if err != nil {
 			return nil, err
 		}
@@ -354,11 +370,17 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 
 	clio.Info("listing available profiles from AWS IAM Identity Center...")
 
-	ssoClient := sso.NewFromConfig(*cfg)
+	ssoClient := sso.NewFromConfig(cfg)
+	g, gctx := errgroup.WithContext(ctx)
+	var mu sync.Mutex
 
 	// if the token is nil fetch it from config instead
 	var ssoProfiles []awsconfigfile.SSOProfile
 	listAccountsNextToken := ""
+	bar := progressbar.Default(1)
+	isFirstLoop := true
+	// Setting the rate limit to 20 since IAM Identity Center APIs have a throttle maximum of 20 transactions per second (TPS) (https://docs.aws.amazon.com/singlesignon/latest/userguide/limits.html)
+	rl := uberratelimit.New(20)
 	for {
 		listAccountsInput := sso.ListAccountsInput{
 			AccessToken: &accessToken,
@@ -366,45 +388,57 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 		if listAccountsNextToken != "" {
 			listAccountsInput.NextToken = &listAccountsNextToken
 		}
-
+		rl.Take()
 		listAccountsOutput, err := ssoClient.ListAccounts(ctx, &listAccountsInput)
 		if err != nil {
 			return nil, err
 		}
+		//`isFirstLoop` is used to assign the initial max of the progress bar
+		if isFirstLoop {
+			bar.ChangeMax(len(listAccountsOutput.AccountList) + 1)
+			isFirstLoop = false
+		} else {
+			bar.ChangeMax(bar.GetMax() + len(listAccountsOutput.AccountList))
+		}
+		for _, accountLoop := range listAccountsOutput.AccountList {
+			account := accountLoop
+			g.Go(func() error {
+				listAccountRolesNextToken := ""
+				for {
+					listAccountRolesInput := sso.ListAccountRolesInput{
+						AccessToken: &accessToken,
+						AccountId:   account.AccountId,
+					}
+					if listAccountRolesNextToken != "" {
+						listAccountRolesInput.NextToken = &listAccountRolesNextToken
+					}
+					rl.Take()
+					listAccountRolesOutput, err := ssoClient.ListAccountRoles(gctx, &listAccountRolesInput)
+					if err != nil {
+						return err
+					}
+					mu.Lock()
+					for _, role := range listAccountRolesOutput.RoleList {
+						ssoProfiles = append(ssoProfiles, awsconfigfile.SSOProfile{
+							SSOStartURL:   s.StartURL,
+							SSORegion:     region,
+							AccountID:     *role.AccountId,
+							AccountName:   *account.AccountName,
+							RoleName:      *role.RoleName,
+							GeneratedFrom: "aws-sso",
+						})
+					}
+					mu.Unlock()
 
-		for _, account := range listAccountsOutput.AccountList {
-			listAccountRolesNextToken := ""
-			for {
-				listAccountRolesInput := sso.ListAccountRolesInput{
-					AccessToken: &accessToken,
-					AccountId:   account.AccountId,
-				}
-				if listAccountRolesNextToken != "" {
-					listAccountRolesInput.NextToken = &listAccountRolesNextToken
-				}
+					if listAccountRolesOutput.NextToken == nil {
+						break
+					}
 
-				listAccountRolesOutput, err := ssoClient.ListAccountRoles(ctx, &listAccountRolesInput)
-				if err != nil {
-					return nil, err
+					listAccountRolesNextToken = *listAccountRolesOutput.NextToken
 				}
-
-				for _, role := range listAccountRolesOutput.RoleList {
-					ssoProfiles = append(ssoProfiles, awsconfigfile.SSOProfile{
-						SSOStartURL:   s.StartURL,
-						SSORegion:     region,
-						AccountID:     *role.AccountId,
-						AccountName:   *account.AccountName,
-						RoleName:      *role.RoleName,
-						GeneratedFrom: "aws-sso",
-					})
-				}
-
-				if listAccountRolesOutput.NextToken == nil {
-					break
-				}
-
-				listAccountRolesNextToken = *listAccountRolesOutput.NextToken
-			}
+				bar.Add(1)
+				return nil
+			})
 		}
 
 		if listAccountsOutput.NextToken == nil {
@@ -413,6 +447,11 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 
 		listAccountsNextToken = *listAccountsOutput.NextToken
 	}
-
+	err = g.Wait()
+	if err != nil {
+		return nil, err
+	}
+	bar.ChangeMax(bar.GetMax() - 1)
+	bar.Finish()
 	return ssoProfiles, nil
 }
