@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.12.6
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.6
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.7
-	github.com/common-fate/updatecheck v0.3.4
+	github.com/common-fate/updatecheck v0.3.5
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
