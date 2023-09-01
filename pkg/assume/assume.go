@@ -451,16 +451,29 @@ func AssumeCommand(c *cli.Context) error {
 		if assumeFlags.String("exec") != "" {
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
 		}
+
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
 		// the shell script treats "None" as an empty string and will not set a value for that positional output
+
+		// If the profile uses "credential_process" to source credential externally then do not set accessKeyId, secretAccessKey, sessionToken
+		// so that aws cli automatically refreshes credential when they expire.
+		if profile.ProfileType == "AWS_CREDENTIAL_PROCESS" {
+			output := PrepareStringsForShellScript([]string{"", "", "", "", region, sessionExpiration, profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORegion, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
+			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+
+			return nil
+		}
+
 		if assumeFlags.Bool("sso") {
 			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
-		} else {
-			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "false", "", "", "", ""})
-			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+
+			return nil
 		}
+
+		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "false", "", "", "", ""})
+		fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 	}
 	return nil
 }
