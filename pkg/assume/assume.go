@@ -448,7 +448,35 @@ func AssumeCommand(c *cli.Context) error {
 
 			clio.Successf("Exported credentials to ~/.aws/credentials file as %s successfully", profileName)
 		}
+
 		if assumeFlags.String("exec") != "" {
+
+			hasDoubleDash := false
+			execArgIndex := 0
+			for i, arg := range c.Args().Slice() {
+				// if the current arg is '--exec' & subsequent next arg is double-dash then we consider exec has double dash arg
+				if arg == "--exec" && c.Args().Get(i+1) == "--" {
+					hasDoubleDash = true
+					execArgIndex = i
+					break
+				}
+			}
+
+			if hasDoubleDash {
+				// execArgIndex one two three...
+				// exec -- cmd args...
+				if len(c.Args().Slice()) <= execArgIndex+3 {
+					clio.Error("invalid arguments to exec call with '--'. Make sure you pass the command and argument after the doubledash.")
+					clio.Infof("try running 'assume profilename --exec -- cmd arg1 arg2")
+
+					return nil
+				}
+
+				cmdWithArgs := strings.Join(c.Args().Slice()[execArgIndex+2:], " ")
+
+				return RunExecCommandWithCreds(cmdWithArgs, creds, region)
+			}
+
 			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
 		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
