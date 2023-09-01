@@ -125,7 +125,12 @@ func getFederationToken(ctx context.Context, c *Profile) (aws.Credentials, error
 
 	client := sts.NewFromConfig(cfg)
 
-	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String(sessionName()), Policy: aws.String(allowAllPolicy)})
+	caller, err := client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+
+	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: caller.UserId, Policy: aws.String(allowAllPolicy)})
 
 	if err != nil {
 		return aws.Credentials{}, err
