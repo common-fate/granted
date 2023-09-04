@@ -15,6 +15,7 @@ for /f "tokens=1,2,3,4,5,6,7,8,9,10,11 delims= " %%a in ("%ASSUME_OUTPUT%") do (
 		set AWS_SECRET_ACCESS_KEY=
 		set AWS_SESSION_TOKEN=
 		set AWS_PROFILE=
+        set AWS_DEFAULT_REGION=
 		set AWS_REGION=
         set AWS_SESSION_EXPIRATION=
         set AWS_CREDENTIAL_EXPIRATION=
@@ -33,6 +34,7 @@ for /f "tokens=1,2,3,4,5,6,7,8,9,10,11 delims= " %%a in ("%ASSUME_OUTPUT%") do (
 		set AWS_SESSION_TOKEN=
 		set AWS_PROFILE=
 		set AWS_REGION=
+        set AWS_DEFAULT_REGION=
         set AWS_SESSION_EXPIRATION=
         set AWS_CREDENTIAL_EXPIRATION=
 
@@ -55,7 +57,8 @@ for /f "tokens=1,2,3,4,5,6,7,8,9,10,11 delims= " %%a in ("%ASSUME_OUTPUT%") do (
             set AWS_PROFILE=%%e)
 			
         if "%%f" NEQ "None" (
-            set AWS_REGION=%%f)
+            set AWS_REGION=%%f
+            set AWS_DEFAULT_REGION=%%f)
 
         if "%%g" NEQ "None" (
             set AWS_SESSION_EXPIRATION=%%g
