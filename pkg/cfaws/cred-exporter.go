@@ -4,7 +4,6 @@ import (
 	"os"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
-	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/common-fate/clio"
 	gconfig "github.com/common-fate/granted/pkg/config"
 	"gopkg.in/ini.v1"
@@ -13,7 +12,7 @@ import (
 // ExportCredsToProfile will write assumed credentials to ~/.aws/credentials with a specified profile name header
 func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 	// fetch the parsed cred file
-	credPath := config.DefaultSharedCredentialsFilename()
+	credPath := GetAWSCredentialsPath()
 
 	// create it if it doesn't exist
 	if _, err := os.Stat(credPath); os.IsNotExist(err) {

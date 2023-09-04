@@ -2,11 +2,13 @@ package cfaws
 
 import (
 	"context"
+	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
+	"github.com/aws/aws-sdk-go-v2/service/sts/types"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"gopkg.in/ini.v1"
@@ -125,11 +127,35 @@ func getFederationToken(ctx context.Context, c *Profile) (aws.Credentials, error
 
 	client := sts.NewFromConfig(cfg)
 
-	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String(sessionName()), Policy: aws.String(allowAllPolicy)})
+	caller, err := client.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+	name := *caller.UserId
 
+	// for an iam credential, the userID might be something like abcd:test@example.com or in might just be an id
+	// the idea here is to use the name portion as the federation token id
+	parts := strings.SplitN(*caller.UserId, ":", 2)
+	if len(parts) > 1 {
+		name = parts[1]
+	}
+	// name is truncated to ensure it meets the maximum length requirements for the AWS api
+	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String(truncateString(name, 32)), Policy: aws.String(allowAllPolicy),
+		// tags are added to the federation token
+		Tags: []types.Tag{
+			{Key: aws.String("userID"), Value: caller.UserId},
+			{Key: aws.String("account"), Value: caller.Account},
+			{Key: aws.String("principalArn"), Value: caller.Arn},
+		}})
 	if err != nil {
 		return aws.Credentials{}, err
 	}
 	return TypeCredsToAwsCreds(*out.Credentials), err
 
+}
+func truncateString(s string, length int) string {
+	if len(s) <= length {
+		return s
+	}
+	return s[:length]
 }

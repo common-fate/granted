@@ -23,6 +23,7 @@ else if test "$GRANTED_FLAG" = "GrantedDesume"
   set -e AWS_SESSION_TOKEN
   set -e AWS_PROFILE
   set -e AWS_REGION
+  set -e AWS_DEFAULT_REGION
   set -e AWS_SESSION_EXPIRATION
   set -e AWS_CREDENTIAL_EXPIRATION
   set -e GRANTED_SSO
@@ -36,6 +37,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   set -e AWS_SESSION_TOKEN
   set -e AWS_PROFILE
   set -e AWS_REGION
+  set -e AWS_DEFAULT_REGION
   set -e AWS_SESSION_EXPIRATION
   set -e AWS_CREDENTIAL_EXPIRATION
   set -e GRANTED_SSO
@@ -59,6 +61,7 @@ else if test "$GRANTED_FLAG" = "GrantedAssume"
   end
   if test "$GRANTED_5" != "None"
     set -gx AWS_REGION $GRANTED_5
+    set -gx AWS_DEFAULT_REGION $GRANTED_5
   end
   if test "$GRANTED_6" != "None"
     set -gx AWS_SESSION_EXPIRATION $GRANTED_6

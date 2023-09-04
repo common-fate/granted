@@ -33,7 +33,7 @@ func Completion(ctx *cli.Context) {
 
 	}
 
-	awsProfiles, _ := cfaws.LoadProfilesFromDefaultFiles()
+	awsProfiles, _ := cfaws.LoadProfiles()
 
 	// profileName argument can have any position to the command
 	// this check will help in not showing the profile name again it's already included.
