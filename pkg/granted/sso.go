@@ -158,7 +158,7 @@ var PopulateCommand = cli.Command{
 		}
 
 		// end of --region flag behaviour warnings. These can be removed once https://github.com/common-fate/granted/issues/360 is closed.
-		configFilename := config.DefaultSharedConfigFilename()
+		configFilename := cfaws.GetAWSConfigPath()
 
 		config, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,

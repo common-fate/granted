@@ -16,7 +16,6 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/ansi"
@@ -77,7 +76,7 @@ func AssumeCommand(c *cli.Context) error {
 		// save the profile to the AWS config file if the user requested it.
 		saveProfileName := assumeFlags.String("save-to")
 		if saveProfileName != "" {
-			configFilename := awsconfig.DefaultSharedConfigFilename()
+			configFilename := cfaws.GetAWSConfigPath()
 			config, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,
@@ -122,7 +121,7 @@ func AssumeCommand(c *cli.Context) error {
 		var wg sync.WaitGroup
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
 		}
