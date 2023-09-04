@@ -128,6 +128,10 @@ jobs:
       - name: Print ~/.zshenv contents
         run: |
           cat ~/.zshenv || echo "~/.zshenv does not exist"
+      - name: Run printf command
+        run: |
+          printf 'type of $0: %s\n' "$(type -- "${0##*/}")"
+        shell: zsh {0}
       - name: zsh
         run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
