@@ -125,6 +125,9 @@ jobs:
       #   shell: bash
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
+      - name: Print ~/.zshenv contents
+        run: |
+          cat ~/.zshenv || echo "~/.zshenv does not exist"
       - name: zsh
         run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
