@@ -114,36 +114,36 @@ jobs:
           aws_secret_access_key=${TEST_ACCESS_KEY}
           EOF
       # - name: bash
-      #   run: dassume -auto-configure-shell
-      # # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
-      # # the below does not work
-      # # - name: assume bash
-      # #   run: |
-      # #     source ~/.bash_profile
-      # #     bash dassume test
-      # #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
-      # #   shell: bash
+      #   run: SHELL=/bin/bash dassume -auto-configure-shell
+      # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
+      # the below does not work
+      # - name: assume bash
+      #   run: |
+      #     source ~/.bash_profile
+      #     SHELL=/bin/bash bash dassume test
+      #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+      #   shell: bash
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
       - name: zsh
-        run: dassume -auto-configure-shell
+        run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
       - name: Print ~/.zshenv contents
         run: |
           cat ~/.zshenv || echo "~/.zshenv does not exist"
       - name: assume zsh
         run: |
-          dassume test
+          SHELL=/bin/zsh dassume test
           tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: zsh {0}
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
       - name: fish
-        run: dassume -auto-configure-shell
+        run: SHELL=fish dassume -auto-configure-shell
         shell: fish {0}
       - name: assume fish
         run: |
-          dassume test
+          SHELL=fish dassume test
           tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: fish {0}
 
@@ -186,32 +186,32 @@ jobs:
           aws_secret_access_key=${TEST_ACCESS_KEY}
           EOF
       - name: bash
-        run: dassume -auto-configure-shell
+        run: SHELL=/bin/bash dassume -auto-configure-shell
         shell: bash {0}
       # bash doesn't work in github actions
       # - name: assume bash
       #   run: |
-      #     dassume test
+      #     SHELL=/bin/bash dassume test
       #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
       #   shell: bash -l {0}
       - name: zsh
-        run: dassume -auto-configure-shell
+        run: SHELL=/bin/zsh dassume -auto-configure-shell
         shell: zsh {0}
       - name: Print ~/.zshenv contents
         run: |
           cat ~/.zshenv || echo "~/.zshenv does not exist"
       - name: assume zsh
         run: |
-          dassume test
+          SHELL=/bin/zsh dassume test
           /usr/local/bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: zsh {0}
       - name: install fish
         run: brew install fish
       - name: fish
-        run: dassume -auto-configure-shell
+        run: SHELL=fish dassume -auto-configure-shell
         shell: fish {0}
       - name: assume fish
         run: |
-          dassume test
+          SHELL=fish dassume test
           tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: fish {0}
