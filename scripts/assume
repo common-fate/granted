@@ -1,10 +1,16 @@
-#!/bin/bash
+#!/bin/sh
 
 #GRANTED_FLAG - what assumego told the shell to do
 #GRANTED_n - the data from assumego
 
 # pass an environment variable to the Go binary if the Granted alias hasn't been configured
-if [[ "${BASH_SOURCE[0]}" != "${0}" ]]; then
+_this_type=$(type -- "${0##*/}" 2>&1)
+# If the type command failed, this is probably a sourced
+# file because $0 will be the login shell, e.g., -bash.
+# In that case the output will typically contain 'not found'.
+# In the case of zsh, the output will contain the word 'alias'.
+if [ "${_this_type#*not found}" != "$_this_type" ] ||
+    [ "${_this_type#*alias}" != "$_this_type" ]; then
   GRANTED_RETURN_STATUS="true"
   export GRANTED_ALIAS_CONFIGURED="true"
 fi
@@ -15,13 +21,15 @@ GRANTED_OUTPUT=$(assumego "$@")
 
 GRANTED_STATUS=$?
 # shellcheck disable=SC2162
-IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11<<< "${GRANTED_OUTPUT}"
+IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11 << EOF
+${GRANTED_OUTPUT}
+EOF
 
 # # unset the exported GRANTED_ALIAS_CONFIGURED flag
 unset GRANTED_ALIAS_CONFIGURED
 
 # remove carriage return
-GRANTED_FLAG=$(echo "$GRANTED_FLAG" | tr -d '\r')
+GRANTED_FLAG=$(printf '%s\n' "$GRANTED_FLAG" | tr -d '\r')
 
 if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
   unset AWS_ACCESS_KEY_ID
@@ -59,8 +67,8 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   # shellcheck disable=SC2124
   export GRANTED_COMMAND="$@"
 
-  export GRANTED_SSO=${GRANTED_7}
-  
+  export GRANTED_SSO="${GRANTED_7}"
+
   if [ ! "${GRANTED_1}" = "None" ]; then
     export AWS_ACCESS_KEY_ID="${GRANTED_1}"
   fi
@@ -102,33 +110,33 @@ fi
 
 # Mark: Automatically re-assume when credentials expire.
 _is_assume_expired() {
-  if [[ -z "${AWS_PROFILE}" ]]; then return 1; fi
+  [ -z "${AWS_PROFILE}" ] && return 1
 
   # Note: this must remain compatible with both BSD and GNU date.
   # TODO: This should probably run a few minutes (configurable) before it expires.
-  local current_time expiry
+  # shellcheck disable=SC2034,SC3043 # Only used by zsh
+  local curent_time expiry
   current_time="$(date -Iseconds)"
   expiry="$AWS_SESSION_EXPIRATION"
+  # shellcheck disable=SC3010,SC3054 # Only used by zsh
   [[ "${current_time}" > "${expiry}" ]]
 }
 
 granted_auto_reassume() {
   # Nothing to do, we can't reassume a profile that we don't know.
-  if [[ -z "${AWS_PROFILE}" ]]; then return 0; fi
+  [ -z "${AWS_PROFILE}" ] && return 0
 
-  if ! _is_assume_expired; then return 0; fi
+  _is_assume_expired || return 0
 
-  if [[ "${GRANTED_QUIET:-}" != "true" ]]
-  then
-    echo "granted session expired; reassuming ${AWS_PROFILE}." >&2
-  fi
+  [ "${GRANTED_QUIET:-}" = "true" ] ||
+    printf 'granted session expired; reassuming %s\n.' "${AWS_PROFILE}" >&2
   assume "${AWS_PROFILE}"
 }
 
-if [[ -n "${ZSH_NAME:-}" && "${GRANTED_ENABLE_AUTO_REASSUME:-}" = "true" ]]
-then
-  # shellcheck disable=SC2154
-  if ! [[ " ${preexec_functions[*]} " =~ " granted_auto_reassume " ]]
+if [ -n "${ZSH_NAME:-}" ] && [ "${GRANTED_ENABLE_AUTO_REASSUME:-}" = "true" ]; then
+  # shellcheck disable=SC2154,SC3054
+  pfuncs=$(print -l -- "${preexec_functions[*]}")
+  if [ "${pfuncs#*granted_auto_reassume}" = "$pfuncs" ]
   then
     autoload -Uz add-zsh-hook
     add-zsh-hook preexec granted_auto_reassume
@@ -139,10 +147,12 @@ fi
 # The GrantedOutput flag should be followed by a newline, then the output.
 # This way, the shell script can omit the first line containing the flag and return the unaltered output to the stdout
 # This is great as it works well with the -exec flag
-if [ "$GRANTED_FLAG" = "GrantedOutput" ];then
-  echo "${GRANTED_OUTPUT}" | sed -n '1!p'
+if [ "$GRANTED_FLAG" = "GrantedOutput" ]; then
+  printf '%s\n' "${GRANTED_OUTPUT}" | sed -n '1!p'
 fi
 
 if [ "$GRANTED_RETURN_STATUS" = "true" ]; then
+  # We definitely want return here and not exit because we are operating within
+  # a sourced file. Calling exit would exit the login shell.
   return $GRANTED_STATUS
 fi
