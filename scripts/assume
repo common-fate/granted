@@ -5,6 +5,7 @@
 
 # pass an environment variable to the Go binary if the Granted alias hasn't been configured
 _this_type=$(type -- "${0##*/}" 2>&1)
+echo "_this_type: $_this_type"
 # If the type command failed, this is probably a sourced
 # file because $0 will be the login shell, e.g., -bash.
 # In that case the output will typically contain 'not found'.
