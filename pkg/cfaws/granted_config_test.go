@@ -77,7 +77,7 @@ sso_region     = ap-southeast-2
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			l := loader{fileString: tt.file}
-			profiles, err := LoadProfiles(l, nooploader{})
+			profiles, err := loadProfiles(l, nooploader{})
 			if err != nil {
 				t.Fatal(err)
 			}
