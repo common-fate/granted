@@ -16,6 +16,7 @@ const (
 	SafariKey        string = "SAFARI"
 	StdoutKey        string = "STDOUT"
 	FirefoxStdoutKey string = "FIREFOX_STDOUT"
+	ArcKey           string = "ARC"
 )
 
 // A few default paths to check for the browser
@@ -40,6 +41,8 @@ var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program File
 var ChromiumPathWindows = []string{`\Program Files\Chromium\chromium.exe`}
 
 var SafariPathMac = []string{"/Applications/Safari.app/Contents/MacOS/Safari"}
+
+var ArcPathMac = []string{"/Applications/Arc.app/Contents/MacOS/Arc"}
 
 func ChromePathDefaults() ([]string, error) {
 	// check linuxpath for binary install
@@ -141,6 +144,15 @@ func SafariPathDefaults() ([]string, error) {
 	switch runtime.GOOS {
 	case "darwin":
 		return SafariPathMac, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
+func ArcPathDefaults() ([]string, error) {
+	switch runtime.GOOS {
+	case "darwin":
+		return ArcPathMac, nil
 	default:
 		return nil, errors.New("os not supported")
 	}
