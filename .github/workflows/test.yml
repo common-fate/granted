@@ -113,21 +113,24 @@ jobs:
           aws_access_key_id=${TEST_ACCESS_KEY_ID}
           aws_secret_access_key=${TEST_ACCESS_KEY}
           EOF
-      - name: bash
-        run: dassume -auto-configure-shell
-      # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
-      # the below does not work
-      # - name: assume bash
-      #   run: |
-      #     source ~/.bash_profile
-      #     bash dassume test
-      #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
-      #   shell: bash
+      # - name: bash
+      #   run: dassume -auto-configure-shell
+      # # it seems not possible to reload the bash_profile in github actions here, so we will have to skip this test
+      # # the below does not work
+      # # - name: assume bash
+      # #   run: |
+      # #     source ~/.bash_profile
+      # #     bash dassume test
+      # #     ./bin/tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
+      # #   shell: bash
       - name: Install zsh
         run: sudo apt-get update; sudo apt-get install zsh
       - name: zsh
         run: dassume -auto-configure-shell
         shell: zsh {0}
+      - name: Print ~/.zshenv contents
+        run: |
+          cat ~/.zshenv || echo "~/.zshenv does not exist"
       - name: assume zsh
         run: |
           dassume test
@@ -136,11 +139,11 @@ jobs:
       - name: install fish
         run: sudo apt-add-repository ppa:fish-shell/release-3; sudo apt update; sudo apt install fish
       - name: fish
-        run: SHELL=fish dassume -auto-configure-shell
+        run: dassume -auto-configure-shell
         shell: fish {0}
-      - name: assume zsh
+      - name: assume fish
         run: |
-          SHELL=fish dassume test
+          dassume test
           tcreds -aws-access-key-id $TEST_ACCESS_KEY_ID -aws-secret-key $TEST_ACCESS_KEY -aws-region $TEST_REGION
         shell: fish {0}
 
@@ -194,6 +197,9 @@ jobs:
       - name: zsh
         run: dassume -auto-configure-shell
         shell: zsh {0}
+      - name: Print ~/.zshenv contents
+        run: |
+          cat ~/.zshenv || echo "~/.zshenv does not exist"
       - name: assume zsh
         run: |
           dassume test
