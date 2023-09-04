@@ -1,8 +1,11 @@
 package granted
 
 import (
+	"path"
+
 	"github.com/common-fate/cli/cmd/command"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/clio/cliolog"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/config"
@@ -52,6 +55,18 @@ func GetCliApp() *cli.App {
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			clio.SetLevelFromEnv("GRANTED_LOG")
+
+			grantedFolder, err := config.GrantedConfigFolder()
+			if err != nil {
+				return err
+			}
+
+			logfilepath := path.Join(grantedFolder, "log")
+
+			clio.SetFileLogging(cliolog.FileLoggerConfig{
+				Filename: logfilepath,
+			})
+
 			zap.ReplaceGlobals(clio.G())
 			if c.Bool("verbose") {
 				clio.SetLevelFromString("debug")
@@ -72,6 +87,9 @@ func GetCliApp() *cli.App {
 var login = cli.Command{
 	Name:  "login",
 	Usage: "Log in to Common Fate",
+	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "lazy", Usage: "When the lazy flag is used, a login flow will only be started when the access token is expired"},
+	},
 	Action: func(c *cli.Context) error {
 		k, err := securestorage.NewCF().Storage.Keyring()
 		if err != nil {

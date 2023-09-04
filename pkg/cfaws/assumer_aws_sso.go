@@ -197,7 +197,6 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		}
 	}
 	return credProvider.Credentials, nil
-
 }
 
 func (c *Profile) getRoleCredentialsWithRetry(ctx context.Context, ssoClient *sso.Client, accessToken *string, rootProfile *Profile) (*ssotypes.RoleCredentials, error) {
@@ -214,7 +213,8 @@ func (c *Profile) getRoleCredentialsWithRetry(ctx context.Context, ssoClient *ss
 				if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
 					if httpErr.HTTPStatusCode() == http.StatusForbidden {
 						clio.Debugf("failed assuming attempt %d", i)
-						time.Sleep(time.Second * 2)
+						// Increase the backoff duration by a second each time we retry
+						time.Sleep(time.Second * time.Duration(i+1))
 					}
 				}
 			} else {
@@ -225,7 +225,7 @@ func (c *Profile) getRoleCredentialsWithRetry(ctx context.Context, ssoClient *ss
 		}
 	}
 
-	return nil, errors.Wrap(er, "max retried exceeded")
+	return nil, errors.Wrap(er, "max retries exceeded")
 }
 
 // SSODeviceCodeFlowFromStartUrl contains all the steps to complete a device code flow to retrieve an SSO token

@@ -10,7 +10,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/sso v1.12.6
 	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.14.6
 	github.com/aws/aws-sdk-go-v2/service/sts v1.18.7
-	github.com/common-fate/updatecheck v0.3.4
+	github.com/common-fate/updatecheck v0.3.5
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
@@ -19,8 +19,8 @@ require (
 
 require (
 	github.com/briandowns/spinner v1.23.0
-	github.com/common-fate/cli v0.4.3
-	github.com/common-fate/clio v1.1.0
+	github.com/common-fate/cli v0.4.8
+	github.com/common-fate/clio v1.2.1
 	github.com/common-fate/common-fate v0.15.0
 	github.com/fatih/color v1.13.0
 	github.com/lithammer/fuzzysearch v1.1.5
@@ -43,6 +43,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/lambda v1.30.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/s3 v1.31.1 // indirect
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.28.0 // indirect
+	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/chzyer/readline v1.5.1 // indirect
 	github.com/common-fate/apikit v0.2.1-0.20220526131641-1d860b34f6ed // indirect
 	github.com/common-fate/cloudform v0.6.0 // indirect
@@ -61,11 +62,13 @@ require (
 	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/mailru/easyjson v0.7.7 // indirect
-	github.com/mattn/go-runewidth v0.0.14 // indirect
+	github.com/mattn/go-runewidth v0.0.15 // indirect
+	github.com/mitchellh/colorstring v0.0.0-20190213212951-d06e56a500db // indirect
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/nathan-fiscaletti/consolesize-go v0.0.0-20220204101620-317176b6684d // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
-	github.com/rivo/uniseg v0.3.4 // indirect
+	github.com/rivo/uniseg v0.4.4 // indirect
+	github.com/schollz/progressbar/v3 v3.13.1 // indirect
 	github.com/sethvargo/go-retry v0.2.4 // indirect
 	github.com/xo/terminfo v0.0.0-20210125001918-ca9a967f8778 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
@@ -75,6 +78,7 @@ require (
 	golang.org/x/oauth2 v0.4.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
+	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 )
 
 require (
@@ -105,10 +109,11 @@ require (
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.8.4
+	go.uber.org/ratelimit v0.3.0
 	golang.org/x/sync v0.1.0
-	golang.org/x/sys v0.5.0
-	golang.org/x/term v0.5.0 // indirect
+	golang.org/x/sys v0.11.0
+	golang.org/x/term v0.11.0 // indirect
 	golang.org/x/text v0.7.0
 	gopkg.in/ini.v1 v1.67.0
 )
