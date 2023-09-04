@@ -124,6 +124,7 @@ func GetCliApp() *cli.App {
 
 			// Setup the shell alias
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
+				clio.Info("checking alias", c.Bool("auto-configure-shell"), os.Getenv("GRANTED_ALIAS_CONFIGURED"))
 				return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
 			}
 
