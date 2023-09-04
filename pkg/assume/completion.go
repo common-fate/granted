@@ -7,6 +7,7 @@ import (
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/console"
 	"github.com/urfave/cli/v2"
 )
 
@@ -20,14 +21,39 @@ func Completion(ctx *cli.Context) {
 	if ctx.Bool("verbose") {
 		clio.SetLevelFromString("debug")
 	}
-	if len(os.Args) > 2 && strings.HasPrefix(os.Args[len(os.Args)-2], "-") {
-		// set the ooutput back to std out so that this completion works correctly
-		ctx.App.Writer = os.Stdout
-		cli.DefaultAppComplete(ctx)
-	} else {
-		// Ignore errors from this function. Tab completion handles graceful degradation back to listing files.
-		awsProfiles, _ := cfaws.LoadProfilesFromDefaultFiles()
+
+	// autocompletion for service flag
+	if len(os.Args) > 2 {
+		if os.Args[len(os.Args)-2] == "-s" || os.Args[len(os.Args)-2] == "-service" {
+			for k := range console.ServiceMap {
+				fmt.Println(k)
+			}
+			return
+		}
+
+	}
+
+	awsProfiles, _ := cfaws.LoadProfilesFromDefaultFiles()
+
+	// profileName argument can have any position to the command
+	// this check will help in not showing the profile name again it's already included.
+	hasProfileNameArg := false
+	for _, arg := range os.Args {
+		for _, awsProfile := range awsProfiles.ProfileNames {
+			if arg == awsProfile {
+				hasProfileNameArg = true
+			}
+		}
+	}
+
+	if !hasProfileNameArg {
 		// Tab completion script requires each option to be separated by a newline
 		fmt.Println(strings.Join(awsProfiles.ProfileNames, "\n"))
+
+		return
 	}
+
+	// else set the output back to std out so that this completion works correctly
+	ctx.App.Writer = os.Stdout
+	cli.DefaultAppComplete(ctx)
 }
