@@ -87,11 +87,5 @@ func Completion(ctx *cli.Context) {
 	if !hasProfileNameArg {
 		// Tab completion script requires each option to be separated by a newline
 		fmt.Println(strings.Join(awsProfiles.ProfileNames, "\n"))
-
-		return
 	}
-
-	// else set the output back to std out so that this completion works correctly
-	ctx.App.Writer = os.Stdout
-	cli.DefaultAppComplete(ctx)
 }
