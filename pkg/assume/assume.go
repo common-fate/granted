@@ -271,7 +271,11 @@ func AssumeCommand(c *cli.Context) error {
 		}
 	}
 
-	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
+	configOpts := cfaws.ConfigOpts{Duration: time.Hour, MFATokenCode: ""}
+
+	if assumeFlags.String("mfa-token") != "" {
+		configOpts.MFATokenCode = assumeFlags.String("mfa-token")
+	}
 
 	// attempt to get session duration from profile
 	if profile.AWSConfig.RoleDurationSeconds != nil {

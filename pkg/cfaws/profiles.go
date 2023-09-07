@@ -25,6 +25,7 @@ type ConfigOpts struct {
 	Duration                   time.Duration
 	Args                       []string
 	ShouldRetryAssuming        *bool
+	MFATokenCode               string
 }
 
 type SSOSession struct {
@@ -327,11 +328,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 				pr.AWSConfig = awsConfig
 				pr.AWSConfig.CredentialProcess = ""
 				pr.Initialised = true
-				if pr.AWSConfig.MFASerial == "" {
-					pr.ProfileType = "AWS_IAM"
-				} else {
-					pr.ProfileType = "AWS_IAM_MFA"
-				}
+				pr.ProfileType = "AWS_IAM"
 				pr.HasSecureStorageIAMCredentials = true
 				return pr, nil
 			}
