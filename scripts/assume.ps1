@@ -15,6 +15,7 @@ if ( $ASSUME_FLAG -eq "GrantedDesume" ) {
     $env:AWS_SESSION_TOKEN = ""
     $env:AWS_PROFILE = ""
     $env:AWS_REGION = ""
+    $env:AWS_DEFAULT_REGION = ""
     $env:AWS_SESSION_EXPIRATION = ""
     $env:AWS_CREDENTIAL_EXPIRATION = ""
     $env:GRANTED_SSO = ""
@@ -34,6 +35,7 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
     $env:AWS_SESSION_TOKEN = ""
     $env:AWS_PROFILE = ""
     $env:AWS_REGION = ""
+    $env:AWS_DEFAULT_REGION = ""
     $env:AWS_SESSION_EXPIRATION = ""
     $env:AWS_CREDENTIAL_EXPIRATION = ""
     $env:GRANTED_SSO = ""
@@ -59,6 +61,7 @@ elseif ( $ASSUME_FLAG -eq "GrantedAssume") {
     
     if ( $ASSUME_5 -ne "None" ) {
         $env:AWS_REGION = $ASSUME_5
+        $env:AWS_DEFAULT_REGION = $ASSUME_5
     }
 
     if ( $ASSUME_6 -ne "None" ) {

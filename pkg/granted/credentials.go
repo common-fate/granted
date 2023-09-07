@@ -41,7 +41,7 @@ var AddCredentialsCommand = cli.Command{
 		}
 
 		// validate the the profile does not already exist
-		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
 		}
@@ -76,7 +76,7 @@ var AddCredentialsCommand = cli.Command{
 //	[profile my-profile]
 //	credential_process = granted credential-process --profile=my-profile
 func updateOrCreateProfileWithCredentialProcess(profileName string) error {
-	configPath := config.DefaultSharedConfigFilename()
+	configPath := cfaws.GetAWSConfigPath()
 	configFile, err := ini.LoadSources(ini.LoadOptions{
 		AllowNonUniqueSections:  false,
 		SkipUnrecognizableLines: false,
@@ -141,7 +141,7 @@ var ImportCredentialsCommand = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
-		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
 		}
@@ -179,7 +179,7 @@ var ImportCredentialsCommand = cli.Command{
 		}
 
 		// remove the profile from the credentials file
-		credentialsFilePath := config.DefaultSharedCredentialsFilename()
+		credentialsFilePath := cfaws.GetAWSCredentialsPath()
 		credentialsFile, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
@@ -193,7 +193,7 @@ var ImportCredentialsCommand = cli.Command{
 			return err
 		}
 
-		configPath := config.DefaultSharedConfigFilename()
+		configPath := cfaws.GetAWSConfigPath()
 		configFile, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
@@ -329,7 +329,7 @@ var RemoveCredentialsCommand = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
-		configPath := config.DefaultSharedConfigFilename()
+		configPath := cfaws.GetAWSConfigPath()
 		configFile, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
@@ -443,7 +443,7 @@ var ExportCredentialsCommand = cli.Command{
 				return err
 			}
 			// fetch parsed credentials file
-			credentialsFilePath := config.DefaultSharedCredentialsFilename()
+			credentialsFilePath := cfaws.GetAWSCredentialsPath()
 			credentialsFile, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,
@@ -472,7 +472,7 @@ var ExportCredentialsCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			configPath := config.DefaultSharedConfigFilename()
+			configPath := cfaws.GetAWSConfigPath()
 			configFile, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,

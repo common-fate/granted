@@ -55,6 +55,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   unset AWS_SESSION_TOKEN
   unset AWS_PROFILE
   unset AWS_REGION
+  unset AWS_DEFAULT_REGION
   unset AWS_SESSION_EXPIRATION
   unset AWS_CREDENTIAL_EXPIRATION
 
@@ -83,6 +84,7 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   fi
   if [ ! "${GRANTED_5}" = "None" ]; then
     export AWS_REGION="${GRANTED_5}"
+    export AWS_DEFAULT_REGION="${GRANTED_5}"
   fi
   # The following are both variations of the same thing supported by the AWS CLI
   # AWS_SESSION_EXPIRATION
