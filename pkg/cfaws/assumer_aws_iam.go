@@ -49,8 +49,7 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		config.WithSharedConfigProfile(c.Name),
 	}
 
-	credentials := aws.Credentials{}
-
+	var credentials aws.Credentials
 	// if the aws profile contains 'role_arn' then having this option will return the temporary credentials
 	if c.AWSConfig.RoleARN != "" {
 		clio.Debugw("generating temporary credentials", "assumer", aia.Type(), "profile_type", "with_role_arn")
