@@ -458,8 +458,8 @@ func AssumeCommand(c *cli.Context) error {
 
 		// If the profile uses "credential_process" to source credential externally then do not set accessKeyId, secretAccessKey, sessionToken
 		// so that aws cli automatically refreshes credential when they expire.
-		if profile.ProfileType == "AWS_CREDENTIAL_PROCESS" {
-			output := PrepareStringsForShellScript([]string{"", "", "", "", region, sessionExpiration, profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORegion, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
+		if profile.RawConfig.HasKey("credential_process") {
+			output := PrepareStringsForShellScript([]string{"", "", "", profile.Name, region, sessionExpiration, "", "", "", "", ""})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 
 			return nil

@@ -314,8 +314,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		}
 		pr.AWSConfig = *awsConfig
 		pr.Initialised = true
-		// make granted prefixed profiles AWS_CREDENTIAL_PROCESS so that they don't export accessKey, secretKey to the env.
-		pr.ProfileType = "AWS_CREDENTIAL_PROCESS"
+		pr.ProfileType = "AWS_SSO"
 		return pr, nil
 	} else {
 		for _, v := range pr.RawConfig.Keys() {
