@@ -374,9 +374,7 @@ func AssumeCommand(c *cli.Context) error {
 		case browser.SafariKey:
 			l = launcher.Safari{}
 		case browser.ArcKey:
-			l = launcher.Arc{
-				ExecutablePath: browserPath,
-			}
+			l = launcher.Arc{}
 		default:
 			l = launcher.Open{}
 		}
