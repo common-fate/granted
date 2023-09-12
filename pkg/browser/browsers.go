@@ -8,15 +8,16 @@ import (
 
 // A browser supported by Granted.
 const (
-	ChromeKey        string = "CHROME"
-	BraveKey         string = "BRAVE"
-	EdgeKey          string = "EDGE"
-	FirefoxKey       string = "FIREFOX"
-	ChromiumKey      string = "CHROMIUM"
-	SafariKey        string = "SAFARI"
-	StdoutKey        string = "STDOUT"
-	FirefoxStdoutKey string = "FIREFOX_STDOUT"
-	ArcKey           string = "ARC"
+	ChromeKey            string = "CHROME"
+	BraveKey             string = "BRAVE"
+	EdgeKey              string = "EDGE"
+	FirefoxKey           string = "FIREFOX"
+	ChromiumKey          string = "CHROMIUM"
+	SafariKey            string = "SAFARI"
+	StdoutKey            string = "STDOUT"
+	FirefoxStdoutKey     string = "FIREFOX_STDOUT"
+	ArcKey               string = "ARC"
+	FirefoxDevEditionKey string = "FIREFOX_DEV"
 )
 
 // A few default paths to check for the browser
@@ -35,6 +36,10 @@ var EdgePathWindows = []string{`\Program Files (x86)\Microsoft\Edge\Application\
 var FirefoxPathMac = []string{"/Applications/Firefox.app/Contents/MacOS/firefox"}
 var FirefoxPathLinux = []string{`/usr/bin/firefox`, `/../../mnt/c/Program Files/Mozilla Firefox/firefox.exe`}
 var FirefoxPathWindows = []string{`\Program Files\Mozilla Firefox\firefox.exe`}
+
+var FirefoxDevPathMac = []string{"/Applications/Firefox Developer Edition.app/Contents/MacOS/firefox"}
+var FirefoxDevPathLinux = []string{`/usr/bin/firefox-developer`, `/../../mnt/c/Program Files/Firefox Developer Edition/firefox.exe`}
+var FirefoxDevPathWindows = []string{`\Program Files\Firefox Developer Edition\firefox.exe`}
 
 var ChromiumPathMac = []string{"/Applications/Chromium.app/Contents/MacOS/Chromium"}
 var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program Files/Chromium/chromium.exe`}
@@ -117,6 +122,24 @@ func FirefoxPathDefaults() ([]string, error) {
 		return FirefoxPathMac, nil
 	case "linux":
 		return FirefoxPathLinux, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
+func FirefoxDevPathDefaults() ([]string, error) {
+	// check linuxpath for binary install
+	path, err := exec.LookPath("firefox-developer")
+	if err == nil {
+		return []string{path}, nil
+	}
+	switch runtime.GOOS {
+	case "windows":
+		return FirefoxDevPathWindows, nil
+	case "darwin":
+		return FirefoxDevPathMac, nil
+	case "linux":
+		return FirefoxDevPathLinux, nil
 	default:
 		return nil, errors.New("os not supported")
 	}

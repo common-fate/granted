@@ -423,6 +423,10 @@ func AssumeCommand(c *cli.Context) error {
 			l = launcher.Safari{}
 		case browser.ArcKey:
 			l = launcher.Arc{}
+		case browser.FirefoxDevEditionKey:
+			l = launcher.FirefoxDevEdition{
+				ExecutablePath: browserPath,
+			}
 		default:
 			l = launcher.Open{}
 		}
