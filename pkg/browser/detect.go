@@ -107,6 +107,7 @@ func GetBrowserKey(b string) string {
 	if strings.ToLower(b) == "firefox developer edition" {
 		return FirefoxDevEditionKey
 	}
+
 	if strings.Contains(strings.ToLower(b), "brave") {
 		return BraveKey
 	}

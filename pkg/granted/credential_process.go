@@ -69,7 +69,7 @@ var CredentialProcess = cli.Command{
 		}
 
 		if needsRefresh {
-			profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+			profiles, err := cfaws.LoadProfiles()
 			if err != nil {
 				return err
 			}
