@@ -16,7 +16,6 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/ansi"
@@ -49,6 +48,48 @@ type Launcher interface {
 	// 	fork/exec open: no such file or directory
 	UseForkProcess() bool
 }
+type execConfig struct {
+	Cmd  string
+	Args []string
+}
+
+// processArgsAndExecFlag will return the profileName if provided and the exec command config if the exec flag is used
+// this supports both the -- variant and the legacy flag when passes the command and args as a string for backwards compatability
+func processArgsAndExecFlag(c *cli.Context, assumeFlags *cfflags.Flags) (string, *execConfig, error) {
+	execFlag := assumeFlags.String("exec")
+	clio.Debugw("process args", "execFlag", execFlag, "osargs", os.Args, "c.args", c.Args().Slice())
+	if execFlag == "" {
+		return c.Args().First(), nil, nil
+	}
+
+	if execFlag == "--" {
+		for i, arg := range os.Args {
+			if arg == "--" {
+				if len(os.Args) == i+1 {
+					return "", nil, clierr.New("invalid arguments to exec call with '--'. Make sure you pass the command and argument after the doubledash.",
+						clierr.Info("try running 'assume profilename --exec -- cmd arg1 arg2"))
+				}
+				cmdAndArgs := os.Args[i+1:]
+				var args []string
+				if len(cmdAndArgs) > 1 {
+					args = cmdAndArgs[1:]
+				}
+				if c.Args().Len() > len(cmdAndArgs) {
+					return c.Args().First(), &execConfig{cmdAndArgs[0], args}, nil
+				} else {
+					return "", &execConfig{cmdAndArgs[0], args}, nil
+				}
+			}
+		}
+	}
+
+	parts := strings.SplitN(execFlag, " ", 2)
+	var args []string
+	if len(parts) > 1 {
+		args = strings.Split(parts[1], " ")
+	}
+	return c.Args().First(), &execConfig{parts[0], args}, nil
+}
 
 func AssumeCommand(c *cli.Context) error {
 	// assumeFlags allows flags to be passed on either side of the role argument.
@@ -63,6 +104,14 @@ func AssumeCommand(c *cli.Context) error {
 			clierr.Info("Let us know if you'd like support for this by creating an issue on our Github repo: https://github.com/common-fate/granted/issues/new"),
 		)
 	}
+
+	profileName, execCfg, err := processArgsAndExecFlag(c, assumeFlags)
+	if err != nil {
+		return err
+	}
+	clio.Debug("processed profile name", profileName)
+	clio.Debug("exec config:", execCfg)
+
 	activeRoleProfile := assumeFlags.String("active-aws-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
 
@@ -77,7 +126,7 @@ func AssumeCommand(c *cli.Context) error {
 		// save the profile to the AWS config file if the user requested it.
 		saveProfileName := assumeFlags.String("save-to")
 		if saveProfileName != "" {
-			configFilename := awsconfig.DefaultSharedConfigFilename()
+			configFilename := cfaws.GetAWSConfigPath()
 			config, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,
@@ -122,12 +171,11 @@ func AssumeCommand(c *cli.Context) error {
 		var wg sync.WaitGroup
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
 		}
 
-		profileName := c.Args().First()
 		if profileName != "" {
 			if !profiles.HasProfile(profileName) {
 				clio.Warnf("%s does not match any profiles in your AWS config or credentials files", profileName)
@@ -271,7 +319,11 @@ func AssumeCommand(c *cli.Context) error {
 		}
 	}
 
-	configOpts := cfaws.ConfigOpts{Duration: time.Hour}
+	configOpts := cfaws.ConfigOpts{Duration: time.Hour, MFATokenCode: ""}
+
+	if assumeFlags.String("mfa-token") != "" {
+		configOpts.MFATokenCode = assumeFlags.String("mfa-token")
+	}
 
 	// attempt to get session duration from profile
 	if profile.AWSConfig.RoleDurationSeconds != nil {
@@ -386,6 +438,12 @@ func AssumeCommand(c *cli.Context) error {
 			}
 		case browser.SafariKey:
 			l = launcher.Safari{}
+		case browser.ArcKey:
+			l = launcher.Arc{}
+		case browser.FirefoxDevEditionKey:
+			l = launcher.FirefoxDevEdition{
+				ExecutablePath: browserPath,
+			}
 		default:
 			l = launcher.Open{}
 		}
@@ -461,8 +519,9 @@ func AssumeCommand(c *cli.Context) error {
 
 			clio.Successf("Exported credentials to ~/.aws/credentials file as %s successfully", profileName)
 		}
-		if assumeFlags.String("exec") != "" {
-			return RunExecCommandWithCreds(assumeFlags.String("exec"), creds, region)
+
+		if execCfg != nil {
+			return RunExecCommandWithCreds(creds, region, execCfg.Cmd, execCfg.Args...)
 		}
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
@@ -496,10 +555,9 @@ func PrepareStringsForShellScript(in []string) []interface{} {
 // RunExecCommandWithCreds takes in a command, which may be a program and arguments separated by spaces
 // it splits these then runs the command with the credentials as the environment.
 // The output of this is returned via the assume script to stdout so it may be processed further by piping
-func RunExecCommandWithCreds(cmd string, creds aws.Credentials, region string) error {
+func RunExecCommandWithCreds(creds aws.Credentials, region string, cmd string, args ...string) error {
 	fmt.Print(assumeprint.SafeOutput(""))
-	args := strings.Split(cmd, " ")
-	c := exec.Command(args[0], args[1:]...)
+	c := exec.Command(cmd, args...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
 	c.Env = append(os.Environ(), EnvKeys(creds, region)...)

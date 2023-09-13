@@ -3,12 +3,14 @@ package granted
 import (
 	"context"
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/AlecAivazis/survey/v2/core"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/service/iam"
 	"gopkg.in/ini.v1"
 
@@ -23,7 +25,7 @@ import (
 var CredentialsCommand = cli.Command{
 	Name:        "credentials",
 	Usage:       "Manage secure IAM credentials",
-	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand, &ListCredentialsCommand, &RemoveCredentialsCommand, &ExportCredentialsCommand, &RotateCredentialsCommand},
+	Subcommands: []*cli.Command{&AddCredentialsCommand, &ImportCredentialsCommand, &UpdateCredentialsCommand, &ListCredentialsCommand, &RemoveCredentialsCommand, &ExportCredentialsCommand, &RotateCredentialsCommand, &ImportCredFromEnvCommand},
 }
 
 var AddCredentialsCommand = cli.Command{
@@ -41,7 +43,7 @@ var AddCredentialsCommand = cli.Command{
 		}
 
 		// validate the the profile does not already exist
-		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
 		}
@@ -76,7 +78,7 @@ var AddCredentialsCommand = cli.Command{
 //	[profile my-profile]
 //	credential_process = granted credential-process --profile=my-profile
 func updateOrCreateProfileWithCredentialProcess(profileName string) error {
-	configPath := config.DefaultSharedConfigFilename()
+	configPath := cfaws.GetAWSConfigPath()
 	configFile, err := ini.LoadSources(ini.LoadOptions{
 		AllowNonUniqueSections:  false,
 		SkipUnrecognizableLines: false,
@@ -141,7 +143,7 @@ var ImportCredentialsCommand = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		profileName := c.Args().First()
-		profiles, err := cfaws.LoadProfilesFromDefaultFiles()
+		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
 		}
@@ -179,7 +181,7 @@ var ImportCredentialsCommand = cli.Command{
 		}
 
 		// remove the profile from the credentials file
-		credentialsFilePath := config.DefaultSharedCredentialsFilename()
+		credentialsFilePath := cfaws.GetAWSCredentialsPath()
 		credentialsFile, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
@@ -193,7 +195,7 @@ var ImportCredentialsCommand = cli.Command{
 			return err
 		}
 
-		configPath := config.DefaultSharedConfigFilename()
+		configPath := cfaws.GetAWSConfigPath()
 		configFile, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
@@ -329,7 +331,7 @@ var RemoveCredentialsCommand = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
-		configPath := config.DefaultSharedConfigFilename()
+		configPath := cfaws.GetAWSConfigPath()
 		configFile, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
@@ -443,7 +445,7 @@ var ExportCredentialsCommand = cli.Command{
 				return err
 			}
 			// fetch parsed credentials file
-			credentialsFilePath := config.DefaultSharedCredentialsFilename()
+			credentialsFilePath := cfaws.GetAWSCredentialsPath()
 			credentialsFile, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,
@@ -472,7 +474,7 @@ var ExportCredentialsCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			configPath := config.DefaultSharedConfigFilename()
+			configPath := cfaws.GetAWSConfigPath()
 			configFile, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,
@@ -578,5 +580,88 @@ var RotateCredentialsCommand = cli.Command{
 		clio.Successf("Access Key of '%s' profile has been successfully rotated and updated in secure storage\n", profileName)
 
 		return nil
+	},
+}
+
+var ImportCredFromEnvCommand = cli.Command{
+	Name:  "import-from-env",
+	Usage: "Create a new AWS config profile with IAM credentials imported from environment. You must have $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY set in  your environment",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "profile", Required: true},
+	},
+	Action: func(c *cli.Context) error {
+		ctx := c.Context
+
+		accessKeyFromEnv, accessKeyFromEnvExists := os.LookupEnv("AWS_ACCESS_KEY_ID")
+		secretAccessKeyFromEnv, secretAccessKeyFromEnvExists := os.LookupEnv("AWS_ACCESS_KEY_ID")
+
+		if accessKeyFromEnvExists && secretAccessKeyFromEnvExists {
+			profileName := c.String("profile")
+			profiles, err := cfaws.LoadProfiles()
+			if err != nil {
+				return err
+			}
+
+			if profiles.HasProfile(profileName) {
+				return fmt.Errorf("profile with name '%s' already exist", profileName)
+			}
+
+			// create new static credential
+			credentials, err := credentials.NewStaticCredentialsProvider(accessKeyFromEnv, secretAccessKeyFromEnv, "").Retrieve(ctx)
+			if err != nil {
+				return err
+			}
+
+			secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+			err = secureIAMCredentialStorage.StoreCredentials(profileName, credentials)
+			if err != nil {
+				return err
+			}
+
+			// fetch parsed credentials file
+			credentialsFilePath := cfaws.GetAWSCredentialsPath()
+			credentialsFile, err := ini.LoadSources(ini.LoadOptions{
+				AllowNonUniqueSections:  false,
+				SkipUnrecognizableLines: false,
+			}, credentialsFilePath)
+			if err != nil {
+				return err
+			}
+
+			section, err := credentialsFile.NewSection(profileName)
+			if err != nil {
+				return err
+			}
+			err = section.ReflectFrom(&struct {
+				AWSAccessKeyID     string `ini:"aws_access_key_id"`
+				AWSSecretAccessKey string `ini:"aws_secret_access_key"`
+			}{
+				AWSAccessKeyID:     accessKeyFromEnv,
+				AWSSecretAccessKey: secretAccessKeyFromEnv,
+			})
+			if err != nil {
+				return err
+			}
+			err = credentialsFile.SaveTo(credentialsFilePath)
+			if err != nil {
+				return err
+			}
+
+			err = updateOrCreateProfileWithCredentialProcess(profileName)
+			if err != nil {
+				return err
+			}
+
+			clio.Successf("successfully created new profile %s", profileName)
+
+			return nil
+
+		}
+
+		clio.Error("you don't have variables $AWS_ACCESS_KEY_ID and $AWS_SECRET_ACCESS_KEY set in your environment.")
+		clio.Info("If you instead want to import plain-text credentials from ~/.aws/credentials to secure storage then run 'granted credentials import'")
+
+		return nil
+
 	},
 }
