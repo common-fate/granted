@@ -1,8 +1,13 @@
 package launcher
 
 import (
-	"fmt"
-	"hash/fnv"
+	"encoding/json"
+	"errors"
+	"os"
+	"path"
+	"runtime"
+
+	"github.com/common-fate/granted/pkg/browser"
 )
 
 type ChromeProfile struct {
@@ -12,13 +17,16 @@ type ChromeProfile struct {
 	// which we override to put Granted profiles in a specific folder
 	// for easy management.
 	UserDataPath string
+
+	BrowserType string
 }
 
 func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
-	profileName := chromeProfileName(profile)
+	profileName, _ := FindBrowserProfile(profile, l.BrowserType)
+
 	return []string{
 		l.ExecutablePath,
-		"--user-data-dir=" + l.UserDataPath,
+		// "--user-data-dir=" + l.UserDataPath,
 		"--profile-directory=" + profileName,
 		"--no-first-run",
 		"--no-default-browser-check",
@@ -26,12 +34,114 @@ func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
 	}
 }
 
-func chromeProfileName(profile string) string {
-	h := fnv.New32a()
-	h.Write([]byte(profile))
+var BravePathMac = "Library/Application Support/BraveSoftware/Brave-Browser/Local State"
+var BravePathLinux = ".config/brave-browser/Local State"
+var BravePathWindows = `AppData\Local\BraveSoftware\Brave-Browser\Local State`
 
-	hash := fmt.Sprint(h.Sum32())
-	return hash
+var ChromePathMac = "Library/Application Support/Google/Chrome/Local State"
+var ChromePathLinux = ".config/google-chrome/Local State"
+var ChromePathWindows = `AppData\Local\Google\Chrome\User Data/Local State`
+
+var EdgePathMac = `Library/Application Support/Microsoft\ Edge/Local State`
+var EdgePathLinux = ".config/microsoft-edge/Local State"
+var EdgePathWindows = `AppData\Local\Microsoft Edge\User Data/Local State`
+
+var ChromiumPathMac = "Library/Application Support/Chromium/Local State"
+var ChromiumPathLinux = ".config/chromium/Local State"
+var ChromiumPathWindows = `AppData\Local\Chromium\User Data/Local State`
+
+func FindBrowserProfile(profile string, browserType string) (string, error) {
+	//open Local State file for browser
+
+	//work out which chromium browser we are using
+
+	stateFile, err := getLocalStatePath(browserType)
+	if err != nil {
+		return "", err
+	}
+
+	//read the state file
+	data, err := os.ReadFile(stateFile)
+	if err != nil {
+		return "", err
+	}
+
+	//the Local State json blob is a bunch of map[string]interfaces which makes it difficult to unmarshal
+	var f map[string]interface{}
+	err = json.Unmarshal(data, &f)
+	if err != nil {
+		return "", err
+	}
+
+	//grab the profiles out from the json blob
+	profiles := f["profile"].(map[string]interface{})
+	//can this be done cleaner with a conversion into a struct?
+	for profileName, profileObj := range profiles["info_cache"].(map[string]interface{}) {
+		//if the profile name is the same as the profile name we are assuming then we want to use the same profile
+		if profileObj.(map[string]interface{})["name"] == profile {
+			return profileName, nil
+		}
+
+	}
+
+	return profile, nil
+}
+
+func getLocalStatePath(browserType string) (stateFile string, err error) {
+	stateFile, err = os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	switch runtime.GOOS {
+	case "windows":
+		switch browserType {
+		case browser.ChromeKey:
+			stateFile = path.Join(stateFile, ChromePathWindows)
+
+		case browser.BraveKey:
+			stateFile = path.Join(stateFile, BravePathWindows)
+
+		case browser.EdgeKey:
+			stateFile = path.Join(stateFile, EdgePathWindows)
+
+		case browser.ChromiumKey:
+			stateFile = path.Join(stateFile, ChromiumPathWindows)
+		}
+
+	case "darwin":
+		switch browserType {
+		case browser.ChromeKey:
+			stateFile = path.Join(stateFile, ChromePathMac)
+
+		case browser.BraveKey:
+			stateFile = path.Join(stateFile, BravePathMac)
+
+		case browser.EdgeKey:
+			stateFile = path.Join(stateFile, EdgePathMac)
+
+		case browser.ChromiumKey:
+			stateFile = path.Join(stateFile, ChromiumPathMac)
+		}
+
+	case "linux":
+		switch browserType {
+		case browser.ChromeKey:
+			stateFile = path.Join(stateFile, ChromePathLinux)
+
+		case browser.BraveKey:
+			stateFile = path.Join(stateFile, BravePathLinux)
+
+		case browser.EdgeKey:
+			stateFile = path.Join(stateFile, EdgePathLinux)
+
+		case browser.ChromiumKey:
+			stateFile = path.Join(stateFile, ChromiumPathLinux)
+		}
+
+	default:
+		return "", errors.New("os not supported")
+	}
+	return stateFile, nil
 }
 
 func (l ChromeProfile) UseForkProcess() bool { return true }
