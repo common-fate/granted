@@ -17,6 +17,7 @@ var ServiceMap = map[string]string{
 	"ct":             "cloudtrail",
 	"cw":             "cloudwatch",
 	"ddb":            "dynamodbv2",
+	"dynamodb":       "dynamodbv2",
 	"dms":            "dms/v2",
 	"dx":             "directconnect/v2",
 	"eb":             "elasticbeanstalk",
