@@ -49,6 +49,8 @@ github.com/common-fate/clio v1.2.1 h1:op+k1ONrakrjS7mANQBIjum/yK7hc3qj29HAJkgWzq
 github.com/common-fate/clio v1.2.1/go.mod h1:NkozaS15SA+6Y9zb+82eIj1i41aWShorTqA01GKQ7A8=
 github.com/common-fate/clio v1.2.2 h1:GE6GyLxWBEeFXQvn8sTILnv8J0/nVqCQsxUP+Muzm7A=
 github.com/common-fate/clio v1.2.2/go.mod h1:NkozaS15SA+6Y9zb+82eIj1i41aWShorTqA01GKQ7A8=
+github.com/common-fate/clio v1.2.3 h1:hHwUYZjn66qGYDpgANl0EB/92hyi/Jsnd07qB09rvn4=
+github.com/common-fate/clio v1.2.3/go.mod h1:NkozaS15SA+6Y9zb+82eIj1i41aWShorTqA01GKQ7A8=
 github.com/common-fate/common-fate v0.15.0 h1:ZDpc1x6DctuU2l5ILt5q8MB4V9beYfliQ40t9XGMtkw=
 github.com/common-fate/common-fate v0.15.0/go.mod h1:Tnd0OcCU0IXeLKxHF4lJTY+fyTbgIBKnKDydPvlwFyQ=
 github.com/common-fate/iso8601 v1.0.2 h1:gl6iNbE8TnJzg+lYJxPNYOkF+oHYde2K2s2i+5o4yHE=
