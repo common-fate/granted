@@ -593,7 +593,7 @@ var ImportCredFromEnvCommand = cli.Command{
 		ctx := c.Context
 
 		accessKeyFromEnv, accessKeyFromEnvExists := os.LookupEnv("AWS_ACCESS_KEY_ID")
-		secretAccessKeyFromEnv, secretAccessKeyFromEnvExists := os.LookupEnv("AWS_ACCESS_KEY_ID")
+		secretAccessKeyFromEnv, secretAccessKeyFromEnvExists := os.LookupEnv("AWS_SECRET_ACCESS_KEY")
 
 		if accessKeyFromEnvExists && secretAccessKeyFromEnvExists {
 			profileName := c.String("profile")
