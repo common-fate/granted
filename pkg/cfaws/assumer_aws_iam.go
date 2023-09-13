@@ -3,6 +3,7 @@ package cfaws
 import (
 	"context"
 	"strings"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
@@ -26,13 +27,43 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 		return secureIAMCredentialStorage.GetCredentials(c.Name)
 	}
 
+	// check if the valid credentials are available in session credential store
+
+	sessionCredStorage := securestorage.NewSecureSessionCredentialStorage()
+
+	cachedCreds, ok, err := sessionCredStorage.GetCredentials(c.AWSConfig.Profile)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+
+	if ok && !cachedCreds.Expired() {
+		clio.Debugw("credentials found in cache", "expires", cachedCreds.Expires.String(), "canExpire", cachedCreds.CanExpire, "timeNow", time.Now().String())
+		return cachedCreds, err
+	}
+
+	clio.Debugw("refreshing credentials", "reason", "not found")
+
 	//using ~/.aws/credentials file for creds
 	opts := []func(*config.LoadOptions) error{
 		// load the config profile
 		config.WithSharedConfigProfile(c.Name),
-		config.WithAssumeRoleCredentialOptions(func(aro *stscreds.AssumeRoleOptions) {
-			// set the token provider up
-			aro.TokenProvider = MfaTokenProvider
+	}
+
+	var credentials aws.Credentials
+	// if the aws profile contains 'role_arn' then having this option will return the temporary credentials
+	if c.AWSConfig.RoleARN != "" {
+		clio.Debugw("generating temporary credentials", "assumer", aia.Type(), "profile_type", "with_role_arn")
+		opts = append(opts, config.WithAssumeRoleCredentialOptions(func(aro *stscreds.AssumeRoleOptions) {
+			// check if the MFAToken code is provided as argument
+			// if provided then use it instead of prompting for MFAToken code.
+			if configOpts.MFATokenCode != "" {
+				aro.TokenProvider = func() (string, error) {
+					return configOpts.MFATokenCode, nil
+				}
+			} else {
+				// set the token provider up
+				aro.TokenProvider = MfaTokenProvider
+			}
 			aro.Duration = configOpts.Duration
 
 			// If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token
@@ -41,24 +72,66 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 					aro.SerialNumber = aws.String(c.Parents[0].AWSConfig.MFASerial)
 
 				}
+			} else {
+				if c.AWSConfig.MFASerial != "" {
+					aro.SerialNumber = aws.String(c.AWSConfig.MFASerial)
+				}
 			}
 			if c.AWSConfig.RoleSessionName != "" {
 				aro.RoleSessionName = c.AWSConfig.RoleSessionName
 			} else {
 				aro.RoleSessionName = sessionName()
 			}
-		}),
+		}))
+
+		cfg, err := config.LoadDefaultConfig(ctx, opts...)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+
+		credentials, err = aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+
+	} else {
+		// load the creds from the credentials file
+		cfg, err := config.LoadDefaultConfig(ctx, opts...)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+
+		/**
+		* Retrieve STS credentials when a base profile uses MFA
+		*
+		* ~/.aws/config
+		* [profile prod]
+		* region = ***
+		* mfa_serial = ***
+		*
+		* ~/.aws/credentials
+		* [profile prod]
+		* aws_access_key_id = ***
+		* aws_secret_access_key = ***
+		**/
+		if c.AWSConfig.MFASerial != "" {
+			clio.Debugw("generating temporary credentials", "assumer", aia.Type(), "profile_type", "base_profile_with_mfa")
+			credentials, err = aia.getTemporaryCreds(ctx, cfg, c, configOpts)
+			if err != nil {
+				return aws.Credentials{}, err
+			}
+		} else {
+			// else for normal shared credentails, retrieve the long living credentials
+			clio.Debugw("generating long-lived credentials", "assumer", aia.Type(), "profile_type", "credentials")
+			credentials, err = aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
+			if err != nil {
+				return aws.Credentials{}, err
+			}
+		}
 	}
 
-	// load the creds from the credentials file
-	cfg, err := config.LoadDefaultConfig(ctx, opts...)
-	if err != nil {
-		return aws.Credentials{}, err
-	}
-
-	credentials, err := aws.NewCredentialsCache(cfg.Credentials).Retrieve(ctx)
-	if err != nil {
-		return aws.Credentials{}, err
+	if err := sessionCredStorage.StoreCredentials(c.AWSConfig.Profile, credentials); err != nil {
+		clio.Warnf("Error caching credentials, MFA token will be requested before current token is expired")
 	}
 
 	// inform the user about using the secure storage to securely store IAM user credentials
@@ -153,6 +226,45 @@ func getFederationToken(ctx context.Context, c *Profile) (aws.Credentials, error
 	return TypeCredsToAwsCreds(*out.Credentials), err
 
 }
+
+// getTemporaryCreds will call STS to obtain temporary credentials. Will prompt for MFA code.
+func (aia *AwsIamAssumer) getTemporaryCreds(ctx context.Context, cfg aws.Config, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
+	stsClient := sts.New(sts.Options{
+		Credentials: cfg.Credentials,
+		Region:      c.AWSConfig.Region,
+	})
+
+	mfaCode := configOpts.MFATokenCode
+	if mfaCode == "" {
+		code, err := MfaTokenProvider()
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+
+		mfaCode = code
+	}
+
+	sessionTokenOutput, err := stsClient.GetSessionToken(ctx, &sts.GetSessionTokenInput{
+		SerialNumber: aws.String(c.AWSConfig.MFASerial),
+		TokenCode:    aws.String(mfaCode),
+	})
+
+	if err != nil {
+		return aws.Credentials{}, err
+	}
+
+	newCredentials := aws.Credentials{
+		AccessKeyID:     aws.ToString(sessionTokenOutput.Credentials.AccessKeyId),
+		SecretAccessKey: aws.ToString(sessionTokenOutput.Credentials.SecretAccessKey),
+		SessionToken:    aws.ToString(sessionTokenOutput.Credentials.SessionToken),
+		CanExpire:       true,
+		Expires:         aws.ToTime(sessionTokenOutput.Credentials.Expiration),
+		Source:          aia.Type(),
+	}
+
+	return newCredentials, nil
+}
+
 func truncateString(s string, length int) string {
 	if len(s) <= length {
 		return s
