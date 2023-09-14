@@ -45,6 +45,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "account-id", Usage: "Use this in conjunction with --sso, the account-id"},
 		&cli.StringFlag{Name: "role-name", Usage: "Use this in conjunction with --sso, the role-name"},
 		&cli.StringFlag{Name: "save-to", Usage: "Use this in conjunction with --sso, the profile name to save the role to in your AWS config file"},
+		&cli.BoolFlag{Name: "export-all-env-vars", Usage: "Exports all available credentials to the terminal"},
 	}
 }
 
