@@ -1,7 +1,10 @@
 package granted
 
 import (
+	"fmt"
 	"os"
+	"strings"
+	"text/tabwriter"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
@@ -12,12 +15,47 @@ import (
 
 var CacheCommand = cli.Command{
 	Name:        "cache",
-	Usage:       "Manage your cached credentials in secure storage",
-	Subcommands: []*cli.Command{&ClearCommand},
+	Usage:       "Manage your cached credentials that are stored in secure storage",
+	Subcommands: []*cli.Command{&ClearCommand, &ListCommand},
+}
+
+var ListCommand = cli.Command{
+	Name:  "list",
+	Usage: "List currently cached credentials and secure storage type",
+	Action: func(c *cli.Context) error {
+		storageToNameMap := map[string]securestorage.SecureStorage{
+			"aws-iam-credentials": securestorage.NewSecureIAMCredentialStorage().SecureStorage,
+			"sso-token":           securestorage.NewSecureSSOTokenStorage().SecureStorage,
+			"session-credentials": securestorage.NewSecureSessionCredentialStorage().SecureStorage,
+		}
+
+		tw := tabwriter.NewWriter(os.Stderr, 10, 1, 5, ' ', 0)
+		headers := strings.Join([]string{"STORAGE TYPE", "KEY"}, "\t")
+		fmt.Fprintln(tw, headers)
+
+		for storageName, v := range storageToNameMap {
+
+			keys, err := v.ListKeys()
+			if err != nil {
+				return err
+			}
+
+			for _, key := range keys {
+				tabbed := strings.Join([]string{storageName, key}, "\t")
+				fmt.Fprintln(tw, tabbed)
+			}
+
+		}
+
+		tw.Flush()
+
+		return nil
+	},
 }
 
 var ClearCommand = cli.Command{
-	Name: "clear",
+	Name:  "clear",
+	Usage: "Clear cached credential from the secure storage",
 	Action: func(c *cli.Context) error {
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		in := survey.Select{
