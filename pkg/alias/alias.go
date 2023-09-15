@@ -31,12 +31,10 @@ func init() {
 }
 
 const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`
-
-const defaultAlias = `alias assume=". assume"`
 const fishAliasBrew = `alias assume="source (brew --prefix)/assume.fish"`
-
+const defaultAlias = `alias assume="source assume"`
 const devFishAlias = `alias dassume="source /usr/local/bin/dassume.fish"`
-const devDefaultAlias = `alias dassume=". dassume"`
+const devDefaultAlias = `alias dassume="source dassume"`
 
 func GetDefaultAlias() string {
 	if build.IsDev() {
@@ -88,9 +86,7 @@ func GetShellFromShellEnv(shellEnv string) (string, error) {
 
 	} else if strings.Contains(shellEnv, "zsh") {
 		return "zsh", nil
-	} else if strings.Contains(shellEnv, "sh") {
-		// Fallback to POSIX
-		return "posix", nil
+
 	} else {
 		return "", fmt.Errorf("we couldn't detect your shell type (%s). Please follow the steps at https://docs.commonfate.io/granted/internals/shell-alias to assume roles with Granted", shellEnv)
 	}
@@ -109,8 +105,6 @@ func GetShellAlias(shell string) (Config, error) {
 		file, err = shells.GetBashConfigFile()
 	case "zsh":
 		file, err = shells.GetZshConfigFile()
-	case "posix":
-		file, err = shells.GetPosixConfigFile()
 	default:
 		err = &ErrShellNotSupported{Shell: shell}
 	}

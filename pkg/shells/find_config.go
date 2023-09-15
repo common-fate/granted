@@ -1,35 +1,9 @@
 package shells
 
 import (
-	"fmt"
 	"os"
 	"path"
-	"path/filepath"
-	"strings"
 )
-
-func GetPosixConfigFile() (string, error) {
-	home, err := os.UserHomeDir()
-	if err != nil {
-		return "", err
-	}
-	file := os.Getenv("ENV")
-	if file == "" {
-		return "", fmt.Errorf("cannot determine a shell config file. Please specify one using the ENV variable")
-	}
-	if strings.HasPrefix(file, "~") {
-		file = filepath.Join(home, file[1:])
-	}
-	// check that the file exists; create it if not
-	if _, err := os.Stat(file); os.IsNotExist(err) {
-		f, err := os.Create(file)
-		if err != nil {
-			return "", err
-		}
-		defer f.Close()
-	}
-	return file, nil
-}
 
 func GetFishConfigFile() (string, error) {
 	home, err := os.UserHomeDir()
