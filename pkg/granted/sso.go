@@ -49,7 +49,6 @@ var GenerateCommand = cli.Command{
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
 		&cli.StringSliceFlag{Name: "source", Usage: "The sources to load AWS profiles from (valid values are: 'aws-sso', 'commonfate')", Value: cli.NewStringSlice("aws-sso")},
-		&cli.StringFlag{Name: "region", Usage: "The SSO region. Deprecated, use --sso-region instead. In future, this will be the AWS region for the profile to use", DefaultText: "us-east-1"},
 		&cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
@@ -61,26 +60,13 @@ var GenerateCommand = cli.Command{
 			return clierr.New(fmt.Sprintf("Usage: %s [sso-start-url]", fullCommand), clierr.Infof("For example, %s https://example.awsapps.com/start", fullCommand))
 		}
 
-		// the --region flag behaviour will change in future: https://github.com/common-fate/granted/issues/360
-		//
-		// if neither --sso-region or --region were set, show a warning to the user as we plan to make --sso-region required in future
-		if !c.IsSet("region") && !c.IsSet("sso-region") {
-			clio.Warnf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
-			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/360)")
+		// if --sso-region is not set, display that is it required
+		if !c.IsSet("sso-region") {
+			clio.Errorf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
+			return nil
 		}
 
-		if c.IsSet("region") {
-			clio.Warn("Please use --sso-region rather than --region.")
-			clio.Warn("In a future version of Granted, the --region flag will be used to specify the 'region' field in generated profiles, rather than the 'sso_region' field. (https://github.com/common-fate/granted/issues/360)")
-		}
-
-		// try --sso-region first, then fall back to --region.
-		region := c.String("sso-region")
-		if region == "" {
-			region = c.String("region")
-		}
-
-		// end of --region flag behaviour warnings. These can be removed once https://github.com/common-fate/granted/issues/360 is closed.
+		sso_region := c.String("sso-region")
 
 		g := awsconfigfile.Generator{
 			Config:              ini.Empty(),
@@ -92,9 +78,9 @@ var GenerateCommand = cli.Command{
 		for _, s := range c.StringSlice("source") {
 			switch s {
 			case "aws-sso":
-				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
+				g.AddSource(AWSSSOSource{SSORegion: sso_region, StartURL: startURL})
 			case "commonfate", "common-fate", "cf":
-				ps, err := getCFProfileSource(c, region, startURL)
+				ps, err := getCFProfileSource(c, sso_region, startURL)
 				if err != nil {
 					return err
 				}
@@ -127,7 +113,6 @@ var PopulateCommand = cli.Command{
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
 		&cli.StringSliceFlag{Name: "source", Usage: "The sources to load AWS profiles from", Value: cli.NewStringSlice("aws-sso")},
 		&cli.BoolFlag{Name: "prune", Usage: "Remove any generated profiles with the 'common_fate_generated_from' key which no longer exist"},
-		&cli.StringFlag{Name: "region", Usage: "The SSO region. Deprecated, use --sso-region instead. In future, this will be the AWS region for the profile to use", DefaultText: "us-east-1"}, &cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -138,26 +123,12 @@ var PopulateCommand = cli.Command{
 			return clierr.New(fmt.Sprintf("Usage: %s [sso-start-url]", fullCommand), clierr.Infof("For example, %s https://example.awsapps.com/start", fullCommand))
 		}
 
-		// the --region flag behaviour will change in future: https://github.com/common-fate/granted/issues/360
-		//
-		// if neither --sso-region or --region were set, show a warning to the user as we plan to make --sso-region required in future
-		if !c.IsSet("region") && !c.IsSet("sso-region") {
-			clio.Warnf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
-			clio.Warn("Currently, Granted defaults to using us-east-1 if this is not provided. In a future version, this flag will be required (https://github.com/common-fate/granted/issues/360)")
+		// if --sso-region is not set, display that is it required
+		if !c.IsSet("sso-region") {
+			clio.Errorf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
+			return nil
 		}
-
-		if c.IsSet("region") {
-			clio.Warn("Please use --sso-region rather than --region.")
-			clio.Warn("In a future version of Granted, the --region flag will be used to specify the 'region' field in generated profiles, rather than the 'sso_region' field. (https://github.com/common-fate/granted/issues/360)")
-		}
-
-		// try --sso-region first, then fall back to --region.
-		region := c.String("sso-region")
-		if region == "" {
-			region = c.String("region")
-		}
-
-		// end of --region flag behaviour warnings. These can be removed once https://github.com/common-fate/granted/issues/360 is closed.
+		sso_region := c.String("sso-region")
 		configFilename := cfaws.GetAWSConfigPath()
 
 		config, err := ini.LoadSources(ini.LoadOptions{
@@ -188,9 +159,9 @@ var PopulateCommand = cli.Command{
 		for _, s := range c.StringSlice("source") {
 			switch s {
 			case "aws-sso":
-				g.AddSource(AWSSSOSource{SSORegion: region, StartURL: startURL})
+				g.AddSource(AWSSSOSource{SSORegion: sso_region, StartURL: startURL})
 			case "commonfate", "common-fate", "cf":
-				ps, err := getCFProfileSource(c, region, startURL)
+				ps, err := getCFProfileSource(c, sso_region, startURL)
 				if err != nil {
 					return err
 				}
