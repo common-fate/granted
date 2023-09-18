@@ -10,8 +10,8 @@ _this_type=$(type -- "${0##*/}" 2>&1)
 # In that case the output will typically contain 'not found'.
 # In the case of zsh, the output will contain the word 'alias'.
 if [ "${_this_type#*not found}" != "$_this_type" ] ||
-    [ "${_this_type#*alias}" != "$_this_type" ] || 
-    [ "${BASH_SOURCE[0]}" != "${0}" ]; then
+    [ "${_this_type#*alias}" != "$_this_type" ] ||
+    [ -n "$BASH_VERSION" ] && [ "$BASH_SOURCE" != "$0" ]; then
   GRANTED_RETURN_STATUS="true"
   export GRANTED_ALIAS_CONFIGURED="true"
 fi
