@@ -51,6 +51,7 @@ func GetCliApp() *cli.App {
 			&ConsoleCommand,
 			&login,
 			&exp.Command,
+			&CacheCommand,
 		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
