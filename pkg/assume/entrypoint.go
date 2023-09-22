@@ -50,7 +50,11 @@ func GlobalFlags() []cli.Flag {
 	}
 }
 
-func GetCliApp() *cli.App {
+type ConfigOpts struct {
+	ShouldSkipShellAlias *bool
+}
+
+func GetCliApp(opts ConfigOpts) *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
 		clio.Log(banners.WithVersion(banners.Assume()))
 	}
@@ -124,9 +128,11 @@ func GetCliApp() *cli.App {
 			// Sync granted profile registries if enabled
 			autosync.Run(false)
 
-			// Setup the shell alias
-			if os.Getenv("FORCE_NO_ALIAS") != "true" {
-				return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
+			if opts.ShouldSkipShellAlias == nil || (opts.ShouldSkipShellAlias != nil && !*opts.ShouldSkipShellAlias) {
+				// Setup the shell alias
+				if os.Getenv("FORCE_NO_ALIAS") != "true" {
+					return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
+				}
 			}
 
 			// set the user agent
