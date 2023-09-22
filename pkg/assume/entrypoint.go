@@ -51,7 +51,7 @@ func GlobalFlags() []cli.Flag {
 }
 
 type ConfigOpts struct {
-	ShouldSkipShellAlias *bool
+	ShouldSkipShellAlias bool
 }
 
 func GetCliApp(opts ConfigOpts) *cli.App {
@@ -128,7 +128,7 @@ func GetCliApp(opts ConfigOpts) *cli.App {
 			// Sync granted profile registries if enabled
 			autosync.Run(false)
 
-			if opts.ShouldSkipShellAlias == nil || (opts.ShouldSkipShellAlias != nil && !*opts.ShouldSkipShellAlias) {
+			if !opts.ShouldSkipShellAlias {
 				// Setup the shell alias
 				if os.Getenv("FORCE_NO_ALIAS") != "true" {
 					return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
