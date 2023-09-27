@@ -91,7 +91,6 @@ func processArgsAndExecFlag(c *cli.Context, assumeFlags *cfflags.Flags) (string,
 	return c.Args().First(), &execConfig{parts[0], args}, nil
 }
 
-// TODO: Pass in a overwrite func that can update
 func AssumeCommand(c *cli.Context) error {
 	// assumeFlags allows flags to be passed on either side of the role argument.
 	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
