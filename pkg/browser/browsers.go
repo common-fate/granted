@@ -18,6 +18,7 @@ const (
 	FirefoxStdoutKey     string = "FIREFOX_STDOUT"
 	ArcKey               string = "ARC"
 	FirefoxDevEditionKey string = "FIREFOX_DEV"
+	ConsoleKey           string = "CONSOLE_KEY"
 )
 
 // A few default paths to check for the browser

@@ -91,6 +91,7 @@ func processArgsAndExecFlag(c *cli.Context, assumeFlags *cfflags.Flags) (string,
 	return c.Args().First(), &execConfig{parts[0], args}, nil
 }
 
+// TODO: Pass in a overwrite func that can update
 func AssumeCommand(c *cli.Context) error {
 	// assumeFlags allows flags to be passed on either side of the role argument.
 	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
@@ -442,6 +443,11 @@ func AssumeCommand(c *cli.Context) error {
 			l = launcher.Arc{}
 		case browser.FirefoxDevEditionKey:
 			l = launcher.FirefoxDevEdition{
+				ExecutablePath: browserPath,
+			}
+		case browser.ConsoleKey:
+			l = launcher.Console{
+				// for console, executable path must be set as custom browser path
 				ExecutablePath: browserPath,
 			}
 		default:
