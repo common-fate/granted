@@ -7,7 +7,7 @@ type Console struct {
 }
 
 func (l Console) LaunchCommand(url string, profile string) []string {
-	return []string{fmt.Sprintf("%s --profile=%s --url=%s", l.ExecutablePath, profile, url)}
+	return []string{fmt.Sprintf("%s --profile='%s' --url='%s'", l.ExecutablePath, profile, url)}
 }
 
 func (l Console) UseForkProcess() bool { return false }
