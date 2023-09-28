@@ -52,7 +52,7 @@ var CompletionCommand = cli.Command{
 }
 
 func installFishCompletions(c *cli.Context) error {
-	assumeApp := assume.GetCliApp(assume.ConfigOpts{ShouldSkipShellAlias: false})
+	assumeApp := assume.GetCliApp()
 	c.App.Name = build.GrantedBinaryName()
 	assumeApp.Name = build.AssumeScriptName()
 	grantedAppOutput, _ := c.App.ToFishCompletion()

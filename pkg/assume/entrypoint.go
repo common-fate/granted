@@ -7,7 +7,6 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/cliolog"
 	"github.com/common-fate/granted/internal/build"
-	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/autosync"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browser"
@@ -50,11 +49,7 @@ func GlobalFlags() []cli.Flag {
 	}
 }
 
-type ConfigOpts struct {
-	ShouldSkipShellAlias bool
-}
-
-func GetCliApp(opts ConfigOpts) *cli.App {
+func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
 		clio.Log(banners.WithVersion(banners.Assume()))
 	}
@@ -127,13 +122,6 @@ func GetCliApp(opts ConfigOpts) *cli.App {
 			}
 			// Sync granted profile registries if enabled
 			autosync.Run(false)
-
-			if !opts.ShouldSkipShellAlias {
-				// Setup the shell alias
-				if os.Getenv("FORCE_NO_ALIAS") != "true" {
-					return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
-				}
-			}
 
 			// set the user agent
 			c.Context = useragent.NewContext(c.Context, "granted", build.Version)

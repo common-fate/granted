@@ -38,7 +38,7 @@ func main() {
 	var app *cli.App
 	switch filepath.Base(os.Args[0]) {
 	case "assumego", "assumego.exe", "dassumego", "dassumego.exe":
-		app = assume.GetCliApp(assume.ConfigOpts{ShouldSkipShellAlias: false})
+		app = assume.GetCliApp()
 	default:
 		app = granted.GetCliApp()
 	}
