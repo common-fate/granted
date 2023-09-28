@@ -7,6 +7,7 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/cliolog"
 	"github.com/common-fate/granted/internal/build"
+	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/autosync"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browser"
@@ -122,6 +123,11 @@ func GetCliApp() *cli.App {
 			}
 			// Sync granted profile registries if enabled
 			autosync.Run(false)
+
+			// Setup the shell alias
+			if os.Getenv("FORCE_NO_ALIAS") != "true" {
+				return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
+			}
 
 			// set the user agent
 			c.Context = useragent.NewContext(c.Context, "granted", build.Version)
