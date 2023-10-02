@@ -82,6 +82,7 @@ func updateOrCreateProfileWithCredentialProcess(profileName string) error {
 	configFile, err := ini.LoadSources(ini.LoadOptions{
 		AllowNonUniqueSections:  false,
 		SkipUnrecognizableLines: false,
+		AllowNestedValues:       true,
 	}, configPath)
 	if err != nil {
 		return err
@@ -185,6 +186,7 @@ var ImportCredentialsCommand = cli.Command{
 		credentialsFile, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
+			AllowNestedValues:       true,
 		}, credentialsFilePath)
 		if err != nil {
 			return err
@@ -199,6 +201,7 @@ var ImportCredentialsCommand = cli.Command{
 		configFile, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
+			AllowNestedValues:       true,
 		}, configPath)
 		if err != nil {
 			return err
@@ -335,6 +338,7 @@ var RemoveCredentialsCommand = cli.Command{
 		configFile, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
+			AllowNestedValues:       true,
 		}, configPath)
 		if err != nil {
 			return err
@@ -449,6 +453,7 @@ var ExportCredentialsCommand = cli.Command{
 			credentialsFile, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,
+				AllowNestedValues:       true,
 			}, credentialsFilePath)
 			if err != nil {
 				return err
@@ -478,6 +483,7 @@ var ExportCredentialsCommand = cli.Command{
 			configFile, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,
+				AllowNestedValues:       true,
 			}, configPath)
 			if err != nil {
 				return err
@@ -623,6 +629,7 @@ var ImportCredFromEnvCommand = cli.Command{
 			credentialsFile, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,
+				AllowNestedValues:       true,
 			}, credentialsFilePath)
 			if err != nil {
 				return err

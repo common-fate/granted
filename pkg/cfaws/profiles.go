@@ -126,6 +126,7 @@ func (f FileLoader) Load() (*ini.File, error) {
 	configFile, err := ini.LoadSources(ini.LoadOptions{
 		AllowNonUniqueSections:  false,
 		SkipUnrecognizableLines: false,
+		AllowNestedValues:       true,
 	}, f.FilePath)
 	if err != nil {
 		if os.IsNotExist(err) {

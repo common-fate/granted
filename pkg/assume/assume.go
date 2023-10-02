@@ -130,6 +130,7 @@ func AssumeCommand(c *cli.Context) error {
 			config, err := ini.LoadSources(ini.LoadOptions{
 				AllowNonUniqueSections:  false,
 				SkipUnrecognizableLines: false,
+				AllowNestedValues:       true,
 			}, configFilename)
 			if err != nil {
 				if !os.IsNotExist(err) {

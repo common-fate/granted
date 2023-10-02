@@ -134,6 +134,7 @@ var PopulateCommand = cli.Command{
 		config, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
 			SkipUnrecognizableLines: false,
+			AllowNestedValues:       true,
 		}, configFilename)
 		if err != nil {
 			if !os.IsNotExist(err) {
