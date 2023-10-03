@@ -1,14 +1,14 @@
 package launcher
 
-type Console struct {
+type CommonFate struct {
 	ExecutablePath string
 }
 
-func (l Console) LaunchCommand(url string, profile string) []string {
+func (l CommonFate) LaunchCommand(url string, profile string) []string {
 	return []string{l.ExecutablePath,
 		"--profile=" + profile,
 		"--url=" + url,
 	}
 }
 
-func (l Console) UseForkProcess() bool { return false }
+func (l CommonFate) UseForkProcess() bool { return false }
