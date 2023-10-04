@@ -18,7 +18,7 @@ const (
 	FirefoxStdoutKey     string = "FIREFOX_STDOUT"
 	ArcKey               string = "ARC"
 	FirefoxDevEditionKey string = "FIREFOX_DEV"
-	CommonFateKey        string = "COMMONFATE"
+	CommonFateKey        string = "COMMON_FATE"
 )
 
 // A few default paths to check for the browser
