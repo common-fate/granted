@@ -4,6 +4,7 @@ package console
 // e.g. passing in `-s ec2` will open the console at the ec2/v2 URL.
 var ServiceMap = map[string]string{
 	"":               "console",
+	"acm":		  "acm",
 	"athena":         "athena",
 	"appsync":        "appsync",
 	"c9":             "cloud9",
