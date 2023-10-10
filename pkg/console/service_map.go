@@ -29,6 +29,7 @@ var ServiceMap = map[string]string{
 	"gd":             "guardduty",
 	"grafana":        "grafana",
 	"iam":            "iamv2",
+	"kms":            "kms",
 	"l":              "lambda",
 	"lambda":         "lambda",
 	"mwaa":           "mwaa",
