@@ -32,6 +32,7 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 	credentialsFile, err := ini.LoadSources(ini.LoadOptions{
 		AllowNonUniqueSections:  false,
 		SkipUnrecognizableLines: false,
+		AllowNestedValues:       true,
 	}, credPath)
 	if err != nil {
 		return err

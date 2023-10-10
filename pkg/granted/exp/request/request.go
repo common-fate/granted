@@ -435,6 +435,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 	config, err := ini.LoadSources(ini.LoadOptions{
 		AllowNonUniqueSections:  false,
 		SkipUnrecognizableLines: false,
+		AllowNestedValues:       true,
 	}, configFilename)
 	if err != nil {
 		if !os.IsNotExist(err) {
