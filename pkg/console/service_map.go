@@ -14,6 +14,8 @@ var ServiceMap = map[string]string{
 	"cloudformation": "cloudformation",
 	"cloudmap":       "cloudmap",
 	"cloudwatch":     "cloudwatch",
+	"codepipeline":   "codepipeline",
+	"codedeploy":     "codedeploy",
 	"config":         "config",
 	"ct":             "cloudtrail",
 	"cw":             "cloudwatch",
