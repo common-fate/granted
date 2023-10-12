@@ -382,7 +382,7 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 
-		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
+		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
 			// tranform the URL into the Firefox Tab Container format.
 			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", containerProfile, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
 		}
@@ -433,7 +433,7 @@ func AssumeCommand(c *cli.Context) error {
 				ExecutablePath: browserPath,
 				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "4"), // held over for backwards compatibility, "4" indicates Chromium profiles
 			}
-		case browser.FirefoxKey:
+		case browser.FirefoxKey, browser.WaterfoxKey:
 			l = launcher.Firefox{
 				ExecutablePath: browserPath,
 			}
