@@ -529,16 +529,40 @@ func AssumeCommand(c *cli.Context) error {
 		if execCfg != nil {
 			return RunExecCommandWithCreds(creds, region, execCfg.Cmd, execCfg.Args...)
 		}
+
+		if profile.RawConfig.HasKey("credential_process") && assumeFlags.Bool("export-all-env-vars") {
+			canExpire := "false"
+			if creds.CanExpire {
+				canExpire = "true"
+			}
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, canExpire, profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
+			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+
+			return nil
+		}
+
 		// DO NOT REMOVE, this interacts with the shell script that wraps the assume command, the shell script is what configures your shell environment vars
 		// to export more environment variables, add then in the assume and assume.fish scripts then append them to this output preparation function
 		// the shell script treats "None" as an empty string and will not set a value for that positional output
+
+		// If the profile uses "credential_process" to source credential externally then do not set accessKeyId, secretAccessKey, sessionToken
+		// so that aws cli automatically refreshes credential when they expire.
+		if profile.RawConfig.HasKey("credential_process") {
+			output := PrepareStringsForShellScript([]string{"", "", "", profile.Name, region, "", "true", "", "", "", ""})
+			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+
+			return nil
+		}
+
 		if assumeFlags.Bool("sso") {
 			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
-		} else {
-			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "false", "", "", "", ""})
-			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+
+			return nil
 		}
+
+		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "false", "", "", "", ""})
+		fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 	}
 	return nil
 }
