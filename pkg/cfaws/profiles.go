@@ -345,7 +345,17 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		}
 		pr.AWSConfig = *awsConfig
 		pr.Initialised = true
-		pr.ProfileType = "AWS_SSO"
+
+		as := assumers
+		for _, a := range as {
+			if a.ProfileMatchesType(pr.RawConfig, pr.AWSConfig) {
+				pr.ProfileType = a.Type()
+				break
+			} else {
+				pr.ProfileType = "AWS_SSO"
+			}
+		}
+
 		return pr, nil
 	} else {
 		for _, v := range pr.RawConfig.Keys() {

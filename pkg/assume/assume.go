@@ -445,6 +445,11 @@ func AssumeCommand(c *cli.Context) error {
 			l = launcher.FirefoxDevEdition{
 				ExecutablePath: browserPath,
 			}
+		case browser.CommonFateKey:
+			l = launcher.CommonFate{
+				// for CommonFate, executable path must be set as custom browser path
+				ExecutablePath: browserPath,
+			}
 		default:
 			l = launcher.Open{}
 		}

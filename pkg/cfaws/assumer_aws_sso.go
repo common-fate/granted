@@ -47,8 +47,7 @@ func (asa *AwsSsoAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProf
 	return parsedProfile.SSOAccountID != ""
 }
 
-func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
-
+func (c *Profile) SSOLoginWithToken(ctx context.Context, cfg *aws.Config, accessToken *string, secureSSOTokenStorage securestorage.SSOTokensSecureStorage, configOpts ConfigOpts) (aws.Credentials, error) {
 	rootProfile := c
 	requiresAssuming := false
 	if len(c.Parents) > 0 {
@@ -57,40 +56,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		requiresAssuming = true
 	}
 
-	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
-	cfg := aws.NewConfig()
-	cfg.Region = rootProfile.AWSConfig.SSORegion
-
-	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
-	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
-	var accessToken *string
-
-	skipAutoLogin := configOpts.UsingCredentialProcess && !configOpts.CredentialProcessAutoLogin
-	if skipAutoLogin && cachedToken == nil {
-		cmd := "granted sso login"
-		startURL := c.AWSConfig.SSOStartURL
-		if startURL != "" {
-			cmd += " --sso-start-url " + startURL
-		}
-
-		region := c.AWSConfig.SSORegion
-		if region != "" {
-			cmd += " --sso-region " + region
-		}
-
-		return aws.Credentials{}, fmt.Errorf("error when retrieving credentials from custom process. please login using '%s'", cmd)
-	}
-	if cachedToken == nil {
-		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *cfg, rootProfile.AWSConfig.SSOStartURL)
-		if err != nil {
-			return aws.Credentials{}, err
-		}
-
-		secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *newSSOToken)
-		accessToken = &newSSOToken.AccessToken
-	} else {
-		accessToken = &cachedToken.AccessToken
-	}
+	ssoTokenKey := c.AWSConfig.SSOStartURL
 
 	// create sso client
 	ssoClient := sso.NewFromConfig(*cfg)
@@ -197,6 +163,49 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		}
 	}
 	return credProvider.Credentials, nil
+}
+
+func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
+	ssoTokenKey := c.AWSConfig.SSOStartURL
+
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
+	var accessToken *string
+
+	skipAutoLogin := configOpts.UsingCredentialProcess && !configOpts.CredentialProcessAutoLogin
+	if skipAutoLogin && cachedToken == nil {
+		cmd := "granted sso login"
+		startURL := c.AWSConfig.SSOStartURL
+		if startURL != "" {
+			cmd += " --sso-start-url " + startURL
+		}
+
+		region := c.AWSConfig.SSORegion
+		if region != "" {
+			cmd += " --sso-region " + region
+		}
+
+		return aws.Credentials{}, fmt.Errorf("error when retrieving credentials from custom process. please login using '%s'", cmd)
+	}
+
+	if cachedToken == nil {
+		newCfg := aws.NewConfig()
+		newCfg.Region = c.AWSConfig.SSORegion
+		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *newCfg, c.AWSConfig.SSOStartURL)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+
+		secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *newSSOToken)
+		accessToken = &newSSOToken.AccessToken
+	} else {
+		accessToken = &cachedToken.AccessToken
+	}
+
+	cfg := aws.NewConfig()
+	cfg.Region = c.AWSConfig.SSORegion
+
+	return c.SSOLoginWithToken(ctx, cfg, accessToken, secureSSOTokenStorage, configOpts)
 }
 
 func (c *Profile) getRoleCredentialsWithRetry(ctx context.Context, ssoClient *sso.Client, accessToken *string, rootProfile *Profile) (*ssotypes.RoleCredentials, error) {
