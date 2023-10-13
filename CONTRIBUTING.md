@@ -93,3 +93,25 @@ So when logging simply use the relevant log type
     clio.Error("hello")
     clio.Error("hello")
 ```
+
+## Debugging Assume
+
+In the debug configuration file, add the following to debug `assume`:
+
+```
+{
+      "name": "assume",
+      "type": "go",
+      "request": "launch",
+      "mode": "auto",
+      "program": "${workspaceFolder}/cmd/granted/main.go",
+      "args": ["<profile-name>"],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "env": {
+        "GRANTED_LOG": "debug",
+        "FORCE_ASSUME_CLI": "true",
+        "GRANTED_ALIAS_CONFIGURED": "true"
+      }
+    }
+```
