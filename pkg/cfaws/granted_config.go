@@ -56,7 +56,7 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 
 	// sanity check to verify if the provided value is a valid url
 	_, err = url.ParseRequestURI(cfg.SSOStartURL)
-	
+
 	// normalize the url to remove trailing slashes if they exist
 	cfg.SSOStartURL = strings.TrimSuffix(cfg.SSOStartURL, "/")
 
@@ -114,7 +114,7 @@ func hasGrantedSSOPrefix(rawConfig *ini.Section) bool {
 // matches the AWS config profile name. If it doesn't then return an err
 // as the user will certainly run into unexpected behaviour.
 func validateCredentialProcess(arg string, awsProfileName string) error {
-	regex := regexp.MustCompile(`^(\s+)?(dgranted|granted)\s+credential-process.*--profile\s+(?P<PName>([^\s]+))`)
+	regex := regexp.MustCompile(`^(\s+)?(dgranted|granted)\s+(?:--aws-config-file\s+(?P<ConfigFile>[^\s]+)\s+)?credential-process\s+--profile\s+(?P<PName>[^\s]+)`)
 
 	if regex.MatchString(arg) {
 		matches := regex.FindStringSubmatch(arg)

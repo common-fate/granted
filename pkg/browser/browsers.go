@@ -8,14 +8,17 @@ import (
 
 // A browser supported by Granted.
 const (
-	ChromeKey        string = "CHROME"
-	BraveKey         string = "BRAVE"
-	EdgeKey          string = "EDGE"
-	FirefoxKey       string = "FIREFOX"
-	ChromiumKey      string = "CHROMIUM"
-	SafariKey        string = "SAFARI"
-	StdoutKey        string = "STDOUT"
-	FirefoxStdoutKey string = "FIREFOX_STDOUT"
+	ChromeKey            string = "CHROME"
+	BraveKey             string = "BRAVE"
+	EdgeKey              string = "EDGE"
+	FirefoxKey           string = "FIREFOX"
+	ChromiumKey          string = "CHROMIUM"
+	SafariKey            string = "SAFARI"
+	StdoutKey            string = "STDOUT"
+	FirefoxStdoutKey     string = "FIREFOX_STDOUT"
+	ArcKey               string = "ARC"
+	FirefoxDevEditionKey string = "FIREFOX_DEV"
+	CommonFateKey        string = "COMMON_FATE"
 )
 
 // A few default paths to check for the browser
@@ -35,11 +38,17 @@ var FirefoxPathMac = []string{"/Applications/Firefox.app/Contents/MacOS/firefox"
 var FirefoxPathLinux = []string{`/usr/bin/firefox`, `/../../mnt/c/Program Files/Mozilla Firefox/firefox.exe`}
 var FirefoxPathWindows = []string{`\Program Files\Mozilla Firefox\firefox.exe`}
 
+var FirefoxDevPathMac = []string{"/Applications/Firefox Developer Edition.app/Contents/MacOS/firefox"}
+var FirefoxDevPathLinux = []string{`/usr/bin/firefox-developer`, `/../../mnt/c/Program Files/Firefox Developer Edition/firefox.exe`}
+var FirefoxDevPathWindows = []string{`\Program Files\Firefox Developer Edition\firefox.exe`}
+
 var ChromiumPathMac = []string{"/Applications/Chromium.app/Contents/MacOS/Chromium"}
 var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program Files/Chromium/chromium.exe`}
 var ChromiumPathWindows = []string{`\Program Files\Chromium\chromium.exe`}
 
 var SafariPathMac = []string{"/Applications/Safari.app/Contents/MacOS/Safari"}
+
+var ArcPathMac = []string{"/Applications/Arc.app/Contents/MacOS/Arc"}
 
 func ChromePathDefaults() ([]string, error) {
 	// check linuxpath for binary install
@@ -119,6 +128,24 @@ func FirefoxPathDefaults() ([]string, error) {
 	}
 }
 
+func FirefoxDevPathDefaults() ([]string, error) {
+	// check linuxpath for binary install
+	path, err := exec.LookPath("firefox-developer")
+	if err == nil {
+		return []string{path}, nil
+	}
+	switch runtime.GOOS {
+	case "windows":
+		return FirefoxDevPathWindows, nil
+	case "darwin":
+		return FirefoxDevPathMac, nil
+	case "linux":
+		return FirefoxDevPathLinux, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
 func ChromiumPathDefaults() ([]string, error) {
 	// check linuxpath for binary install
 	path, err := exec.LookPath("chromium")
@@ -141,6 +168,15 @@ func SafariPathDefaults() ([]string, error) {
 	switch runtime.GOOS {
 	case "darwin":
 		return SafariPathMac, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
+func ArcPathDefaults() ([]string, error) {
+	switch runtime.GOOS {
+	case "darwin":
+		return ArcPathMac, nil
 	default:
 		return nil, errors.New("os not supported")
 	}

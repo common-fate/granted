@@ -13,7 +13,6 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
-	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/briandowns/spinner"
 	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/cli/pkg/client"
@@ -431,11 +430,12 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 
 	region := gConf.CommonFateDefaultSSORegion
 
-	configFilename := awsconfig.DefaultSharedConfigFilename()
+	configFilename := cfaws.GetAWSConfigPath()
 
 	config, err := ini.LoadSources(ini.LoadOptions{
 		AllowNonUniqueSections:  false,
 		SkipUnrecognizableLines: false,
+		AllowNestedValues:       true,
 	}, configFilename)
 	if err != nil {
 		if !os.IsNotExist(err) {

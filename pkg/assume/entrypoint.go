@@ -44,8 +44,11 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "sso-region", Usage: "Use this in conjunction with --sso, the sso-region"},
 		&cli.StringFlag{Name: "account-id", Usage: "Use this in conjunction with --sso, the account-id"},
 		&cli.StringFlag{Name: "role-name", Usage: "Use this in conjunction with --sso, the role-name"},
+		&cli.StringFlag{Name: "browser-profile", Aliases: []string{"bp"}, Usage: "Use a pre-existing profile in your browser"},
+		&cli.StringFlag{Name: "mfa-token", Usage: "Provide your current MFA token for the role you are assuming to skip being prompted"},
 		&cli.StringFlag{Name: "save-to", Usage: "Use this in conjunction with --sso, the profile name to save the role to in your AWS config file"},
 		&cli.BoolFlag{Name: "export-all-env-vars", Usage: "Exports all available credentials to the terminal when used with a profile configured for credential-process. Without this flag, only the AWS_PROFILE will be configured"},
+		&cli.StringFlag{Name: "aws-config-file"},
 	}
 }
 
@@ -66,7 +69,9 @@ func GetCliApp() *cli.App {
 		EnableBashCompletion: true,
 		BashComplete:         Completion,
 		Before: func(c *cli.Context) error {
-
+			if c.String("aws-config-file") != "" {
+				os.Setenv("AWS_CONFIG_FILE", c.String("aws-config-file"))
+			}
 			// unsets the exported env vars
 			if c.Bool("unset") {
 				err := UnsetAction(c)

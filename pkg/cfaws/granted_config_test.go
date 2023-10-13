@@ -20,6 +20,11 @@ func TestValidateCredentialProcess(t *testing.T) {
 			profileName: "develop",
 		},
 		{
+			name:        "valid argument with correct profile name and --aws-config-file flag",
+			arg:         "  granted --aws-config-file example credential-process   --profile develop",
+			profileName: "develop",
+		},
+		{
 			name:        "valid argument with incorrect profile name",
 			arg:         "granted credential-process --profile abc",
 			profileName: "develop",
@@ -77,7 +82,7 @@ sso_region     = ap-southeast-2
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			l := loader{fileString: tt.file}
-			profiles, err := LoadProfiles(l, nooploader{})
+			profiles, err := loadProfiles(l, nooploader{})
 			if err != nil {
 				t.Fatal(err)
 			}

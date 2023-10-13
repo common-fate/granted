@@ -29,6 +29,7 @@ func loadAWSConfigFile() (*ini.File, string, error) {
 	awsConfig, err := ini.LoadSources(ini.LoadOptions{
 		SkipUnrecognizableLines: true,
 		AllowNonUniqueSections:  true,
+		AllowNestedValues:       true,
 	}, filepath)
 	if err != nil {
 		return nil, "", err

@@ -25,6 +25,7 @@ type ConfigOpts struct {
 	Duration                   time.Duration
 	Args                       []string
 	ShouldRetryAssuming        *bool
+	MFATokenCode               string
 }
 
 type SSOSession struct {
@@ -125,6 +126,7 @@ func (f FileLoader) Load() (*ini.File, error) {
 	configFile, err := ini.LoadSources(ini.LoadOptions{
 		AllowNonUniqueSections:  false,
 		SkipUnrecognizableLines: false,
+		AllowNestedValues:       true,
 	}, f.FilePath)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -134,21 +136,50 @@ func (f FileLoader) Load() (*ini.File, error) {
 	}
 	return configFile, nil
 }
-func LoadProfilesFromDefaultFiles() (*Profiles, error) {
-	return LoadProfiles(FileLoader{
-		FilePath: config.DefaultSharedConfigFilename(),
+
+// GetAWSConfigPath will return default AWS config file path unless $AWS_CONFIG_FILE
+// environment variable is set
+func GetAWSConfigPath() string {
+	file := os.Getenv("AWS_CONFIG_FILE")
+	if file != "" {
+		clio.Debugf("using aws config filepath: %s", file)
+		return file
+	}
+
+	return config.DefaultSharedConfigFilename()
+}
+
+// GetAWSCredentialsPath will return default AWS shared credential file path unless $AWS_SHARED_CREDENTIALS_FILE
+// environment variable is set
+func GetAWSCredentialsPath() string {
+	file := os.Getenv("AWS_SHARED_CREDENTIALS_FILE")
+	if file != "" {
+		clio.Debugf("using aws credential filepath: %s", file)
+		return file
+	}
+
+	return config.DefaultSharedCredentialsFilename()
+}
+
+// LoadProfiles will load aws config files from $AWS_CONFIG_FILE, $AWS_SHARED_CREDENTIALS_FILE environment variables
+// or defaults to ~/.aws/config and ~/.aws/credentials
+func LoadProfiles() (*Profiles, error) {
+	return loadProfiles(FileLoader{
+		FilePath: GetAWSConfigPath(),
 	}, FileLoader{
-		FilePath: config.DefaultSharedCredentialsFilename(),
+		FilePath: GetAWSCredentialsPath(),
 	})
 }
-func LoadProfiles(configFileLoader, credentialsFileLoader ConfigFileLoader) (*Profiles, error) {
 
+func loadProfiles(configFileLoader, credentialsFileLoader ConfigFileLoader) (*Profiles, error) {
 	p := Profiles{profiles: make(map[string]*Profile)}
-	err := p.loadDefaultConfigFile(configFileLoader)
+
+	err := p.loadConfigFile(configFileLoader)
 	if err != nil {
 		return nil, err
 	}
-	err = p.loadDefaultCredentialsFile(credentialsFileLoader)
+
+	err = p.loadCredentialsFile(credentialsFileLoader)
 	if err != nil {
 		return nil, err
 	}
@@ -159,7 +190,7 @@ func LoadProfiles(configFileLoader, credentialsFileLoader ConfigFileLoader) (*Pr
 // Note, this function doesn't handle the condition when there are same accountId & role in different regions.
 func LoadProfileByAccountIdAndRole(accountId string, role string) (*Profile, error) {
 
-	profiles, err := LoadProfilesFromDefaultFiles()
+	profiles, err := LoadProfiles()
 	if err != nil {
 		return nil, err
 	}
@@ -204,7 +235,7 @@ func LoadProfileByAccountIdAndRole(accountId string, role string) (*Profile, err
 // [profile cf-prod]
 // sso_region=ap-southeast-2
 // ...
-func (p *Profiles) loadDefaultConfigFile(loader ConfigFileLoader) error {
+func (p *Profiles) loadConfigFile(loader ConfigFileLoader) error {
 
 	configFile, err := loader.Load()
 	if err != nil {
@@ -250,7 +281,7 @@ func (p *Profiles) loadDefaultConfigFile(loader ConfigFileLoader) error {
 // aws_access_key_id = xxxxxx
 // aws_secret_access_key = xxxxxx
 // ...
-func (p *Profiles) loadDefaultCredentialsFile(loader ConfigFileLoader) error {
+func (p *Profiles) loadCredentialsFile(loader ConfigFileLoader) error {
 	// fetch parsed credentials file
 	credentialsFile, err := loader.Load()
 	if err != nil {
@@ -314,7 +345,17 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		}
 		pr.AWSConfig = *awsConfig
 		pr.Initialised = true
-		pr.ProfileType = "AWS_SSO"
+
+		as := assumers
+		for _, a := range as {
+			if a.ProfileMatchesType(pr.RawConfig, pr.AWSConfig) {
+				pr.ProfileType = a.Type()
+				break
+			} else {
+				pr.ProfileType = "AWS_SSO"
+			}
+		}
+
 		return pr, nil
 	} else {
 		for _, v := range pr.RawConfig.Keys() {
@@ -327,11 +368,7 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 				pr.AWSConfig = awsConfig
 				pr.AWSConfig.CredentialProcess = ""
 				pr.Initialised = true
-				if pr.AWSConfig.MFASerial == "" {
-					pr.ProfileType = "AWS_IAM"
-				} else {
-					pr.ProfileType = "AWS_IAM_MFA"
-				}
+				pr.ProfileType = "AWS_IAM"
 				pr.HasSecureStorageIAMCredentials = true
 				return pr, nil
 			}

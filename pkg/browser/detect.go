@@ -50,7 +50,7 @@ func HandleManualBrowserSelection() (string, error) {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
 		Message: "Select one of the browsers from the list",
-		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Chromium", "Safari", "Stdout", "FirefoxStdout"},
+		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Chromium", "Safari", "Stdout", "FirefoxStdout", "Firefox Developer Edition", "Arc"},
 	}
 	var selection string
 	clio.NewLine()
@@ -103,6 +103,11 @@ func GetBrowserKey(b string) string {
 	if strings.Contains(strings.ToLower(b), "chrome") {
 		return ChromeKey
 	}
+
+	if strings.ToLower(b) == "firefox developer edition" {
+		return FirefoxDevEditionKey
+	}
+
 	if strings.Contains(strings.ToLower(b), "brave") {
 		return BraveKey
 	}
@@ -121,6 +126,10 @@ func GetBrowserKey(b string) string {
 	if strings.Contains(strings.ToLower(b), "firefoxstdout") {
 		return FirefoxStdoutKey
 	}
+	if strings.Contains(strings.ToLower(b), "arc") {
+		return ArcKey
+	}
+
 	return StdoutKey
 }
 
@@ -141,6 +150,10 @@ func DetectInstallation(browserKey string) (string, bool) {
 		bPath, _ = ChromiumPathDefaults()
 	case SafariKey:
 		bPath, _ = SafariPathDefaults()
+	case ArcKey:
+		bPath, _ = ArcPathDefaults()
+	case FirefoxDevEditionKey:
+		bPath, _ = FirefoxDevPathDefaults()
 	default:
 		return "", false
 	}
