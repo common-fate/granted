@@ -50,7 +50,7 @@ func HandleManualBrowserSelection() (string, error) {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
 		Message: "Select one of the browsers from the list",
-		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Chromium", "Safari", "Stdout", "FirefoxStdout", "Firefox Developer Edition", "Arc"},
+		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Waterfox", "Chromium", "Safari", "Stdout", "FirefoxStdout", "Firefox Developer Edition", "Arc"},
 	}
 	var selection string
 	clio.NewLine()
@@ -117,6 +117,9 @@ func GetBrowserKey(b string) string {
 	if strings.Contains(strings.ToLower(b), "firefox") || strings.Contains(strings.ToLower(b), "mozilla") {
 		return FirefoxKey
 	}
+	if strings.Contains(strings.ToLower(b), "waterfox") {
+		return WaterfoxKey
+	}
 	if strings.Contains(strings.ToLower(b), "chromium") {
 		return ChromiumKey
 	}
@@ -146,6 +149,8 @@ func DetectInstallation(browserKey string) (string, bool) {
 		bPath, _ = EdgePathDefaults()
 	case FirefoxKey:
 		bPath, _ = FirefoxPathDefaults()
+	case WaterfoxKey:
+		bPath, _ = WaterfoxPathDefaults()
 	case ChromiumKey:
 		bPath, _ = ChromiumPathDefaults()
 	case SafariKey:
@@ -236,8 +241,8 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 			browserPath = customBrowserPath
 		}
 
-		if browserKey == FirefoxKey {
-			err := RunFirefoxExtensionPrompts(browserPath)
+		if browserKey == FirefoxKey || browserKey == WaterfoxKey {
+			err := RunFirefoxExtensionPrompts(browserPath, browserName)
 			if err != nil {
 				return err
 			}
@@ -303,11 +308,11 @@ func SSOBrowser(grantedDefaultBrowser string) error {
 
 }
 
-func RunFirefoxExtensionPrompts(firefoxPath string) error {
+func RunFirefoxExtensionPrompts(browserPath string, browserName string) error {
 	clio.Info("In order to use Granted with Firefox you need to download the Granted Firefox addon: https://addons.mozilla.org/en-GB/firefox/addon/granted")
 	clio.Info("This addon has minimal permissions and does not access any web page content")
 
-	label := "Open Firefox to download the extension?"
+	label := fmt.Sprintf("Open %s to download the extension?", browserName)
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := &survey.Select{
@@ -329,7 +334,7 @@ func RunFirefoxExtensionPrompts(firefoxPath string) error {
 		return nil
 	}
 
-	cmd := exec.Command(firefoxPath,
+	cmd := exec.Command(browserPath,
 		"--new-tab",
 		"https://addons.mozilla.org/en-GB/firefox/addon/granted/")
 	err = cmd.Start()

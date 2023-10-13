@@ -12,6 +12,7 @@ const (
 	BraveKey             string = "BRAVE"
 	EdgeKey              string = "EDGE"
 	FirefoxKey           string = "FIREFOX"
+	WaterfoxKey          string = "WATERFOX"
 	ChromiumKey          string = "CHROMIUM"
 	SafariKey            string = "SAFARI"
 	StdoutKey            string = "STDOUT"
@@ -41,6 +42,10 @@ var FirefoxPathWindows = []string{`\Program Files\Mozilla Firefox\firefox.exe`}
 var FirefoxDevPathMac = []string{"/Applications/Firefox Developer Edition.app/Contents/MacOS/firefox"}
 var FirefoxDevPathLinux = []string{`/usr/bin/firefox-developer`, `/../../mnt/c/Program Files/Firefox Developer Edition/firefox.exe`}
 var FirefoxDevPathWindows = []string{`\Program Files\Firefox Developer Edition\firefox.exe`}
+
+var WaterfoxPathMac = []string{"/Applications/Waterfox.app/Contents/MacOS/waterfox"}
+var WaterfoxPathLinux = []string{`/usr/bin/waterfox`, `/../../mnt/c/Program Files/Waterfox/waterfox.exe`}
+var WaterfoxPathWindows = []string{`\Program Files\Waterfox\waterfox.exe`}
 
 var ChromiumPathMac = []string{"/Applications/Chromium.app/Contents/MacOS/Chromium"}
 var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program Files/Chromium/chromium.exe`}
@@ -141,6 +146,24 @@ func FirefoxDevPathDefaults() ([]string, error) {
 		return FirefoxDevPathMac, nil
 	case "linux":
 		return FirefoxDevPathLinux, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
+func WaterfoxPathDefaults() ([]string, error) {
+	// check linuxpath for binary install
+	path, err := exec.LookPath("waterfox")
+	if err == nil {
+		return []string{path}, nil
+	}
+	switch runtime.GOOS {
+	case "windows":
+		return WaterfoxPathWindows, nil
+	case "darwin":
+		return WaterfoxPathMac, nil
+	case "linux":
+		return WaterfoxPathLinux, nil
 	default:
 		return nil, errors.New("os not supported")
 	}
