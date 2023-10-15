@@ -65,14 +65,24 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 		return nil, fmt.Errorf("invalid value '%s' provided for 'granted_sso_start_url'", cfg.SSOStartURL)
 	}
 
-	item, err = profile.RawConfig.GetKey("credential_process")
+	// This is useful when we need to force some custom behaviour of the credential process, such as running a different version of granted at a specific path
+	item, err = profile.RawConfig.GetKey("granted_skip_credential_process_validation")
 	if err != nil {
 		return nil, err
 	}
-
-	err = validateCredentialProcess(item.Value(), profile.Name)
+	shouldSkipValidation, err := item.Bool()
 	if err != nil {
 		return nil, err
+	}
+	if !shouldSkipValidation {
+		item, err = profile.RawConfig.GetKey("credential_process")
+		if err != nil {
+			return nil, err
+		}
+		err = validateCredentialProcess(item.Value(), profile.Name)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return &cfg, err
