@@ -2,12 +2,13 @@ package launcher
 
 import (
 	"encoding/json"
-	"errors"
 	"os"
 	"path"
 	"runtime"
 
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/browser"
+	"github.com/pkg/errors"
 )
 
 type ChromeProfile struct {
@@ -22,7 +23,7 @@ type ChromeProfile struct {
 }
 
 func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
-	profileName, _ := FindBrowserProfile(profile, l.BrowserType)
+	profileName := FindBrowserProfile(profile, l.BrowserType)
 
 	return []string{
 		l.ExecutablePath,
@@ -50,27 +51,29 @@ var ChromiumPathMac = "Library/Application Support/Chromium/Local State"
 var ChromiumPathLinux = ".config/chromium/Local State"
 var ChromiumPathWindows = `AppData\Local\Chromium\User Data/Local State`
 
-func FindBrowserProfile(profile string, browserType string) (string, error) {
-	//open Local State file for browser
-
-	//work out which chromium browser we are using
-
+// FindBrowserProfile will try to read profile data from local state path.
+// will fallback to provided profile value.
+func FindBrowserProfile(profile string, browserType string) string {
+	// work out which chromium browser we are using
 	stateFile, err := getLocalStatePath(browserType)
 	if err != nil {
-		return "", err
+		clio.Debugf("unable to find localstate path with err %s", err)
+		return profile
 	}
 
 	//read the state file
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
-		return "", err
+		clio.Debugf("unable to read local state file with err %s", err)
+		return profile
 	}
 
 	//the Local State json blob is a bunch of map[string]interfaces which makes it difficult to unmarshal
 	var f map[string]interface{}
 	err = json.Unmarshal(data, &f)
 	if err != nil {
-		return "", err
+		clio.Debugf("unable to unmarshal local state file with err %s", err)
+		return profile
 	}
 
 	//grab the profiles out from the json blob
@@ -79,12 +82,12 @@ func FindBrowserProfile(profile string, browserType string) (string, error) {
 	for profileName, profileObj := range profiles["info_cache"].(map[string]interface{}) {
 		//if the profile name is the same as the profile name we are assuming then we want to use the same profile
 		if profileObj.(map[string]interface{})["name"] == profile {
-			return profileName, nil
+			return profileName
 		}
 
 	}
 
-	return profile, nil
+	return profile
 }
 
 func getLocalStatePath(browserType string) (stateFile string, err error) {
@@ -139,6 +142,7 @@ func getLocalStatePath(browserType string) (stateFile string, err error) {
 		}
 
 	default:
+		clio.Debug("getting local state path: os not supported")
 		return "", errors.New("os not supported")
 	}
 	return stateFile, nil
