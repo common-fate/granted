@@ -21,23 +21,23 @@ const (
 )
 
 type SSOPlainTextOut struct {
-	AccessToken string `json:"accessToken"`
-	ExpiresAt   string `json:"expiresAt"`
-	StartUrl    string `json:"startUrl"`
-	Region      string `json:"region"`
+	AccessToken    string `json:"accessToken"`
+	ExpiresAt      string `json:"expiresAt"`
+	SSOSessionName string `json:"ssoSessionName"`
+	StartUrl       string `json:"startUrl"`
+	Region         string `json:"region"`
 }
 
 // CreatePlainTextSSO is currently unused. In a future version of the Granted CLI,
 // we'll allow users to export a plaintext token from their keychain for compatibility
 // purposes with other AWS tools.
-//
-// see: https://github.com/common-fate/granted/issues/155
 func CreatePlainTextSSO(awsConfig config.SharedConfig, token *securestorage.SSOToken) *SSOPlainTextOut {
 	return &SSOPlainTextOut{
-		AccessToken: token.AccessToken,
-		ExpiresAt:   token.Expiry.Format(time.RFC3339),
-		Region:      awsConfig.Region,
-		StartUrl:    awsConfig.SSOStartURL,
+		AccessToken:    token.AccessToken,
+		ExpiresAt:      token.Expiry.Format(time.RFC3339),
+		Region:         awsConfig.Region,
+		SSOSessionName: awsConfig.SSOSessionName,
+		StartUrl:       awsConfig.SSOStartURL,
 	}
 }
 
@@ -47,7 +47,13 @@ func (s *SSOPlainTextOut) DumpToCacheDirectory() error {
 		return fmt.Errorf("unable to parse token to json with err %s", err)
 	}
 
-	err = dumpTokenFile(jsonOut, s.StartUrl)
+	// AWS uses the session name if present, else use startUrl
+	key := s.SSOSessionName
+	if key == "" {
+		key = s.StartUrl
+	}
+
+	err = dumpTokenFile(jsonOut, key)
 	if err != nil {
 		return err
 	}
@@ -55,9 +61,9 @@ func (s *SSOPlainTextOut) DumpToCacheDirectory() error {
 	return nil
 }
 
-func getCacheFileName(url string) (string, error) {
+func getCacheFileName(key string) (string, error) {
 	hash := sha1.New()
-	_, err := hash.Write([]byte(url))
+	_, err := hash.Write([]byte(key))
 	if err != nil {
 		return "", err
 	}
@@ -65,8 +71,8 @@ func getCacheFileName(url string) (string, error) {
 }
 
 // Write SSO token as JSON output to default cache location.
-func dumpTokenFile(jsonToken []byte, url string) error {
-	key, err := getCacheFileName(url)
+func dumpTokenFile(jsonToken []byte, key string) error {
+	key, err := getCacheFileName(key)
 	if err != nil {
 		return err
 	}

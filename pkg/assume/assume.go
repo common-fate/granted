@@ -524,6 +524,14 @@ func AssumeCommand(c *cli.Context) error {
 			}
 
 			clio.Successf("Exported credentials to ~/.aws/credentials file as %s successfully", profileName)
+
+			err := cfaws.ExportAccessTokenToCache(profile)
+
+			if err != nil {
+				return err
+			}
+
+			clio.Success("Exported access token to ~/.aws/sso/cache")
 		}
 
 		if execCfg != nil {
