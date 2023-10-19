@@ -56,8 +56,8 @@ func (c *Profile) SSOLoginWithToken(ctx context.Context, cfg *aws.Config, access
 		requiresAssuming = true
 	}
 
-	ssoTokenKey := c.AWSConfig.SSOStartURL
-
+	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
+	cfg.Region = rootProfile.AWSConfig.SSORegion
 	// create sso client
 	ssoClient := sso.NewFromConfig(*cfg)
 	var res *ssotypes.RoleCredentials
@@ -166,7 +166,12 @@ func (c *Profile) SSOLoginWithToken(ctx context.Context, cfg *aws.Config, access
 }
 
 func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
-	ssoTokenKey := c.AWSConfig.SSOStartURL
+	rootProfile := c
+	if len(c.Parents) > 0 {
+		rootProfile = c.Parents[0]
+	}
+
+	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
 
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
@@ -190,8 +195,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 
 	if cachedToken == nil {
 		newCfg := aws.NewConfig()
-		newCfg.Region = c.AWSConfig.SSORegion
-		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *newCfg, c.AWSConfig.SSOStartURL)
+		newCfg.Region = rootProfile.AWSConfig.SSORegion
+		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *newCfg, rootProfile.AWSConfig.SSOStartURL)
 		if err != nil {
 			return aws.Credentials{}, err
 		}
