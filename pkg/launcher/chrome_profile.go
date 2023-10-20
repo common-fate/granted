@@ -22,12 +22,13 @@ type ChromeProfile struct {
 func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
 	// Chrome profiles can't contain slashes
 	profileName := strings.ReplaceAll(profile, "/", "-")
+	profileDir := findBrowserProfile(profileName, l.BrowserType)
 
 	setProfileName(profileName, l.BrowserType)
 
 	return []string{
 		l.ExecutablePath,
-		"--profile-directory=" + profileName,
+		"--profile-directory=" + profileDir,
 		"--no-first-run",
 		"--no-default-browser-check",
 		url,
@@ -63,14 +64,14 @@ func setProfileName(profile string, browserType string) {
 		return
 	}
 
-	//read the state file
+	// read the state file
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		clio.Debugf("unable to read local state file with err %s", err)
 		return
 	}
 
-	//the Local State json blob is a bunch of map[string]interfaces which makes it difficult to unmarshal
+	// the Local State json blob is a bunch of map[string]interfaces which makes it difficult to unmarshal
 	var f map[string]any
 	err = json.Unmarshal(data, &f)
 	if err != nil {
@@ -78,7 +79,7 @@ func setProfileName(profile string, browserType string) {
 		return
 	}
 
-	//grab the profiles out from the json blob
+	// grab the profiles out from the json blob
 	profiles, ok := f["profile"].(map[string]any)
 	if !ok {
 		clio.Debugf("could not cast profiles to map[string]any")
@@ -121,6 +122,60 @@ func setProfileName(profile string, browserType string) {
 		clio.Debugf("encode error to Local State file: %s", err)
 		return
 	}
+}
+
+func findBrowserProfile(profile string, browserType string) string {
+	// open Local State file for browser
+	// work out which chromium browser we are using
+	stateFile, err := getLocalStatePath(browserType)
+	if err != nil {
+		clio.Debugf("unable to find localstate path with err %s", err)
+		return profile
+	}
+
+	// read the state file
+	data, err := os.ReadFile(stateFile)
+	if err != nil {
+		clio.Debugf("unable to read local state file with err %s", err)
+		return profile
+	}
+
+	// the Local State json blob is a bunch of map[string]interfaces which makes it difficult to unmarshal
+	var f map[string]any
+	err = json.Unmarshal(data, &f)
+	if err != nil {
+		clio.Debugf("unable to unmarshal local state file with err %s", err)
+		return profile
+	}
+
+	// grab the profiles out from the json blob
+	profiles, ok := f["profile"].(map[string]any)
+	if !ok {
+		clio.Debugf("could not cast profiles to map[string]any")
+		return profile
+	}
+
+	infoCache, ok := profiles["info_cache"].(map[string]any)
+	if !ok {
+		clio.Debugf("could not cast info_cache to map[string]any")
+		return profile
+	}
+
+	for chromeProfileID, profileObj := range infoCache {
+		profileContents, ok := profileObj.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		// if the name field from the Chrome profile is the same as the provided profile name, return the ID of the Chrome profile.
+		if profileContents["name"] == profile {
+			return chromeProfileID
+		}
+
+	}
+
+	// otherwise, fall back to returning the input profile name.
+	return profile
 }
 
 func getLocalStatePath(browserType string) (stateFile string, err error) {
