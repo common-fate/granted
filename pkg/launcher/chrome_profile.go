@@ -2,33 +2,33 @@ package launcher
 
 import (
 	"encoding/json"
+	"errors"
 	"os"
 	"path"
 	"runtime"
+	"strings"
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/browser"
-	"github.com/pkg/errors"
 )
 
 type ChromeProfile struct {
 	// ExecutablePath is the path to the Chrome binary on the system.
 	ExecutablePath string
-	// UserDataPath is the path to the Chrome user data directory,
-	// which we override to put Granted profiles in a specific folder
-	// for easy management.
-	UserDataPath string
 
 	BrowserType string
 }
 
 func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
-	profileName := FindBrowserProfile(profile, l.BrowserType)
+	// Chrome profiles can't contain slashes
+	profileName := strings.ReplaceAll(profile, "/", "-")
+	profileDir := findBrowserProfile(profileName, l.BrowserType)
+
+	setProfileName(profileName, l.BrowserType)
 
 	return []string{
 		l.ExecutablePath,
-		// "--user-data-dir=" + l.UserDataPath,
-		"--profile-directory=" + profileName,
+		"--profile-directory=" + profileDir,
 		"--no-first-run",
 		"--no-default-browser-check",
 		url,
@@ -51,9 +51,81 @@ var ChromiumPathMac = "Library/Application Support/Chromium/Local State"
 var ChromiumPathLinux = ".config/chromium/Local State"
 var ChromiumPathWindows = `AppData\Local\Chromium\User Data/Local State`
 
-// FindBrowserProfile will try to read profile data from local state path.
-// will fallback to provided profile value.
-func FindBrowserProfile(profile string, browserType string) string {
+// setProfileName attempts to rename an existing Chrome profile from 'Person 2', 'Person 3', etc
+// into the name of the AWS profile that we're launching.
+//
+// The first time a particular profile is launched, this function will do nothing as the Chrome profile
+// does not yet exist in the Local State file.
+// However, subsequent launches will cause the profile to be correctly renamed.
+func setProfileName(profile string, browserType string) {
+	stateFile, err := getLocalStatePath(browserType)
+	if err != nil {
+		clio.Debugf("unable to find localstate path with err %s", err)
+		return
+	}
+
+	// read the state file
+	data, err := os.ReadFile(stateFile)
+	if err != nil {
+		clio.Debugf("unable to read local state file with err %s", err)
+		return
+	}
+
+	// the Local State json blob is a bunch of map[string]interfaces which makes it difficult to unmarshal
+	var f map[string]any
+	err = json.Unmarshal(data, &f)
+	if err != nil {
+		clio.Debugf("unable to unmarshal local state file with err %s", err)
+		return
+	}
+
+	// grab the profiles out from the json blob
+	profiles, ok := f["profile"].(map[string]any)
+	if !ok {
+		clio.Debugf("could not cast profiles to map[string]any")
+		return
+	}
+
+	infoCache, ok := profiles["info_cache"].(map[string]any)
+	if !ok {
+		clio.Debugf("could not cast info_cache to map[string]any")
+		return
+	}
+
+	profileObj, ok := infoCache[profile]
+	if !ok {
+		clio.Debugf("could not find profile %s in info_cache", profile)
+		return
+	}
+
+	profileContents, ok := profileObj.(map[string]any)
+	if !ok {
+		clio.Debugf("could not cast profile object to map[string]any")
+		return
+	}
+
+	if profileContents["name"] != profile {
+		clio.Debugf("updating profile name from %s to %s", profileContents["name"], profile)
+		profileContents["name"] = profile
+	}
+
+	file, err := os.OpenFile(stateFile, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
+	if err != nil {
+		clio.Debugf("could not open Local State file: %s", err)
+		return
+	}
+
+	defer file.Close()
+	encoder := json.NewEncoder(file)
+	err = encoder.Encode(f)
+	if err != nil {
+		clio.Debugf("encode error to Local State file: %s", err)
+		return
+	}
+}
+
+func findBrowserProfile(profile string, browserType string) string {
+	// open Local State file for browser
 	// work out which chromium browser we are using
 	stateFile, err := getLocalStatePath(browserType)
 	if err != nil {
@@ -61,32 +133,48 @@ func FindBrowserProfile(profile string, browserType string) string {
 		return profile
 	}
 
-	//read the state file
+	// read the state file
 	data, err := os.ReadFile(stateFile)
 	if err != nil {
 		clio.Debugf("unable to read local state file with err %s", err)
 		return profile
 	}
 
-	//the Local State json blob is a bunch of map[string]interfaces which makes it difficult to unmarshal
-	var f map[string]interface{}
+	// the Local State json blob is a bunch of map[string]interfaces which makes it difficult to unmarshal
+	var f map[string]any
 	err = json.Unmarshal(data, &f)
 	if err != nil {
 		clio.Debugf("unable to unmarshal local state file with err %s", err)
 		return profile
 	}
 
-	//grab the profiles out from the json blob
-	profiles := f["profile"].(map[string]interface{})
-	//can this be done cleaner with a conversion into a struct?
-	for profileName, profileObj := range profiles["info_cache"].(map[string]interface{}) {
-		//if the profile name is the same as the profile name we are assuming then we want to use the same profile
-		if profileObj.(map[string]interface{})["name"] == profile {
-			return profileName
+	// grab the profiles out from the json blob
+	profiles, ok := f["profile"].(map[string]any)
+	if !ok {
+		clio.Debugf("could not cast profiles to map[string]any")
+		return profile
+	}
+
+	infoCache, ok := profiles["info_cache"].(map[string]any)
+	if !ok {
+		clio.Debugf("could not cast info_cache to map[string]any")
+		return profile
+	}
+
+	for chromeProfileID, profileObj := range infoCache {
+		profileContents, ok := profileObj.(map[string]any)
+		if !ok {
+			continue
+		}
+
+		// if the name field from the Chrome profile is the same as the provided profile name, return the ID of the Chrome profile.
+		if profileContents["name"] == profile {
+			return chromeProfileID
 		}
 
 	}
 
+	// otherwise, fall back to returning the input profile name.
 	return profile
 }
 

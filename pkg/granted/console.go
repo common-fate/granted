@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"os/exec"
-	"path"
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
@@ -63,11 +62,6 @@ var ConsoleCommand = cli.Command{
 			return nil
 		}
 
-		grantedFolder, err := config.GrantedConfigFolder()
-		if err != nil {
-			return err
-		}
-
 		var l assume.Launcher
 		if cfg.CustomBrowserPath == "" && cfg.DefaultBrowser != "" {
 			l = launcher.Open{}
@@ -78,22 +72,18 @@ var ConsoleCommand = cli.Command{
 			case browser.ChromeKey:
 				l = launcher.ChromeProfile{
 					ExecutablePath: cfg.CustomBrowserPath,
-					UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "1"), // held over for backwards compatibility, "1" indicates Chrome profiles
 				}
 			case browser.BraveKey:
 				l = launcher.ChromeProfile{
 					ExecutablePath: cfg.CustomBrowserPath,
-					UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "2"), // held over for backwards compatibility, "2" indicates Brave profiles
 				}
 			case browser.EdgeKey:
 				l = launcher.ChromeProfile{
 					ExecutablePath: cfg.CustomBrowserPath,
-					UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "3"), // held over for backwards compatibility, "3" indicates Edge profiles
 				}
 			case browser.ChromiumKey:
 				l = launcher.ChromeProfile{
 					ExecutablePath: cfg.CustomBrowserPath,
-					UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "4"), // held over for backwards compatibility, "4" indicates Chromium profiles
 				}
 			case browser.FirefoxKey:
 				l = launcher.Firefox{
