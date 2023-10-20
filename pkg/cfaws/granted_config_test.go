@@ -20,11 +20,6 @@ func TestValidateCredentialProcess(t *testing.T) {
 			profileName: "develop",
 		},
 		{
-			name:        "valid argument with correct profile name and --aws-config-file flag",
-			arg:         "  granted --aws-config-file example credential-process   --profile develop",
-			profileName: "develop",
-		},
-		{
 			name:        "valid argument with incorrect profile name",
 			arg:         "granted credential-process --profile abc",
 			profileName: "develop",
