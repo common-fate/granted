@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/url"
 	"os/exec"
-	"path"
 	"runtime"
 	"strconv"
 	"strings"
@@ -399,39 +398,12 @@ func AssumeCommand(c *cli.Context) error {
 			return errors.New("default browser not configured. run `granted browser set` to configure")
 		}
 
-		grantedFolder, err := config.GrantedConfigFolder()
-		if err != nil {
-			return err
-		}
-
 		var l Launcher
 		switch cfg.DefaultBrowser {
-		case browser.ChromeKey:
+		case browser.ChromeKey, browser.BraveKey, browser.EdgeKey, browser.ChromiumKey:
 			l = launcher.ChromeProfile{
-				BrowserType:    browser.ChromeKey,
+				BrowserType:    cfg.DefaultBrowser,
 				ExecutablePath: browserPath,
-				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "1"), // held over for backwards compatibility, "1" indicates Chrome profiles
-			}
-		case browser.BraveKey:
-			l = launcher.ChromeProfile{
-				BrowserType: browser.BraveKey,
-
-				ExecutablePath: browserPath,
-				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "2"), // held over for backwards compatibility, "2" indicates Brave profiles
-			}
-		case browser.EdgeKey:
-			l = launcher.ChromeProfile{
-				BrowserType: browser.EdgeKey,
-
-				ExecutablePath: browserPath,
-				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "3"), // held over for backwards compatibility, "3" indicates Edge profiles
-			}
-		case browser.ChromiumKey:
-			l = launcher.ChromeProfile{
-				BrowserType: browser.ChromiumKey,
-
-				ExecutablePath: browserPath,
-				UserDataPath:   path.Join(grantedFolder, "chromium-profiles", "4"), // held over for backwards compatibility, "4" indicates Chromium profiles
 			}
 		case browser.FirefoxKey, browser.WaterfoxKey:
 			l = launcher.Firefox{
