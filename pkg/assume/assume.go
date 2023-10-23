@@ -303,7 +303,7 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 	}
-	if assumeFlags.String("chain-assume-role") != "" {
+	if assumeFlags.String("chain") != "" {
 		if assumeFlags.Bool("sso") {
 			return errors.New("chain-assume-role flag is not currently compatible with the sso flag, let us know on github if you would like this feature")
 		}
@@ -311,8 +311,8 @@ func AssumeCommand(c *cli.Context) error {
 		chainProfile := awsconfig.SharedConfig{
 			Source:                           &profile.AWSConfig,
 			SourceProfileName:                profile.Name,
-			RoleARN:                          assumeFlags.String("chain-assume-role"),
-			Profile:                          assumeFlags.String("chain-assume-role"),
+			RoleARN:                          assumeFlags.String("chain"),
+			Profile:                          assumeFlags.String("chain"),
 			EnableEndpointDiscovery:          profile.AWSConfig.EnableEndpointDiscovery,
 			S3UseARNRegion:                   profile.AWSConfig.S3UseARNRegion,
 			EC2IMDSEndpointMode:              profile.AWSConfig.EC2IMDSEndpointMode,
