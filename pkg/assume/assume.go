@@ -303,6 +303,9 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 	}
+
+	// inline role Chaining works by creating a mock config section/profile configured with the parent as it's source
+	// this means that existing assumers can be used to handle the base profile credential sourcing and assuming
 	if assumeFlags.String("chain") != "" {
 		// create a new aws shared config profile by copying most of the default config from the source profile
 		chainProfile := awsconfig.SharedConfig{
@@ -330,7 +333,7 @@ func AssumeCommand(c *cli.Context) error {
 		profile = &cfaws.Profile{
 			// empty section as a placeholder
 			RawConfig:   emptySection,
-			Name:        "Chain",
+			Name:        assumeFlags.String("chain"),
 			File:        profile.File,
 			ProfileType: profile.ProfileType,
 			Parents:     append(profile.Parents, profile),
