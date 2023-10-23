@@ -304,9 +304,6 @@ func AssumeCommand(c *cli.Context) error {
 		}
 	}
 	if assumeFlags.String("chain") != "" {
-		if assumeFlags.Bool("sso") {
-			return errors.New("chain-assume-role flag is not currently compatible with the sso flag, let us know on github if you would like this feature")
-		}
 		// create a new aws shared config profile by copying most of the default config from the source profile
 		chainProfile := awsconfig.SharedConfig{
 			Source:                           &profile.AWSConfig,
