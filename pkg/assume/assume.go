@@ -15,6 +15,7 @@ import (
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/aws/aws-sdk-go-v2/aws"
+	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/ansi"
@@ -302,6 +303,44 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 	}
+	if assumeFlags.String("chain-assume-role") != "" {
+		if assumeFlags.Bool("sso") {
+			return errors.New("chain-assume-role flag is not currently compatible with the sso flag, let us know on github if you would like this feature")
+		}
+		// create a new aws shared config profile by copying most of the default config from the source profile
+		chainProfile := awsconfig.SharedConfig{
+			Source:                           &profile.AWSConfig,
+			SourceProfileName:                profile.Name,
+			RoleARN:                          assumeFlags.String("chain-assume-role"),
+			Profile:                          assumeFlags.String("chain-assume-role"),
+			EnableEndpointDiscovery:          profile.AWSConfig.EnableEndpointDiscovery,
+			S3UseARNRegion:                   profile.AWSConfig.S3UseARNRegion,
+			EC2IMDSEndpointMode:              profile.AWSConfig.EC2IMDSEndpointMode,
+			EC2IMDSEndpoint:                  profile.AWSConfig.EC2IMDSEndpoint,
+			S3DisableMultiRegionAccessPoints: profile.AWSConfig.S3DisableMultiRegionAccessPoints,
+			UseDualStackEndpoint:             profile.AWSConfig.UseDualStackEndpoint,
+			UseFIPSEndpoint:                  profile.AWSConfig.UseFIPSEndpoint,
+			DefaultsMode:                     profile.AWSConfig.DefaultsMode,
+			RetryMaxAttempts:                 profile.AWSConfig.RetryMaxAttempts,
+			RetryMode:                        profile.AWSConfig.RetryMode,
+			CustomCABundle:                   profile.AWSConfig.CustomCABundle,
+		}
+		emptySection, err := ini.Empty().NewSection("empty")
+		if err != nil {
+			return err
+		}
+
+		profile = &cfaws.Profile{
+			// empty section as a placeholder
+			RawConfig:   emptySection,
+			Name:        "Chain",
+			File:        profile.File,
+			ProfileType: profile.ProfileType,
+			Parents:     append(profile.Parents, profile),
+			AWSConfig:   chainProfile,
+			Initialised: true,
+		}
+	}
 
 	var region string
 	// The region flag may be supplied in shorthand form, first check if the flag is set and expand the region
@@ -319,10 +358,10 @@ func AssumeCommand(c *cli.Context) error {
 		}
 	}
 
-	configOpts := cfaws.ConfigOpts{Duration: time.Hour, MFATokenCode: ""}
-
-	if assumeFlags.String("mfa-token") != "" {
-		configOpts.MFATokenCode = assumeFlags.String("mfa-token")
+	configOpts := cfaws.ConfigOpts{
+		Duration:     time.Hour,
+		MFATokenCode: assumeFlags.String("mfa-token"),
+		Args:         assumeFlags.StringSlice("pass-through"),
 	}
 
 	// attempt to get session duration from profile
@@ -337,10 +376,6 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 		configOpts.Duration = d
-	}
-
-	if len(assumeFlags.StringSlice("pass-through")) > 0 {
-		configOpts.Args = assumeFlags.StringSlice("pass-through")
 	}
 
 	cfg, err := config.Load()
@@ -562,8 +597,33 @@ func RunExecCommandWithCreds(creds aws.Credentials, region string, cmd string, a
 	c := exec.Command(cmd, args...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
-	c.Env = append(os.Environ(), EnvKeys(creds, region)...)
+	// the aws profile env var will break the exec flow so we strip it out
+	c.Env = append(removeEnvKeys(os.Environ(), []string{"AWS_PROFILE"}), EnvKeys(creds, region)...)
 	return c.Run()
+}
+func removeEnvKeys(env []string, keysToRemove []string) []string {
+	remainingEnv := []string{}
+
+	// Create a map of keys to remove for faster lookup
+	keysToRemoveMap := make(map[string]struct{})
+	for _, key := range keysToRemove {
+		keysToRemoveMap[key] = struct{}{}
+	}
+
+	for _, e := range env {
+		pair := strings.SplitN(e, "=", 2)
+		if len(pair) != 2 {
+			// Malformed environment variable; skip it
+			continue
+		}
+
+		key := pair[0]
+		if _, shouldRemove := keysToRemoveMap[key]; !shouldRemove {
+			remainingEnv = append(remainingEnv, e)
+		}
+	}
+
+	return remainingEnv
 }
 
 // EnvKeys is used to set the env for the "exec" flag
