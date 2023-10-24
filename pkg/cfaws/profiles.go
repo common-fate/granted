@@ -51,6 +51,8 @@ type Profile struct {
 
 	// AWS SDK doesn't support sso_session yet so we check for it manually
 	SSOSession *SSOSession
+	// Optional username to distinguish SSO logins when multiple AWS users are used on the same machine
+	SSOUser string
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -254,6 +256,7 @@ func (p *Profiles) loadConfigFile(loader ConfigFileLoader) error {
 				name := strings.TrimPrefix(section.Name(), "profile ")
 				sectionPtr := section
 				profile := &Profile{RawConfig: sectionPtr, Name: name, File: loader.Path()}
+				profile.SSOUser = profile.CustomGrantedProperty("sso_user")
 				if section.HasKey("sso_session") {
 					key, _ := section.GetKey("sso_session")
 					ssoSession, ok := ssoSessions[key.Value()]

@@ -172,8 +172,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	}
 
 	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
-
-	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	// if the profile has an sso user configured then suffix the sso token storage key to ensure unique logins
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage(c.SSOUser)
 	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
 	var accessToken *string
 
