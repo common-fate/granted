@@ -2,8 +2,6 @@ package cfaws
 
 import (
 	"testing"
-
-	"gopkg.in/ini.v1"
 )
 
 func TestValidateCredentialProcess(t *testing.T) {
@@ -43,25 +41,4 @@ func TestValidateCredentialProcess(t *testing.T) {
 			}
 		})
 	}
-}
-
-type loader struct {
-	fileString string
-}
-
-func (l loader) Path() string { return "" }
-func (l loader) Load() (*ini.File, error) {
-	testConfigFile, err := ini.LoadSources(ini.LoadOptions{}, []byte(l.fileString))
-	if err != nil {
-		return nil, err
-	}
-	return testConfigFile, nil
-}
-
-type nooploader struct {
-}
-
-func (l nooploader) Path() string { return "" }
-func (l nooploader) Load() (*ini.File, error) {
-	return ini.Empty(), nil
 }
