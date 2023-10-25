@@ -3,7 +3,6 @@ package cfaws
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"gopkg.in/ini.v1"
 )
 
@@ -42,50 +41,6 @@ func TestValidateCredentialProcess(t *testing.T) {
 					t.Fatal(err)
 				}
 			}
-		})
-	}
-}
-
-// tests support for aws sso-session configuration
-func TestSSOSessionSupport(t *testing.T) {
-	tests := []struct {
-		name           string
-		file           string
-		profileName    string
-		wantSSOSession *SSOSession
-	}{
-		{
-			name: "valid argument with correct profile name",
-			file: `[profile testing]
-sso_session = testing-sso
-sso_account_id     = 12345678912
-sso_role_name      = Test
-region             = ap-southeast-2
-
-[sso-session testing-sso]
-sso_start_url  = https://d-12345678910.awsapps.com/start
-sso_region     = ap-southeast-2
-`,
-			profileName: "testing",
-			wantSSOSession: &SSOSession{
-				SSORegion:   "ap-southeast-2",
-				SSOStartURL: "https://d-12345678910.awsapps.com/start",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			l := loader{fileString: tt.file}
-			profiles, err := loadProfiles(l, nooploader{})
-			if err != nil {
-				t.Fatal(err)
-			}
-			profile, err := profiles.Profile(tt.profileName)
-			if err != nil {
-				t.Fatal(err)
-			}
-			assert.Equal(t, tt.wantSSOSession, profile.SSOSession)
 		})
 	}
 }

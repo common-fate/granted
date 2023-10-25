@@ -1,7 +1,6 @@
 package securestorage
 
 import (
-	"strings"
 	"time"
 
 	"github.com/common-fate/clio"
@@ -12,10 +11,10 @@ type SSOTokensSecureStorage struct {
 	SecureStorage SecureStorage
 }
 
-func NewSecureSSOTokenStorage(suffixes ...string) SSOTokensSecureStorage {
+func NewSecureSSOTokenStorage() SSOTokensSecureStorage {
 	return SSOTokensSecureStorage{
 		SecureStorage: SecureStorage{
-			StorageSuffix: "aws-sso-tokens" + strings.Join(suffixes, "-"),
+			StorageSuffix: "aws-sso-tokens",
 		},
 	}
 }
