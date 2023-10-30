@@ -27,11 +27,24 @@ IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRAN
 ${GRANTED_OUTPUT}
 EOF
 
+
+
 # # unset the exported GRANTED_ALIAS_CONFIGURED flag
 unset GRANTED_ALIAS_CONFIGURED
 
 # remove carriage return
 GRANTED_FLAG=$(printf '%s\n' "$GRANTED_FLAG" | tr -d '\r')
+  printf 'test'
+echo "$GRANTED_FLAG"
+echo "${GRANTED_1}"
+
+if [ "$GRANTED_FLAG" = "GrantedGCPProject" ]; then
+  unset CLOUDSDK_ACTIVE_CONFIG_NAME
+  if [ ! "${GRANTED_1}" = "None" ]; then
+    export CLOUDSDK_ACTIVE_CONFIG_NAME="${GRANTED_1}"
+  fi
+fi
+
 
 if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
   unset AWS_ACCESS_KEY_ID
@@ -161,3 +174,6 @@ if [ "$GRANTED_RETURN_STATUS" = "true" ]; then
   # a sourced file. Calling exit would exit the login shell.
   return $GRANTED_STATUS
 fi
+
+
+

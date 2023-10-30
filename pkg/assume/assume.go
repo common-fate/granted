@@ -17,11 +17,11 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/clio"
-	"github.com/common-fate/clio/ansi"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/assumeprint"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/cfgcp"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/console"
 	"github.com/common-fate/granted/pkg/forkprocess"
@@ -30,6 +30,7 @@ import (
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/fatih/color"
 	"github.com/hako/durafmt"
+	"github.com/mgutz/ansi"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/ini.v1"
 )
@@ -96,6 +97,45 @@ func AssumeCommand(c *cli.Context) error {
 	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
 		return err
+	}
+
+	if c.Args().First() == "gcp" {
+		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+
+		projectName := ""
+		projectKeys := []string{}
+		gcpLoader := cfgcp.GCPLoader{}
+		gcpProjects, err := gcpLoader.Load()
+		if err != nil {
+			return err
+		}
+
+		projectKeys = append(projectKeys, gcpProjects...)
+
+		clio.NewLine()
+		// Replicate the logic from original assume fn.
+		in := survey.Select{
+			Message: "Please select the project you would like to assume:",
+			Options: projectKeys,
+			Filter:  filterMultiToken,
+		}
+		if len(projectKeys) == 0 {
+			return clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
+				clierr.Info("You can add profiles to your AWS config by following our guide: "),
+				clierr.Info("https://docs.commonfate.io/granted/getting-started#set-up-your-aws-profile-file"),
+			)
+		}
+
+		err = testable.AskOne(&in, &projectName, withStdio)
+		if err != nil {
+			return err
+		}
+
+		//set the project environment variable
+		fmt.Printf("GrantedGCPProject %s", projectName)
+
+		return nil
+
 	}
 
 	if assumeFlags.String("exec") != "" && runtime.GOOS == "windows" {
@@ -171,6 +211,7 @@ func AssumeCommand(c *cli.Context) error {
 		var wg sync.WaitGroup
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+
 		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
