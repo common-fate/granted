@@ -96,4 +96,18 @@ elseif ( $ASSUME_FLAG -eq "GrantedOutput") {
     Write-Host "$ASSUME_1"
 }
 
+elseif ( $ASSUME_FLAG -eq "GrantedGCPProject") {
+    #Remove the environment variables associated with the AWS CLI,
+    #ensuring all environment variables will be valid
+    $env:CLOUDSDK_ACTIVE_CONFIG_NAME = ""
+    $env:GOOGLE_CLOUD_PROJECT = ""
+   
+    if ( $ASSUME_1 -ne "None" ) {
+        $env:CLOUDSDK_ACTIVE_CONFIG_NAME = $ASSUME_1
+    }
+    if ( $ASSUME_2 -ne "None" ) {
+        $env:GOOGLE_CLOUD_PROJECT = $ASSUME_2
+    }
+}
+
 exit $env:ASSUME_STATUS

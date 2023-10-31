@@ -117,5 +117,9 @@ func (a AssumeGCP) Assume() error {
 	//set the project environment variable
 	fmt.Printf("GrantedGCPProject %s %s", configName, config.Project)
 
+	clio.Success("Updated config and current project")
+	clio.Info("Config: %s", configName)
+	clio.Info("Project: %s", config.Project)
+
 	return nil
 }

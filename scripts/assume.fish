@@ -89,6 +89,19 @@ else if test "$GRANTED_FLAG" = "GrantedOutput"
         echo $line
       end
   end
+
+else if test "$GRANTED_FLAG" = "GrantedGCPProject"
+  set -e CLOUDSDK_ACTIVE_CONFIG_NAME
+  set -e GOOGLE_CLOUD_PROJECT
+  if test "$GRANTED_1" != "None"
+    set -gx CLOUDSDK_ACTIVE_CONFIG_NAME $GRANTED_1
+  end
+  if test "$GRANTED_2" != "None"
+    set -gx GOOGLE_CLOUD_PROJECT $GRANTED_2
+  end
+
 end
+
+
 
 exit $GRANTED_STATUS

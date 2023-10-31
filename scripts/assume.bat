@@ -82,6 +82,20 @@ for /f "tokens=1,2,3,4,5,6,7,8,9,10,11 delims= " %%a in ("%ASSUME_OUTPUT%") do (
         Exit /b %ASSUME_STATUS%
     )
 
+    if "%%a" == "GrantedGCPProject" (
+		set CLOUDSDK_ACTIVE_CONFIG_NAME=
+		set GOOGLE_CLOUD_PROJECT=
+	
+
+        if "%%b" NEQ "None" (
+            set CLOUDSDK_ACTIVE_CONFIG_NAME=%%b)
+
+        if "%%c" NEQ "None" (
+            set GOOGLE_CLOUD_PROJECT=%%c)
+        
+        Exit /b %ASSUME_STATUS%
+    )
+
     
     echo %ASSUME_OUTPUT%
 )
