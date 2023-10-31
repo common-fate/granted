@@ -16,12 +16,12 @@ import (
 )
 
 type GCPConfig struct {
-	Name          string
-	isActive      bool
-	Account       string `ini:"account"`
-	Project       string `ini:"project"`
-	DefaultZone   string //todo type this
-	DefaultRegion string //todo type this
+	Name     string
+	isActive bool
+	Account  string `ini:"account"`
+	Project  string `ini:"project"`
+	Zone     string `ini:"zone"`   //todo type this
+	Region   string `ini:"region"` //todo type this
 }
 
 type GCPLoader struct {
