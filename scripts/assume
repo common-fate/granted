@@ -34,15 +34,22 @@ unset GRANTED_ALIAS_CONFIGURED
 
 # remove carriage return
 GRANTED_FLAG=$(printf '%s\n' "$GRANTED_FLAG" | tr -d '\r')
-  printf 'test'
-echo "$GRANTED_FLAG"
-echo "${GRANTED_1}"
+
 
 if [ "$GRANTED_FLAG" = "GrantedGCPProject" ]; then
+
+
   unset CLOUDSDK_ACTIVE_CONFIG_NAME
+  unset GOOGLE_CLOUD_PROJECT
   if [ ! "${GRANTED_1}" = "None" ]; then
     export CLOUDSDK_ACTIVE_CONFIG_NAME="${GRANTED_1}"
   fi
+  if [ ! "${GRANTED_2}" = "None" ]; then
+    export GOOGLE_CLOUD_PROJECT="${GRANTED_2}"
+  fi
+
+  
+
 fi
 
 

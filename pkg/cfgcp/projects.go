@@ -10,6 +10,7 @@ import (
 
 	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
 	"google.golang.org/api/iterator"
+	"gopkg.in/ini.v1"
 
 	resourcemanagerpb "cloud.google.com/go/resourcemanager/apiv3/resourcemanagerpb"
 )
@@ -17,8 +18,8 @@ import (
 type GCPConfig struct {
 	Name          string
 	isActive      bool
-	Account       string
-	Project       string
+	Account       string `ini:"account"`
+	Project       string `ini:"project"`
 	DefaultZone   string //todo type this
 	DefaultRegion string //todo type this
 }
@@ -60,6 +61,7 @@ func (g *GCPLoader) Load() ([]string, error) {
 			return err
 		}
 		if !d.IsDir() && d.Name() != "" {
+
 			configs = append(configs, d.Name()[7:])
 		}
 		return nil
@@ -68,6 +70,30 @@ func (g *GCPLoader) Load() ([]string, error) {
 		return nil, err
 	}
 	return configs, nil
+}
+
+// reads all config files for their names in ~/.config/gcloud
+func (g *GCPLoader) Get(configId string) (GCPConfig, error) {
+	config := GCPConfig{}
+
+	configLocation, err := g.getOSConfigLocation()
+	if err != nil {
+		return config, err
+	}
+
+	coreConfig, err := ini.LoadSources(ini.LoadOptions{}, configLocation+fmt.Sprintf("/config_%s", configId))
+	if err != nil {
+		return config, err
+	}
+	core, err := coreConfig.GetSection("core")
+	if err != nil {
+		return config, err
+	}
+	err = core.MapTo(&config)
+	if err != nil {
+		return config, err
+	}
+	return config, nil
 }
 
 func ListProjects(ctx context.Context) ([]resourcemanagerpb.Project, error) {
