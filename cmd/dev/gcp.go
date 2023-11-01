@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	admin "cloud.google.com/go/iam/admin/apiv1"
 	"cloud.google.com/go/iam/admin/apiv1/adminpb"
@@ -17,8 +18,10 @@ func listServiceAccounts() error {
 		return err
 	}
 
+	projId := os.Getenv("GOOGLE_CLOUD_PROJECT")
+
 	req := &adminpb.ListServiceAccountsRequest{
-		Name: fmt.Sprintf("projects/%s", "cf-dev-368022"),
+		Name: fmt.Sprintf("projects/%s", projId),
 	}
 	it := c.ListServiceAccounts(ctx, req)
 	for {
