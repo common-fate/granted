@@ -85,14 +85,32 @@ for /f "tokens=1,2,3,4,5,6,7,8,9,10,11 delims= " %%a in ("%ASSUME_OUTPUT%") do (
     if "%%a" == "GrantedGCPProject" (
 		set CLOUDSDK_ACTIVE_CONFIG_NAME=
 		set GOOGLE_CLOUD_PROJECT=
-	
+        set CLOUDSDK_CORE_PROJECT=
+        set CLOUDSDK_CORE_ACCOUNT=
+        set CLOUDSDK_COMPUTE_REGION=
+        set REGION=
+        set ZONE=
 
         if "%%b" NEQ "None" (
             set CLOUDSDK_ACTIVE_CONFIG_NAME=%%b)
 
         if "%%c" NEQ "None" (
             set GOOGLE_CLOUD_PROJECT=%%c)
-        
+
+        if "%%c" NEQ "None" (
+            set CLOUDSDK_CORE_PROJECT=%%c)
+
+        if "%%d" NEQ "None" (
+            set CLOUDSDK_CORE_ACCOUNT=%%d)
+
+        if "%%e" NEQ "None" (
+            set CLOUDSDK_COMPUTE_REGION=%%e)
+
+        if "%%e" NEQ "None" (
+            set REGION=%%e)
+
+        if "%%f" NEQ "None" (
+            set ZONE=%%f)   
         Exit /b %ASSUME_STATUS%
     )
 

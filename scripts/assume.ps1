@@ -101,12 +101,32 @@ elseif ( $ASSUME_FLAG -eq "GrantedGCPProject") {
     #ensuring all environment variables will be valid
     $env:CLOUDSDK_ACTIVE_CONFIG_NAME = ""
     $env:GOOGLE_CLOUD_PROJECT = ""
+    $env:CLOUDSDK_CORE_PROJECT = ""
+    $env:CLOUDSDK_CORE_ACCOUNT = ""
+    $env:CLOUDSDK_COMPUTE_REGION = ""
+    $env:REGION = ""
+    $env:ZONE = ""
    
     if ( $ASSUME_1 -ne "None" ) {
         $env:CLOUDSDK_ACTIVE_CONFIG_NAME = $ASSUME_1
     }
     if ( $ASSUME_2 -ne "None" ) {
         $env:GOOGLE_CLOUD_PROJECT = $ASSUME_2
+    }
+    if ( $ASSUME_2 -ne "None" ) {
+        $env:CLOUDSDK_CORE_PROJECT = $ASSUME_2
+    }
+    if ( $ASSUME_3 -ne "None" ) {
+        $env:CLOUDSDK_CORE_ACCOUNT = $ASSUME_3
+    }
+    if ( $ASSUME_4 -ne "None" ) {
+        $env:CLOUDSDK_COMPUTE_REGION = $ASSUME_4
+    }
+    if ( $ASSUME_4 -ne "None" ) {
+        $env:REGION = $ASSUME_4
+    }
+    if ( $ASSUME_5 -ne "None" ) {
+        $env:ZONE = $ASSUME_5
     }
 }
 

@@ -115,11 +115,14 @@ func (a AssumeGCP) Assume() error {
 
 	// fmt.Printf("%v", config)
 	//set the project environment variable
-	fmt.Printf("GrantedGCPProject %s %s", configName, config.Project)
+	fmt.Printf("GrantedGCPProject %s %s %s %s %s", configName, config.Project, config.Account, config.Region, config.Zone)
 
 	clio.Success("Updated config and current project")
-	clio.Info("Config: %s", configName)
-	clio.Info("Project: %s", config.Project)
+	clio.Info("Config: ", configName)
+	clio.Info("Project: ", config.Project)
+	clio.Info("Account: ", config.Account)
+	clio.Info("Region: ", config.Region)
+	clio.Info("Zone: ", config.Zone)
 
 	return nil
 }
