@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/granted/pkg/cfgcp"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/api/cloudresourcemanager/v1"
@@ -109,16 +110,18 @@ var ListConfigSubcommand = cli.Command{
 
 var GenerateSubcommand = cli.Command{
 	Name:  "generate",
-	Usage: "Will generate configuration for all the projects user have access to",
+	Usage: "Generate configuration for all the projects user have access to in GCP based on active credentials available.",
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
-		home, err := os.UserHomeDir()
+		gcp := cfgcp.GCPLoader{}
+
+		configPath, err := gcp.GetOSSpecifcConfigPath()
 		if err != nil {
 			return err
 		}
 
-		filepath := path.Join(home, ".config", "gcloud", "credentials.db")
+		filepath := path.Join(configPath, "credentials.db")
 		db, err := sql.Open("sqlite3", filepath)
 		if err != nil {
 			return err
@@ -142,7 +145,7 @@ var GenerateSubcommand = cli.Command{
 		}
 
 		for _, accountId := range accountIds {
-			creds_filepath := path.Join(home, ".config", "gcloud", "legacy_credentials", accountId, "adc.json")
+			creds_filepath := path.Join(configPath, "legacy_credentials", accountId, "adc.json")
 			client, err := cloudresourcemanager.NewService(ctx, option.WithCredentialsFile(creds_filepath))
 			if err != nil {
 				return err
@@ -161,7 +164,7 @@ var GenerateSubcommand = cli.Command{
 				}
 
 				configName := project.ProjectId
-				filepath := path.Join(home, ".config", "gcloud", "configurations")
+				filepath := path.Join(configPath, "configurations")
 
 				file, err := os.OpenFile(path.Join(filepath, "config_"+configName), os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 				if err != nil {

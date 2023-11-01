@@ -5,8 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"os"
+	"path"
 	"path/filepath"
 	"runtime"
+	"strings"
 
 	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
 	"google.golang.org/api/iterator"
@@ -17,7 +19,7 @@ import (
 
 type GCPConfig struct {
 	Name     string
-	isActive bool
+	IsActive bool
 	Account  string `ini:"account"`
 	Project  string `ini:"project"`
 	Zone     string `ini:"zone"`   //todo type this
@@ -27,15 +29,18 @@ type GCPConfig struct {
 type GCPLoader struct {
 }
 
-const OSX_PATH = "/.config/gcloud/configurations"
-const WINDOWS_PATH = `%APPDATA%\gcloud\configurations`
-const LINUX_PATH = "/.config/gcloud/configurations"
+const (
+	OSX_PATH     = "/.config/gcloud"
+	WINDOWS_PATH = `%APPDATA%\gcloud`
+	LINUX_PATH   = "/.config/gcloud"
+)
 
-func (g *GCPLoader) getOSConfigLocation() (string, error) {
+func (g *GCPLoader) GetOSSpecifcConfigPath() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
+
 	switch runtime.GOOS {
 	case "windows":
 		return home + WINDOWS_PATH, nil
@@ -46,22 +51,22 @@ func (g *GCPLoader) getOSConfigLocation() (string, error) {
 	default:
 		return "", errors.New("os not supported")
 	}
+
 }
 
 // reads all config files for their names in ~/.config/gcloud
 func (g *GCPLoader) Load() ([]string, error) {
 	configs := []string{}
-	configLocation, err := g.getOSConfigLocation()
+	configLocation, err := g.GetOSSpecifcConfigPath()
 	if err != nil {
 		return nil, err
 	}
 
-	err = filepath.WalkDir(configLocation, func(path string, d os.DirEntry, err error) error {
+	err = filepath.WalkDir(path.Join(configLocation, "configurations"), func(path string, d os.DirEntry, err error) error {
 		if err != nil {
 			return err
 		}
-		if !d.IsDir() && d.Name() != "" {
-
+		if !d.IsDir() && strings.HasPrefix(d.Name(), "config_") {
 			configs = append(configs, d.Name()[7:])
 		}
 		return nil
@@ -76,12 +81,13 @@ func (g *GCPLoader) Load() ([]string, error) {
 func (g *GCPLoader) Get(configId string) (GCPConfig, error) {
 	config := GCPConfig{}
 
-	configLocation, err := g.getOSConfigLocation()
+	configLocation, err := g.GetOSSpecifcConfigPath()
 	if err != nil {
 		return config, err
 	}
 
-	coreConfig, err := ini.LoadSources(ini.LoadOptions{}, configLocation+fmt.Sprintf("/config_%s", configId))
+	selectedConfigFilePath := path.Join(configLocation, "configurations", fmt.Sprintf("/config_%s", configId))
+	coreConfig, err := ini.LoadSources(ini.LoadOptions{}, selectedConfigFilePath)
 	if err != nil {
 		return config, err
 	}
