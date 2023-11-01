@@ -41,11 +41,10 @@ func AssumeCommand(c *cli.Context) error {
 	}
 	if c.Args().First() == "gcp" {
 		gcp := AssumeGCP{
-			ctx:           c,
 			assumeFlags:   assumeFlags,
 			getConsoleURL: !assumeFlags.Bool("env") && ((assumeFlags.Bool("console") || assumeFlags.String("console-destination") != "") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url") || assumeFlags.String("browser-profile") != ""),
 		}
-		err := gcp.Assume()
+		err := gcp.Assume(c)
 		if err != nil {
 			return err
 		}

@@ -15,7 +15,6 @@ import (
 )
 
 type AssumeGCP struct {
-	ctx           *cli.Context
 	assumeFlags   *cfflags.Flags
 	getConsoleURL bool
 }
@@ -61,9 +60,9 @@ func (a AssumeGCP) processArgsAndExecFlag(c *cli.Context, assumeFlags *cfflags.F
 	return c.Args().Slice()[1], &execConfig{parts[0], args}, nil
 }
 
-func (a AssumeGCP) Assume() error {
+func (a AssumeGCP) Assume(ctx *cli.Context) error {
 
-	configName, _, err := a.processArgsAndExecFlag(a.ctx, a.assumeFlags)
+	configName, _, err := a.processArgsAndExecFlag(ctx, a.assumeFlags)
 	if err != nil {
 		return err
 	}
