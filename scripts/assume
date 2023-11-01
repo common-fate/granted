@@ -134,9 +134,14 @@ granted_auto_reassume() {
   _is_assume_expired || return 0
 
   [ "${GRANTED_QUIET:-}" = "true" ] ||
-    printf 'granted session expired; reassuming %s\n.' "${AWS_PROFILE}" >&2
-  assume "${AWS_PROFILE}"
-}
+    printf 'hello granted session expired; reassuming %s\n.' "${AWS_PROFILE}" >&2
+
+  if [ -n "${AWS_REGION:-}" ]; then
+    printf 'AWS REGION' 
+    assume "--region=${AWS_REGION}" "${AWS_PROFILE}"
+  else
+    assume "${AWS_PROFILE}"
+  }
 
 if [ -n "${ZSH_NAME:-}" ] && [ "${GRANTED_ENABLE_AUTO_REASSUME:-}" = "true" ]; then
   # shellcheck disable=SC2154,SC3054
