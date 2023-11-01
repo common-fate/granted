@@ -118,8 +118,8 @@ func (a AssumeGCP) Assume() error {
 	fmt.Printf("GrantedGCPProject %s %s", configName, config.Project)
 
 	clio.Success("Updated config and current project")
-	clio.Info("Config: %s", configName)
-	clio.Info("Project: %s", config.Project)
+	clio.Infof("Config: %s", configName)
+	clio.Infof("Project: %s", config.Project)
 
 	return nil
 }
