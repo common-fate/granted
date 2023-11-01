@@ -41,14 +41,35 @@ if [ "$GRANTED_FLAG" = "GrantedGCPProject" ]; then
 
   unset CLOUDSDK_ACTIVE_CONFIG_NAME
   unset GOOGLE_CLOUD_PROJECT
+  unset CLOUDSDK_CORE_PROJECT
+  unset CLOUDSDK_CORE_ACCOUNT
+  unset CLOUDSDK_COMPUTE_REGION
+  unset REGION
+  unset ZONE
+
   if [ ! "${GRANTED_1}" = "None" ]; then
     export CLOUDSDK_ACTIVE_CONFIG_NAME="${GRANTED_1}"
   fi
   if [ ! "${GRANTED_2}" = "None" ]; then
     export GOOGLE_CLOUD_PROJECT="${GRANTED_2}"
   fi
+  if [ ! "${GRANTED_2}" = "None" ]; then
+    export CLOUDSDK_CORE_PROJECT="${GRANTED_2}"
+  fi
+  if [ ! "${GRANTED_3}" = "None" ]; then
+    export CLOUDSDK_CORE_ACCOUNT="${GRANTED_3}"
+  fi
+  if [ ! "${GRANTED_4}" = "None" ]; then
+    export CLOUDSDK_COMPUTE_REGION="${GRANTED_4}"
+  fi
+  if [ ! "${GRANTED_4}" = "None" ]; then
+    export REGION="${GRANTED_4}"
+  fi
+  if [ ! "${GRANTED_5}" = "None" ]; then
+    export ZONE="${GRANTED_5}"
+  fi
 
-  
+
   
 
 fi
