@@ -7,6 +7,7 @@ import (
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/cfgcp"
 	"github.com/common-fate/granted/pkg/console"
 	"github.com/urfave/cli/v2"
 )
@@ -54,6 +55,21 @@ func Completion(ctx *cli.Context) {
 		if strings.HasPrefix(arg, "--") {
 			arg = arg[1:]
 		}
+
+		// Add autocompletion for assume gcp command
+		if arg == "gcp" {
+			gcp := cfgcp.GCPLoader{}
+
+			configs, err := gcp.Load()
+			if err != nil {
+				return
+			}
+
+			fmt.Println(strings.Join(configs, "\n"))
+
+			return
+		}
+
 		if arg == "-s" || arg == "-service" {
 			for k := range console.ServiceMap {
 				fmt.Println(k)
