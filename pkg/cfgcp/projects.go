@@ -1,7 +1,6 @@
 package cfgcp
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -10,11 +9,7 @@ import (
 	"runtime"
 	"strings"
 
-	resourcemanager "cloud.google.com/go/resourcemanager/apiv3"
-	"google.golang.org/api/iterator"
 	"gopkg.in/ini.v1"
-
-	resourcemanagerpb "cloud.google.com/go/resourcemanager/apiv3/resourcemanagerpb"
 )
 
 type GCPConfig struct {
@@ -100,37 +95,4 @@ func (g *GCPLoader) Get(configId string) (GCPConfig, error) {
 		return config, err
 	}
 	return config, nil
-}
-
-func ListProjects(ctx context.Context) ([]resourcemanagerpb.Project, error) {
-	// This snippet has been automatically generated and should be regarded as a code template only.
-	// It will require modifications to work:
-	// - It may require correct/in-range values for request initialization.
-	// - It may require specifying regional endpoints when creating the service client as shown in:
-	//   https://pkg.go.dev/cloud.google.com/go#hdr-Client_Options
-	c, err := resourcemanager.NewProjectsClient(ctx)
-	if err != nil {
-		return nil, err
-	}
-	defer c.Close()
-
-	req := &resourcemanagerpb.ListProjectsRequest{
-		// TODO: Fill request struct fields.
-		// See https://pkg.go.dev/cloud.google.com/go/resourcemanager/apiv3/resourcemanagerpb#ListProjectsRequest.
-		Parent: "organizations/892941281001",
-	}
-
-	it := c.ListProjects(ctx, req)
-	for {
-		resp, err := it.Next()
-		if err == iterator.Done {
-			break
-		}
-		if err != nil {
-			return nil, err
-		}
-		// TODO: Use resp.
-		fmt.Printf("%s", resp.ProjectId)
-	}
-	return nil, nil
 }
