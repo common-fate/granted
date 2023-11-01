@@ -6,15 +6,13 @@ import (
 	"html/template"
 	"os"
 	"path"
-	"strings"
 
-	"github.com/AlecAivazis/survey/v2"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfgcp"
-	"github.com/common-fate/granted/pkg/testable"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 	"google.golang.org/api/cloudresourcemanager/v1"
 	"google.golang.org/api/option"
-	"gopkg.in/ini.v1"
 
 	_ "github.com/mattn/go-sqlite3"
 )
@@ -32,80 +30,8 @@ type CoreConfig struct {
 
 var GCPCommand = cli.Command{
 	Name:        "gcp",
-	Subcommands: []*cli.Command{&GenerateSubcommand, &ListConfigSubcommand},
-}
-
-var ListConfigSubcommand = cli.Command{
-	Name:  "list",
-	Usage: "will list all available gcloud configs",
-	Action: func(ctx *cli.Context) error {
-		home, err := os.UserHomeDir()
-		if err != nil {
-			return err
-		}
-
-		dirpath := path.Join(home, ".config", "gcloud", "configurations")
-
-		configs, err := os.ReadDir(dirpath)
-		if err != nil {
-			return err
-		}
-
-		gcloudCfgs := []string{}
-
-		for _, cfg := range configs {
-			if strings.HasPrefix(cfg.Name(), "config_") {
-				gcloudCfgs = append(gcloudCfgs, strings.TrimPrefix(cfg.Name(), "config_"))
-			}
-		}
-
-		var gConfigName string
-		in := survey.Select{
-			Message: "Please select the profile you would like to assume:",
-			Options: gcloudCfgs,
-		}
-
-		err = testable.AskOne(&in, &gConfigName)
-		if err != nil {
-			return err
-		}
-
-		for _, cfg := range configs {
-			if cfg.Name() == "config_"+gConfigName {
-
-				// read the file
-				f, err := os.ReadFile(path.Join(dirpath, cfg.Name()))
-				if err != nil {
-					return err
-				}
-
-				cfg, err := ini.Load([]byte(string(f)))
-				if err != nil {
-					return err
-				}
-
-				core, err := cfg.GetSection("core")
-				if err != nil {
-					return err
-				}
-
-				projectId, err := core.GetKey("project")
-				if err != nil {
-					return err
-				}
-
-				accountId, err := core.GetKey("account")
-				if err != nil {
-					return err
-				}
-
-				// need to export them as environment variable
-				fmt.Printf("the selected project-id='%s' account-id='%s'", projectId, accountId)
-			}
-		}
-
-		return nil
-	},
+	Usage:       "Google Cloud Platform (GCP) specific actions",
+	Subcommands: []*cli.Command{&GenerateSubcommand},
 }
 
 var GenerateSubcommand = cli.Command{
@@ -129,7 +55,7 @@ var GenerateSubcommand = cli.Command{
 
 		rows, err := db.Query("SELECT account_id FROM credentials")
 		if err != nil {
-			return err
+			return errors.Wrap(err, "querying credentials.db get all account_id")
 		}
 		defer rows.Close()
 
@@ -144,11 +70,17 @@ var GenerateSubcommand = cli.Command{
 			accountIds = append(accountIds, accountId)
 		}
 
+		if len(accountIds) == 0 {
+			clio.Warn("We could not find any authenticated accounts.")
+			clio.Info("Try running 'gcloud auth login' before using this command.")
+		}
+
+		projectCount := 0
 		for _, accountId := range accountIds {
 			creds_filepath := path.Join(configPath, "legacy_credentials", accountId, "adc.json")
 			client, err := cloudresourcemanager.NewService(ctx, option.WithCredentialsFile(creds_filepath))
 			if err != nil {
-				return err
+				return errors.Wrap(err, fmt.Sprintf("creating new cloudresourcemanager service with legacy_credentials file for accountId=%s", accountId))
 			}
 
 			projects, err := client.Projects.List().Context(ctx).Do()
@@ -157,10 +89,11 @@ var GenerateSubcommand = cli.Command{
 			}
 
 			for _, project := range projects.Projects {
+				projectCount++
 
 				t, err := template.New("").Parse(CONFIG_TEMPLATE)
 				if err != nil {
-					return err
+					return errors.Wrap(err, "parsing template file")
 				}
 
 				configName := project.ProjectId
@@ -180,6 +113,10 @@ var GenerateSubcommand = cli.Command{
 				}
 			}
 		}
+
+		clio.Successf("Successfully generated gcloud configurations for %d projects and %d accounts", projectCount, len(accountIds))
+		clio.Infof("Run 'gcloud config configurations list' to see all the generated profiles")
+		clio.Infof("Run 'assume gcp <tab>' to assume into one of the config")
 
 		return nil
 	},
