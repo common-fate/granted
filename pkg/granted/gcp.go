@@ -17,15 +17,24 @@ import (
 	_ "github.com/mattn/go-sqlite3"
 )
 
-const CONFIG_TEMPLATE = `
-[core]
+const CONFIG_TEMPLATE = `[core]
 project = {{ .Project }}
 account = {{ .Account }}
-`
+{{- if or .Region .Zone}}
+[zone]
+{{- if .Region }}
+region = {{ .Region }}
+{{- end}}
+{{- if .Zone }}
+zone = {{ .Zone }}
+{{- end}}
+{{- end}}`
 
 type CoreConfig struct {
 	Project string
 	Account string
+	Region  string
+	Zone    string
 }
 
 var GCPCommand = cli.Command{
@@ -37,6 +46,10 @@ var GCPCommand = cli.Command{
 var GenerateSubcommand = cli.Command{
 	Name:  "generate",
 	Usage: "Generate configuration for all the projects user have access to in GCP based on active credentials available.",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "region", Usage: "Provide region to populate zone/region in the config"},
+		&cli.StringFlag{Name: "zone", Usage: "Provide zone to populate zone/zone in the config"},
+	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
@@ -107,6 +120,8 @@ var GenerateSubcommand = cli.Command{
 				err = t.Execute(file, CoreConfig{
 					Project: project.ProjectId,
 					Account: accountId,
+					Region:  c.String("region"),
+					Zone:    c.String("zone"),
 				})
 				if err != nil {
 					return err
