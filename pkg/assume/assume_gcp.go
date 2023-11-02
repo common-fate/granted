@@ -24,8 +24,6 @@ type AssumeGCP struct {
 	getConsoleURL bool
 }
 
-// processArgsAndExecFlag will return the profileName if provided and the exec command config if the exec flag is used
-// this supports both the -- variant and the legacy flag when passes the command and args as a string for backwards compatability
 func (a AssumeGCP) processArgsAndExecFlag(c *cli.Context, assumeFlags *cfflags.Flags) (string, *execConfig, error) {
 	//cut off the gcp and use the same code as aws
 	slice := c.Args().Slice()[1:]
@@ -47,10 +45,6 @@ func (a AssumeGCP) Assume(ctx *cli.Context) error {
 	if err != nil {
 		return err
 	}
-
-	clio.Info(configName)
-
-	// configName := ""
 
 	projectKeys := []string{}
 	gcpLoader := cfgcp.GCPLoader{}
@@ -155,7 +149,7 @@ func (a AssumeGCP) Assume(ctx *cli.Context) error {
 
 		l := launcher.Open{}
 
-		clio.Infof("Opening a console for %s in your browser...", config.Project)
+		clio.Infof("Opening a console for %s in your browser...", config.Project, serviceAccount)
 
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
 		args := l.LaunchCommand(consoleURL, containerProfile)
@@ -181,12 +175,6 @@ func (a AssumeGCP) Assume(ctx *cli.Context) error {
 				clierr.Info(consoleURL),
 			)
 		}
-
-		//example url
-		//https://console.cloud.google.com/start?authuser=1&project=cf-dev-368022
-		//https://console.cloud.google.com/welcome?project=develop-403601&serviceId=default
-		//https://console.cloud.google.com/welcome?serviceId=default&authuser=1
-		//https://console.cloud.google.com/welcome?project=develop-403601&authuser=1
 	}
 	return nil
 
