@@ -1,14 +1,19 @@
 package assume
 
 import (
+	"errors"
 	"fmt"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
 	"github.com/common-fate/granted/pkg/cfgcp"
+	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/forkprocess"
+	"github.com/common-fate/granted/pkg/launcher"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/urfave/cli/v2"
@@ -22,54 +27,34 @@ type AssumeGCP struct {
 // processArgsAndExecFlag will return the profileName if provided and the exec command config if the exec flag is used
 // this supports both the -- variant and the legacy flag when passes the command and args as a string for backwards compatability
 func (a AssumeGCP) processArgsAndExecFlag(c *cli.Context, assumeFlags *cfflags.Flags) (string, *execConfig, error) {
-	execFlag := assumeFlags.String("exec")
-	clio.Debugw("process args", "execFlag", execFlag, "osargs", os.Args, "c.args", c.Args().Slice())
-	if execFlag == "" {
-		if strings.HasPrefix(c.Args().Slice()[1], "-") {
-			return "", nil, nil
-		}
-		return c.Args().Slice()[1], nil, nil
+	//cut off the gcp and use the same code as aws
+	slice := c.Args().Slice()[1:]
+
+	if len(slice) == 0 {
+		return "", nil, nil
 	}
 
-	if execFlag == "--" {
-		for i, arg := range os.Args {
-			if arg == "--" {
-				if len(os.Args) == i+1 {
-					return "", nil, clierr.New("invalid arguments to exec call with '--'. Make sure you pass the command and argument after the doubledash.",
-						clierr.Info("try running 'assume profilename --exec -- cmd arg1 arg2"))
-				}
-				cmdAndArgs := os.Args[i+1:]
-				var args []string
-				if len(cmdAndArgs) > 1 {
-					args = cmdAndArgs[1:]
-				}
-				if c.Args().Len() > len(cmdAndArgs) {
-					return c.Args().First(), &execConfig{cmdAndArgs[0], args}, nil
-				} else {
-					return "", &execConfig{cmdAndArgs[0], args}, nil
-				}
-			}
-		}
+	if len(slice) > 0 && strings.HasPrefix(slice[0], "-") {
+		return "", nil, nil
+	} else {
+		return slice[0], nil, nil
 	}
 
-	parts := strings.SplitN(execFlag, " ", 2)
-	var args []string
-	if len(parts) > 1 {
-		args = strings.Split(parts[1], " ")
-	}
-	return c.Args().Slice()[1], &execConfig{parts[0], args}, nil
 }
 
 func (a AssumeGCP) Assume(ctx *cli.Context) error {
-	// configName, _, err := a.processArgsAndExecFlag(ctx, a.assumeFlags)
-	// if err != nil {
-	// 	return err
-	// }
+	configName, _, err := a.processArgsAndExecFlag(ctx, a.assumeFlags)
+	if err != nil {
+		return err
+	}
 
-	configName := ""
+	clio.Info(configName)
+
+	// configName := ""
 
 	projectKeys := []string{}
 	gcpLoader := cfgcp.GCPLoader{}
+	//we can possibly also just list project directly from the api here
 	gcpProjects, err := gcpLoader.Load()
 	if err != nil {
 		return err
@@ -95,10 +80,10 @@ func (a AssumeGCP) Assume(ctx *cli.Context) error {
 			return err
 		}
 	}
-	// cfg, err := config.Load()
-	// if err != nil {
-	// 	return err
-	// }
+	cfg, err := config.Load()
+	if err != nil {
+		return err
+	}
 
 	//look up the project name from the config as the name isnt always the project name
 	config, err := gcpLoader.Get(configName)
@@ -152,6 +137,57 @@ func (a AssumeGCP) Assume(ctx *cli.Context) error {
 	fmt.Printf("GrantedImpersonateSA %s %s %s %s %s %s %s", output...)
 
 	clio.Success("Service account credentials sourced for ", serviceAccount)
+
+	if a.getConsoleURL {
+
+		consoleURL := fmt.Sprintf("https://console.cloud.google.com?project=%s&authuser=%s", config.Project, config.Account)
+
+		containerProfile := configName
+
+		if a.assumeFlags.String("browser-profile") != "" {
+			containerProfile = a.assumeFlags.String("browser-profile")
+		}
+
+		browserPath := cfg.CustomBrowserPath
+		if browserPath == "" {
+			return errors.New("default browser not configured. run `granted browser set` to configure")
+		}
+
+		l := launcher.Open{}
+
+		clio.Infof("Opening a console for %s in your browser...", config.Project)
+
+		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
+		args := l.LaunchCommand(consoleURL, containerProfile)
+
+		var startErr error
+		if l.UseForkProcess() {
+			clio.Debugf("running command using forkprocess: %s", args)
+			cmd, err := forkprocess.New(args...)
+			if err != nil {
+				return err
+			}
+			startErr = cmd.Start()
+		} else {
+			clio.Debugf("running command without forkprocess: %s", args)
+			cmd := exec.Command(args[0], args[1:]...)
+			startErr = cmd.Start()
+		}
+
+		if startErr != nil {
+			return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", startErr.Error()),
+				// allow them to try open the url manually
+				clierr.Info("You can open the browser session manually using the following url:"),
+				clierr.Info(consoleURL),
+			)
+		}
+
+		//example url
+		//https://console.cloud.google.com/start?authuser=1&project=cf-dev-368022
+		//https://console.cloud.google.com/welcome?project=develop-403601&serviceId=default
+		//https://console.cloud.google.com/welcome?serviceId=default&authuser=1
+		//https://console.cloud.google.com/welcome?project=develop-403601&authuser=1
+	}
 	return nil
 
 }
