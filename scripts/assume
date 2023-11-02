@@ -36,7 +36,7 @@ unset GRANTED_ALIAS_CONFIGURED
 GRANTED_FLAG=$(printf '%s\n' "$GRANTED_FLAG" | tr -d '\r')
 
 
-if [ "$GRANTED_FLAG" = "GrantedGCPProject" ]; then
+if [ "$GRANTED_FLAG" = "GrantedImpersonateSA" ]; then
 
 
   unset CLOUDSDK_ACTIVE_CONFIG_NAME
@@ -46,7 +46,7 @@ if [ "$GRANTED_FLAG" = "GrantedGCPProject" ]; then
   unset CLOUDSDK_COMPUTE_REGION
   unset REGION
   unset ZONE
-
+  unset GOOGLE_APPLICATION_CREDENTIALS
   if [ ! "${GRANTED_1}" = "None" ]; then
     export CLOUDSDK_ACTIVE_CONFIG_NAME="${GRANTED_1}"
   fi
@@ -67,6 +67,9 @@ if [ "$GRANTED_FLAG" = "GrantedGCPProject" ]; then
   fi
   if [ ! "${GRANTED_5}" = "None" ]; then
     export ZONE="${GRANTED_5}"
+  fi
+  if [ ! "${GRANTED_6}" = "None" ]; then
+    export GOOGLE_APPLICATION_CREDENTIALS="${GRANTED_6}"
   fi
 
 

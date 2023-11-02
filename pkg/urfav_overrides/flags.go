@@ -8,6 +8,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/common-fate/clio"
 	"github.com/urfave/cli/v2"
 )
 
@@ -35,18 +36,27 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	}
 
 	set.SetOutput(io.Discard)
-
-	ca := []string{}
-	if c.Args().Len() > 1 {
-		// append the flags excluding the role arg
-		ca = append(ca, c.Args().Slice()[1:]...)
-	}
-
 	// context.Args() for this command will ONLY contain the role and any flags provided after the role
 	// this slice of os.Args will only contain flags and not the role if it was provided
 	ag := []string{}
-	ag = append(ag, os.Args[1:len(os.Args)-c.Args().Len()]...)
-	ag = append(ag, ca...)
+	ca := []string{}
+	if c.Args().Len() > 1 && c.Args().First() != "gcp" {
+		// append the flags excluding the role arg
+		ca = append(ca, c.Args().Slice()[1:]...)
+		ag = append(ag, os.Args[1:len(os.Args)-c.Args().Len()]...)
+		ag = append(ag, ca...)
+	}
+
+	if c.Args().First() == "gcp" {
+		// index := 1
+		// if !strings.HasPrefix(c.Args().Slice()[1], "-") {
+		// 	index++
+		// }
+		// append the flags excluding the role arg
+		ca = append(ca, c.Args().Slice()[1:]...)
+		ag = append(ag, os.Args[1:len(os.Args)-c.Args().Len()]...)
+		ag = append(ag, ca...)
+	}
 
 	err := normalizeFlags(flags, set)
 	if err != nil {
@@ -56,6 +66,7 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	if err != nil {
 		return nil, err
 	}
+	clio.Info("args", set.Args(), c.Args())
 	return &Flags{FlagSet: set, urFavFlags: flags}, nil
 }
 func copyFlag(name string, ff *flag.Flag, set *flag.FlagSet) {

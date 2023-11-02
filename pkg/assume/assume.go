@@ -40,9 +40,10 @@ func AssumeCommand(c *cli.Context) error {
 		return err
 	}
 	if c.Args().First() == "gcp" {
+		clio.Info(assumeFlags.Bool("console"))
 		gcp := AssumeGCP{
 			assumeFlags:   assumeFlags,
-			getConsoleURL: !assumeFlags.Bool("env") && ((assumeFlags.Bool("console") || assumeFlags.String("console-destination") != "") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url") || assumeFlags.String("browser-profile") != ""),
+			getConsoleURL: assumeFlags.Bool("console"),
 		}
 		err := gcp.Assume(c)
 		if err != nil {
