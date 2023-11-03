@@ -27,11 +27,56 @@ IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRAN
 ${GRANTED_OUTPUT}
 EOF
 
+
+
 # # unset the exported GRANTED_ALIAS_CONFIGURED flag
 unset GRANTED_ALIAS_CONFIGURED
 
 # remove carriage return
 GRANTED_FLAG=$(printf '%s\n' "$GRANTED_FLAG" | tr -d '\r')
+
+
+if [ "$GRANTED_FLAG" = "GrantedImpersonateSA" ]; then
+
+
+  unset CLOUDSDK_ACTIVE_CONFIG_NAME
+  unset GOOGLE_CLOUD_PROJECT
+  unset CLOUDSDK_CORE_PROJECT
+  unset CLOUDSDK_CORE_ACCOUNT
+  unset CLOUDSDK_COMPUTE_REGION
+  unset REGION
+  unset ZONE
+  unset GOOGLE_APPLICATION_CREDENTIALS
+  if [ ! "${GRANTED_1}" = "None" ]; then
+    export CLOUDSDK_ACTIVE_CONFIG_NAME="${GRANTED_1}"
+  fi
+  if [ ! "${GRANTED_2}" = "None" ]; then
+    export GOOGLE_CLOUD_PROJECT="${GRANTED_2}"
+  fi
+  if [ ! "${GRANTED_2}" = "None" ]; then
+    export CLOUDSDK_CORE_PROJECT="${GRANTED_2}"
+  fi
+  if [ ! "${GRANTED_3}" = "None" ]; then
+    export CLOUDSDK_CORE_ACCOUNT="${GRANTED_3}"
+  fi
+  if [ ! "${GRANTED_4}" = "None" ]; then
+    export CLOUDSDK_COMPUTE_REGION="${GRANTED_4}"
+  fi
+  if [ ! "${GRANTED_4}" = "None" ]; then
+    export REGION="${GRANTED_4}"
+  fi
+  if [ ! "${GRANTED_5}" = "None" ]; then
+    export ZONE="${GRANTED_5}"
+  fi
+  if [ ! "${GRANTED_6}" = "None" ]; then
+    export GOOGLE_APPLICATION_CREDENTIALS="${GRANTED_6}"
+  fi
+
+
+  
+
+fi
+
 
 if [ "$GRANTED_FLAG" = "GrantedDesume" ]; then
   unset AWS_ACCESS_KEY_ID
@@ -161,3 +206,6 @@ if [ "$GRANTED_RETURN_STATUS" = "true" ]; then
   # a sourced file. Calling exit would exit the login shell.
   return $GRANTED_STATUS
 fi
+
+
+

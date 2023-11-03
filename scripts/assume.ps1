@@ -96,4 +96,42 @@ elseif ( $ASSUME_FLAG -eq "GrantedOutput") {
     Write-Host "$ASSUME_1"
 }
 
+elseif ( $ASSUME_FLAG -eq "GrantedImpersonateSA") {
+    #Remove the environment variables associated with the AWS CLI,
+    #ensuring all environment variables will be valid
+    $env:CLOUDSDK_ACTIVE_CONFIG_NAME = ""
+    $env:GOOGLE_CLOUD_PROJECT = ""
+    $env:CLOUDSDK_CORE_PROJECT = ""
+    $env:CLOUDSDK_CORE_ACCOUNT = ""
+    $env:CLOUDSDK_COMPUTE_REGION = ""
+    $env:REGION = ""
+    $env:ZONE = ""
+    $env:GOOGLE_APPLICATION_CREDENTIALS = ""
+   
+    if ( $ASSUME_1 -ne "None" ) {
+        $env:CLOUDSDK_ACTIVE_CONFIG_NAME = $ASSUME_1
+    }
+    if ( $ASSUME_2 -ne "None" ) {
+        $env:GOOGLE_CLOUD_PROJECT = $ASSUME_2
+    }
+    if ( $ASSUME_2 -ne "None" ) {
+        $env:CLOUDSDK_CORE_PROJECT = $ASSUME_2
+    }
+    if ( $ASSUME_3 -ne "None" ) {
+        $env:CLOUDSDK_CORE_ACCOUNT = $ASSUME_3
+    }
+    if ( $ASSUME_4 -ne "None" ) {
+        $env:CLOUDSDK_COMPUTE_REGION = $ASSUME_4
+    }
+    if ( $ASSUME_4 -ne "None" ) {
+        $env:REGION = $ASSUME_4
+    }
+    if ( $ASSUME_5 -ne "None" ) {
+        $env:ZONE = $ASSUME_5
+    }
+     if ( $ASSUME_6 -ne "None" ) {
+        $env:GOOGLE_APPLICATION_CREDENTIALS = $ASSUME_6
+    }
+}
+
 exit $env:ASSUME_STATUS

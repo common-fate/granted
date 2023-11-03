@@ -52,6 +52,13 @@ func GlobalFlags() []cli.Flag {
 	}
 }
 
+func GlobalGCPFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.BoolFlag{Name: "console", Aliases: []string{"c"}, Usage: "Open a web console to the role"},
+		&cli.BoolFlag{Name: "impersonate", Aliases: []string{"im"}, Usage: "Impersonate a service account"},
+	}
+}
+
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
 		clio.Log(banners.WithVersion(banners.Assume()))

@@ -89,6 +89,44 @@ else if test "$GRANTED_FLAG" = "GrantedOutput"
         echo $line
       end
   end
+
+else if test "$GRANTED_FLAG" = "GrantedImpersonateSA"
+  set -e CLOUDSDK_ACTIVE_CONFIG_NAME
+  set -e GOOGLE_CLOUD_PROJECT
+  set -e  CLOUDSDK_CORE_PROJECT
+  set -e CLOUDSDK_CORE_ACCOUNT
+  set -e CLOUDSDK_COMPUTE_REGION
+  set -e REGION
+  set -e ZONE
+  set -e GOOGLE_APPLICATION_CREDENTIALS
+
+  if test "$GRANTED_1" != "None"
+    set -gx CLOUDSDK_ACTIVE_CONFIG_NAME $GRANTED_1
+  end
+  if test "$GRANTED_2" != "None"
+    set -gx GOOGLE_CLOUD_PROJECT $GRANTED_2
+  end
+  if test "$GRANTED_2" != "None"
+    set -gx CLOUDSDK_CORE_PROJECT $GRANTED_2
+  end
+  if test "$GRANTED_3" != "None"
+    set -gx CLOUDSDK_CORE_ACCOUNT $GRANTED_3
+  end
+  if test "$GRANTED_4" != "None"
+    set -gx CLOUDSDK_COMPUTE_REGION $GRANTED_4
+  end
+  if test "$GRANTED_4" != "None"
+    set -gx REGION $GRANTED_4
+  end
+  if test "$GRANTED_5" != "None"
+    set -gx ZONE $GRANTED_5
+  end
+  if test "$GRANTED_6" != "None"
+    set -gx GOOGLE_APPLICATION_CREDENTIALS $GRANTED_6
+  end
+
 end
+
+
 
 exit $GRANTED_STATUS
