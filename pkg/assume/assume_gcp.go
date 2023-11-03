@@ -149,6 +149,10 @@ func (a AssumeGCP) Assume(ctx *cli.Context) error {
 		// }
 	}
 
+	if os.Getenv("GRANTED_QUIET") != "true" {
+		clio.Successf("Set GCP config and project %s %s", configName, config.Project)
+	}
+
 	output := PrepareStringsForShellScript([]string{configName, config.Project, config.Account, config.Region, config.Zone, filePath})
 	fmt.Printf("GrantedImpersonateSA %s %s %s %s %s %s", output...)
 

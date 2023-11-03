@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/common-fate/clio"
 	"github.com/urfave/cli/v2"
 )
 
@@ -66,7 +65,6 @@ func New(name string, flags []cli.Flag, c *cli.Context) (*Flags, error) {
 	if err != nil {
 		return nil, err
 	}
-	clio.Info("args", set.Args(), c.Args())
 	return &Flags{FlagSet: set, urFavFlags: flags}, nil
 }
 func copyFlag(name string, ff *flag.Flag, set *flag.FlagSet) {
