@@ -4,23 +4,17 @@ import (
 	"context"
 )
 
-// Added support for optional pass through args on proxy sso provider
-// When using a sso provider adding pass through flags can be achieved by adding the -pass-through or -pt flag
-// EG. assume role-a -pt --mode -pt gui (Run the proxy login with a gui rather than in cli. Example taken from aws-azure-login)
+// implements same assumer style interface as the AWS implementation
 type GCPAssumer interface {
-	// AssumeTerminal should follow the required process for it implemetation and return aws credentials ready to be exported to the terminal environment
+	// AssumeTerminal should follow the required process for it implemetation and return credentials in byes format to be handled individually
 	AssumeTerminal(context.Context, *ServiceAccount) ([]byte, error)
 	// AssumeConsole should follow any console specific credentials processes, this may be the same as AssumeTerminal under the hood
 	AssumeConsole(context.Context, *ServiceAccount) ([]byte, error)
-	// A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH
+	// A unique key which identifies this assumer
 	Type() string
-	// ProfileMatchesType takes a list of strings which are the lines in an aws config profile and returns true if this profile is the assumers type
-	// ProfileMatchesType(*ini.Section, config.SharedConfig) bool
 }
 
 // List of assumers should be ordered by how they match type
-// specific types should be first, generic types like IAM should be last / the (default)
-// for sso profiles, the internal implementation takes precedence over credential processes
 var assumers []GCPAssumer = []GCPAssumer{&GCPServiceAccountAssumer{}}
 
 // RegisterAssumer allows assumers to be registered when using this library as a package in other projects
