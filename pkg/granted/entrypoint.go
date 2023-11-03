@@ -10,6 +10,7 @@ import (
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/granted/exec"
 	"github.com/common-fate/granted/pkg/granted/exp"
 	"github.com/common-fate/granted/pkg/granted/middleware"
 	"github.com/common-fate/granted/pkg/granted/registry"
@@ -54,6 +55,7 @@ func GetCliApp() *cli.App {
 			&login,
 			&exp.Command,
 			&CacheCommand,
+			&exec.Command,
 		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
