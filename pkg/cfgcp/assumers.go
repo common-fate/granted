@@ -4,19 +4,14 @@ import (
 	"context"
 )
 
-type GCPCredentials struct {
-	AccessToken string
-	ExpireTime  string
-}
-
 // Added support for optional pass through args on proxy sso provider
 // When using a sso provider adding pass through flags can be achieved by adding the -pass-through or -pt flag
 // EG. assume role-a -pt --mode -pt gui (Run the proxy login with a gui rather than in cli. Example taken from aws-azure-login)
 type GCPAssumer interface {
 	// AssumeTerminal should follow the required process for it implemetation and return aws credentials ready to be exported to the terminal environment
-	AssumeTerminal(context.Context, *ServiceAccount) (GCPCredentials, error)
+	AssumeTerminal(context.Context, *ServiceAccount) ([]byte, error)
 	// AssumeConsole should follow any console specific credentials processes, this may be the same as AssumeTerminal under the hood
-	AssumeConsole(context.Context, *ServiceAccount) (GCPCredentials, error)
+	AssumeConsole(context.Context, *ServiceAccount) ([]byte, error)
 	// A unique key which identifies this assumer e.g AWS-SSO or GOOGLE-AWS-AUTH
 	Type() string
 	// ProfileMatchesType takes a list of strings which are the lines in an aws config profile and returns true if this profile is the assumers type

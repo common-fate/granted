@@ -33,22 +33,30 @@ type execConfig struct {
 }
 
 func AssumeCommand(c *cli.Context) error {
+
+	if c.Args().First() == "gcp" {
+		// assumeFlags allows flags to be passed on either side of the role argument.
+		// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
+		assumeFlags, err := cfflags.New("assumeFlags", GlobalGCPFlags(), c)
+		if err != nil {
+			return err
+		}
+		gcp := AssumeGCP{
+			assumeFlags:   assumeFlags,
+			getConsoleURL: assumeFlags.Bool("console"),
+		}
+		err = gcp.Assume(c)
+		if err != nil {
+			return err
+		}
+		return nil
+	}
+
 	// assumeFlags allows flags to be passed on either side of the role argument.
 	// to access flags in this command, use assumeFlags.String("region") etc instead of c.String("region")
 	assumeFlags, err := cfflags.New("assumeFlags", GlobalFlags(), c)
 	if err != nil {
 		return err
-	}
-	if c.Args().First() == "gcp" {
-		gcp := AssumeGCP{
-			assumeFlags:   assumeFlags,
-			getConsoleURL: assumeFlags.Bool("console"),
-		}
-		err := gcp.Assume(c)
-		if err != nil {
-			return err
-		}
-		return nil
 	}
 
 	aws := AssumeAWS{

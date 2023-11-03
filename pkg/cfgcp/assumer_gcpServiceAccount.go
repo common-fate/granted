@@ -2,6 +2,8 @@ package cfgcp
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"time"
 
 	credentials "cloud.google.com/go/iam/credentials/apiv1"
@@ -13,11 +15,18 @@ import (
 type GCPServiceAccountAssumer struct {
 }
 
-func (asa *GCPServiceAccountAssumer) AssumeTerminal(ctx context.Context, ServiceAccount *ServiceAccount) (GCPCredentials, error) {
+type ImpersonatedServiceAccountConfig struct {
+	Delegates                      []string `json:"delegates"`
+	ServiceAccountImpersonationURL string   `json:"service_account_impersonation_url"`
+	AccessToken                    string   `json:"access_token"`
+	Type                           string   `json:"type"`
+}
+
+func (asa *GCPServiceAccountAssumer) AssumeTerminal(ctx context.Context, ServiceAccount *ServiceAccount) ([]byte, error) {
 
 	c, err := credentials.NewIamCredentialsClient(ctx)
 	if err != nil {
-		return GCPCredentials{}, err
+		return []byte{}, err
 	}
 	defer c.Close()
 
@@ -28,16 +37,27 @@ func (asa *GCPServiceAccountAssumer) AssumeTerminal(ctx context.Context, Service
 	}
 	resp, err := c.GenerateAccessToken(ctx, req)
 	if err != nil {
-		return GCPCredentials{}, err
+		return []byte{}, err
 	}
-	return GCPCredentials{
+
+	b := ImpersonatedServiceAccountConfig{
 		AccessToken: resp.AccessToken,
-		ExpireTime:  resp.ExpireTime.AsTime().String(),
-	}, nil
+		Type:        "impersonated_service_account",
+		ServiceAccountImpersonationURL: fmt.Sprintf(
+			"https://iamcredentials.googleapis.com/v1/projects/-/serviceAccounts/%s.iam.gserviceaccount.com:generateAccessToken",
+			ServiceAccount.Name),
+	}
+	// Marshal the struct to JSON
+	jsonData, err := json.MarshalIndent(b, "", "  ")
+	if err != nil {
+		return nil, err
+	}
+
+	return jsonData, nil
 }
 
-func (asa *GCPServiceAccountAssumer) AssumeConsole(ctx context.Context, ServiceAccount *ServiceAccount) (GCPCredentials, error) {
-	return GCPCredentials{}, nil
+func (asa *GCPServiceAccountAssumer) AssumeConsole(ctx context.Context, ServiceAccount *ServiceAccount) ([]byte, error) {
+	return []byte{}, nil
 }
 
 func (asa *GCPServiceAccountAssumer) Type() string {

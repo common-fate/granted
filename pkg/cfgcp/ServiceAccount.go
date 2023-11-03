@@ -28,10 +28,10 @@ func LoadServiceAccounts(ctx context.Context, projectId string) ([]*iam.ServiceA
 	return response.Accounts, nil
 }
 
-func (sa *ServiceAccount) AssumeConsole(ctx context.Context) (GCPCredentials, error) {
+func (sa *ServiceAccount) AssumeConsole(ctx context.Context) ([]byte, error) {
 	return AssumerFromType(sa.Type).AssumeConsole(ctx, sa)
 }
 
-func (sa *ServiceAccount) AssumeTerminal(ctx context.Context) (GCPCredentials, error) {
+func (sa *ServiceAccount) AssumeTerminal(ctx context.Context) ([]byte, error) {
 	return AssumerFromType(sa.Type).AssumeTerminal(ctx, sa)
 }
