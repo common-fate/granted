@@ -26,6 +26,9 @@ type Config struct {
 	// AccessRequestURL is a Granted Approvals URL that users can visit
 	// to request access, in the event that we receive a ForbiddenException
 	// denying access to assume a particular role.
+	//Set this to true to set `--export` to ~/.aws/credentials as default
+	ExportCredsToAWS bool `toml:",omitempty"`
+
 	AccessRequestURL string `toml:",omitempty"`
 
 	CommonFateDefaultSSOStartURL string `toml:",omitempty"`

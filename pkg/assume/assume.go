@@ -481,7 +481,7 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Success("Exported credentials to .env file successfully")
 		}
 
-		if assumeFlags.Bool("export") {
+		if assumeFlags.Bool("export") || cfg.ExportCredsToAWS {
 			err = cfaws.ExportCredsToProfile(profile.Name, creds)
 			if err != nil {
 				return err
