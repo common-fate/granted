@@ -20,7 +20,7 @@ require (
 require (
 	github.com/briandowns/spinner v1.23.0
 	github.com/bufbuild/connect-go v1.10.0
-	github.com/common-fate/ciem v0.0.0-20231103152500-06b3d4479faa
+	github.com/common-fate/ciem v0.0.0-20231106123038-e7bbc0063b89
 	github.com/common-fate/cli v0.4.9
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/common-fate v0.15.0

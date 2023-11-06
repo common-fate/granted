@@ -7,5 +7,6 @@ var Command = cli.Command{
 	Usage: "Execute a command against a particular cloud role or resource",
 	Subcommands: []*cli.Command{
 		&gkeCommand,
+		&gcpCommand,
 	},
 }

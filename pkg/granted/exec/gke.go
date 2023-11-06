@@ -7,12 +7,14 @@ import (
 	"path"
 	"strings"
 	"syscall"
+	"time"
 
 	osexec "os/exec"
 
 	"github.com/bufbuild/connect-go"
 	"github.com/common-fate/ciem/config"
-	cf "github.com/common-fate/ciem/gen/proto/commonfatecloud/v1alpha1"
+	accessv1alpha1 "github.com/common-fate/ciem/gen/commonfate/cloud/access/v1alpha1"
+	attestv1alpha1 "github.com/common-fate/ciem/gen/commonfate/cloud/attest/v1alpha1"
 	"github.com/common-fate/ciem/service/access"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/kubeconfig"
@@ -46,9 +48,9 @@ var gkeCommand = cli.Command{
 		}
 
 		project := c.String("project")
-		resource := &cf.Resource{
-			Resource: &cf.Resource_GcpProject{
-				GcpProject: &cf.GCPProject{
+		resource := &accessv1alpha1.Resource{
+			Resource: &accessv1alpha1.Resource_GcpProject{
+				GcpProject: &accessv1alpha1.GCPProject{
 					Project: project,
 					Role:    c.String("role"),
 				},
@@ -111,7 +113,7 @@ var gkeCommand = cli.Command{
 	},
 }
 
-func assertAccess(ctx context.Context, resource *cf.Resource) error {
+func assertAccess(ctx context.Context, resource *accessv1alpha1.Resource) error {
 	cfg, err := config.LoadDefault(ctx)
 	if err != nil {
 		// just log a debug message
@@ -121,7 +123,7 @@ func assertAccess(ctx context.Context, resource *cf.Resource) error {
 
 	client := access.NewFromConfig(cfg)
 
-	ent, err := client.GetEntitlement(ctx, connect.NewRequest(&cf.GetEntitlementRequest{
+	ent, err := client.GetEntitlement(ctx, connect.NewRequest(&accessv1alpha1.GetEntitlementRequest{
 		Resource: resource,
 	}))
 	if err != nil {
@@ -129,15 +131,27 @@ func assertAccess(ctx context.Context, resource *cf.Resource) error {
 	}
 
 	// TODO: add check for provisioning state - if it's in the provisioning state we want to poll until it's ready
-	if ent.Msg.Entitlement.Status != cf.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
+	if ent.Msg.Entitlement.Status != accessv1alpha1.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
 		switch r := ent.Msg.Entitlement.Resource.Resource.(type) {
-		case *cf.Resource_GcpProject:
+		case *accessv1alpha1.Resource_GcpProject:
 			clio.Infof("provisioning access to %s with role %s...", r.GcpProject.Project, r.GcpProject.Role)
 		}
 
-		res, err := client.CreateAccessRequest(ctx, connect.NewRequest(&cf.CreateAccessRequestRequest{
-			Resources: []*cf.Resource{
+		res, err := client.CreateAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.CreateAccessRequestRequest{
+			Resources: []*accessv1alpha1.Resource{
 				resource,
+			},
+			Justification: &accessv1alpha1.Justification{
+				DeviceAttestation: &attestv1alpha1.Attestation{
+					Header: &attestv1alpha1.Header{
+						Version:       1,
+						Timestamp:     time.Now().UnixMilli(),
+						Type:          attestv1alpha1.AttestationType_ATTESTATION_TYPE_ACCESS_REQUEST,
+						ContentDigest: []byte{}, // TODO
+						Kid:           "ARP-guOO9ZhuI7GNrs9e7_qwrsoT4TF4w-LkL1NLlSbLAA",
+					},
+					Signature: []byte{}, // TODO
+				},
 			},
 		}))
 		if err != nil {
@@ -150,7 +164,7 @@ func assertAccess(ctx context.Context, resource *cf.Resource) error {
 				continue
 			}
 
-			if e.Status == cf.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
+			if e.Status == accessv1alpha1.EntitlementStatus_ENTITLEMENT_STATUS_ACTIVE {
 				clio.Successf("access to %s with role %s is now active", gcp.Project, gcp.Role)
 			}
 		}

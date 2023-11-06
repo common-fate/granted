@@ -64,6 +64,8 @@ github.com/common-fate/awsconfigfile v0.8.0 h1:6bu7ftnBxCPKI/FFfNxAmF0K26Fs2gj9S
 github.com/common-fate/awsconfigfile v0.8.0/go.mod h1:VJibjDtrFRus19rO29z1i5lN0yi7dREk//69YRjKm/M=
 github.com/common-fate/ciem v0.0.0-20231103152500-06b3d4479faa h1:GSNRkugpf+zXEl0heNwxseLSzEhvtVRBJf4oTqljVic=
 github.com/common-fate/ciem v0.0.0-20231103152500-06b3d4479faa/go.mod h1:ArTFEK+V0Zvu3USi/WpizIkpQcF8aMFMnWTS8Yn1j0o=
+github.com/common-fate/ciem v0.0.0-20231106123038-e7bbc0063b89 h1:JM7AMAifHWhyABjRctzBKvizfbuc9U72AxISpw9oy5s=
+github.com/common-fate/ciem v0.0.0-20231106123038-e7bbc0063b89/go.mod h1:ArTFEK+V0Zvu3USi/WpizIkpQcF8aMFMnWTS8Yn1j0o=
 github.com/common-fate/cli v0.4.9 h1:0zwPFdDpMoidMQ70NJYgtnO1GBnS4HQ14Pgh0ebqL3k=
 github.com/common-fate/cli v0.4.9/go.mod h1:6v7jsE4ZB74s/pMRARzrb/ChBo2Ex44m6PDo6MZP8r8=
 github.com/common-fate/clio v1.2.3 h1:hHwUYZjn66qGYDpgANl0EB/92hyi/Jsnd07qB09rvn4=
