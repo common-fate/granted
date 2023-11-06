@@ -301,7 +301,10 @@ func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl
 	clio.Info("Awaiting AWS authentication in the browser")
 	clio.Info("You will be prompted to authenticate with AWS in the browser, then you will be prompted to 'Allow'")
 	clio.Infof("Code: %s", *deviceAuth.UserCode)
-	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, PollingConfig{CheckInterval: time.Second * 2, TimeoutAfter: time.Minute * 2})
+
+	pc := getPollingConfig(deviceAuth)
+
+	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, pc)
 	if err != nil {
 		return nil, err
 	}
@@ -314,6 +317,13 @@ var ErrTimeout error = errors.New("polling for device authorization token timed 
 type PollingConfig struct {
 	CheckInterval time.Duration
 	TimeoutAfter  time.Duration
+}
+
+func getPollingConfig(deviceAuth *ssooidc.StartDeviceAuthorizationOutput) PollingConfig {
+	return PollingConfig{
+		CheckInterval: time.Duration(deviceAuth.Interval) * time.Second,
+		TimeoutAfter:  time.Duration(deviceAuth.ExpiresIn) * time.Second,
+	}
 }
 
 // PollToken will poll for a token and return it once the authentication/authorization flow has been completed in the browser
