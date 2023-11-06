@@ -481,7 +481,7 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Success("Exported credentials to .env file successfully")
 		}
 
-		if assumeFlags.Bool("export") {
+		if assumeFlags.Bool("export") || cfg.ExportCredsToAWS {
 			err = cfaws.ExportCredsToProfile(profile.Name, creds)
 			if err != nil {
 				return err
@@ -502,7 +502,8 @@ func AssumeCommand(c *cli.Context) error {
 			return RunExecCommandWithCreds(creds, region, execCfg.Cmd, execCfg.Args...)
 		}
 
-		if profile.RawConfig != nil && profile.RawConfig.HasKey("credential_process") && assumeFlags.Bool("export-all-env-vars") {
+
+		if profile.RawConfig != nil && profile.RawConfig.HasKey("credential_process") && (assumeFlags.Bool("export-all-env-vars") || cfg.DefaultExportAllEnvVar) {
 			canExpire := "false"
 			if creds.CanExpire {
 				canExpire = "true"
