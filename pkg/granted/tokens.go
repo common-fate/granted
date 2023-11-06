@@ -2,6 +2,7 @@ package granted
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -101,6 +102,14 @@ var TokenExpiryCommand = cli.Command{
 			return err
 		}
 
+		type sso_expiry struct {
+			StartURLs string `json:"start_urls"`
+			ExpiresAt string `json:"expires_at"`
+			IsExpired bool   `json:"is_expired"`
+		}
+
+		var jsonDataArray []sso_expiry
+
 		for _, key := range keys {
 			token := secureSSOTokenStorage.GetValidSSOToken(key)
 
@@ -111,8 +120,21 @@ var TokenExpiryCommand = cli.Command{
 				expiry = token.Expiry.Local().Format(time.RFC3339)
 			}
 
-			clio.Logf("%-*s (%s) expires at: %s", max, key, strings.Join(startUrlMap[key], ", "), expiry)
+			sso_expiry_data := sso_expiry{
+				StartURLs: key,
+				ExpiresAt: expiry,
+				IsExpired: expiry == "EXPIRED",
+			}
+
+			jsonDataArray = append(jsonDataArray, sso_expiry_data)
 		}
+
+		jsonData, err := json.Marshal(jsonDataArray)
+		if err != nil {
+			return err
+		}
+		clio.Logf(string(jsonData))
+
 		return nil
 	},
 }
