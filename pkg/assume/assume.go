@@ -502,7 +502,8 @@ func AssumeCommand(c *cli.Context) error {
 			return RunExecCommandWithCreds(creds, region, execCfg.Cmd, execCfg.Args...)
 		}
 
-		if profile.RawConfig.HasKey("credential_process") && (assumeFlags.Bool("export-all-env-vars") || cfg.DefaultExportAllEnvVar) {
+
+		if profile.RawConfig != nil && profile.RawConfig.HasKey("credential_process") && (assumeFlags.Bool("export-all-env-vars") || cfg.DefaultExportAllEnvVar) {
 			canExpire := "false"
 			if creds.CanExpire {
 				canExpire = "true"
@@ -519,7 +520,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		// If the profile uses "credential_process" to source credential externally then do not set accessKeyId, secretAccessKey, sessionToken
 		// so that aws cli automatically refreshes credential when they expire.
-		if profile.RawConfig.HasKey("credential_process") {
+		if profile.RawConfig != nil && profile.RawConfig.HasKey("credential_process") {
 			output := PrepareStringsForShellScript([]string{"", "", "", profile.Name, region, "", "true", "", "", "", ""})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 
