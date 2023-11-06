@@ -28,10 +28,11 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 	cfg.SSOAccountID = item.Value()
 	item, err = profile.RawConfig.GetKey("granted_sso_region")
 	if err != nil {
-		if profile.SSOSession != nil && profile.SSOSession.SSORegion != "" {
-			cfg.SSORegion = profile.SSOSession.SSORegion
-		} else {
+		// the region may have been populated by an sso session section by the aws SDK
+		if cfg.SSOSession.SSORegion == "" {
 			return nil, err
+		} else {
+			cfg.SSORegion = cfg.SSOSession.SSORegion
 		}
 	} else {
 		cfg.SSORegion = item.Value()
@@ -45,10 +46,10 @@ func ParseGrantedSSOProfile(ctx context.Context, profile *Profile) (*config.Shar
 
 	item, err = profile.RawConfig.GetKey("granted_sso_start_url")
 	if err != nil {
-		if profile.SSOSession != nil && profile.SSOSession.SSORegion != "" {
-			cfg.SSOStartURL = profile.SSOSession.SSOStartURL
-		} else {
+		if cfg.SSOSession.SSOStartURL == "" {
 			return nil, err
+		} else {
+			cfg.SSOStartURL = cfg.SSOSession.SSOStartURL
 		}
 	} else {
 		cfg.SSOStartURL = item.Value()
@@ -101,11 +102,11 @@ func IsValidGrantedProfile(profile *Profile) error {
 			return fmt.Errorf("invalid aws config for granted login. '%s' field must be provided", value)
 		}
 	}
-	if profile.SSOSession != nil {
-		if profile.SSOSession.SSORegion == "" && !profile.RawConfig.HasKey("granted_sso_region") {
+	if profile.AWSConfig.SSOSession != nil {
+		if profile.AWSConfig.SSOSession.SSORegion == "" && !profile.RawConfig.HasKey("granted_sso_region") {
 			return fmt.Errorf("invalid aws config for granted login. '%s' field must be provided", "granted_sso_region")
 		}
-		if profile.SSOSession.SSOStartURL == "" && !profile.RawConfig.HasKey("granted_sso_start_url") {
+		if profile.AWSConfig.SSOSession.SSOStartURL == "" && !profile.RawConfig.HasKey("granted_sso_start_url") {
 			return fmt.Errorf("invalid aws config for granted login. '%s' field must be provided", "granted_sso_start_url")
 		}
 	}

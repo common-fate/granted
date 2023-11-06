@@ -28,11 +28,6 @@ type ConfigOpts struct {
 	MFATokenCode               string
 }
 
-type SSOSession struct {
-	SSORegion   string
-	SSOStartURL string
-}
-
 type Profile struct {
 	// allows access to the raw values from the file
 	RawConfig *ini.Section
@@ -48,9 +43,6 @@ type Profile struct {
 	Initialised                    bool
 	LoadingError                   error
 	HasSecureStorageIAMCredentials bool
-
-	// AWS SDK doesn't support sso_session yet so we check for it manually
-	SSOSession *SSOSession
 }
 
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
@@ -63,27 +55,6 @@ type Profiles struct {
 	profiles     map[string]*Profile
 }
 
-func LoadSSOSessions(configFile *ini.File) (map[string]SSOSession, error) {
-	sessions := make(map[string]SSOSession)
-
-	// Iterate through the config sections
-	for _, section := range configFile.Sections() {
-		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it and only look at 'default'
-		if strings.HasPrefix(section.Name(), "sso-session ") {
-			session := SSOSession{}
-			regionKey, err := section.GetKey("sso_region")
-			if err == nil {
-				session.SSORegion = regionKey.Value()
-			}
-			startURLKey, err := section.GetKey("sso_start_url")
-			if err == nil {
-				session.SSOStartURL = startURLKey.Value()
-			}
-			sessions[strings.TrimPrefix(section.Name(), "sso-session ")] = session
-		}
-	}
-	return sessions, nil
-}
 func (p *Profiles) HasProfile(profile string) bool {
 	_, ok := p.profiles[profile]
 	return ok
@@ -241,10 +212,7 @@ func (p *Profiles) loadConfigFile(loader ConfigFileLoader) error {
 	if err != nil {
 		return err
 	}
-	ssoSessions, err := LoadSSOSessions(configFile)
-	if err != nil {
-		return err
-	}
+
 	// Iterate through the config sections
 	for _, section := range configFile.Sections() {
 		// the ini package adds an extra section called DEFAULT, but this is different to the AWS standard of 'default' so we ignore it an only look at 'default'
@@ -254,15 +222,6 @@ func (p *Profiles) loadConfigFile(loader ConfigFileLoader) error {
 				name := strings.TrimPrefix(section.Name(), "profile ")
 				sectionPtr := section
 				profile := &Profile{RawConfig: sectionPtr, Name: name, File: loader.Path()}
-				if section.HasKey("sso_session") {
-					key, _ := section.GetKey("sso_session")
-					ssoSession, ok := ssoSessions[key.Value()]
-					if !ok {
-						clio.Errorf("failed to load config profile %s because it has an 'sso_session = %s' section but the [sso-session %s] section was not found", name, key.Value(), key.Value())
-						continue
-					}
-					profile.SSOSession = &ssoSession
-				}
 				p.ProfileNames = append(p.ProfileNames, name)
 				p.profiles[name] = profile
 			}
@@ -444,15 +403,6 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 			return err
 		}
 
-		// set the sso session if it exists and not overridden on the profile
-		if p.SSOSession != nil {
-			if cfg.SSOStartURL == "" {
-				cfg.SSOStartURL = p.SSOSession.SSOStartURL
-			}
-			if cfg.SSORegion == "" {
-				cfg.SSORegion = p.SSOSession.SSORegion
-			}
-		}
 		p.AWSConfig = cfg
 
 		if depth < 10 {
