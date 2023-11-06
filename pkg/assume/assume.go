@@ -502,7 +502,7 @@ func AssumeCommand(c *cli.Context) error {
 			return RunExecCommandWithCreds(creds, region, execCfg.Cmd, execCfg.Args...)
 		}
 
-		if profile.RawConfig.HasKey("credential_process") && assumeFlags.Bool("export-all-env-vars") {
+		if profile.RawConfig.HasKey("credential_process") && (assumeFlags.Bool("export-all-env-vars") || cfg.DefaultExportAllEnvVar) {
 			canExpire := "false"
 			if creds.CanExpire {
 				canExpire = "true"
