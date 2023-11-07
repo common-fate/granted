@@ -8,7 +8,6 @@ import (
 	"runtime"
 	"strconv"
 	"strings"
-	"sync"
 	"time"
 
 	"os"
@@ -169,7 +168,7 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 	} else {
-		var wg sync.WaitGroup
+		// var wg sync.WaitGroup
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		profiles, err := cfaws.LoadProfiles()
@@ -193,14 +192,14 @@ func AssumeCommand(c *cli.Context) error {
 				clio.Infof("Using active profile: %s", profileName)
 			}
 		}
-		if profileName != "" {
-			// background task to update the frecency cache
-			wg.Add(1)
-			go func() {
-				cfaws.UpdateFrecencyCache(profileName)
-				wg.Done()
-			}()
-		}
+		// if profileName != "" {
+		// 	// background task to update the frecency cache
+		// 	wg.Add(1)
+		// 	go func() {
+		// 		cfaws.UpdateFrecencyCache(profileName)
+		// 		wg.Done()
+		// 	}()
+		// }
 
 		// if profile is still "" here, then prompt to select a profile
 		if profileName == "" {
@@ -212,7 +211,7 @@ func AssumeCommand(c *cli.Context) error {
 				return err
 			}
 
-			fr, profileNames := profiles.GetFrecentProfiles()
+			_, profileNames := profiles.GetFrecentProfiles()
 			if cfg.Ordering == "Alphabetical" {
 				profileNames = profiles.ProfileNames
 			}
@@ -289,14 +288,14 @@ func AssumeCommand(c *cli.Context) error {
 			survey.SelectQuestionTemplate = originalSelectTemplate
 			profileName = profileNameMap[profileName]
 			// background task to update the frecency cache
-			wg.Add(1)
-			go func() {
-				fr.Update(profileName)
-				wg.Done()
-			}()
+			// wg.Add(1)
+			// go func() {
+			// 	fr.Update(profileName)
+			// 	wg.Done()
+			// }()
 		}
 		// ensure that frecency has finished updating before returning from this function
-		defer wg.Wait()
+		// defer wg.Wait()
 		// finally, load the profile and initialise it, this builds the parent tree structure
 		profile, err = profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
