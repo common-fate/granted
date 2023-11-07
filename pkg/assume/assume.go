@@ -145,8 +145,8 @@ func AssumeCommand(c *cli.Context) error {
 				SectionNameTemplate: saveProfileName,
 				Profiles: []awsconfigfile.SSOProfile{
 					{
-						SSOStartURL:   profile.AWSConfig.SSOStartURL,
-						SSORegion:     profile.AWSConfig.SSORegion,
+						SSOStartURL:   profile.SSOStartURL(),
+						SSORegion:     profile.SSORegion(),
 						AccountID:     profile.AWSConfig.SSOAccountID,
 						AccountName:   profile.AWSConfig.SSOAccountID,
 						RoleName:      profile.AWSConfig.SSORoleName,
@@ -540,7 +540,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		if profile.RawConfig != nil && profile.RawConfig.HasKey("credential_process") && (assumeFlags.Bool("export-all-env-vars") || cfg.DefaultExportAllEnvVar) {
-			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "true", profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "true", profile.SSOStartURL(), profile.AWSConfig.SSORoleName, profile.SSORegion(), profile.AWSConfig.SSOAccountID})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 
 			return nil
@@ -560,7 +560,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		if assumeFlags.Bool("sso") {
-			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.SSOStartURL(), profile.AWSConfig.SSORoleName, profile.SSORegion(), profile.AWSConfig.SSOAccountID})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 
 			return nil
