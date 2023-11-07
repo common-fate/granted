@@ -115,8 +115,6 @@ func AssumeCommand(c *cli.Context) error {
 	activeRoleProfile := assumeFlags.String("active-aws-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
 
-	clio.Info(activeRoleProfile, activeRoleFlag, os.Environ())
-
 	showRerunCommand := false
 	var profile *cfaws.Profile
 	if assumeFlags.Bool("sso") {
