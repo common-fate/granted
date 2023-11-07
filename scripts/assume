@@ -71,8 +71,6 @@ if [ "$GRANTED_FLAG" = "GrantedAssume" ]; then
   # shellcheck disable=SC2124
   export GRANTED_COMMAND="$@"
 
-  export GRANTED_SSO="${GRANTED_7}"
-
   if [ ! "${GRANTED_1}" = "None" ]; then
     export AWS_ACCESS_KEY_ID="${GRANTED_1}"
   fi
