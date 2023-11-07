@@ -45,6 +45,22 @@ type Profile struct {
 	HasSecureStorageIAMCredentials bool
 }
 
+// Returns the SSORegion from either the session or the profile in that order
+func (p *Profile) SSORegion() string {
+	if p.AWSConfig.SSOSession != nil {
+		return p.AWSConfig.SSOSession.SSORegion
+	}
+	return p.AWSConfig.SSORegion
+}
+
+// Returns the SSOStartURL from either the session or the profile in that order
+func (p *Profile) SSOStartURL() string {
+	if p.AWSConfig.SSOSession != nil {
+		return p.AWSConfig.SSOSession.SSOStartURL
+	}
+	return p.AWSConfig.SSOStartURL
+}
+
 var ErrProfileNotInitialised error = errors.New("profile not initialised")
 
 var ErrProfileNotFound error = errors.New("profile not found")
@@ -453,8 +469,8 @@ func (p *Profile) Region(ctx context.Context) (string, error) {
 		// return the region of the direct parent
 		return p.Parents[len(p.Parents)-1].Region(ctx)
 	}
-	if p.AWSConfig.SSORegion != "" {
-		return p.AWSConfig.SSORegion, nil
+	if p.SSORegion() != "" {
+		return p.SSORegion(), nil
 	}
 	// if no region set, and no parent, and no sso region return the default region
 	defaultCfg, err := config.LoadDefaultConfig(ctx)

@@ -56,8 +56,8 @@ func (c *Profile) SSOLoginWithToken(ctx context.Context, cfg *aws.Config, access
 		requiresAssuming = true
 	}
 
-	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL
-	cfg.Region = rootProfile.AWSConfig.SSORegion
+	ssoTokenKey := rootProfile.SSOStartURL()
+	cfg.Region = rootProfile.SSORegion()
 	// create sso client
 	ssoClient := sso.NewFromConfig(*cfg)
 	var res *ssotypes.RoleCredentials
@@ -170,7 +170,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	if len(c.Parents) > 0 {
 		rootProfile = c.Parents[0]
 	}
-	ssoTokenKey := rootProfile.AWSConfig.SSOStartURL + c.AWSConfig.SSOSessionName
+	ssoTokenKey := rootProfile.SSOStartURL() + c.AWSConfig.SSOSessionName
 	// if the profile has an sso user configured then suffix the sso token storage key to ensure unique logins
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
@@ -179,12 +179,12 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	skipAutoLogin := configOpts.UsingCredentialProcess && !configOpts.CredentialProcessAutoLogin
 	if skipAutoLogin && cachedToken == nil {
 		cmd := "granted sso login"
-		startURL := c.AWSConfig.SSOStartURL
+		startURL := c.SSOStartURL()
 		if startURL != "" {
 			cmd += " --sso-start-url " + startURL
 		}
 
-		region := c.AWSConfig.SSORegion
+		region := c.SSORegion()
 		if region != "" {
 			cmd += " --sso-region " + region
 		}
@@ -194,8 +194,8 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 
 	if cachedToken == nil {
 		newCfg := aws.NewConfig()
-		newCfg.Region = rootProfile.AWSConfig.SSORegion
-		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *newCfg, rootProfile.AWSConfig.SSOStartURL)
+		newCfg.Region = rootProfile.SSORegion()
+		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *newCfg, rootProfile.SSOStartURL())
 		if err != nil {
 			return aws.Credentials{}, err
 		}
@@ -207,7 +207,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	}
 
 	cfg := aws.NewConfig()
-	cfg.Region = c.AWSConfig.SSORegion
+	cfg.Region = c.SSORegion()
 
 	return c.SSOLoginWithToken(ctx, cfg, accessToken, secureSSOTokenStorage, configOpts)
 }
