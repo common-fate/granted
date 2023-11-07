@@ -115,6 +115,8 @@ func AssumeCommand(c *cli.Context) error {
 	activeRoleProfile := assumeFlags.String("active-aws-profile")
 	activeRoleFlag := assumeFlags.Bool("active-role")
 
+	clio.Info(activeRoleProfile, activeRoleFlag, os.Environ())
+
 	showRerunCommand := false
 	var profile *cfaws.Profile
 	if assumeFlags.Bool("sso") {
@@ -537,13 +539,8 @@ func AssumeCommand(c *cli.Context) error {
 			return RunExecCommandWithCreds(creds, region, execCfg.Cmd, execCfg.Args...)
 		}
 
-
 		if profile.RawConfig != nil && profile.RawConfig.HasKey("credential_process") && (assumeFlags.Bool("export-all-env-vars") || cfg.DefaultExportAllEnvVar) {
-			canExpire := "false"
-			if creds.CanExpire {
-				canExpire = "true"
-			}
-			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, canExpire, profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "true", profile.AWSConfig.SSOStartURL, profile.AWSConfig.SSORoleName, profile.AWSConfig.SSORegion, profile.AWSConfig.SSOAccountID})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 
 			return nil
@@ -556,7 +553,7 @@ func AssumeCommand(c *cli.Context) error {
 		// If the profile uses "credential_process" to source credential externally then do not set accessKeyId, secretAccessKey, sessionToken
 		// so that aws cli automatically refreshes credential when they expire.
 		if profile.RawConfig != nil && profile.RawConfig.HasKey("credential_process") {
-			output := PrepareStringsForShellScript([]string{"", "", "", profile.Name, region, "", "true", "", "", "", ""})
+			output := PrepareStringsForShellScript([]string{"", "", "", profile.Name, region, "", "", "", "", "", ""})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
 
 			return nil
