@@ -133,7 +133,7 @@ var TokenExpiryCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		clio.Logf(string(jsonData))
+		fmt.Println(string(jsonData))
 
 		return nil
 	},
