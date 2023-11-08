@@ -23,7 +23,7 @@ GRANTED_OUTPUT=$(assumego "$@")
 
 GRANTED_STATUS=$?
 # shellcheck disable=SC2162
-IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11 << EOF
+IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11 GRANTED_12<< EOF
 ${GRANTED_OUTPUT}
 EOF
 
@@ -146,7 +146,21 @@ if [ -n "${ZSH_NAME:-}" ] && [ "${GRANTED_ENABLE_AUTO_REASSUME:-}" = "true" ]; t
   fi
 fi
 
-
+# Execute an additional program when GRANTED_FLAG is GrantedExec
+if [ "$GRANTED_FLAG" = "GrantedExec" ]; then
+  # Set GRANTED_12 with a command to execute, for example, "bash -c 'some_command'"
+  # Make sure to properly escape quotes if needed and pass arguments.
+  
+  # Set and export the AWS variables only for the duration of the 'sh -c' command
+  AWS_ACCESS_KEY_ID="${GRANTED_1:-}" \
+  AWS_SECRET_ACCESS_KEY="${GRANTED_2:-}" \
+  AWS_SESSION_TOKEN="${GRANTED_3:-}" \
+  AWS_REGION="${GRANTED_5:-}" \
+  AWS_DEFAULT_REGION="${GRANTED_5:-}" \
+  sh -c "$GRANTED_12"
+  
+  # The variables will not affect the parent shell environment after the 'sh -c' command completes
+fi
 # The GrantedOutput flag should be followed by a newline, then the output.
 # This way, the shell script can omit the first line containing the flag and return the unaltered output to the stdout
 # This is great as it works well with the -exec flag

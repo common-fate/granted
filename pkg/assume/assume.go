@@ -534,13 +534,14 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		if execCfg != nil {
-			return RunExecCommandWithCreds(creds, region, execCfg.Cmd, execCfg.Args...)
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, "", "false", "", "", "", "", execCfg.Cmd + " " + strings.Join(execCfg.Args, "")})
+			fmt.Printf("GrantedExec %s %s %s %s %s %s %s %s %s %s %s %s", output...)
+			return nil
 		}
 
 		if profile.RawConfig != nil && profile.RawConfig.HasKey("credential_process") && (assumeFlags.Bool("export-all-env-vars") || cfg.DefaultExportAllEnvVar) {
-			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "true", profile.SSOStartURL(), profile.AWSConfig.SSORoleName, profile.SSORegion(), profile.AWSConfig.SSOAccountID})
-			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
-
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "true", profile.SSOStartURL(), profile.AWSConfig.SSORoleName, profile.SSORegion(), profile.AWSConfig.SSOAccountID, ""})
+			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s %s", output...)
 			return nil
 		}
 
@@ -551,21 +552,21 @@ func AssumeCommand(c *cli.Context) error {
 		// If the profile uses "credential_process" to source credential externally then do not set accessKeyId, secretAccessKey, sessionToken
 		// so that aws cli automatically refreshes credential when they expire.
 		if profile.RawConfig != nil && profile.RawConfig.HasKey("credential_process") {
-			output := PrepareStringsForShellScript([]string{"", "", "", profile.Name, region, "", "", "", "", "", ""})
-			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+			output := PrepareStringsForShellScript([]string{"", "", "", profile.Name, region, "", "", "", "", "", "", ""})
+			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s %s", output...)
 
 			return nil
 		}
 
 		if assumeFlags.Bool("sso") {
-			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.SSOStartURL(), profile.AWSConfig.SSORoleName, profile.SSORegion(), profile.AWSConfig.SSOAccountID})
-			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.SSOStartURL(), profile.AWSConfig.SSORoleName, profile.SSORegion(), profile.AWSConfig.SSOAccountID, ""})
+			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s %s", output...)
 
 			return nil
 		}
 
-		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "false", "", "", "", ""})
-		fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s", output...)
+		output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, profile.Name, region, sessionExpiration, "false", "", "", "", "", ""})
+		fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s %s", output...)
 	}
 	return nil
 }
@@ -593,6 +594,7 @@ func RunExecCommandWithCreds(creds aws.Credentials, region string, cmd string, a
 	c := exec.Command(cmd, args...)
 	c.Stdout = os.Stdout
 	c.Stderr = os.Stderr
+
 	// the aws profile env var will break the exec flow so we strip it out
 	c.Env = append(removeEnvKeys(os.Environ(), []string{"AWS_PROFILE"}), EnvKeys(creds, region)...)
 	return c.Run()
