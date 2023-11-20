@@ -241,7 +241,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 			browserPath = customBrowserPath
 		}
 
-		if browserKey == FirefoxKey || browserKey == WaterfoxKey {
+		if browserKey == FirefoxKey || browserKey == WaterfoxKey || browserKey == FirefoxDevEditionKey {
 			err := RunFirefoxExtensionPrompts(browserPath, browserName)
 			if err != nil {
 				return err
