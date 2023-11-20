@@ -416,7 +416,7 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 
-		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey {
+		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey || cfg.DefaultBrowser == browser.FirefoxDevEditionKey {
 			// tranform the URL into the Firefox Tab Container format.
 			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", containerProfile, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
 		}
