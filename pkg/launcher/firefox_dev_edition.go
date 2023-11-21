@@ -12,4 +12,4 @@ func (l FirefoxDevEdition) LaunchCommand(url string, profile string) []string {
 	}
 }
 
-func (l FirefoxDevEdition) UseForkProcess() bool { return false }
+func (l FirefoxDevEdition) UseForkProcess() bool { return true }
