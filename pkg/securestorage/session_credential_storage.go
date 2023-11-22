@@ -1,7 +1,6 @@
 package securestorage
 
 import (
-	"github.com/99designs/keyring"
 	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
@@ -17,14 +16,19 @@ func NewSecureSessionCredentialStorage() SessionCredentialSecureStorage {
 	}
 }
 
-func (i *SessionCredentialSecureStorage) GetCredentials(profile string) (credentials aws.Credentials, ok bool, err error) {
-	err = i.SecureStorage.Retrieve(profile, &credentials)
-	if err == keyring.ErrKeyNotFound {
-		err = nil
-	} else if err == nil {
-		ok = true
+func (i *SessionCredentialSecureStorage) GetCredentials(profile string) (*aws.Credentials, error) {
+	// by default, set the credentials to be expiring so that we force a refresh if there are
+	// any problems unmarshalling them.
+	credentials := aws.Credentials{
+		CanExpire: true,
 	}
-	return
+
+	err := i.SecureStorage.Retrieve(profile, &credentials)
+	if err != nil {
+		return nil, err
+	}
+
+	return &credentials, nil
 }
 
 func (i *SessionCredentialSecureStorage) StoreCredentials(profile string, credentials aws.Credentials) (err error) {
