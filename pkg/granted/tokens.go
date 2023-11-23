@@ -2,6 +2,7 @@ package granted
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"os"
@@ -65,7 +66,8 @@ var ListSSOTokensCommand = cli.Command{
 var TokenExpiryCommand = cli.Command{
 	Name:  "expiry",
 	Usage: "Lists expiry status for all access tokens saved in the keyring",
-	Flags: []cli.Flag{&cli.StringFlag{Name: "url", Usage: "If provided, prints the expiry of the token for the specific SSO URL"}},
+	Flags: []cli.Flag{&cli.StringFlag{Name: "url", Usage: "If provided, prints the expiry of the token for the specific SSO URL"},
+		&cli.BoolFlag{Name: "json", Usage: "If provided, prints the expiry of the tokens in JSON"}},
 	Action: func(ctx *cli.Context) error {
 		url := ctx.String("url")
 
@@ -101,6 +103,16 @@ var TokenExpiryCommand = cli.Command{
 			return err
 		}
 
+		jsonflag := ctx.Bool("json")
+
+		type sso_expiry struct {
+			StartURLs string `json:"start_urls"`
+			ExpiresAt string `json:"expires_at"`
+			IsExpired bool   `json:"is_expired"`
+		}
+
+		var jsonDataArray []sso_expiry
+
 		for _, key := range keys {
 			token := secureSSOTokenStorage.GetValidSSOToken(key)
 
@@ -110,9 +122,26 @@ var TokenExpiryCommand = cli.Command{
 			} else {
 				expiry = token.Expiry.Local().Format(time.RFC3339)
 			}
-
-			clio.Logf("%-*s (%s) expires at: %s", max, key, strings.Join(startUrlMap[key], ", "), expiry)
+			if jsonflag {
+				sso_expiry_data := sso_expiry{
+					StartURLs: key,
+					ExpiresAt: expiry,
+					IsExpired: expiry == "EXPIRED",
+				}
+				jsonDataArray = append(jsonDataArray, sso_expiry_data)
+			} else {
+				clio.Logf("%-*s (%s) expires at: %s", max, key, strings.Join(startUrlMap[key], ", "), expiry)
+			}
 		}
+
+		if jsonflag {
+			jsonData, err := json.Marshal(jsonDataArray)
+			if err != nil {
+				return err
+			}
+			fmt.Println(string(jsonData))
+		}
+
 		return nil
 	},
 }
