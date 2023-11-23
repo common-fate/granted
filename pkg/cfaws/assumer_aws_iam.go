@@ -7,6 +7,7 @@ import (
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
+	"github.com/aws/aws-sdk-go-v2/credentials"
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/sts/types"
@@ -22,26 +23,57 @@ type AwsIamAssumer struct {
 // Default behaviour is to use the sdk to retrieve the credentials from the file
 // For launching the console there is an extra step GetFederationToken that happens after this to get a session token
 func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
-	if c.HasSecureStorageIAMCredentials {
-		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
-		return secureIAMCredentialStorage.GetCredentials(c.Name)
-	}
-
 	// check if the valid credentials are available in session credential store
 
 	sessionCredStorage := securestorage.NewSecureSessionCredentialStorage()
 
-	cachedCreds, ok, err := sessionCredStorage.GetCredentials(c.AWSConfig.Profile)
+	cachedCreds, err := sessionCredStorage.GetCredentials(c.AWSConfig.Profile)
 	if err != nil {
-		return aws.Credentials{}, err
-	}
-
-	if ok && !cachedCreds.Expired() {
+		clio.Debugw("error loading cached credentials", "error", err)
+	} else if cachedCreds != nil && !cachedCreds.Expired() {
 		clio.Debugw("credentials found in cache", "expires", cachedCreds.Expires.String(), "canExpire", cachedCreds.CanExpire, "timeNow", time.Now().String())
-		return cachedCreds, err
+		return *cachedCreds, err
 	}
 
 	clio.Debugw("refreshing credentials", "reason", "not found")
+
+	if c.HasSecureStorageIAMCredentials {
+		secureIAMCredentialStorage := securestorage.NewSecureIAMCredentialStorage()
+		creds, err := secureIAMCredentialStorage.GetCredentials(c.Name)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+		/**If the IAM credentials in secure storage are valid and no MFA is required:
+		*[profile example]
+		*region             = us-west-2
+		*credential_process = dgranted credential-process --profile=example
+		**/
+		if c.AWSConfig.MFASerial == "" {
+			return creds, nil
+		}
+
+		cfg, err := config.LoadDefaultConfig(ctx, config.WithCredentialsProvider(credentials.NewStaticCredentialsProvider(creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken)))
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+		/**If the IAM credentials in secure storage MFA is required:
+		*[profile example]
+		*region             = us-west-2
+		*mfa_serial         = arn:aws:iam::616777145260:mfa
+		*credential_process = dgranted credential-process --profile=example
+		**/
+		clio.Debugw("generating temporary credentials", "assumer", aia.Type(), "profile_type", "base_profile_with_mfa")
+		creds, err = aia.getTemporaryCreds(ctx, cfg, c, configOpts)
+		if err != nil {
+			return aws.Credentials{}, err
+		}
+
+		if err := sessionCredStorage.StoreCredentials(c.AWSConfig.Profile, creds); err != nil {
+			clio.Warnf("Error caching credentials, MFA token will be requested before current token is expired")
+		}
+
+		return creds, nil
+	}
 
 	//using ~/.aws/credentials file for creds
 	opts := []func(*config.LoadOptions) error{
@@ -66,7 +98,15 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 			}
 			aro.Duration = configOpts.Duration
 
-			// If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token
+			/**If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token:
+			*[profile base]
+			*region             = us-west-2
+			*mfa_serial         = arn:aws:iam::616777145260:mfa
+
+			*[profile prod]
+			*role_arn       = XXXXXXX
+			*source_profile = base
+			**/
 			if len(c.Parents) > 0 {
 				if c.Parents[0].AWSConfig.MFASerial != "" {
 					aro.SerialNumber = aws.String(c.Parents[0].AWSConfig.MFASerial)
