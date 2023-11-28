@@ -6,6 +6,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/common-fate/clio"
 	gconfig "github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"gopkg.in/ini.v1"
 )
 
@@ -66,4 +67,15 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 		return err
 	}
 	return credentialsFile.SaveTo(credPath)
+}
+
+// ExportAccessTokenToCache will export access tokens to ~/.aws/sso/cache
+func ExportAccessTokenToCache(profile *Profile) error {
+	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
+	// Find the access token for the SSOStartURL
+	cachedToken := secureSSOTokenStorage.GetValidSSOToken(profile.AWSConfig.SSOStartURL)
+	ssoPlainTextOut := CreatePlainTextSSO(profile.AWSConfig, cachedToken)
+	err := ssoPlainTextOut.DumpToCacheDirectory()
+
+	return err
 }

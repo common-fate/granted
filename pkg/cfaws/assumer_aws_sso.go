@@ -174,6 +174,14 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	// if the profile has an sso user configured then suffix the sso token storage key to ensure unique logins
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
+	// check if profile has a valid plaintext sso access token
+	plainTextToken := GetValidSSOTokenFromPlaintextCache(ssoTokenKey)
+
+	// store token to storage to avoid multiple logins
+	if plainTextToken != nil {
+		secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *plainTextToken)
+	}
+
 	var accessToken *string
 
 	skipAutoLogin := configOpts.UsingCredentialProcess && !configOpts.CredentialProcessAutoLogin
@@ -192,7 +200,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		return aws.Credentials{}, fmt.Errorf("error when retrieving credentials from custom process. please login using '%s'", cmd)
 	}
 
-	if cachedToken == nil {
+	if cachedToken == nil && plainTextToken == nil {
 		newCfg := aws.NewConfig()
 		newCfg.Region = rootProfile.SSORegion()
 		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *newCfg, rootProfile.SSOStartURL())
@@ -201,9 +209,13 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		}
 
 		secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *newSSOToken)
-		accessToken = &newSSOToken.AccessToken
-	} else {
+		cachedToken = newSSOToken
+	}
+
+	if cachedToken != nil {
 		accessToken = &cachedToken.AccessToken
+	} else {
+		accessToken = &plainTextToken.AccessToken
 	}
 
 	cfg := aws.NewConfig()
