@@ -33,7 +33,7 @@ func init() {
 const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`
 
 const defaultAlias = `alias assume=". assume"`
-const fishAliasBrew = `alias assume="source (brew --prefix)/assume.fish"`
+const fishAliasBrew = `alias assume="source (brew --prefix)/bin/assume.fish"`
 
 const devFishAlias = `alias dassume="source /usr/local/bin/dassume.fish"`
 const devDefaultAlias = `alias dassume=". dassume"`
