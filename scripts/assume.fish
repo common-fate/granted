@@ -9,7 +9,7 @@ set -gx GRANTED_ALIAS_CONFIGURED "true"
 
 set GRANTED_OUTPUT (assumego $argv)
 set GRANTED_STATUS $status
-echo $GRANTED_OUTPUT | IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11
+echo $GRANTED_OUTPUT | IFS=' ' read GRANTED_FLAG GRANTED_1 GRANTED_2 GRANTED_3 GRANTED_4 GRANTED_5 GRANTED_6 GRANTED_7 GRANTED_8 GRANTED_9 GRANTED_10 GRANTED_11 GRANTED_12
 
 
 # remove carriage return
@@ -89,6 +89,19 @@ else if test "$GRANTED_FLAG" = "GrantedOutput"
         echo $line
       end
   end
+
+
+else if test "$GRANTED_FLAG" = "GrantedExec"
+  # Set GRANTED_12 with a command to execute, for example, "bash -c 'some_command'"
+  # Make sure to properly escape quotes if needed and pass arguments.
+
+  # Set and export the AWS variables only for the duration of the 'sh -c' command
+  env AWS_ACCESS_KEY_ID=$GRANTED_1 \
+    AWS_SECRET_ACCESS_KEY=$GRANTED_2 \
+    AWS_SESSION_TOKEN=$GRANTED_3 \
+    AWS_REGION=$GRANTED_5 \
+    AWS_DEFAULT_REGION=$GRANTED_5 \
+    sh -c "$GRANTED_12"
 end
 
 exit $GRANTED_STATUS
