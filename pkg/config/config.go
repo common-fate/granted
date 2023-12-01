@@ -28,6 +28,8 @@ type Config struct {
 	// denying access to assume a particular role.
 	//Set this to true to set `--export` to ~/.aws/credentials as default
 	ExportCredsToAWS bool `toml:",omitempty"`
+	// Set to true to export sso tokens to ~/.aws/sso/cache
+	ExportSSOToken bool `toml:",omitempty"`
 
 	AccessRequestURL string `toml:",omitempty"`
 
