@@ -175,7 +175,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
 	// check if profile has a valid plaintext sso access token
-	plainTextToken := GetValidSSOTokenFromPlaintextCache(ssoTokenKey)
+	plainTextToken := GetValidSSOTokenFromPlaintextCache(rootProfile.SSOStartURL())
 
 	// store token to storage to avoid multiple logins
 	if plainTextToken != nil {
