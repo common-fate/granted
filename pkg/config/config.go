@@ -71,6 +71,7 @@ type Registry struct {
 	Priority                *int    `toml:"priority, omitempty"`
 	PrefixDuplicateProfiles bool    `toml:"prefixDuplicateProfiles,omitempty"`
 	PrefixAllProfiles       bool    `toml:"prefixAllProfiles,omitempty"`
+	WriteOnSyncFailure      bool    `toml:"writeOnSyncFailure,omitempty"`
 }
 
 // NewDefaultConfig returns a config with OS specific defaults populated

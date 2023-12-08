@@ -94,8 +94,12 @@ func SyncProfileRegistries(shouldSilentLog bool, promptUserIfProfileDuplication 
 		if err != nil {
 			se, ok := err.(*SyncError)
 			if ok {
-				clio.Errorf("Sync failed for registry %s - bailing", r.Config.Name)
-				clio.Debug(se.Error())
+				clio.Errorf("Sync failed for registry %s: %s", r.Config.Name, se.Error())
+
+				if r.Config.WriteOnSyncFailure {
+					clio.Warnf("%s is configured to write on sync failure; continuing.", r.Config.Name)
+					continue
+				}
 			}
 			return err
 		}

@@ -70,6 +70,7 @@ type registryOptions struct {
 	priority                int
 	prefixAllProfiles       bool
 	prefixDuplicateProfiles bool
+	writeOnSyncFailure      bool
 }
 
 func NewProfileRegistry(rOpts registryOptions) Registry {
@@ -79,6 +80,7 @@ func NewProfileRegistry(rOpts registryOptions) Registry {
 			URL:                     rOpts.url,
 			PrefixAllProfiles:       rOpts.prefixAllProfiles,
 			PrefixDuplicateProfiles: rOpts.prefixDuplicateProfiles,
+			WriteOnSyncFailure:      rOpts.writeOnSyncFailure,
 		},
 	}
 

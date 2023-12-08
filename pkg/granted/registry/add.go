@@ -29,6 +29,7 @@ var AddCommand = cli.Command{
 		&cli.StringFlag{Name: "ref", Hidden: true},
 		&cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"pap"}, Usage: "provide this flag if you want to append registry name to all profiles"},
 		&cli.BoolFlag{Name: "prefix-duplicate-profiles", Aliases: []string{"pdp"}, Usage: "provide this flag if you want to append registry name to duplicate profiles"},
+		&cli.BoolFlag{Name: "write-on-sync-failure", Aliases: []string{"wosf"}, Usage: "always overwrite AWS config, even if sync fails"},
 		&cli.StringSliceFlag{Name: "required-key", Aliases: []string{"r", "requiredKey"}, Usage: "used to bypass the prompt or override user specific values"}},
 	ArgsUsage: "--name <registry_name> --url <repository_url>",
 	Action: func(c *cli.Context) error {
@@ -44,6 +45,7 @@ var AddCommand = cli.Command{
 		ref := c.String("ref")
 		prefixAllProfiles := c.Bool("prefix-all-profiles")
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
+		writeOnSyncFailure := c.Bool("write-on-sync-failure")
 		requiredKey := c.StringSlice("required-key")
 		priority := c.Int("priority")
 
@@ -64,6 +66,7 @@ var AddCommand = cli.Command{
 			priority:                priority,
 			prefixAllProfiles:       prefixAllProfiles,
 			prefixDuplicateProfiles: prefixDuplicateProfiles,
+			writeOnSyncFailure:      writeOnSyncFailure,
 		})
 
 		repoDirPath, err := getRegistryLocation(registry.Config)
