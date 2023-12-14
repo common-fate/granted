@@ -26,16 +26,24 @@ func loadAWSConfigFile() (*ini.File, string, error) {
 		return nil, "", err
 	}
 
+	awsConfig, err := loadAWSConfigFileFromPath(filepath)
+	if err != nil {
+		return nil, "", err
+	}
+	return awsConfig, filepath, nil
+}
+
+func loadAWSConfigFileFromPath(filepath string) (*ini.File, error) {
 	awsConfig, err := ini.LoadSources(ini.LoadOptions{
 		SkipUnrecognizableLines: true,
 		AllowNonUniqueSections:  true,
 		AllowNestedValues:       true,
 	}, filepath)
 	if err != nil {
-		return nil, "", err
+		return nil, err
 	}
 
-	return awsConfig, filepath, nil
+	return awsConfig, nil
 }
 
 // load all cloned configs of a single repo into one ini object.
