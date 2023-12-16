@@ -534,7 +534,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		}
 
-		if assumeFlags.Bool("export-sso-token") {
+		if assumeFlags.Bool("export-sso-token") || cfg.ExportSSOToken {
 			err := cfaws.ExportAccessTokenToCache(profile)
 
 			if err != nil {
