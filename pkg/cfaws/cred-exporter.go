@@ -73,7 +73,7 @@ func ExportCredsToProfile(profileName string, creds aws.Credentials) error {
 func ExportAccessTokenToCache(profile *Profile) error {
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 	// Find the access token for the SSOStartURL and SSOSessionName
-	tokenKey := profile.AWSConfig.SSOStartURL + profile.AWSConfig.SSOSessionName
+	tokenKey := profile.SSOStartURL() + profile.AWSConfig.SSOSessionName
 	cachedToken := secureSSOTokenStorage.GetValidSSOToken(tokenKey)
 	ssoPlainTextOut := CreatePlainTextSSO(profile.AWSConfig, cachedToken)
 	err := ssoPlainTextOut.DumpToCacheDirectory()
