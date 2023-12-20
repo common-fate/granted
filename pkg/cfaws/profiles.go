@@ -311,19 +311,8 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		return nil, err
 	}
 
-	// Initialize the profile, which will also handle source_profile chains
-	err = pr.init(ctx, p, 0)
-	if err != nil {
-		return nil, err
-	}
-
-	// Debug output to log the profile's name and its source_profile after initialization
-	clio.Debugw("Loading profile",
-		"profileName", pr.Name,
-		"sourceProfile", pr.AWSConfig.SourceProfileName,
-	)
-
-	// Check for 'granted' prefix in the profile configuration
+	// For config that has 'granted' prefix we need to convert this to AWS config fields
+	// aws configuration
 	if hasGrantedSSOPrefix(pr.RawConfig) {
 		awsConfig, err := ParseGrantedSSOProfile(ctx, pr)
 		if err != nil {
@@ -331,46 +320,43 @@ func (p *Profiles) LoadInitialisedProfile(ctx context.Context, profile string) (
 		}
 		pr.AWSConfig = *awsConfig
 		pr.Initialised = true
-		pr.ProfileType = "AWS_SSO"
-		return pr, nil
-	}
 
-	// Check for 'credential_process' key in the profile configuration
-	for _, v := range pr.RawConfig.Keys() {
-		if v.Name() == "credential_process" && strings.HasPrefix(v.Value(), build.GrantedBinaryName()) {
-			awsConfig, err := config.LoadSharedConfigProfile(ctx, pr.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{pr.File} })
-			if err != nil {
-				return nil, err
+		as := assumers
+		for _, a := range as {
+			if a.ProfileMatchesType(pr.RawConfig, pr.AWSConfig) {
+				pr.ProfileType = a.Type()
+				break
+			} else {
+				pr.ProfileType = "AWS_SSO"
 			}
+		}
 
-			pr.AWSConfig = awsConfig
-			pr.AWSConfig.CredentialProcess = ""
-			pr.Initialised = true
-			pr.ProfileType = "AWS_IAM"
-			pr.HasSecureStorageIAMCredentials = true
-			return pr, nil
+		return pr, nil
+	} else {
+		for _, v := range pr.RawConfig.Keys() {
+			if v.Name() == "credential_process" && strings.HasPrefix(v.Value(), build.GrantedBinaryName()) {
+				awsConfig, err := config.LoadSharedConfigProfile(ctx, pr.Name, func(lsco *config.LoadSharedConfigOptions) { lsco.ConfigFiles = []string{pr.File} })
+				if err != nil {
+					return nil, err
+				}
+
+				pr.AWSConfig = awsConfig
+				pr.AWSConfig.CredentialProcess = ""
+				pr.Initialised = true
+				pr.ProfileType = "AWS_IAM"
+				pr.HasSecureStorageIAMCredentials = true
+				return pr, nil
+			}
 		}
 	}
 
-	// Determine the profile type based on the initialized profile's keys
-	// This should be done after the profile is fully initialized to ensure we are checking the correct keys
-	foundAssumer := false
-	for _, a := range assumers {
-		if a.ProfileMatchesType(pr.RawConfig, pr.AWSConfig) {
-			pr.ProfileType = a.Type()
-			foundAssumer = true
-			break
-		}
+	// default initializaton flow
+	err = pr.init(ctx, p, 0)
+	if err != nil {
+		return nil, err
 	}
-
-	// If no specific assumer matched, default to AWS_SSO
-	if !foundAssumer {
-		pr.ProfileType = "AWS_SSO"
-	}
-
 	return pr, nil
 }
-
 
 // Initialize profile's AWS config by fetching credentials from plain-text-SSO-token
 // located at default cache directory.
