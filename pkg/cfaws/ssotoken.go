@@ -33,9 +33,12 @@ type SSOPlainTextOut struct {
 // purposes with other AWS tools.
 func CreatePlainTextSSO(awsConfig config.SharedConfig, token *securestorage.SSOToken) *SSOPlainTextOut {
 	ssoRegion := awsConfig.SSORegion
-	ssoStartURL := awsConfig.SSOStartURL
-	if awsConfig.SSOSession != nil {
+	if ssoRegion == "" && awsConfig.SSOSession != nil {
 		ssoRegion = awsConfig.SSOSession.SSORegion
+	}
+
+	ssoStartURL := awsConfig.SSOStartURL
+	if ssoStartURL == "" && awsConfig.SSOSession != nil {
 		ssoStartURL = awsConfig.SSOSession.SSOStartURL
 	}
 
