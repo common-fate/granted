@@ -583,6 +583,11 @@ var RotateCredentialsCommand = cli.Command{
 			return err
 		}
 
+		_, err = iamClient.DeleteAccessKey(c.Context, &iam.DeleteAccessKeyInput{AccessKeyId: &t.AccessKeyID})
+		if err != nil {
+			return err
+		}
+
 		clio.Successf("Access Key of '%s' profile has been successfully rotated and updated in secure storage\n", profileName)
 
 		return nil
