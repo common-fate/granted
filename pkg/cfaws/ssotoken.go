@@ -32,12 +32,22 @@ type SSOPlainTextOut struct {
 // we'll allow users to export a plaintext token from their keychain for compatibility
 // purposes with other AWS tools.
 func CreatePlainTextSSO(awsConfig config.SharedConfig, token *securestorage.SSOToken) *SSOPlainTextOut {
+	ssoRegion := awsConfig.SSORegion
+	if ssoRegion == "" && awsConfig.SSOSession != nil {
+		ssoRegion = awsConfig.SSOSession.SSORegion
+	}
+
+	ssoStartURL := awsConfig.SSOStartURL
+	if ssoStartURL == "" && awsConfig.SSOSession != nil {
+		ssoStartURL = awsConfig.SSOSession.SSOStartURL
+	}
+
 	return &SSOPlainTextOut{
 		AccessToken:    token.AccessToken,
 		ExpiresAt:      token.Expiry.Format(time.RFC3339),
-		Region:         awsConfig.Region,
+		Region:         ssoRegion,
 		SSOSessionName: awsConfig.SSOSessionName,
-		StartUrl:       awsConfig.SSOStartURL,
+		StartUrl:       ssoStartURL,
 	}
 }
 
