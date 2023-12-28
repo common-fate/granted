@@ -14,6 +14,7 @@ import (
 	"os"
 
 	"github.com/AlecAivazis/survey/v2"
+	"github.com/alessio/shellescape"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	awsconfig "github.com/aws/aws-sdk-go-v2/config"
 	"github.com/common-fate/awsconfigfile"
@@ -545,7 +546,8 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		if execCfg != nil {
-			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, "", "false", "", "", "", "", execCfg.Cmd + " " + strings.Join(execCfg.Args, "")})
+			escapedCmd := shellescape.QuoteCommand(append([]string{execCfg.Cmd}, execCfg.Args...))
+			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, "", "false", "", "", "", "", escapedCmd})
 			fmt.Printf("GrantedExec %s %s %s %s %s %s %s %s %s %s %s %s", output...)
 			return nil
 		}
