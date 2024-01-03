@@ -64,7 +64,12 @@ func SyncProfileRegistries(shouldSilentLog bool, promptUserIfProfileDuplication 
 	}
 
 	tmpConfigPath := path.Join(tmpDir, "aws-config")
-	if err := copyFile(tmpConfigPath, awsConfigPath); err != nil {
+
+	if err := createFileIfNotExists(awsConfigPath); err != nil {
+		return err
+	}
+	if err := copyFile(awsConfigPath, tmpConfigPath); err != nil {
+
 		return fmt.Errorf("failed to copy aws config to tempfile for update")
 	}
 
@@ -208,6 +213,25 @@ func (m *SyncError) Error() string {
 	return fmt.Sprintf("Failed to sync for registry %s with error: %s", m.RegistryName, m.Err.Error())
 }
 
+func createFileIfNotExists(path string) error {
+	_, statErr := os.Stat(path)
+	if statErr == nil {
+		return nil
+	}
+
+	if !os.IsNotExist(statErr) {
+		return fmt.Errorf(`failed to check if file "%s" exists: %w`, path, statErr)
+	}
+
+	createdFile, createErr := os.Create(path)
+	if createErr != nil {
+		return fmt.Errorf(`failed to create file "%s": %w`, path, createErr)
+	}
+	defer createdFile.Close()
+
+	return nil
+}
+
 func copyFile(from, to string) error {
 	copyFrom, err := os.Open(from)
 	if err != nil {
@@ -220,6 +244,6 @@ func copyFile(from, to string) error {
 	}
 	defer copyTo.Close()
 
-	_, err = io.Copy(copyFrom, copyTo)
+	_, err = io.Copy(copyTo, copyFrom)
 	return err
 }
