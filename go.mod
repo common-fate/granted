@@ -30,6 +30,7 @@ require (
 )
 
 require (
+	github.com/alessio/shellescape v1.4.2 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/common-fate/iso8601 v1.0.2 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
