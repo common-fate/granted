@@ -220,6 +220,6 @@ func copyFile(from, to string) error {
 	}
 	defer copyTo.Close()
 
-	_, err = io.Copy(copyFrom, copyTo)
+	_, err = io.Copy(copyTo, copyFrom)
 	return err
 }
