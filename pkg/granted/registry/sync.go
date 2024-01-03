@@ -68,7 +68,7 @@ func SyncProfileRegistries(shouldSilentLog bool, promptUserIfProfileDuplication 
 	if err := createFileIfNotExists(awsConfigPath); err != nil {
 		return err
 	}
-	if err := copyFile(tmpConfigPath, awsConfigPath); err != nil {
+	if err := copyFile(awsConfigPath, tmpConfigPath); err != nil {
 
 		return fmt.Errorf("failed to copy aws config to tempfile for update")
 	}
@@ -244,6 +244,6 @@ func copyFile(from, to string) error {
 	}
 	defer copyTo.Close()
 
-	_, err = io.Copy(copyFrom, copyTo)
+	_, err = io.Copy(copyTo, copyFrom)
 	return err
 }
