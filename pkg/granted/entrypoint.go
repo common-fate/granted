@@ -4,9 +4,9 @@ import (
 	"os"
 	"path"
 
-	"github.com/common-fate/cli/cmd/command"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/cliolog"
+	"github.com/common-fate/glide-cli/cmd/command"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/config"
