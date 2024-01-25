@@ -519,7 +519,10 @@ var ExportCredentialsCommand = cli.Command{
 var RotateCredentialsCommand = cli.Command{
 	Name:  "rotate",
 	Usage: "Generates new access key for the profile in AWS, and updates the profile",
-	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Usage: "If provided, generates new access key for the specified profile"}},
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "profile", Usage: "If provided, generates new access key for the specified profile"},
+		&cli.BoolFlag{Name: "delete", Usage: "delete the previous active key"},
+	},
 	Action: func(c *cli.Context) error {
 		profileName := c.String("profile")
 
@@ -583,9 +586,11 @@ var RotateCredentialsCommand = cli.Command{
 			return err
 		}
 
-		_, err = iamClient.DeleteAccessKey(c.Context, &iam.DeleteAccessKeyInput{AccessKeyId: &t.AccessKeyID})
-		if err != nil {
-			return err
+		if c.Bool("delete") {
+			_, err = iamClient.DeleteAccessKey(c.Context, &iam.DeleteAccessKeyInput{AccessKeyId: &t.AccessKeyID})
+			if err != nil {
+				return err
+			}
 		}
 
 		clio.Successf("Access Key of '%s' profile has been successfully rotated and updated in secure storage\n", profileName)
