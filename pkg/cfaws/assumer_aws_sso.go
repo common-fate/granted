@@ -78,27 +78,11 @@ func (c *Profile) SSOLoginWithToken(ctx context.Context, cfg *aws.Config, access
 		if err != nil {
 			serr, ok := err.(*smithy.OperationError)
 			if ok {
-				// If the err is of type ForbiddenRequest then user may be able
-				// to request access to the role if they are using Granted Approvals.
-				// Display an error message with the request URL, or a prompt
-				// to set up the request URL if it's empty.
+				// If the err is of type ForbiddenRequest the user doesn't have an
+				// IAM Identity Center account assignment which matches the one requested.
 				if httpErr, ok := serr.Err.(*awshttp.ResponseError); ok {
 					if httpErr.HTTPStatusCode() == http.StatusForbidden {
-						if c.RawConfig != nil && hasGrantedSSOPrefix(c.RawConfig) {
-							gConf, loadErr := grantedConfig.Load()
-							if loadErr != nil {
-								clio.Debugf(errors.Wrapf(err, "loading Granted config during sso error handling: %s", loadErr.Error()).Error())
-								return aws.Credentials{}, serr
-							}
-
-							// granted exp request latest will try to auto assume after the request is approved.
-							// It is possible that user might still get forbidden access due to some latency is provisioning sso credentials.
-							// In such case, let's retry the logic before showing them this error
-							// if configOpts.ShouldRetryAssuming != nil && *configOpts.ShouldRetryAssuming {
-							// 	fmt.Println("add retry logic here")
-							// }
-							return aws.Credentials{}, FormatAWSErrorWithGrantedApprovalsURL(serr, c.RawConfig, *gConf, c.AWSConfig.SSORoleName, c.AWSConfig.SSOAccountID)
-						}
+						return aws.Credentials{}, NoAccessError{Err: err}
 					}
 				}
 
