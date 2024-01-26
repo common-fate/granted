@@ -14,17 +14,19 @@ require (
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
 	github.com/segmentio/ksuid v1.0.4
-	github.com/urfave/cli/v2 v2.24.1
+	github.com/urfave/cli/v2 v2.25.7
 )
 
 require (
+	connectrpc.com/connect v1.14.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/briandowns/spinner v1.23.0
+	github.com/common-fate/cli v1.2.0
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/common-fate v0.15.13
 	github.com/common-fate/glide-cli v0.5.0
 	github.com/common-fate/sdk v1.0.0
-	github.com/fatih/color v1.13.0
+	github.com/fatih/color v1.16.0
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/schollz/progressbar/v3 v3.13.1
 	go.uber.org/zap v1.26.0
@@ -32,10 +34,9 @@ require (
 )
 
 require (
-	connectrpc.com/connect v1.14.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.10.3 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
-	github.com/common-fate/grab v1.1.0 // indirect
+	github.com/common-fate/grab v1.2.0 // indirect
 	github.com/common-fate/iso8601 v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.11.0 // indirect

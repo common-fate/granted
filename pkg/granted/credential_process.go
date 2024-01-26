@@ -10,6 +10,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/pkg/errors"
 
+	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
@@ -96,16 +97,16 @@ var CredentialProcess = cli.Command{
 		var nae cfaws.NoAccessError
 
 		// ensuring access is currently only supported for profiles using IAM Identity Center.
-		if errors.As(err, &nae) && profile.AWSConfig.SSOAccountID != "" {
+		if errors.As(err, &nae) {
 			clio.Debugw("received a NoAccessError", "wrapped_error", nae.Err)
-			_, err = tryEnsureAccess(ctx, profile)
-			if err != nil {
+			_, ensureAccessErr := tryEnsureAccess(ctx, profile)
+			if ensureAccessErr != nil {
 				return fmt.Errorf("error while ensuring access: %w: %w", err, nae)
 			}
+			credentials, err = retryAssuming(ctx, profile, duration, autoLogin)
 		}
 		if err != nil {
-			clio.Info("errrrerre")
-			return errors.Wrap(err, "bagdaddadaad")
+			return err
 		}
 		if !cfg.DisableCredentialProcessCache {
 			clio.Debugw("storing refreshed credentials in credential process cache", "expires", credentials.Expires.String(), "canExpire", credentials.CanExpire, "timeNow", time.Now().String())
@@ -157,7 +158,9 @@ func tryEnsureAccess(ctx context.Context, profile *cfaws.Profile) (bool, error) 
 
 	accessclient := access.NewFromConfig(cfg)
 
-	_, err = accessclient.BatchEnsure(ctx, connect.NewRequest(&accessv1alpha1.BatchEnsureRequest{
+	clio.Debug("ensuring access using Common Fate")
+
+	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&accessv1alpha1.BatchEnsureRequest{
 		Entitlements: []*accessv1alpha1.EntitlementInput{
 			{
 				Target: &accessv1alpha1.Specifier{
@@ -179,6 +182,34 @@ func tryEnsureAccess(ctx context.Context, profile *cfaws.Profile) (bool, error) 
 	if err != nil {
 		return false, err
 	}
+	printdiags.Print(res.Msg.Diagnostics, nil)
 
 	return true, nil
+}
+
+func retryAssuming(ctx context.Context, profile *cfaws.Profile, duration time.Duration, autoLogin bool) (aws.Credentials, error) {
+	maxRetry := 5
+	var er error
+	for i := 0; i < maxRetry; i++ {
+		credentials, err := profile.AssumeTerminal(ctx, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true, CredentialProcessAutoLogin: autoLogin})
+		if err == nil {
+			return credentials, nil
+		}
+
+		var nae cfaws.NoAccessError
+
+		// ensuring access is currently only supported for profiles using IAM Identity Center.
+		if errors.As(err, &nae) {
+			clio.Debugw("received a NoAccessError", "wrapped_error", nae.Err)
+			clio.Debugf("failed assuming attempt %d", i)
+			// Increase the backoff duration by a second each time we retry
+			time.Sleep(time.Second * time.Duration(i+1))
+		} else {
+			return aws.Credentials{}, err
+		}
+
+		er = err
+	}
+
+	return aws.Credentials{}, errors.Wrap(er, "max retries exceeded")
 }

@@ -46,14 +46,16 @@ github.com/briandowns/spinner v1.23.0 h1:alDF2guRWqa/FOZZYWjlMIx2L6H0wyewPxo/CH4
 github.com/briandowns/spinner v1.23.0/go.mod h1:rPG4gmXeN3wQV/TsAY4w8lPdIM6RX3yqeBQJSrbXjuE=
 github.com/common-fate/awsconfigfile v0.8.0 h1:6bu7ftnBxCPKI/FFfNxAmF0K26Fs2gj9SMLVxbX1j0o=
 github.com/common-fate/awsconfigfile v0.8.0/go.mod h1:VJibjDtrFRus19rO29z1i5lN0yi7dREk//69YRjKm/M=
+github.com/common-fate/cli v1.2.0 h1:ekEsPuldBNV/x+TdAI0JmfNEYRYJzI5NSv6gjzVCjDo=
+github.com/common-fate/cli v1.2.0/go.mod h1:RdCjpFm0a1of69obRjE+4xSxJ3jV3B62bw+Mu7DLN1g=
 github.com/common-fate/clio v1.2.3 h1:hHwUYZjn66qGYDpgANl0EB/92hyi/Jsnd07qB09rvn4=
 github.com/common-fate/clio v1.2.3/go.mod h1:NkozaS15SA+6Y9zb+82eIj1i41aWShorTqA01GKQ7A8=
 github.com/common-fate/common-fate v0.15.13 h1:7u4ik6yaodyClAx4J/HTY8neJC06h9QquLtYgYNFuuU=
 github.com/common-fate/common-fate v0.15.13/go.mod h1:VttFtdUzSEPLU5BTnePaGae99+Q6OKjYvY22EcSLyQ0=
 github.com/common-fate/glide-cli v0.5.0 h1:CABB5akR4YMyhv07Ht6MW7gS5EL9l8hsPnGptofOXTw=
 github.com/common-fate/glide-cli v0.5.0/go.mod h1:ddp1UKGg0evzweWP2yVif3KTO19JWXg5+LjjmtpeE0U=
-github.com/common-fate/grab v1.1.0 h1:HLZPtltdHScYu6qtt/UC78rvwylCTWuyoZoiQXV4QHc=
-github.com/common-fate/grab v1.1.0/go.mod h1:L0qa03RwqOMZz9PrrWw9eI145i5FQRf+iLtNSJypQvY=
+github.com/common-fate/grab v1.2.0 h1:WODDm02QNE+jQKXq+VbhDD0amTOmaDn8vnA5NVOFnFM=
+github.com/common-fate/grab v1.2.0/go.mod h1:6zH8GckZGFrOKfZzL4Y/2OTvxwFeL6cDtsztM0GGC2Y=
 github.com/common-fate/iso8601 v1.1.0 h1:nrej9shsK1aB4IyOAjZl68xGk8yDuUxVwQjoDzxSK2c=
 github.com/common-fate/iso8601 v1.1.0/go.mod h1:DU4mvUEkkWZUUSJq2aCuNqM1luSb0Pwyb2dLzXS+img=
 github.com/common-fate/sdk v1.0.0 h1:TEId0m/a4p83PnaYFI6wm2d6BumitejJMNMG8pU273Q=
@@ -80,8 +82,8 @@ github.com/deepmap/oapi-codegen v1.11.0 h1:f/X2NdIkaBKsSdpeuwLnY/vDI0AtPUrmB5LMg
 github.com/deepmap/oapi-codegen v1.11.0/go.mod h1:k+ujhoQGxmQYBZBbxhOZNZf4j08qv5mC+OH+fFTnKxM=
 github.com/dvsekhvalnov/jose2go v1.6.0 h1:Y9gnSnP4qEI0+/uQkHvFXeD2PLPJeXEL+ySMEA2EjTY=
 github.com/dvsekhvalnov/jose2go v1.6.0/go.mod h1:QsHjhyTlD/lAVqn/NSbVZmSCGeDehTB/mPZadG+mhXU=
-github.com/fatih/color v1.13.0 h1:8LOYc1KYPPmyKMuN8QV2DNRWNbLo6LZ0iLs8+mlH53w=
-github.com/fatih/color v1.13.0/go.mod h1:kLAiJbzzSOZDVNGyDpeOxJ47H46qBXwg5ILebYFFOfk=
+github.com/fatih/color v1.16.0 h1:zmkK9Ngbjj+K0yRhTVONQh1p/HknKYSlNT+vZCzyokM=
+github.com/fatih/color v1.16.0/go.mod h1:fL2Sau1YI5c0pdGEVCbKQbLXB6edEj1ZgiY4NijnWvE=
 github.com/fatih/structs v1.1.0 h1:Q7juDM0QtcnhCpeyLGQKyg4TOIghuNXrkL32pHAUMxo=
 github.com/fatih/structs v1.1.0/go.mod h1:9NiDSp5zOcgEDl+j00MP/WkGVPOlPRLejGD8Ga6PJ7M=
 github.com/getkin/kin-openapi v0.94.0/go.mod h1:LWZfzOd7PRy8GJ1dJ6mCU6tNdSfOwRac1BUPam4aw6Q=
@@ -184,7 +186,6 @@ github.com/mailru/easyjson v0.7.7 h1:UGYAvKxe3sBsEDzO8ZeWOSlIQfWFlxbzLZe7hwFURr0
 github.com/mailru/easyjson v0.7.7/go.mod h1:xzfreul335JAWq5oZzymOObrkdz5UnU4kGfJJLY9Nlc=
 github.com/matryer/moq v0.2.7/go.mod h1:kITsx543GOENm48TUAQyJ9+SAvFSr7iGQXPoth/VUBk=
 github.com/mattn/go-colorable v0.1.2/go.mod h1:U0ppj6V5qS13XJ6of8GYAs25YV2eR4EVcfRqFIhoBtE=
-github.com/mattn/go-colorable v0.1.9/go.mod h1:u6P/XSegPjTcexA+o6vUJrdnUu04hMope9wVRipJSqc=
 github.com/mattn/go-colorable v0.1.11/go.mod h1:u5H1YNBxpqRaxsYJYSkiCWKzEfiAb1Gb520KVy5xxl4=
 github.com/mattn/go-colorable v0.1.12/go.mod h1:u5H1YNBxpqRaxsYJYSkiCWKzEfiAb1Gb520KVy5xxl4=
 github.com/mattn/go-colorable v0.1.13 h1:fFA4WZxdEF4tXPZVKMLwD8oUnCTTo08duU7wxecdEvA=
@@ -261,8 +262,8 @@ github.com/ugorji/go v1.1.7/go.mod h1:kZn38zHttfInRq0xu/PH0az30d+z6vm202qpg1oXVM
 github.com/ugorji/go v1.2.7/go.mod h1:nF9osbDWLy6bDVv/Rtoh6QgnvNDpmCalQV5urGCCS6M=
 github.com/ugorji/go/codec v1.1.7/go.mod h1:Ax+UKWsSmolVDwsd+7N3ZtXu+yMGCf907BLYF3GoBXY=
 github.com/ugorji/go/codec v1.2.7/go.mod h1:WGN1fab3R1fzQlVQTkfxVtIBhWDRqOviHU95kRgeqEY=
-github.com/urfave/cli/v2 v2.24.1 h1:/QYYr7g0EhwXEML8jO+8OYt5trPnLHS0p3mrgExJ5NU=
-github.com/urfave/cli/v2 v2.24.1/go.mod h1:GHupkWPMM0M/sj1a2b4wUrWBPzazNrIjouW6fmdJLxc=
+github.com/urfave/cli/v2 v2.25.7 h1:VAzn5oq403l5pHjc4OhD54+XGO9cdKVL/7lDjF+iKUs=
+github.com/urfave/cli/v2 v2.25.7/go.mod h1:8qnjx1vcq5s2/wpsqoZFndg2CE5tNFyrTvS6SinrnYQ=
 github.com/valyala/bytebufferpool v1.0.0/go.mod h1:6bBcMArwyJ5K/AmCkWv1jt77kVWyCJ6HpOuEn7z0Csc=
 github.com/valyala/fasttemplate v1.2.1/go.mod h1:KHLXt3tVN2HBp8eijSv/kGJopbvo7S+qRAEEKiv+SiQ=
 github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 h1:bAn7/zixMGCfxrRTfdpNzjtPYqr8smhKouy9mxVdGPU=
@@ -319,7 +320,6 @@ golang.org/x/sys v0.0.0-20190215142949-d0b11bdaac8a/go.mod h1:STP8DvDyc/dI5b8T5h
 golang.org/x/sys v0.0.0-20190222072716-a9d3bda3a223/go.mod h1:STP8DvDyc/dI5b8T5hshtkjS+E42TnysNCUPdjciGhY=
 golang.org/x/sys v0.0.0-20190412213103-97732733099d/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20200116001909-b77594299b42/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
-golang.org/x/sys v0.0.0-20200223170610-d5e6a3e2c0ae/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20201119102817-f84b799fce68/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210423082822-04245dca01da/go.mod h1:h1NjWce9XRLGQEsW7wpKNCjG9DtNlClVuFLEZdDNbEs=
 golang.org/x/sys v0.0.0-20210615035016-665e8c7367d1/go.mod h1:oPkhp1MJrh7nUepCBck5+mAzfO9JrbApNNgaTdGDITg=
