@@ -21,11 +21,11 @@ require (
 	connectrpc.com/connect v1.14.0
 	github.com/alessio/shellescape v1.4.2
 	github.com/briandowns/spinner v1.23.0
-	github.com/common-fate/cli v1.2.0
+	github.com/common-fate/cli v1.4.0
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/common-fate v0.15.13
-	github.com/common-fate/glide-cli v0.5.0
-	github.com/common-fate/sdk v1.0.0
+	github.com/common-fate/glide-cli v0.6.0
+	github.com/common-fate/sdk v1.3.0
 	github.com/fatih/color v1.16.0
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/schollz/progressbar/v3 v3.13.1

@@ -50,6 +50,7 @@ func GetCliApp() *cli.App {
 			&CredentialsCommand,
 			middleware.WithBeforeFuncs(&CredentialProcess, middleware.WithAutosync()),
 			&registry.ProfileRegistryCommand,
+			&Request,
 			&ConsoleCommand,
 			&login,
 			&exp.Command,
