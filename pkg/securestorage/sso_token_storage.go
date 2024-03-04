@@ -34,6 +34,7 @@ type SSOToken struct {
 	ClientID              string    `json:"clientId,omitempty"`
 	ClientSecret          string    `json:"clientSecret,omitempty"`
 	RegistrationExpiresAt time.Time `json:"registrationExpiresAt,omitempty"`
+	Region                string    `json:"region,omitempty"`
 	RefreshToken          *string   `json:"refreshToken,omitempty"`
 }
 
@@ -72,6 +73,16 @@ func (s *SSOTokensSecureStorage) GetValidSSOToken(ctx context.Context, profileKe
 		return nil
 	}
 
+	if t.Region == "" {
+		// if the region is not set, the AWS SSO OIDC client will make an invalid API call and will return an
+		// 'InvalidGrantException' error.
+		clio.Errorf("existing token had no SSO region set")
+		// token is invalid
+		return nil
+	}
+
+	cfg.Region = t.Region
+
 	client := ssooidc.NewFromConfig(cfg)
 
 	res, err := client.CreateToken(ctx, &ssooidc.CreateTokenInput{
@@ -93,6 +104,7 @@ func (s *SSOTokensSecureStorage) GetValidSSOToken(ctx context.Context, profileKe
 		ClientSecret:          t.ClientSecret,          // same as the previous token, because the same client was used to refresh
 		RegistrationExpiresAt: t.RegistrationExpiresAt, // same as the previous token, because the same client was used to refresh
 		RefreshToken:          res.RefreshToken,
+		Region:                t.Region,
 	}
 
 	// save the refreshed token to secure storage

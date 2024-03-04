@@ -94,6 +94,7 @@ func Login(ctx context.Context, cfg aws.Config, startUrl string, scopes []string
 		ClientSecret:          *client.ClientSecret,
 		RegistrationExpiresAt: time.Unix(client.ClientSecretExpiresAt, 0),
 		RefreshToken:          token.RefreshToken,
+		Region:                cfg.Region,
 	}
 
 	return &result, nil

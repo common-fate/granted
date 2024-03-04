@@ -194,6 +194,9 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			cmd += " --sso-region " + region
 		}
 
+		// if the token exists but is invalid, attempt to clear it so that next login works.
+		secureSSOTokenStorage.ClearSSOToken(ssoTokenKey)
+
 		return aws.Credentials{}, fmt.Errorf("error when retrieving credentials from custom process. please login using '%s'", cmd)
 	}
 
