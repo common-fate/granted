@@ -1,4 +1,4 @@
-package cfaws
+package idclogin
 
 import (
 	"testing"
