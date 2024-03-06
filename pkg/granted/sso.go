@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"sync"
 
 	"net/http"
@@ -243,16 +242,6 @@ var LoginCommand = cli.Command{
 		}
 
 		ssoScopes := c.StringSlice("sso-scope")
-
-		if ssoScopes == nil {
-			var scopesString string
-			in2 := survey.Input{Message: "SSO Scopes", Default: "sso:account:access"}
-			err := testable.AskOne(&in2, &scopesString)
-			if err != nil {
-				return err
-			}
-			ssoScopes = strings.Split(scopesString, ",")
-		}
 
 		cfg := aws.NewConfig()
 		cfg.Region = ssoRegion
