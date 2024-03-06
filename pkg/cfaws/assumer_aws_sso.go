@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -192,6 +193,11 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 		region := c.SSORegion()
 		if region != "" {
 			cmd += " --sso-region " + region
+		}
+
+		scopes := c.SSOScopes()
+		if len(scopes) > 0 {
+			cmd += " --sso-scope " + strings.Join(scopes, ",")
 		}
 
 		// if the token exists but is invalid, attempt to clear it so that next login works.
