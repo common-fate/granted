@@ -65,13 +65,8 @@ type KeyringConfig struct {
 }
 
 type Registry struct {
-	Name string `toml:"name"`
-	URL  string `toml:"url"`
-	// Type is either 'git' for Git-based Profile Registries, or
-	// 'commonfate.access.v1alpha1' for registries implementing the Common Fate access API.
-	//
-	// If Type is empty, 'git' is used.
-	Type                    string `toml:"type,omitempty"`
+	Name                    string `toml:"name"`
+	URL                     string `toml:"url"`
 	Path                    string `toml:"path,omitempty"`
 	Filename                string `toml:"filename,omitempty"`
 	Ref                     string `toml:"ref,omitempty"`

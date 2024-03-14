@@ -28,7 +28,6 @@ var AddCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "name", Required: true, Usage: "A unique name for the profile registry", Aliases: []string{"n"}},
 		&cli.StringFlag{Name: "url", Required: true, Usage: "The URL for the registry", Aliases: []string{"u"}},
-		&cli.StringFlag{Name: "type", Required: false, Usage: "The registry type to use (either 'git' or 'commonfate.access.v1alpha1')", Value: "git"},
 		&cli.StringFlag{Name: "path", Usage: "For git registries: provide path if only the subfolder needs to be synced", Aliases: []string{"p"}},
 		&cli.StringFlag{Name: "filename", Aliases: []string{"f"}, Usage: "For git registries:  provide filename if yml file is not granted.yml", DefaultText: "granted.yml"},
 		&cli.IntFlag{Name: "priority", Usage: "The priority for the profile registry", Value: 0},
@@ -59,7 +58,6 @@ var AddCommand = cli.Command{
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
 		requiredKey := c.StringSlice("required-key")
 		priority := c.Int("priority")
-		registryType := c.String("type")
 
 		for _, r := range gConf.ProfileRegistry.Registries {
 			if r.Name == name {
@@ -74,7 +72,6 @@ var AddCommand = cli.Command{
 			URL:                     gitURL,
 			Path:                    pathFlag,
 			Filename:                configFileName,
-			Type:                    registryType,
 			Ref:                     ref,
 			Priority:                priority,
 			PrefixDuplicateProfiles: prefixAllProfiles,
