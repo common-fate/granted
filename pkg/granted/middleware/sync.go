@@ -6,8 +6,8 @@ import (
 )
 
 func WithAutosync() cli.BeforeFunc {
-	return func(ctx *cli.Context) error {
-		autosync.Run(true)
+	return func(c *cli.Context) error {
+		autosync.Run(c.Context, false)
 		return nil
 	}
 }
