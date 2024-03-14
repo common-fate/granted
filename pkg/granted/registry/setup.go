@@ -21,7 +21,7 @@ var SetupCommand = cli.Command{
 		dir := c.Path("dir")
 
 		// check that it is an empty dir
-		err := ensureConfigDoesntExist(c, dir)
+		err := ensureConfigDoesntExist(dir)
 		if err != nil {
 			return err
 		}
@@ -85,7 +85,7 @@ var SetupCommand = cli.Command{
 
 // sanity check: verify that a config file doesn't already exist.
 // if it does, the user may have run this command by mistake.
-func ensureConfigDoesntExist(c *cli.Context, dir string) error {
+func ensureConfigDoesntExist(dir string) error {
 	_, err := os.Open(path.Join(dir, "granted.yml"))
 	if err != nil {
 		return nil

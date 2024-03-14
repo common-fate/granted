@@ -11,7 +11,7 @@ var ProfileRegistryCommand = cli.Command{
 	Description: "Profile Registries allow you to easily share AWS profile configuration in a team.",
 	Subcommands: []*cli.Command{&AddCommand, &SyncCommand, &RemoveCommand, &MigrateCommand, &SetupCommand},
 	Action: func(c *cli.Context) error {
-		registries, err := GetProfileRegistries()
+		registries, err := GetProfileRegistries(true)
 		if err != nil {
 			return err
 		}
