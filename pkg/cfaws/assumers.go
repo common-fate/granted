@@ -2,11 +2,32 @@ package cfaws
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"gopkg.in/ini.v1"
 )
+
+// NoAccessError is returned if the user does not have access to the
+// role they are trying to assume.
+type NoAccessError struct {
+	// Err is the underlying error from AWS
+	Err error
+}
+
+func (e NoAccessError) Error() string {
+	if e.Err == nil {
+		return "no access"
+	}
+
+	return fmt.Sprintf("no access: %s", e.Err)
+}
+
+// Unwrap the underlying error so that errors.Is and errors.As works
+func (e NoAccessError) Unwrap() error {
+	return e.Err
+}
 
 // Added support for optional pass through args on proxy sso provider
 // When using a sso provider adding pass through flags can be achieved by adding the -pass-through or -pt flag
