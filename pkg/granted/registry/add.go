@@ -3,8 +3,6 @@ package registry
 import (
 	"errors"
 	"fmt"
-	"os"
-	"path"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
@@ -103,26 +101,6 @@ var AddCommand = cli.Command{
 
 		if err != nil {
 			return err
-		}
-
-		awsConfigPath, err := getDefaultAWSConfigLocation()
-		if err != nil {
-			return err
-		}
-
-		if _, err := os.Stat(awsConfigPath); os.IsNotExist(err) {
-			clio.Debugf("%s file does not exist. Creating an empty file\n", awsConfigPath)
-
-			// create all parent directory if necessary.
-			err := os.MkdirAll(path.Dir(awsConfigPath), USER_READ_WRITE_PERM)
-			if err != nil {
-				return err
-			}
-
-			_, err = os.Create(awsConfigPath)
-			if err != nil {
-				return fmt.Errorf("unable to create : %s", err)
-			}
 		}
 
 		src, err := registry.AWSProfiles(ctx)

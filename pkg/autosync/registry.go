@@ -21,13 +21,12 @@ func runSync(ctx context.Context, rc RegistrySyncConfig, interactive bool) error
 	clio.Info("Syncing Profile Registries")
 	err := registry.SyncProfileRegistries(ctx, interactive)
 	if err != nil {
-		return &RegistrySyncError{err: err}
+		return err
 	}
 	rc.LastCheckForSync = time.Now().Weekday()
 	err = rc.Save()
 	if err != nil {
-		clio.Debug("unable to save to registry sync config")
-		return &RegistrySyncError{err: err}
+		return fmt.Errorf("saving registry sync config: %w", err)
 	}
 	clio.Success("Completed syncing Profile Registries")
 	return nil
