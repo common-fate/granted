@@ -164,12 +164,20 @@ func GrantedConfigFolder() (string, error) {
 	return path.Join(home, build.ConfigFolderName), nil
 }
 
-func Load() (*Config, error) {
+func GrantedConfigFilePath() (string, error) {
 	grantedFolder, err := GrantedConfigFolder()
+	if err != nil {
+		return "", err
+	}
+	configFilePath := path.Join(grantedFolder, "config")
+	return configFilePath, nil
+}
+
+func Load() (*Config, error) {
+	configFilePath, err := GrantedConfigFilePath()
 	if err != nil {
 		return nil, err
 	}
-	configFilePath := path.Join(grantedFolder, "config")
 
 	file, err := os.OpenFile(configFilePath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
@@ -188,11 +196,10 @@ func Load() (*Config, error) {
 }
 
 func (c *Config) Save() error {
-	grantedFolder, err := GrantedConfigFolder()
+	configFilePath, err := GrantedConfigFilePath()
 	if err != nil {
 		return err
 	}
-	configFilePath := path.Join(grantedFolder, "config")
 
 	file, err := os.OpenFile(configFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
