@@ -14,7 +14,6 @@ func Init(repoDirPath string) error {
 	err := cmd.Run()
 	if err != nil {
 		return err
-
 	}
 
 	return nil
