@@ -7,6 +7,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
+	"github.com/common-fate/granted/pkg/git"
 
 	"github.com/urfave/cli/v2"
 )
@@ -21,7 +22,7 @@ var SetupCommand = cli.Command{
 		dir := c.Path("dir")
 
 		// check that it is an empty dir
-		err := ensureConfigDoesntExist(c, dir)
+		err := ensureConfigDoesntExist(dir)
 		if err != nil {
 			return err
 		}
@@ -67,7 +68,7 @@ var SetupCommand = cli.Command{
 		}
 		defer f.Close()
 		// now initialize the git repo
-		err = gitInit(dir)
+		err = git.Init(dir)
 		if err != nil {
 			return err
 		}
@@ -85,7 +86,7 @@ var SetupCommand = cli.Command{
 
 // sanity check: verify that a config file doesn't already exist.
 // if it does, the user may have run this command by mistake.
-func ensureConfigDoesntExist(c *cli.Context, dir string) error {
+func ensureConfigDoesntExist(dir string) error {
 	_, err := os.Open(path.Join(dir, "granted.yml"))
 	if err != nil {
 		return nil

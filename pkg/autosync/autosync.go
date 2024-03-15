@@ -1,16 +1,17 @@
 package autosync
 
 import (
+	"context"
 	"time"
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/granted/registry"
 )
 
-// shouldFailForRequiredKeys when true will fail the profile registry sync
+// interactive when false will fail the profile registry sync
 // in case where user specific values that are defined in granted.yml's `templateValues` are not available.
 // this is done so that users are aware of required keys when granted's credential-process is used through the AWS CLI.
-func Run(shouldFailForRequiredKeys bool) {
+func Run(ctx context.Context, interactive bool) {
 	if registry.IsOutdatedConfig() {
 		clio.Warn("Outdated Profile Registry Configuration. Use `granted registry migrate` to update your configuration.")
 
@@ -19,7 +20,7 @@ func Run(shouldFailForRequiredKeys bool) {
 		return
 	}
 
-	registries, err := registry.GetProfileRegistries()
+	registries, err := registry.GetProfileRegistries(interactive)
 	if err != nil {
 		clio.Debugf("unable to load granted config file with err %s", err.Error())
 		return
@@ -40,7 +41,7 @@ func Run(shouldFailForRequiredKeys bool) {
 		return
 	}
 
-	err = runSync(rc, shouldFailForRequiredKeys)
+	err = runSync(ctx, rc, interactive)
 	if err != nil {
 		clio.Debugw("failed to sync profile registries", "error", err)
 		clio.Warn("Failed to sync Profile Registries")

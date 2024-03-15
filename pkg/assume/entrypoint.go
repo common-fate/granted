@@ -128,7 +128,7 @@ func GetCliApp() *cli.App {
 				browser.GrantedIntroduction()
 			}
 			// Sync granted profile registries if enabled
-			autosync.Run(false)
+			autosync.Run(c.Context, true)
 
 			// Setup the shell alias
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
