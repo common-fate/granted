@@ -81,6 +81,9 @@ func (p *Profile) SSOStartURL() string {
 // However, the AWS v2 Go SDK does not support reading 'sso_registration_scopes', so in order
 // to support this we'll need to parse and lookup the `sso-session` entries in the config file separately.
 func (p *Profile) SSOScopes() []string {
+	if p.RawConfig == nil {
+		return nil
+	}
 	scopeKey, err := p.RawConfig.GetKey("granted_sso_registration_scopes")
 	if err != nil {
 		return nil
