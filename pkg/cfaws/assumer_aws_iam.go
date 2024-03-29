@@ -245,21 +245,14 @@ func getFederationToken(ctx context.Context, c *Profile) (aws.Credentials, error
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	callerArn, err := arn.Parse(*caller.Arn)
 
-	// for an iam credential, the caller ARN.Resource will be user/<username>
-	// the idea here is to use the username portion as the federation token id
-	userName := strings.Split(callerArn.Resource, "/")[1]
+	tags, userName := getSessionTags(caller)
 
 	// name is truncated to ensure it meets the maximum length requirements for the AWS api
 	out, err := client.GetFederationToken(ctx, &sts.GetFederationTokenInput{Name: aws.String(truncateString(userName, 32)), Policy: aws.String(allowAllPolicy),
 		// tags are added to the federation token
-		Tags: []types.Tag{
-			{Key: aws.String("userName"), Value: aws.String(userName)},
-			{Key: aws.String("userID"), Value: caller.UserId},
-			{Key: aws.String("account"), Value: caller.Account},
-			{Key: aws.String("principalArn"), Value: caller.Arn},
-		}})
+		Tags: tags,
+	})
 	if err != nil {
 		return aws.Credentials{}, err
 	}
@@ -310,4 +303,44 @@ func truncateString(s string, length int) string {
 		return s
 	}
 	return s[:length]
+}
+
+func getSessionTags(caller *sts.GetCallerIdentityOutput) (tags []types.Tag, userName string) {
+	if caller == nil {
+		return
+	}
+
+	tags = []types.Tag{
+		{Key: aws.String("userID"), Value: caller.UserId},
+		{Key: aws.String("account"), Value: caller.Account},
+		{Key: aws.String("principalArn"), Value: caller.Arn},
+	}
+
+	if caller.UserId != nil {
+		userName = *caller.UserId
+	}
+
+	callerArn, err := arn.Parse(*caller.Arn)
+	if err != nil {
+		clio.Debugw("could not parse caller arn", "error", err)
+		return
+	}
+
+	// for an iam credential, the caller ARN.Resource will be user/<username>
+	// the idea here is to use the username portion as the federation token id
+	parts := strings.Split(callerArn.Resource, "/")
+
+	if len(parts) < 2 {
+		clio.Debugw("could not split caller resource", "resource", callerArn.Resource)
+		return
+	}
+
+	userName = parts[1]
+
+	tags = append(tags, types.Tag{
+		Key:   aws.String("userName"),
+		Value: aws.String(userName),
+	})
+
+	return
 }
