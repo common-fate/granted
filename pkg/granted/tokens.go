@@ -68,13 +68,14 @@ var TokenExpiryCommand = cli.Command{
 	Usage: "Lists expiry status for all access tokens saved in the keyring",
 	Flags: []cli.Flag{&cli.StringFlag{Name: "url", Usage: "If provided, prints the expiry of the token for the specific SSO URL"},
 		&cli.BoolFlag{Name: "json", Usage: "If provided, prints the expiry of the tokens in JSON"}},
-	Action: func(ctx *cli.Context) error {
-		url := ctx.String("url")
+	Action: func(c *cli.Context) error {
+		url := c.String("url")
+		ctx := c.Context
 
 		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 
 		if url != "" {
-			token := secureSSOTokenStorage.GetValidSSOToken(url)
+			token := secureSSOTokenStorage.GetValidSSOToken(ctx, url)
 
 			var expiry string
 			if token == nil {
@@ -86,7 +87,7 @@ var TokenExpiryCommand = cli.Command{
 			return nil
 		}
 
-		startUrlMap, err := MapTokens(ctx.Context)
+		startUrlMap, err := MapTokens(ctx)
 		if err != nil {
 			return err
 		}
@@ -103,7 +104,7 @@ var TokenExpiryCommand = cli.Command{
 			return err
 		}
 
-		jsonflag := ctx.Bool("json")
+		jsonflag := c.Bool("json")
 
 		type sso_expiry struct {
 			StartURLs string `json:"start_urls"`
@@ -114,7 +115,7 @@ var TokenExpiryCommand = cli.Command{
 		var jsonDataArray []sso_expiry
 
 		for _, key := range keys {
-			token := secureSSOTokenStorage.GetValidSSOToken(key)
+			token := secureSSOTokenStorage.GetValidSSOToken(ctx, key)
 
 			var expiry string
 			if token == nil {

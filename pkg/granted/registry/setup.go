@@ -7,6 +7,7 @@ import (
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
+	"github.com/common-fate/granted/pkg/git"
 
 	"github.com/urfave/cli/v2"
 )
@@ -67,7 +68,7 @@ var SetupCommand = cli.Command{
 		}
 		defer f.Close()
 		// now initialize the git repo
-		err = gitInit(dir)
+		err = git.Init(dir)
 		if err != nil {
 			return err
 		}

@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-	"os/exec"
+	"strings"
 	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
@@ -13,15 +13,13 @@ import (
 	"github.com/aws/aws-sdk-go-v2/credentials/stscreds"
 	"github.com/aws/aws-sdk-go-v2/service/sso"
 	ssotypes "github.com/aws/aws-sdk-go-v2/service/sso/types"
-	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
-	ssooidctypes "github.com/aws/aws-sdk-go-v2/service/ssooidc/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/idclogin"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/hako/durafmt"
-	"github.com/pkg/browser"
 	"github.com/pkg/errors"
 	"gopkg.in/ini.v1"
 )
@@ -157,7 +155,7 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	ssoTokenKey := rootProfile.SSOStartURL() + c.AWSConfig.SSOSessionName
 	// if the profile has an sso user configured then suffix the sso token storage key to ensure unique logins
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
-	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ssoTokenKey)
+	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ctx, ssoTokenKey)
 	// check if profile has a valid plaintext sso access token
 	plainTextToken := GetValidSSOTokenFromPlaintextCache(rootProfile.SSOStartURL())
 
@@ -181,13 +179,21 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			cmd += " --sso-region " + region
 		}
 
+		scopes := c.SSOScopes()
+		if len(scopes) > 0 {
+			cmd += " --sso-scope " + strings.Join(scopes, ",")
+		}
+
+		// if the token exists but is invalid, attempt to clear it so that next login works.
+		secureSSOTokenStorage.ClearSSOToken(ssoTokenKey)
+
 		return aws.Credentials{}, fmt.Errorf("error when retrieving credentials from custom process. please login using '%s'", cmd)
 	}
 
 	if cachedToken == nil && plainTextToken == nil {
 		newCfg := aws.NewConfig()
 		newCfg.Region = rootProfile.SSORegion()
-		newSSOToken, err := SSODeviceCodeFlowFromStartUrl(ctx, *newCfg, rootProfile.SSOStartURL())
+		newSSOToken, err := idclogin.Login(ctx, *newCfg, rootProfile.SSOStartURL(), rootProfile.SSOScopes())
 		if err != nil {
 			return aws.Credentials{}, err
 		}
@@ -235,114 +241,4 @@ func (c *Profile) getRoleCredentialsWithRetry(ctx context.Context, ssoClient *ss
 	}
 
 	return nil, errors.Wrap(er, "max retries exceeded")
-}
-
-// SSODeviceCodeFlowFromStartUrl contains all the steps to complete a device code flow to retrieve an SSO token
-func SSODeviceCodeFlowFromStartUrl(ctx context.Context, cfg aws.Config, startUrl string) (*securestorage.SSOToken, error) {
-	ssooidcClient := ssooidc.NewFromConfig(cfg)
-
-	register, err := ssooidcClient.RegisterClient(ctx, &ssooidc.RegisterClientInput{
-		ClientName: aws.String("granted-cli-client"),
-		ClientType: aws.String("public"),
-		Scopes:     []string{"sso-portal:*"},
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// authorize your device using the client registration response
-	deviceAuth, err := ssooidcClient.StartDeviceAuthorization(ctx, &ssooidc.StartDeviceAuthorizationInput{
-
-		ClientId:     register.ClientId,
-		ClientSecret: register.ClientSecret,
-		StartUrl:     aws.String(startUrl),
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
-	url := aws.ToString(deviceAuth.VerificationUriComplete)
-	clio.Info("If the browser does not open automatically, please open this link: " + url)
-
-	// check if sso browser path is set
-	config, err := grantedConfig.Load()
-	if err != nil {
-		return nil, err
-	}
-
-	if config.CustomSSOBrowserPath != "" {
-		cmd := exec.Command(config.CustomSSOBrowserPath, url)
-		err = cmd.Start()
-		if err != nil {
-			// fail silently
-			clio.Debug(err.Error())
-		} else {
-			// detach from this new process because it continues to run
-			err = cmd.Process.Release()
-			if err != nil {
-				// fail silently
-				clio.Debug(err.Error())
-			}
-		}
-	} else {
-		err = browser.OpenURL(url)
-		if err != nil {
-			// fail silently
-			clio.Debug(err.Error())
-		}
-	}
-
-	clio.Info("Awaiting AWS authentication in the browser")
-	clio.Info("You will be prompted to authenticate with AWS in the browser, then you will be prompted to 'Allow'")
-	clio.Infof("Code: %s", *deviceAuth.UserCode)
-
-	pc := getPollingConfig(deviceAuth)
-
-	token, err := PollToken(ctx, ssooidcClient, *register.ClientSecret, *register.ClientId, *deviceAuth.DeviceCode, pc)
-	if err != nil {
-		return nil, err
-	}
-
-	return &securestorage.SSOToken{AccessToken: *token.AccessToken, Expiry: time.Now().Add(time.Duration(token.ExpiresIn) * time.Second)}, nil
-}
-
-var ErrTimeout error = errors.New("polling for device authorization token timed out")
-
-type PollingConfig struct {
-	CheckInterval time.Duration
-	TimeoutAfter  time.Duration
-}
-
-func getPollingConfig(deviceAuth *ssooidc.StartDeviceAuthorizationOutput) PollingConfig {
-	return PollingConfig{
-		CheckInterval: time.Duration(deviceAuth.Interval) * time.Second,
-		TimeoutAfter:  time.Duration(deviceAuth.ExpiresIn) * time.Second,
-	}
-}
-
-// PollToken will poll for a token and return it once the authentication/authorization flow has been completed in the browser
-func PollToken(ctx context.Context, c *ssooidc.Client, clientSecret string, clientID string, deviceCode string, cfg PollingConfig) (*ssooidc.CreateTokenOutput, error) {
-	start := time.Now()
-	for {
-		time.Sleep(cfg.CheckInterval)
-
-		token, err := c.CreateToken(ctx, &ssooidc.CreateTokenInput{
-
-			ClientId:     &clientID,
-			ClientSecret: &clientSecret,
-			DeviceCode:   &deviceCode,
-			GrantType:    aws.String("urn:ietf:params:oauth:grant-type:device_code"),
-		})
-		var pendingAuth *ssooidctypes.AuthorizationPendingException
-		if err == nil {
-			return token, nil
-		} else if !errors.As(err, &pendingAuth) {
-			return nil, err
-		}
-
-		if time.Now().After(start.Add(cfg.TimeoutAfter)) {
-			return nil, ErrTimeout
-		}
-	}
 }

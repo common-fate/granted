@@ -29,13 +29,6 @@ var SyncCommand = cli.Command{
 	},
 }
 
-type syncOpts struct {
-	isFirstSection                 bool
-	promptUserIfProfileDuplication bool
-	shouldSilentLog                bool
-	shouldFailForRequiredKeys      bool
-}
-
 // Wrapper around sync func. Check if profile registry is configured, pull the latest changes and call sync func.
 // promptUserIfProfileDuplication if true will automatically prefix the duplicate profiles and won't prompt users
 // this is useful when new registry with higher priority is added and there is duplication with lower priority registry.

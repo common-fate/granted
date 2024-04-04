@@ -24,6 +24,7 @@ import (
 	cfconfig "github.com/common-fate/glide-cli/pkg/config"
 	"github.com/common-fate/glide-cli/pkg/profilesource"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/idclogin"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/granted/pkg/testable"
 	"github.com/schollz/progressbar/v3"
@@ -111,6 +112,7 @@ var PopulateCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
+		&cli.StringSliceFlag{Name: "sso-scope", Usage: "Specify the SSO scopes"},
 		&cli.StringSliceFlag{Name: "source", Usage: "The sources to load AWS profiles from", Value: cli.NewStringSlice("aws-sso")},
 		&cli.BoolFlag{Name: "prune", Usage: "Remove any generated profiles with the 'common_fate_generated_from' key which no longer exist"},
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate},
@@ -130,7 +132,7 @@ var PopulateCommand = cli.Command{
 			clio.Errorf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
 			return nil
 		}
-		sso_region := c.String("sso-region")
+		ssoRegion := c.String("sso-region")
 		configFilename := cfaws.GetAWSConfigPath()
 
 		config, err := ini.LoadSources(ini.LoadOptions{
@@ -162,9 +164,9 @@ var PopulateCommand = cli.Command{
 		for _, s := range c.StringSlice("source") {
 			switch s {
 			case "aws-sso":
-				g.AddSource(AWSSSOSource{SSORegion: sso_region, StartURL: startURL})
+				g.AddSource(AWSSSOSource{SSORegion: ssoRegion, StartURL: startURL, SSOScopes: c.StringSlice("sso-scope")})
 			case "commonfate", "common-fate", "cf":
-				ps, err := getCFProfileSource(c, sso_region, startURL)
+				ps, err := getCFProfileSource(c, ssoRegion, startURL)
 				if err != nil {
 					return err
 				}
@@ -193,6 +195,7 @@ var LoginCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
 		&cli.StringFlag{Name: "sso-start-url", Usage: "Specify the SSO start url"},
+		&cli.StringSliceFlag{Name: "sso-scope", Usage: "Specify the SSO scopes"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -209,7 +212,6 @@ var LoginCommand = cli.Command{
 		ssoRegion := c.String("sso-region")
 
 		if ssoRegion == "" {
-
 			// fetch the start url to extract the region from the html
 			resp, err := http.Get(ssoStartUrl)
 			if err != nil {
@@ -239,12 +241,14 @@ var LoginCommand = cli.Command{
 			}
 		}
 
+		ssoScopes := c.StringSlice("sso-scope")
+
 		cfg := aws.NewConfig()
 		cfg.Region = ssoRegion
 
 		secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
 
-		newSSOToken, err := cfaws.SSODeviceCodeFlowFromStartUrl(ctx, *cfg, ssoStartUrl)
+		newSSOToken, err := idclogin.Login(ctx, *cfg, ssoStartUrl, ssoScopes)
 		if err != nil {
 			return err
 		}
@@ -295,6 +299,7 @@ func getCFProfileSource(c *cli.Context, region, startURL string) (profilesource.
 type AWSSSOSource struct {
 	SSORegion string
 	StartURL  string
+	SSOScopes []string
 }
 
 func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfile, error) {
@@ -316,11 +321,11 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 	}
 	cfg.Region = region
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
-	ssoTokenFromSecureCache := secureSSOTokenStorage.GetValidSSOToken(s.StartURL)
+	ssoTokenFromSecureCache := secureSSOTokenStorage.GetValidSSOToken(ctx, s.StartURL)
 	ssoTokenFromPlainText := cfaws.GetValidSSOTokenFromPlaintextCache(s.StartURL)
 
 	// depending on whether creds come from secure storage or ~/.aws/sso/cache, we need to use different access tokens
-	accessToken := ""
+	var accessToken string
 
 	// we also want to store this in the secure cache to prevent subsequent logins
 	if ssoTokenFromPlainText != nil {
@@ -329,7 +334,7 @@ func (s AWSSSOSource) GetProfiles(ctx context.Context) ([]awsconfigfile.SSOProfi
 
 	if ssoTokenFromSecureCache == nil && ssoTokenFromPlainText == nil {
 		// otherwise, login with SSO
-		ssoTokenFromSecureCache, err = cfaws.SSODeviceCodeFlowFromStartUrl(ctx, cfg, s.StartURL)
+		ssoTokenFromSecureCache, err = idclogin.Login(ctx, cfg, s.StartURL, s.SSOScopes)
 		if err != nil {
 			return nil, err
 		}

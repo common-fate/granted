@@ -4,7 +4,7 @@ package console
 // e.g. passing in `-s ec2` will open the console at the ec2/v2 URL.
 var ServiceMap = map[string]string{
 	"":               "console",
-	"acm":		  "acm",
+	"acm":            "acm",
 	"aos":            "aos",
 	"athena":         "athena",
 	"appsync":        "appsync",
@@ -18,8 +18,8 @@ var ServiceMap = map[string]string{
 	"codepipeline":   "codepipeline",
 	"codedeploy":     "codedeploy",
 	"codesuite":      "codesuite",
-	"codeartifact":	  "codesuite/codeartifact",
-	"codecommit":	  "codesuite/codecommit",
+	"codeartifact":   "codesuite/codeartifact",
+	"codecommit":     "codesuite/codecommit",
 	"config":         "config",
 	"ct":             "cloudtrail",
 	"cw":             "cloudwatch",
@@ -33,6 +33,8 @@ var ServiceMap = map[string]string{
 	"ecr":            "ecr",
 	"ecs":            "ecs",
 	"eks":            "eks",
+	"events":         "events",
+	"eventbridge":    "events",
 	"gd":             "guardduty",
 	"grafana":        "grafana",
 	"iam":            "iamv2",
