@@ -25,7 +25,7 @@ require (
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/common-fate v0.15.13
 	github.com/common-fate/glide-cli v0.6.0
-	github.com/common-fate/sdk v1.12.1
+	github.com/common-fate/sdk v1.20.1-0.20240406134835-b39ee0bccd2f
 	github.com/fatih/color v1.16.0
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/schollz/progressbar/v3 v3.13.1
@@ -65,7 +65,6 @@ require (
 	golang.org/x/net v0.20.0 // indirect
 	golang.org/x/oauth2 v0.16.0 // indirect
 	google.golang.org/appengine v1.6.7 // indirect
-	google.golang.org/protobuf v1.33.0 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1 // indirect
 	gopkg.in/square/go-jose.v2 v2.6.0 // indirect
 )

@@ -20,6 +20,7 @@ import (
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/gen/commonfate/access/v1alpha1/accessv1alpha1connect"
+	"github.com/common-fate/sdk/loginflow"
 	"github.com/common-fate/sdk/service/access"
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
@@ -28,16 +29,65 @@ import (
 
 type Hook struct{}
 
+func getCommonFateURL(profile *cfaws.Profile) (*url.URL, error) {
+	if profile == nil {
+		clio.Debugw("skipping loading Common Fate SDK from URL", "reason", "profile was nil")
+		return nil, nil
+	}
+	if profile.RawConfig == nil {
+		clio.Debugw("skipping loading Common Fate SDK from URL", "reason", "profile.RawConfig was nil")
+		return nil, nil
+	}
+	if !profile.RawConfig.HasKey("common_fate_url") {
+		clio.Debugw("skipping loading Common Fate SDK from URL", "reason", "profile does not have key common_fate_url", "profile_keys", profile.RawConfig.KeyStrings())
+		return nil, nil
+	}
+	key, err := profile.RawConfig.GetKey("common_fate_url")
+	if err != nil {
+		return nil, err
+	}
+
+	u, err := url.Parse(key.Value())
+	if err != nil {
+		return nil, fmt.Errorf("invalid common_fate_url (%s): %w", key.Value(), err)
+	}
+
+	return u, nil
+}
+
 func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool, err error) {
-	target := eid.New("AWS::Account", profile.AWSConfig.SSOAccountID)
-	role := profile.AWSConfig.SSORoleName
+	var cfg *sdkconfig.Context
 
-	clio.Infof("You don't currently have access to %s, checking if we can request access...\t[target=%s, role=%s]", profile.Name, target, role)
-
-	cfg, err := sdkconfig.LoadDefault(ctx)
+	cfURL, err := getCommonFateURL(profile)
 	if err != nil {
 		return false, err
 	}
+
+	if cfURL != nil {
+		cfURL = cfURL.JoinPath("config.json")
+
+		clio.Debugw("configuring Common Fate SDK from URL", "url", cfURL.String())
+
+		cfg, err = sdkconfig.New(ctx, sdkconfig.Opts{
+			ConfigSources: []string{cfURL.String()},
+		})
+		if err != nil {
+			return false, err
+		}
+	} else {
+		// if we can't load the Common Fate SDK config (e.g. if `~/.cf/config` is not present)
+		// we can't request access through the Common Fate platform.
+		cfg, err = sdkconfig.LoadDefault(ctx)
+		if err != nil {
+			clio.Debugw("error loading Common Fate SDK config", "error", err)
+			return false, nil
+		}
+	}
+
+	target := eid.New("AWS::Account", profile.AWSConfig.SSOAccountID)
+	role := profile.AWSConfig.SSORoleName
+
+	clio.Infof("You don't currently have access to %s, checking if we can request access...\t[target=%s, role=%s, url=%s]", profile.Name, target, role, cfg.AccessURL)
 
 	apiURL, err := url.Parse(cfg.APIURL)
 	if err != nil {
@@ -69,6 +119,25 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 	}
 
 	hasChanges, err := DryRun(ctx, apiURL, accessclient, &req, false)
+	if err != nil && strings.Contains(err.Error(), "oauth2: token expired") {
+		clio.Debugw("prompting user login because token is expired", "error_details", err.Error())
+		// NOTE(chrnorm): ideally we'll bubble up a more strongly typed error in future here, to avoid the string comparison on the error message.
+
+		// the OAuth2.0 token is expired so we should prompt the user to log in
+		clio.Infof("You need to log in to Common Fate")
+
+		lf := loginflow.NewFromConfig(cfg)
+		err = lf.Login(ctx)
+		if err != nil {
+			return false, err
+		}
+
+		accessclient = access.NewFromConfig(cfg)
+
+		// retry the Dry Run again
+		hasChanges, err = DryRun(ctx, apiURL, accessclient, &req, false)
+	}
+
 	if err != nil {
 		return false, err
 	}
