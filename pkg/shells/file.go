@@ -34,7 +34,7 @@ func AppendLine(file string, line string) error {
 }
 
 // RemoveLine removes a line from a file if it exists
-func RemoveLine(file string, line string) error {
+func RemoveLine(file string, lineToRemove string) error {
 	b, err := os.ReadFile(file)
 	if err != nil {
 		return err
@@ -48,7 +48,7 @@ func RemoveLine(file string, line string) error {
 
 	lines := strings.Split(string(b), "\n")
 	for i, line := range lines {
-		removeLine := strings.Contains(line, line)
+		removeLine := strings.Contains(line, lineToRemove)
 
 		// When removing the line, if the line after is empty we
 		// remove that too. This prevents the length of the config file growing by 1 with blank lines
