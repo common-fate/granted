@@ -1,6 +1,7 @@
 package granted
 
 import (
+	"fmt"
 	"os"
 	"path"
 
@@ -8,7 +9,6 @@ import (
 	"github.com/common-fate/clio/cliolog"
 	"github.com/common-fate/glide-cli/cmd/command"
 	"github.com/common-fate/granted/internal/build"
-	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/exp"
 	"github.com/common-fate/granted/pkg/granted/middleware"
@@ -23,7 +23,7 @@ import (
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		clio.Log(banners.WithVersion(banners.Granted()))
+		fmt.Printf("Granted version: %s", build.Version)
 	}
 
 	flags := []cli.Flag{
