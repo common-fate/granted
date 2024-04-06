@@ -9,7 +9,6 @@ import (
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/awsmerge"
 	"github.com/common-fate/granted/pkg/granted/registry/gitregistry"
-	"github.com/common-fate/granted/pkg/granted/registry/rpcregistry"
 	"github.com/common-fate/granted/pkg/testable"
 
 	"github.com/urfave/cli/v2"
@@ -77,24 +76,14 @@ var AddCommand = cli.Command{
 			PrefixAllProfiles:       prefixAllProfiles,
 		}
 
-		var registry Registry
-
-		switch registryType {
-		case "git":
-			registry, err = gitregistry.New(gitregistry.Opts{
-				Name:         name,
-				URL:          gitURL,
-				Path:         pathFlag,
-				Filename:     configFileName,
-				RequiredKeys: requiredKey,
-				Interactive:  true,
-			})
-		case "commonfate.access.v1alpha1":
-			registry = rpcregistry.Registry{}
-
-		default:
-			err = fmt.Errorf("invalid registry type: %s. registry type must be one of: ['git', 'commonfate.access.v1alpha1']", registryType)
-		}
+		registry, err := gitregistry.New(gitregistry.Opts{
+			Name:         name,
+			URL:          gitURL,
+			Path:         pathFlag,
+			Filename:     configFileName,
+			RequiredKeys: requiredKey,
+			Interactive:  true,
+		})
 
 		if err != nil {
 			return err

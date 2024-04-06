@@ -2,12 +2,10 @@ package registry
 
 import (
 	"context"
-	"fmt"
 	"sort"
 
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/registry/gitregistry"
-	"github.com/common-fate/granted/pkg/granted/registry/rpcregistry"
 	"gopkg.in/ini.v1"
 )
 
@@ -32,28 +30,14 @@ func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 
 	var registries []loadedRegistry
 	for _, r := range gConf.ProfileRegistry.Registries {
-		var reg Registry
+		reg, err := gitregistry.New(gitregistry.Opts{
+			Name:        r.Name,
+			URL:         r.URL,
+			Path:        r.Path,
+			Filename:    r.Filename,
+			Interactive: interactive,
+		})
 
-		switch r.Type {
-		case "git", "": // empty string here ensures backwards compatibility
-			reg, err = gitregistry.New(gitregistry.Opts{
-				Name:        r.Name,
-				URL:         r.URL,
-				Path:        r.Path,
-				Filename:    r.Filename,
-				Interactive: interactive,
-			})
-		case "commonfate.access.v1alpha1":
-			reg = rpcregistry.Registry{}
-
-		default:
-			filepath, loadErr := grantedConfig.GrantedConfigFilePath()
-			if loadErr != nil {
-				filepath = "<error loading filepath>"
-			}
-
-			err = fmt.Errorf("invalid registry type: %s. registry type must be one of: ['git', 'commonfate.access.v1alpha1']. you can edit the registry config in your Granted config file (%s) to fix this", r.Type, filepath)
-		}
 		if err != nil {
 			return nil, err
 		}
