@@ -58,7 +58,6 @@ var AddCommand = cli.Command{
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
 		requiredKey := c.StringSlice("required-key")
 		priority := c.Int("priority")
-		registryType := c.String("type")
 
 		for _, r := range gConf.ProfileRegistry.Registries {
 			if r.Name == name {
