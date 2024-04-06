@@ -27,6 +27,7 @@ import (
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/console"
 	"github.com/common-fate/granted/pkg/forkprocess"
+	"github.com/common-fate/granted/pkg/hook/accessrequesthook"
 	"github.com/common-fate/granted/pkg/launcher"
 	"github.com/common-fate/granted/pkg/testable"
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
@@ -494,6 +495,25 @@ func AssumeCommand(c *cli.Context) error {
 	// check if it's needed to provide credentials to terminal or default to it if console wasn't specified
 	if assumeFlags.Bool("terminal") || !getConsoleURL {
 		creds, err := profile.AssumeTerminal(c.Context, configOpts)
+		if err != nil && strings.HasPrefix(err.Error(), "no access") {
+			clio.Debugw("received a No Access error", "error", err)
+			hook := accessrequesthook.Hook{}
+
+			retry, hookErr := hook.NoAccess(c.Context, profile)
+			if hookErr != nil {
+				return hookErr
+			}
+
+			if retry {
+				for i := 0; i < 5; i++ {
+					creds, err = profile.AssumeTerminal(c.Context, configOpts)
+					if err == nil {
+						break
+					}
+				}
+			}
+		}
+
 		if err != nil {
 			return err
 		}
