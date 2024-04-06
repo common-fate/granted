@@ -1,6 +1,7 @@
 package granted
 
 import (
+	"context"
 	"fmt"
 	"net/url"
 	"os"
@@ -24,10 +25,64 @@ import (
 	sdkconfig "github.com/common-fate/sdk/config"
 )
 
+var Command = cli.Command{
+	Name:  "request",
+	Usage: "Request access to a role",
+	Subcommands: []*cli.Command{
+		&awsCommand,
+	},
+}
+
+var awsCommand = cli.Command{
+	Name:  "aws",
+	Usage: "Request access to an AWS role",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "account", Usage: "The AWS account name or ID", Required: true},
+		&cli.StringFlag{Name: "role", Usage: "The AWS role", Required: true},
+		&cli.StringFlag{Name: "reason", Usage: "A reason for access"},
+		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "Request access immediately without prompting"},
+		&cli.DurationFlag{Name: "duration", Usage: "Duration of request, defaults to max duration of the access rule."},
+	},
+	Action: func(c *cli.Context) error {
+		return requestAccess(c.Context, requestAccessOpts{
+			account:  c.String("account"),
+			role:     c.String("role"),
+			reason:   c.String("reason"),
+			duration: c.Duration("duration"),
+		})
+	},
+}
+
+type requestAccessOpts struct {
+	account  string
+	role     string
+	reason   string
+	confirm  bool
+	duration time.Duration
+}
+
+func requestAccess(ctx context.Context, opts requestAccessOpts) error {
+	cfg, err := sdkconfig.LoadDefault(ctx)
+	if err != nil {
+		return err
+	}
+
+	apiURL, err := url.Parse(cfg.APIURL)
+	if err != nil {
+		return err
+	}
+
+	accessclient := access.NewFromConfig(cfg)
+
+	availabilities, err := accessclient.QueryAvailabilities(ctx, connect.NewRequest(&accessv1alpha1.QueryAvailabilitiesRequest{}))
+	if err != nil {
+		return err
+	}
+}
+
 var Request = cli.Command{
 	Name:  "request",
 	Usage: "Request access to an entitlement",
-
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
