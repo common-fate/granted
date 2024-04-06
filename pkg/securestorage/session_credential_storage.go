@@ -1,8 +1,6 @@
 package securestorage
 
 import (
-	"errors"
-
 	"github.com/aws/aws-sdk-go-v2/aws"
 )
 
@@ -34,9 +32,6 @@ func (i *SessionCredentialSecureStorage) GetCredentials(profile string) (*aws.Cr
 }
 
 func (i *SessionCredentialSecureStorage) StoreCredentials(profile string, credentials aws.Credentials) (err error) {
-	if credentials.AccessKeyID == "" {
-		return errors.New("could not cache credentials: access key ID was empty")
-	}
 	err = i.SecureStorage.Store(profile, &credentials)
 	return
 }
