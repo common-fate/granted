@@ -16,7 +16,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/smithy-go"
 	"github.com/common-fate/clio"
-	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/idclogin"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/hako/durafmt"
