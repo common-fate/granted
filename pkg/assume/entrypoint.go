@@ -1,6 +1,7 @@
 package assume
 
 import (
+	"fmt"
 	"os"
 	"path"
 
@@ -9,7 +10,6 @@ import (
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/autosync"
-	"github.com/common-fate/granted/pkg/banners"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/useragent"
@@ -56,7 +56,7 @@ func GlobalFlags() []cli.Flag {
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		clio.Log(banners.WithVersion(banners.Assume()))
+		fmt.Printf("Granted version: %s", build.Version)
 	}
 
 	app := &cli.App{
