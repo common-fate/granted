@@ -43,7 +43,6 @@ func Run(ctx context.Context, interactive bool) {
 
 	err = runSync(ctx, rc, interactive)
 	if err != nil {
-		clio.Debugw("failed to sync profile registries", "error", err)
-		clio.Warn("Failed to sync Profile Registries")
+		clio.Warnf("Failed to sync Profile Registries: %s", err.Error())
 	}
 }

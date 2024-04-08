@@ -1,15 +1,21 @@
 package registry
 
 import (
+	"context"
 	"sort"
 
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/registry/gitregistry"
+	"gopkg.in/ini.v1"
 )
+
+type Registry interface {
+	AWSProfiles(ctx context.Context) (*ini.File, error)
+}
 
 type loadedRegistry struct {
 	Config   grantedConfig.Registry
-	Registry *gitregistry.Registry
+	Registry Registry
 }
 
 func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
@@ -31,6 +37,7 @@ func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 			Filename:    r.Filename,
 			Interactive: interactive,
 		})
+
 		if err != nil {
 			return nil, err
 		}

@@ -98,7 +98,6 @@ var CredentialProcess = cli.Command{
 }
 
 func printCredentials(creds aws.Credentials) error {
-
 	out := awsCredsStdOut{
 		Version:         1,
 		AccessKeyID:     creds.AccessKeyID,
