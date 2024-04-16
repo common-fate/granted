@@ -114,6 +114,9 @@ func GetBrowserKey(b string) string {
 	if strings.Contains(strings.ToLower(b), "edge") {
 		return EdgeKey
 	}
+	if strings.Contains(strings.ToLower(b), "firefoxstdout") {
+		return FirefoxStdoutKey
+	}
 	if strings.Contains(strings.ToLower(b), "firefox") || strings.Contains(strings.ToLower(b), "mozilla") {
 		return FirefoxKey
 	}
@@ -125,9 +128,6 @@ func GetBrowserKey(b string) string {
 	}
 	if strings.Contains(strings.ToLower(b), "safari") {
 		return SafariKey
-	}
-	if strings.Contains(strings.ToLower(b), "firefoxstdout") {
-		return FirefoxStdoutKey
 	}
 	if strings.Contains(strings.ToLower(b), "arc") {
 		return ArcKey
