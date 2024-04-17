@@ -72,7 +72,7 @@ var AddCommand = cli.Command{
 			Filename:                configFileName,
 			Ref:                     ref,
 			Priority:                priority,
-			PrefixDuplicateProfiles: prefixAllProfiles,
+			PrefixDuplicateProfiles: prefixDuplicateProfiles,
 			PrefixAllProfiles:       prefixAllProfiles,
 		}
 
