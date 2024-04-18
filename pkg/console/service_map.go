@@ -5,6 +5,7 @@ package console
 var ServiceMap = map[string]string{
 	"":               "console",
 	"acm":            "acm",
+	"apigateway":     "apigateway",
 	"aos":            "aos",
 	"athena":         "athena",
 	"appsync":        "appsync",
