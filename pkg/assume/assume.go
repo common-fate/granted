@@ -1,6 +1,7 @@
 package assume
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"net/url"
@@ -33,6 +34,7 @@ import (
 	cfflags "github.com/common-fate/granted/pkg/urfav_overrides"
 	"github.com/fatih/color"
 	"github.com/hako/durafmt"
+	sethRetry "github.com/sethvargo/go-retry"
 	"github.com/urfave/cli/v2"
 	"gopkg.in/ini.v1"
 )
@@ -505,12 +507,20 @@ func AssumeCommand(c *cli.Context) error {
 			}
 
 			if retry {
-				for i := 0; i < 5; i++ {
+
+				b := sethRetry.NewFibonacci(time.Second)
+				b = sethRetry.WithMaxDuration(time.Minute*1, b)
+				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 					creds, err = profile.AssumeTerminal(c.Context, configOpts)
 					if err == nil {
-						break
+						return sethRetry.RetryableError(err)
 					}
+					return nil
+				})
+				if err != nil {
+					return err
 				}
+
 			}
 		}
 

@@ -97,6 +97,7 @@ require (
 	github.com/mtibben/percent v0.2.1 // indirect
 	github.com/olekukonko/tablewriter v0.0.5
 	github.com/russross/blackfriday/v2 v2.1.0 // indirect
+	github.com/sethvargo/go-retry v0.2.4
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/ratelimit v0.3.0
 	golang.org/x/sync v0.5.0
