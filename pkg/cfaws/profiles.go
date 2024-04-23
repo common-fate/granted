@@ -521,5 +521,6 @@ func (c *Profile) AssumeConsole(ctx context.Context, configOpts ConfigOpts) (aws
 }
 
 func (c *Profile) AssumeTerminal(ctx context.Context, configOpts ConfigOpts) (aws.Credentials, error) {
+
 	return AssumerFromType(c.ProfileType).AssumeTerminal(ctx, c, configOpts)
 }

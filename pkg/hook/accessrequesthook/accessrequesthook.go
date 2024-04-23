@@ -199,7 +199,7 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 			color.New(color.BgHiYellow, color.FgBlack).Fprintf(os.Stderr, "[REQUESTED]")
 			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
-			return false, errors.New("access is pending approval")
+			return false, errors.New("applying access was attempted but the resources requested require approval before activation")
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:
 			// shouldn't happen in the dry-run request but handle anyway
@@ -344,6 +344,8 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	if err != nil {
 		return false, err
 	}
+
+	clio.Info("Attempting to grant access...")
 	return proceed, nil
 }
 
