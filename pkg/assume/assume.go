@@ -405,6 +405,33 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		creds, err := profile.AssumeConsole(c.Context, configOpts)
+		if err != nil && strings.HasPrefix(err.Error(), "no access") {
+			clio.Debugw("received a No Access error", "error", err)
+			hook := accessrequesthook.Hook{}
+
+			retry, hookErr := hook.NoAccess(c.Context, profile)
+			if hookErr != nil {
+				return hookErr
+			}
+
+			if retry {
+
+				b := sethRetry.NewFibonacci(time.Second)
+				b = sethRetry.WithMaxDuration(time.Minute*1, b)
+				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
+					creds, err = profile.AssumeConsole(c.Context, configOpts)
+					if err == nil {
+						return sethRetry.RetryableError(err)
+					}
+					return nil
+				})
+				if err != nil {
+					return err
+				}
+
+			}
+		}
+
 		if err != nil {
 			return err
 		}
