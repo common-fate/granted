@@ -62,7 +62,7 @@ func installFishCompletions(c *cli.Context) error {
 	// try to fetch user home dir
 	user, _ := user.Current()
 
-	executableDir := user.HomeDir + "/.config/fish/completions/granted_completer_fish.fish"
+	executableDir := user.HomeDir + "/.config/fish/completions/granted.fish"
 
 	// Try to create a file
 	err := os.WriteFile(executableDir, []byte(combinedOutput), 0600)
