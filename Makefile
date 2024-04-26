@@ -15,7 +15,7 @@ clean:
 	rm ${PREFIX}/bin/dassume
 	rm ${PREFIX}/bin/dassume.fish
 
-aws-credentials: 
+aws-credentials:
 	echo -e "\nAWS_ACCESS_KEY_ID=\"$$AWS_ACCESS_KEY_ID\"\nAWS_SECRET_ACCESS_KEY=\"$$AWS_SECRET_ACCESS_KEY\"\nAWS_SESSION_TOKEN=\"$$AWS_SESSION_TOKEN\"\nAWS_REGION=\"$$AWS_REGION\""
 
 test-browser-binary:
@@ -49,7 +49,7 @@ ci-cli-all-platforms: test-binaries
 
 ## This will use the 'granted' binary and 'assume' symlink for dev build.
 ## Helpful to use dev build using 'granted' and 'assume' before release.
-cli-act-prod: go-binary assume-binary
+cli-act-prod: go-binary
 	mv ./bin/dgranted ${PREFIX}/bin/granted
 	ln -s granted ${PREFIX}/bin/dassumego
 	# replace references to "assumego" (the production binary) with "dassumego"
