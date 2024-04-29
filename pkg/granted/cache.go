@@ -56,17 +56,24 @@ var ListCommand = cli.Command{
 var ClearCommand = cli.Command{
 	Name:  "clear",
 	Usage: "Clear cached credential from the secure storage",
+	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "storage", Usage: "Specify the storage type"},
+		&cli.StringFlag{Name: "profile", Usage: "Specify the profile name of the credential which should be cleared"},
+	},
 	Action: func(c *cli.Context) error {
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		in := survey.Select{
-			Message: "Select which secure storage would you like to clear cache from",
-			Options: []string{"aws-iam-credentials", "sso-token", "session-credentials"},
-		}
-		var selection string
-		clio.NewLine()
-		err := testable.AskOne(&in, &selection, withStdio)
-		if err != nil {
-			return err
+
+		selection := c.String("storage")
+		if selection == "" {
+			in := survey.Select{
+				Message: "Select which secure storage would you like to clear cache from",
+				Options: []string{"aws-iam-credentials", "sso-token", "session-credentials"},
+			}
+			clio.NewLine()
+			err := testable.AskOne(&in, &selection, withStdio)
+			if err != nil {
+				return err
+			}
 		}
 
 		storageToNameMap := map[string]securestorage.SecureStorage{
@@ -87,14 +94,16 @@ var ClearCommand = cli.Command{
 			return nil
 		}
 
-		prompt := &survey.Select{
-			Message: "Select the profile name you want to clear cache for",
-			Options: keys,
-		}
-		var selectedProfile string
-		err = survey.AskOne(prompt, &selectedProfile)
-		if err != nil {
-			return err
+		selectedProfile := c.String("profile")
+		if selectedProfile == "" {
+			prompt := &survey.Select{
+				Message: "Select the profile name you want to clear cache for",
+				Options: keys,
+			}
+			err = survey.AskOne(prompt, &selectedProfile)
+			if err != nil {
+				return err
+			}
 		}
 
 		err = selectedStorage.Clear(selectedProfile)
