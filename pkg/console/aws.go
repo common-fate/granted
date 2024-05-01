@@ -3,6 +3,7 @@ package console
 import (
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"net/url"
 
@@ -60,8 +61,15 @@ func (a AWS) URL(creds aws.Credentials) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	defer res.Body.Close()
 	if res.StatusCode != http.StatusOK {
-		return "", fmt.Errorf("opening console failed with code %v", res.StatusCode)
+		// read the body to a string and return it in an error
+		resBodyString, readErr := io.ReadAll(res.Body)
+		if readErr != nil {
+			return "", fmt.Errorf("received HTTP status code %v when retrieving federated console URL and couldn't read body: %w", res.StatusCode, readErr)
+		}
+
+		return "", fmt.Errorf("received HTTP status code %v when retrieving federated console URL: %s", res.StatusCode, resBodyString)
 	}
 
 	token := struct {
