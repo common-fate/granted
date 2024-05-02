@@ -89,7 +89,6 @@ var GenerateCommand = cli.Command{
 		}
 
 		sources := coalesce.StringSlice(c.StringSlice("source"), cfg.Sso.Source)
-		println(sources)
 		for _, s := range sources {
 			switch s {
 			case "aws-sso":
