@@ -55,6 +55,16 @@ type Config struct {
 		Variables               map[string]string `toml:",omitempty"`
 		Registries              []Registry        `toml:",omitempty"`
 	} `toml:",omitempty"`
+
+	Sso struct {
+		// add any global configuration to sso profile commands defaults here.
+		StartURL            string
+		SsoRegion           string
+		Prefix              string
+		Source              []string
+		NoCredentialProcess bool
+		ProfileTemplate     string
+	}
 }
 
 type KeyringConfig struct {

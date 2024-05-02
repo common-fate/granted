@@ -30,6 +30,7 @@ require (
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/schollz/progressbar/v3 v3.13.1
 	go.uber.org/zap v1.26.0
+	gobn.github.io/coalesce v1.0.2
 	google.golang.org/protobuf v1.33.0
 	gopkg.in/yaml.v3 v3.0.1
 )
