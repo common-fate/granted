@@ -65,14 +65,14 @@ var GenerateCommand = cli.Command{
 			return nil
 		}
 
-		configName := c.String("config")
-		startURL := coalesceString(c.Args().First(), cfg.SSO[configName].StartURL)
+		cfgSSO := cfg.SSO[c.String("config")]
+		startURL := coalesceString(c.Args().First(), cfgSSO.StartURL)
 		if startURL == "" {
 			return clierr.New(fmt.Sprintf("Usage: %s [sso-start-url]", fullCommand), clierr.Infof("For example, %s https://example.awsapps.com/start", fullCommand))
 		}
 
 		// if --sso-region is not set, display that is it required
-		ssoRegion := coalesceString(c.String("sso-region"), cfg.SSO[configName].SSORegion)
+		ssoRegion := coalesceString(c.String("sso-region"), cfgSSO.SSORegion)
 		if ssoRegion == "" {
 			clio.Errorf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
 			return nil
@@ -85,11 +85,11 @@ var GenerateCommand = cli.Command{
 			profileNameTemplate = c.String("profile-template")
 		} else {
 			// prefer config over default
-			profileNameTemplate = coalesceString(cfg.SSO[configName].ProfileTemplate, c.String("profile-template"))
+			profileNameTemplate = coalesceString(cfgSSO.ProfileTemplate, c.String("profile-template"))
 		}
 
-		prefix := coalesceString(c.String("prefix"), cfg.SSO[configName].Prefix)
-		noCredentialProcess := c.Bool("no-credential-process") || cfg.SSO[configName].NoCredentialProcess
+		prefix := coalesceString(c.String("prefix"), cfgSSO.Prefix)
+		noCredentialProcess := c.Bool("no-credential-process") || cfgSSO.NoCredentialProcess
 
 		g := awsconfigfile.Generator{
 			Config:              ini.Empty(),
@@ -150,15 +150,15 @@ var PopulateCommand = cli.Command{
 			return nil
 		}
 
-		configName := c.String("config")
+		cfgSSO := cfg.SSO[c.String("config")]
 
-		startURL := coalesceString(c.Args().First(), cfg.SSO[configName].StartURL)
+		startURL := coalesceString(c.Args().First(), cfgSSO.StartURL)
 		if startURL == "" {
 			return clierr.New(fmt.Sprintf("Usage: %s [sso-start-url]", fullCommand), clierr.Infof("For example, %s https://example.awsapps.com/start", fullCommand))
 		}
 
 		// if --sso-region is not set, display that is it required
-		ssoRegion := coalesceString(c.String("sso-region"), cfg.SSO[configName].SSORegion)
+		ssoRegion := coalesceString(c.String("sso-region"), cfgSSO.SSORegion)
 		if ssoRegion == "" {
 			clio.Errorf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
 			return nil
@@ -171,11 +171,11 @@ var PopulateCommand = cli.Command{
 			profileNameTemplate = c.String("profile-template")
 		} else {
 			// prefer config over default
-			profileNameTemplate = coalesceString(cfg.SSO[configName].ProfileTemplate, c.String("profile-template"))
+			profileNameTemplate = coalesceString(cfgSSO.ProfileTemplate, c.String("profile-template"))
 		}
 
-		prefix := coalesceString(c.String("prefix"), cfg.SSO[configName].Prefix)
-		noCredentialProcess := c.Bool("no-credential-process") || cfg.SSO[configName].NoCredentialProcess
+		prefix := coalesceString(c.String("prefix"), cfgSSO.Prefix)
+		noCredentialProcess := c.Bool("no-credential-process") || cfgSSO.NoCredentialProcess
 
 		configFilename := cfaws.GetAWSConfigPath()
 
