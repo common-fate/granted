@@ -78,7 +78,16 @@ var GenerateCommand = cli.Command{
 			return nil
 		}
 
-		profileNameTemplate := coalesceString(c.String("profile-template"), cfg.SSO[configName].ProfileTemplate)
+		// Since `profile-template` has a default value, need to check IsSet instead of having a value
+		var profileNameTemplate string
+		if c.IsSet("profile-template") {
+			// when not set, use config when it has a value
+			profileNameTemplate = c.String("profile-template")
+		} else {
+			// prefer config over default
+			profileNameTemplate = coalesceString(cfg.SSO[configName].ProfileTemplate, c.String("profile-template"))
+		}
+
 		prefix := coalesceString(c.String("prefix"), cfg.SSO[configName].Prefix)
 		noCredentialProcess := c.Bool("no-credential-process") || cfg.SSO[configName].NoCredentialProcess
 
@@ -155,7 +164,16 @@ var PopulateCommand = cli.Command{
 			return nil
 		}
 
-		profileNameTemplate := coalesceString(c.String("profile-template"), cfg.SSO[configName].ProfileTemplate)
+		// Since `profile-template` has a default value, need to check IsSet instead of having a value
+		var profileNameTemplate string
+		if c.IsSet("profile-template") {
+			// when not set, use config when it has a value
+			profileNameTemplate = c.String("profile-template")
+		} else {
+			// prefer config over default
+			profileNameTemplate = coalesceString(cfg.SSO[configName].ProfileTemplate, c.String("profile-template"))
+		}
+
 		prefix := coalesceString(c.String("prefix"), cfg.SSO[configName].Prefix)
 		noCredentialProcess := c.Bool("no-credential-process") || cfg.SSO[configName].NoCredentialProcess
 
