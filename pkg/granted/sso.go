@@ -31,7 +31,6 @@ import (
 	"github.com/schollz/progressbar/v3"
 	"github.com/urfave/cli/v2"
 	uberratelimit "go.uber.org/ratelimit"
-	"gobn.github.io/coalesce"
 	"golang.org/x/sync/errgroup"
 	"gopkg.in/ini.v1"
 )
@@ -49,6 +48,7 @@ var GenerateCommand = cli.Command{
 	Usage:     "Prints an AWS configuration file to stdout with profiles from accounts and roles available in AWS SSO",
 	UsageText: "granted [global options] sso generate [command options] [sso-start-url]",
 	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "config", Usage: "Specify the SSO config section ([SSO.name])", Value: "default"},
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
 		&cli.StringSliceFlag{Name: "source", Usage: "The sources to load AWS profiles from (valid values are: 'aws-sso', 'commonfate')", Value: cli.NewStringSlice("aws-sso")},
@@ -65,21 +65,23 @@ var GenerateCommand = cli.Command{
 			return nil
 		}
 
-		startURL := coalesceString(c.Args().First(), cfg.Sso.StartURL)
+		configName := c.String("config")
+		println(configName)
+		startURL := coalesceString(c.Args().First(), cfg.SSO[configName].StartURL)
 		if startURL == "" {
 			return clierr.New(fmt.Sprintf("Usage: %s [sso-start-url]", fullCommand), clierr.Infof("For example, %s https://example.awsapps.com/start", fullCommand))
 		}
 
 		// if --sso-region is not set, display that is it required
-		ssoRegion := coalesceString(c.String("sso-region"), cfg.Sso.SsoRegion)
+		ssoRegion := coalesceString(c.String("sso-region"), cfg.SSO[configName].SSORegion)
 		if ssoRegion == "" {
 			clio.Errorf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
 			return nil
 		}
 
-		profileNameTemplate := coalesceString(c.String("profile-template"), cfg.Sso.SsoRegion)
-		prefix := coalesceString(c.String("prefix"), cfg.Sso.SsoRegion)
-		noCredentialProcess := c.Bool("no-credential-process") || cfg.Sso.NoCredentialProcess
+		profileNameTemplate := coalesceString(c.String("profile-template"), cfg.SSO[configName].ProfileTemplate)
+		prefix := coalesceString(c.String("prefix"), cfg.SSO[configName].Prefix)
+		noCredentialProcess := c.Bool("no-credential-process") || cfg.SSO[configName].NoCredentialProcess
 
 		g := awsconfigfile.Generator{
 			Config:              ini.Empty(),
@@ -88,8 +90,7 @@ var GenerateCommand = cli.Command{
 			Prefix:              prefix,
 		}
 
-		sources := coalesce.StringSlice(c.StringSlice("source"), cfg.Sso.Source)
-		for _, s := range sources {
+		for _, s := range c.StringSlice("source") {
 			switch s {
 			case "aws-sso":
 				g.AddSource(AWSSSOSource{SSORegion: ssoRegion, StartURL: startURL})
@@ -141,21 +142,23 @@ var PopulateCommand = cli.Command{
 			return nil
 		}
 
-		startURL := coalesceString(c.Args().First(), cfg.Sso.StartURL)
+		configName := c.String("config")
+
+		startURL := coalesceString(c.Args().First(), cfg.SSO[configName].StartURL)
 		if startURL == "" {
 			return clierr.New(fmt.Sprintf("Usage: %s [sso-start-url]", fullCommand), clierr.Infof("For example, %s https://example.awsapps.com/start", fullCommand))
 		}
 
 		// if --sso-region is not set, display that is it required
-		ssoRegion := coalesceString(c.String("sso-region"), cfg.Sso.SsoRegion)
+		ssoRegion := coalesceString(c.String("sso-region"), cfg.SSO[configName].SSORegion)
 		if ssoRegion == "" {
 			clio.Errorf("Please specify the --sso-region flag: '%s --sso-region us-east-1 %s'", fullCommand, startURL)
 			return nil
 		}
 
-		profileNameTemplate := coalesceString(c.String("profile-template"), cfg.Sso.SsoRegion)
-		prefix := coalesceString(c.String("prefix"), cfg.Sso.SsoRegion)
-		noCredentialProcess := c.Bool("no-credential-process") || cfg.Sso.NoCredentialProcess
+		profileNameTemplate := coalesceString(c.String("profile-template"), cfg.SSO[configName].ProfileTemplate)
+		prefix := coalesceString(c.String("prefix"), cfg.SSO[configName].Prefix)
+		noCredentialProcess := c.Bool("no-credential-process") || cfg.SSO[configName].NoCredentialProcess
 
 		configFilename := cfaws.GetAWSConfigPath()
 
@@ -185,8 +188,7 @@ var PopulateCommand = cli.Command{
 			PruneStartURLs:      pruneStartURLs,
 		}
 
-		sources := coalesce.StringSlice(c.StringSlice("source"), cfg.Sso.Source)
-		for _, s := range sources {
+		for _, s := range c.StringSlice("source") {
 			switch s {
 			case "aws-sso":
 				g.AddSource(AWSSSOSource{SSORegion: ssoRegion, StartURL: startURL, SSOScopes: c.StringSlice("sso-scope")})
