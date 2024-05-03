@@ -132,6 +132,7 @@ var PopulateCommand = cli.Command{
 	Usage:     "Populate your local AWS configuration file with profiles from accounts and roles available in AWS SSO",
 	UsageText: "granted [global options] sso populate [command options] [sso-start-url]",
 	Flags: []cli.Flag{
+		&cli.StringFlag{Name: "config", Usage: "Specify the SSO config section ([SSO.name])", Value: "default"},
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
 		&cli.StringSliceFlag{Name: "sso-scope", Usage: "Specify the SSO scopes"},
