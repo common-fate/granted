@@ -56,7 +56,7 @@ type Config struct {
 		Registries              []Registry        `toml:",omitempty"`
 	} `toml:",omitempty"`
 
-	SSO map[string]AWSSSOConfiguration
+	SSO map[string]AWSSSOConfiguration `toml:",omitempty"`
 }
 
 type KeyringConfig struct {
