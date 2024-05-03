@@ -48,7 +48,7 @@ var GenerateCommand = cli.Command{
 	Usage:     "Prints an AWS configuration file to stdout with profiles from accounts and roles available in AWS SSO",
 	UsageText: "granted [global options] sso generate [command options] [sso-start-url]",
 	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "config", Usage: "Specify the SSO config section ([SSO.name])", Value: "default"},
+		&cli.StringFlag{Name: "config", Usage: "Specify the SSO config section in the Granted config file ([SSO.name])", Value: "default"},
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
 		&cli.StringSliceFlag{Name: "source", Usage: "The sources to load AWS profiles from (valid values are: 'aws-sso', 'commonfate')", Value: cli.NewStringSlice("aws-sso")},
