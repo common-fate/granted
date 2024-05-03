@@ -66,7 +66,6 @@ var GenerateCommand = cli.Command{
 		}
 
 		configName := c.String("config")
-		println(configName)
 		startURL := coalesceString(c.Args().First(), cfg.SSO[configName].StartURL)
 		if startURL == "" {
 			return clierr.New(fmt.Sprintf("Usage: %s [sso-start-url]", fullCommand), clierr.Infof("For example, %s https://example.awsapps.com/start", fullCommand))
