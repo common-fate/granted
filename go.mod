@@ -88,15 +88,9 @@ require (
 	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.5 // indirect
 	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/iam v1.28.7
-<<<<<<< HEAD
 	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.7 // indirect
 	github.com/aws/smithy-go v1.20.2
 	github.com/common-fate/awsconfigfile v0.8.0
-=======
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.4 // indirect
-	github.com/aws/smithy-go v1.19.0
-	github.com/common-fate/awsconfigfile v0.9.0
->>>>>>> main
 	github.com/common-fate/useragent v0.1.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect
 	github.com/danieljoos/wincred v1.1.2 // indirect
