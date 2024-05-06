@@ -63,7 +63,11 @@ func (r Registry) AWSProfiles(ctx context.Context) (*ini.File, error) {
 
 		//expect all the attributes to come from the api with the correct key value pairs
 		for _, attr := range profile.Attributes {
-			section.NewKey(attr.Key, attr.Value)
+			_, err := section.NewKey(attr.Key, attr.Value)
+			if err != nil {
+				return nil, err
+			}
+
 		}
 
 	}
