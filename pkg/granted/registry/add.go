@@ -3,7 +3,6 @@ package registry
 import (
 	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
@@ -78,7 +77,7 @@ var AddCommand = cli.Command{
 			PrefixAllProfiles:       prefixAllProfiles,
 		}
 
-		if strings.HasPrefix(URL, "git@") {
+		if IsGitRepository(URL) {
 			registry, err := gitregistry.New(gitregistry.Opts{
 				Name:         name,
 				URL:          URL,

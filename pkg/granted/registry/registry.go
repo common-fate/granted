@@ -2,8 +2,8 @@ package registry
 
 import (
 	"context"
+	"regexp"
 	"sort"
-	"strings"
 
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/registry/cfregistry"
@@ -20,6 +20,12 @@ type loadedRegistry struct {
 	Registry Registry
 }
 
+func IsGitRepository(url string) bool {
+	regex := regexp.MustCompile(`(?:https:\/\/github\.com\/|git@github\.com:)[a-zA-Z0-9_-]+\/[a-zA-Z0-9_-]+(?:\.git)?`)
+
+	return regex.MatchString(url)
+}
+
 func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 	gConf, err := grantedConfig.Load()
 	if err != nil {
@@ -33,7 +39,7 @@ func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 	var registries []loadedRegistry
 	for _, r := range gConf.ProfileRegistry.Registries {
 
-		if strings.HasPrefix(r.URL, "git@") {
+		if IsGitRepository(r.URL) {
 			reg, err := gitregistry.New(gitregistry.Opts{
 				Name:        r.Name,
 				URL:         r.URL,
