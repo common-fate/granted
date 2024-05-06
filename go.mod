@@ -5,11 +5,11 @@ go 1.22.0
 require (
 	github.com/99designs/keyring v1.2.2
 	github.com/AlecAivazis/survey/v2 v2.3.7
-	github.com/aws/aws-sdk-go-v2 v1.24.1
-	github.com/aws/aws-sdk-go-v2/config v1.25.6
-	github.com/aws/aws-sdk-go-v2/service/sso v1.17.4
-	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.20.2
-	github.com/aws/aws-sdk-go-v2/service/sts v1.25.5
+	github.com/aws/aws-sdk-go-v2 v1.26.1
+	github.com/aws/aws-sdk-go-v2/config v1.27.11
+	github.com/aws/aws-sdk-go-v2/service/sso v1.20.5
+	github.com/aws/aws-sdk-go-v2/service/ssooidc v1.23.4
+	github.com/aws/aws-sdk-go-v2/service/sts v1.28.6
 	github.com/common-fate/updatecheck v0.3.5
 	github.com/pkg/browser v0.0.0-20210911075715-681adbf594b8
 	github.com/pkg/errors v0.9.1
@@ -25,7 +25,7 @@ require (
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/common-fate v0.15.13
 	github.com/common-fate/glide-cli v0.6.0
-	github.com/common-fate/sdk v1.20.1-0.20240406134835-b39ee0bccd2f
+	github.com/common-fate/sdk v1.31.0
 	github.com/fatih/color v1.16.0
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/schollz/progressbar/v3 v3.13.1
@@ -35,7 +35,7 @@ require (
 )
 
 require (
-	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.10.3 // indirect
+	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/common-fate/grab v1.3.0 // indirect
 	github.com/common-fate/iso8601 v1.1.0 // indirect
@@ -72,14 +72,14 @@ require (
 require (
 	github.com/99designs/go-keychain v0.0.0-20191008050251-8e49817e8af4 // indirect
 	github.com/BurntSushi/toml v1.3.2
-	github.com/aws/aws-sdk-go-v2/credentials v1.16.5
-	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.14.5 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/configsources v1.2.10 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.5.10 // indirect
-	github.com/aws/aws-sdk-go-v2/internal/ini v1.7.1 // indirect
+	github.com/aws/aws-sdk-go-v2/credentials v1.17.11
+	github.com/aws/aws-sdk-go-v2/feature/ec2/imds v1.16.1 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/configsources v1.3.5 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/endpoints/v2 v2.6.5 // indirect
+	github.com/aws/aws-sdk-go-v2/internal/ini v1.8.0 // indirect
 	github.com/aws/aws-sdk-go-v2/service/iam v1.28.7
-	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.10.4 // indirect
-	github.com/aws/smithy-go v1.19.0
+	github.com/aws/aws-sdk-go-v2/service/internal/presigned-url v1.11.7 // indirect
+	github.com/aws/smithy-go v1.20.2
 	github.com/common-fate/awsconfigfile v0.8.0
 	github.com/common-fate/useragent v0.1.0
 	github.com/cpuguy83/go-md2man/v2 v2.0.2 // indirect

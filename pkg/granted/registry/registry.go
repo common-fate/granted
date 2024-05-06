@@ -3,8 +3,10 @@ package registry
 import (
 	"context"
 	"sort"
+	"strings"
 
 	grantedConfig "github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/granted/registry/cfregistry"
 	"github.com/common-fate/granted/pkg/granted/registry/gitregistry"
 	"gopkg.in/ini.v1"
 )
@@ -30,22 +32,39 @@ func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 
 	var registries []loadedRegistry
 	for _, r := range gConf.ProfileRegistry.Registries {
-		reg, err := gitregistry.New(gitregistry.Opts{
-			Name:        r.Name,
-			URL:         r.URL,
-			Path:        r.Path,
-			Filename:    r.Filename,
-			Interactive: interactive,
-		})
 
-		if err != nil {
-			return nil, err
+		if strings.HasPrefix(r.URL, "git@") {
+			reg, err := gitregistry.New(gitregistry.Opts{
+				Name:        r.Name,
+				URL:         r.URL,
+				Path:        r.Path,
+				Filename:    r.Filename,
+				Interactive: interactive,
+			})
+
+			if err != nil {
+				return nil, err
+			}
+			registries = append(registries, loadedRegistry{
+				Config:   r,
+				Registry: reg,
+			})
+		} else {
+			//set up a common fate registry
+			reg, err := cfregistry.New(cfregistry.Opts{
+				Name: r.Name,
+				URL:  r.URL,
+			})
+
+			if err != nil {
+				return nil, err
+			}
+			registries = append(registries, loadedRegistry{
+				Config:   r,
+				Registry: reg,
+			})
 		}
 
-		registries = append(registries, loadedRegistry{
-			Config:   r,
-			Registry: reg,
-		})
 	}
 
 	// this will sort the registry based on priority.
