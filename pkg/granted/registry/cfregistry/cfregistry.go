@@ -46,15 +46,32 @@ func New(opts Opts) (*Registry, error) {
 func (r Registry) AWSProfiles(ctx context.Context) (*ini.File, error) {
 	// call common fate api to pull profiles
 
-	profiles, err := r.Client.ListProfiles(ctx, &connect.Request[awsv1alpha1.ListProfilesRequest]{})
-	if err != nil {
-		return nil, err
+	done := false
+	var pageToken string
+	profiles := []*awsv1alpha1.Profile{}
+
+	for !done {
+		listProfiles, err := r.Client.ListProfiles(ctx, &connect.Request[awsv1alpha1.ListProfilesRequest]{
+			Msg: &awsv1alpha1.ListProfilesRequest{
+				PageToken: pageToken,
+			},
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		profiles = append(profiles, listProfiles.Msg.Profiles...)
+
+		if listProfiles.Msg.NextPageToken == "" {
+			done = true
+		} else {
+			pageToken = listProfiles.Msg.NextPageToken
+		}
 	}
 
 	result := ini.Empty()
 
-	//todo pagination
-	for _, profile := range profiles.Msg.Profiles {
+	for _, profile := range profiles {
 
 		section, err := result.NewSection(profile.Name)
 		if err != nil {
