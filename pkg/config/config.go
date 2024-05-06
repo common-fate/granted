@@ -55,6 +55,8 @@ type Config struct {
 		Variables               map[string]string `toml:",omitempty"`
 		Registries              []Registry        `toml:",omitempty"`
 	} `toml:",omitempty"`
+
+	SSO map[string]AWSSSOConfiguration `toml:",omitempty"`
 }
 
 type KeyringConfig struct {
@@ -73,6 +75,14 @@ type Registry struct {
 	Priority                int    `toml:"priority,omitempty"`
 	PrefixDuplicateProfiles bool   `toml:"prefixDuplicateProfiles,omitempty"`
 	PrefixAllProfiles       bool   `toml:"prefixAllProfiles,omitempty"`
+}
+
+type AWSSSOConfiguration struct {
+	StartURL            string
+	SSORegion           string
+	Prefix              string
+	NoCredentialProcess bool
+	ProfileTemplate     string
 }
 
 // NewDefaultConfig returns a config with OS specific defaults populated
