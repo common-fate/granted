@@ -2,7 +2,6 @@ package cfregistry
 
 import (
 	"context"
-	"fmt"
 
 	"connectrpc.com/connect"
 	"github.com/common-fate/sdk/config"
@@ -27,10 +26,6 @@ func New(opts Opts) (*Registry, error) {
 	cfg, err := config.LoadDefault(context.Background())
 	if err != nil {
 		return nil, err
-	}
-
-	if cfg.APIURL != opts.URL {
-		return nil, fmt.Errorf("passed url does not match url in Common Fate (cf) config. active context API URL is: %s", cfg.APIURL)
 	}
 
 	accountClient := grantedv1alpha1.NewFromConfig(cfg)

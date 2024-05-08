@@ -34,8 +34,10 @@ var AddCommand = cli.Command{
 		&cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"pap"}, Usage: "Provide this flag if you want to append registry name to all profiles"},
 		&cli.BoolFlag{Name: "prefix-duplicate-profiles", Aliases: []string{"pdp"}, Usage: "Provide this flag if you want to append registry name to duplicate profiles"},
 		&cli.BoolFlag{Name: "write-on-sync-failure", Aliases: []string{"wosf"}, Usage: "Always overwrite AWS config, even if sync fails (DEPRECATED)"},
-		&cli.StringSliceFlag{Name: "required-key", Aliases: []string{"r", "requiredKey"}, Usage: "Used to bypass the prompt or override user specific values"}},
-	ArgsUsage: "--name <registry_name> --url <repository_url>",
+		&cli.StringSliceFlag{Name: "required-key", Aliases: []string{"r", "requiredKey"}, Usage: "Used to bypass the prompt or override user specific values"},
+		&cli.StringFlag{Name: "type", Aliases: []string{"t"}, DefaultText: "git", Usage: "specify the type of granted registry source you want to set up. Default: git"}},
+
+	ArgsUsage: "--name <registry_name> --url <repository_url> --type <registry_type>",
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
@@ -57,6 +59,11 @@ var AddCommand = cli.Command{
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
 		requiredKey := c.StringSlice("required-key")
 		priority := c.Int("priority")
+		registryType := c.String("type")
+
+		if registryType != "git" && registryType != "http" {
+			return fmt.Errorf("invalid registry type provided: %s. must be 'git' or 'http'", c.String("type"))
+		}
 
 		for _, r := range gConf.ProfileRegistry.Registries {
 			if r.Name == name {
@@ -75,9 +82,10 @@ var AddCommand = cli.Command{
 			Priority:                priority,
 			PrefixDuplicateProfiles: prefixDuplicateProfiles,
 			PrefixAllProfiles:       prefixAllProfiles,
+			Type:                    registryType,
 		}
 
-		if IsGitRepository(URL) {
+		if registryType == "git" {
 			registry, err := gitregistry.New(gitregistry.Opts{
 				Name:         name,
 				URL:          URL,
