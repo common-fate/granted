@@ -8,6 +8,7 @@ import (
 	"github.com/common-fate/clio"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/awsmerge"
+	"github.com/common-fate/granted/pkg/granted/registry/cfregistry"
 	"github.com/common-fate/granted/pkg/granted/registry/gitregistry"
 	"github.com/common-fate/granted/pkg/testable"
 
@@ -33,8 +34,10 @@ var AddCommand = cli.Command{
 		&cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"pap"}, Usage: "Provide this flag if you want to append registry name to all profiles"},
 		&cli.BoolFlag{Name: "prefix-duplicate-profiles", Aliases: []string{"pdp"}, Usage: "Provide this flag if you want to append registry name to duplicate profiles"},
 		&cli.BoolFlag{Name: "write-on-sync-failure", Aliases: []string{"wosf"}, Usage: "Always overwrite AWS config, even if sync fails (DEPRECATED)"},
-		&cli.StringSliceFlag{Name: "required-key", Aliases: []string{"r", "requiredKey"}, Usage: "Used to bypass the prompt or override user specific values"}},
-	ArgsUsage: "--name <registry_name> --url <repository_url>",
+		&cli.StringSliceFlag{Name: "required-key", Aliases: []string{"r", "requiredKey"}, Usage: "Used to bypass the prompt or override user specific values"},
+		&cli.StringFlag{Name: "type", DefaultText: "git", Usage: "specify the type of granted registry source you want to set up. Default: git"}},
+
+	ArgsUsage: "--name <registry_name> --url <repository_url> --type <registry_type>",
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
 
@@ -48,7 +51,7 @@ var AddCommand = cli.Command{
 		}
 
 		name := c.String("name")
-		gitURL := c.String("url")
+		URL := c.String("url")
 		pathFlag := c.String("path")
 		configFileName := c.String("filename")
 		ref := c.String("ref")
@@ -56,6 +59,11 @@ var AddCommand = cli.Command{
 		prefixDuplicateProfiles := c.Bool("prefix-duplicate-profiles")
 		requiredKey := c.StringSlice("required-key")
 		priority := c.Int("priority")
+		registryType := c.String("type")
+
+		if registryType != "git" && registryType != "http" {
+			return fmt.Errorf("invalid registry type provided: %s. must be 'git' or 'http'", c.String("type"))
+		}
 
 		for _, r := range gConf.ProfileRegistry.Registries {
 			if r.Name == name {
@@ -67,93 +75,173 @@ var AddCommand = cli.Command{
 
 		registryConfig := grantedConfig.Registry{
 			Name:                    name,
-			URL:                     gitURL,
+			URL:                     URL,
 			Path:                    pathFlag,
 			Filename:                configFileName,
 			Ref:                     ref,
 			Priority:                priority,
 			PrefixDuplicateProfiles: prefixDuplicateProfiles,
 			PrefixAllProfiles:       prefixAllProfiles,
+			Type:                    registryType,
 		}
 
-		registry, err := gitregistry.New(gitregistry.Opts{
-			Name:         name,
-			URL:          gitURL,
-			Path:         pathFlag,
-			Filename:     configFileName,
-			RequiredKeys: requiredKey,
-			Interactive:  true,
-		})
+		if registryType == "git" {
+			registry, err := gitregistry.New(gitregistry.Opts{
+				Name:         name,
+				URL:          URL,
+				Path:         pathFlag,
+				Filename:     configFileName,
+				RequiredKeys: requiredKey,
+				Interactive:  true,
+			})
 
-		if err != nil {
-			return err
-		}
-
-		src, err := registry.AWSProfiles(ctx)
-		if err != nil {
-			return err
-		}
-
-		dst, filepath, err := loadAWSConfigFile()
-		if err != nil {
-			return err
-		}
-
-		m := awsmerge.Merger{}
-
-		merged, err := m.WithRegistry(src, dst, awsmerge.RegistryOpts{
-			Name:                    name,
-			PrefixAllProfiles:       prefixAllProfiles,
-			PrefixDuplicateProfiles: prefixDuplicateProfiles,
-		})
-		var dpe awsmerge.DuplicateProfileError
-		if errors.As(err, &dpe) {
-			clio.Warnf(err.Error())
-
-			const (
-				DUPLICATE = "Add registry name as prefix to all duplicate profiles for this registry"
-				ABORT     = "Abort, I will manually fix this"
-			)
-
-			options := []string{DUPLICATE, ABORT}
-
-			in := survey.Select{Message: "Please select which option would you like to choose to resolve: ", Options: options}
-			var selected string
-			err = testable.AskOne(&in, &selected)
+			if err != nil {
+				return err
+			}
+			src, err := registry.AWSProfiles(ctx)
 			if err != nil {
 				return err
 			}
 
-			if selected == ABORT {
-				return fmt.Errorf("aborting sync for registry %s", name)
+			dst, filepath, err := loadAWSConfigFile()
+			if err != nil {
+				return err
 			}
 
-			registryConfig.PrefixDuplicateProfiles = true
+			m := awsmerge.Merger{}
 
-			// try and merge again
-			merged, err = m.WithRegistry(src, dst, awsmerge.RegistryOpts{
+			merged, err := m.WithRegistry(src, dst, awsmerge.RegistryOpts{
 				Name:                    name,
 				PrefixAllProfiles:       prefixAllProfiles,
-				PrefixDuplicateProfiles: true,
+				PrefixDuplicateProfiles: prefixDuplicateProfiles,
 			})
-			if err != nil {
-				return fmt.Errorf("error after trying to merge profiles again: %w", err)
+			var dpe awsmerge.DuplicateProfileError
+			if errors.As(err, &dpe) {
+				clio.Warnf(err.Error())
+
+				const (
+					DUPLICATE = "Add registry name as prefix to all duplicate profiles for this registry"
+					ABORT     = "Abort, I will manually fix this"
+				)
+
+				options := []string{DUPLICATE, ABORT}
+
+				in := survey.Select{Message: "Please select which option would you like to choose to resolve: ", Options: options}
+				var selected string
+				err = testable.AskOne(&in, &selected)
+				if err != nil {
+					return err
+				}
+
+				if selected == ABORT {
+					return fmt.Errorf("aborting sync for registry %s", name)
+				}
+
+				registryConfig.PrefixDuplicateProfiles = true
+
+				// try and merge again
+				merged, err = m.WithRegistry(src, dst, awsmerge.RegistryOpts{
+					Name:                    name,
+					PrefixAllProfiles:       prefixAllProfiles,
+					PrefixDuplicateProfiles: true,
+				})
+				if err != nil {
+					return fmt.Errorf("error after trying to merge profiles again: %w", err)
+				}
 			}
+
+			// we have verified that this registry is a valid one and sync is completed.
+			// so save the new registry to config file.
+			gConf.ProfileRegistry.Registries = append(gConf.ProfileRegistry.Registries, registryConfig)
+			err = gConf.Save()
+			if err != nil {
+				return err
+			}
+
+			err = merged.SaveTo(filepath)
+			if err != nil {
+				return err
+			}
+
+			return nil
+		} else {
+
+			registry, err := cfregistry.New(cfregistry.Opts{
+				Name: name,
+				URL:  URL,
+			})
+
+			if err != nil {
+				return err
+			}
+			src, err := registry.AWSProfiles(ctx)
+			if err != nil {
+				return err
+			}
+
+			dst, filepath, err := loadAWSConfigFile()
+			if err != nil {
+				return err
+			}
+
+			m := awsmerge.Merger{}
+
+			merged, err := m.WithRegistry(src, dst, awsmerge.RegistryOpts{
+				Name:                    name,
+				PrefixAllProfiles:       prefixAllProfiles,
+				PrefixDuplicateProfiles: prefixDuplicateProfiles,
+			})
+			var dpe awsmerge.DuplicateProfileError
+			if errors.As(err, &dpe) {
+				clio.Warnf(err.Error())
+
+				const (
+					DUPLICATE = "Add registry name as prefix to all duplicate profiles for this registry"
+					ABORT     = "Abort, I will manually fix this"
+				)
+
+				options := []string{DUPLICATE, ABORT}
+
+				in := survey.Select{Message: "Please select which option would you like to choose to resolve: ", Options: options}
+				var selected string
+				err = testable.AskOne(&in, &selected)
+				if err != nil {
+					return err
+				}
+
+				if selected == ABORT {
+					return fmt.Errorf("aborting sync for registry %s", name)
+				}
+
+				registryConfig.PrefixDuplicateProfiles = true
+
+				// try and merge again
+				merged, err = m.WithRegistry(src, dst, awsmerge.RegistryOpts{
+					Name:                    name,
+					PrefixAllProfiles:       prefixAllProfiles,
+					PrefixDuplicateProfiles: true,
+				})
+				if err != nil {
+					return fmt.Errorf("error after trying to merge profiles again: %w", err)
+				}
+			}
+
+			// we have verified that this registry is a valid one and sync is completed.
+			// so save the new registry to config file.
+			gConf.ProfileRegistry.Registries = append(gConf.ProfileRegistry.Registries, registryConfig)
+			err = gConf.Save()
+			if err != nil {
+				return err
+			}
+
+			err = merged.SaveTo(filepath)
+			if err != nil {
+				return err
+			}
+
+			return nil
+
 		}
 
-		// we have verified that this registry is a valid one and sync is completed.
-		// so save the new registry to config file.
-		gConf.ProfileRegistry.Registries = append(gConf.ProfileRegistry.Registries, registryConfig)
-		err = gConf.Save()
-		if err != nil {
-			return err
-		}
-
-		err = merged.SaveTo(filepath)
-		if err != nil {
-			return err
-		}
-
-		return nil
 	},
 }
