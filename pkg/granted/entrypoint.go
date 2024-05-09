@@ -10,6 +10,7 @@ import (
 	"github.com/common-fate/glide-cli/cmd/command"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/granted/commonfate"
 	"github.com/common-fate/granted/pkg/granted/exp"
 	"github.com/common-fate/granted/pkg/granted/middleware"
 	"github.com/common-fate/granted/pkg/granted/registry"
@@ -54,6 +55,7 @@ func GetCliApp() *cli.App {
 			&login,
 			&exp.Command,
 			&CacheCommand,
+			&commonfate.CommonFateCommand,
 		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
@@ -92,7 +94,7 @@ func GetCliApp() *cli.App {
 
 var login = cli.Command{
 	Name:  "login",
-	Usage: "Log in to Common Fate",
+	Usage: "Log in to Glide",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "lazy", Usage: "When the lazy flag is used, a login flow will only be started when the access token is expired"},
 	},
