@@ -32,7 +32,7 @@ func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 	var registries []loadedRegistry
 	for _, r := range gConf.ProfileRegistry.Registries {
 
-		if r.Type == "git" {
+		if r.Type == "git" || r.Type == "" {
 			reg, err := gitregistry.New(gitregistry.Opts{
 				Name:        r.Name,
 				URL:         r.URL,
