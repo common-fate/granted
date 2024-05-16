@@ -2,6 +2,8 @@ package auth
 
 import (
 	"github.com/common-fate/cli/cmd/cli/command"
+	"github.com/common-fate/sdk/config"
+	"github.com/common-fate/sdk/loginflow"
 	"github.com/urfave/cli/v2"
 )
 
@@ -11,8 +13,36 @@ var Command = cli.Command{
 	Flags: []cli.Flag{},
 	Subcommands: []*cli.Command{
 		&command.Configure,
-		&command.Login,
-		&command.Logout,
+		&loginCommand,
+		&logoutCommand,
 		&command.Context,
+	},
+}
+
+var loginCommand = cli.Command{
+	Name:  "login",
+	Usage: "Authenticate to an OIDC provider",
+	Action: func(c *cli.Context) error {
+		cfg, err := config.LoadDefault(c.Context)
+		if err != nil {
+			return err
+		}
+
+		lf := loginflow.NewFromConfig(cfg)
+
+		return lf.Login(c.Context)
+	},
+}
+
+var logoutCommand = cli.Command{
+	Name:  "logout",
+	Usage: "Log out of an OIDC provider",
+	Action: func(c *cli.Context) error {
+		cfg, err := config.LoadDefault(c.Context)
+		if err != nil {
+			return err
+		}
+
+		return cfg.TokenStore.Clear()
 	},
 }
