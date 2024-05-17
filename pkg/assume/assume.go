@@ -36,6 +36,7 @@ import (
 	"github.com/hako/durafmt"
 	sethRetry "github.com/sethvargo/go-retry"
 	"github.com/urfave/cli/v2"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	"gopkg.in/ini.v1"
 )
 
@@ -409,7 +410,13 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Debugw("received a No Access error", "error", err)
 			hook := accessrequesthook.Hook{}
 
-			retry, hookErr := hook.NoAccess(c.Context, profile)
+			d, err := time.ParseDuration(duration)
+			if err != nil {
+				return err
+			}
+			apiDuration := durationpb.New(d)
+
+			retry, hookErr := hook.NoAccess(c.Context, profile, apiDuration)
 			if hookErr != nil {
 				return hookErr
 			}
@@ -528,7 +535,13 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Debugw("received a No Access error", "error", err)
 			hook := accessrequesthook.Hook{}
 
-			retry, hookErr := hook.NoAccess(c.Context, profile)
+			d, err := time.ParseDuration(duration)
+			if err != nil {
+				return err
+			}
+			apiDuration := durationpb.New(d)
+
+			retry, hookErr := hook.NoAccess(c.Context, profile, apiDuration)
 			if hookErr != nil {
 				return hookErr
 			}

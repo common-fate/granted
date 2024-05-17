@@ -25,6 +25,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 	"google.golang.org/protobuf/encoding/protojson"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 )
 
 type Hook struct{}
@@ -55,7 +56,7 @@ func getCommonFateURL(profile *cfaws.Profile) (*url.URL, error) {
 	return u, nil
 }
 
-func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool, err error) {
+func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile, duration  *durationpb.Duration) (retry bool, err error) {
 	var cfg *sdkconfig.Context
 
 	cfURL, err := getCommonFateURL(profile)
@@ -111,6 +112,7 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 						Lookup: role,
 					},
 				},
+				Duration: duration,
 			},
 		},
 		Justification: &accessv1alpha1.Justification{
