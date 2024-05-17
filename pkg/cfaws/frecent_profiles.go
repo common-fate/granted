@@ -56,7 +56,11 @@ func (p *Profiles) GetFrecentProfiles() (*FrecentProfiles, []string) {
 
 	// add all frecent profile names in order if they are still present in the profileNames slice
 	for _, entry := range fr.Entries {
-		e := entry.Entry.(string)
+		e, ok := entry.Entry.(string)
+		if !ok {
+			continue
+		}
+
 		if p.HasProfile(e) {
 			names = append(names, e)
 			namesMap[e] = e
