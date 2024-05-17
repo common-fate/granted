@@ -118,7 +118,7 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 		},
 	}
 
-	hasChanges, err := DryRun(ctx, apiURL, accessclient, &req, false)
+	hasChanges, validation, err := DryRun(ctx, apiURL, accessclient, &req, false)
 	if err != nil && strings.Contains(err.Error(), "oauth2: token expired") {
 		clio.Debugw("prompting user login because token is expired", "error_details", err.Error())
 		// NOTE(chrnorm): ideally we'll bubble up a more strongly typed error in future here, to avoid the string comparison on the error message.
@@ -135,7 +135,7 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 		accessclient = access.NewFromConfig(cfg)
 
 		// retry the Dry Run again
-		hasChanges, err = DryRun(ctx, apiURL, accessclient, &req, false)
+		hasChanges, validation, err = DryRun(ctx, apiURL, accessclient, &req, false)
 	}
 
 	if err != nil {
@@ -153,6 +153,28 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 	si.Suffix = " ensuring access..."
 	si.Writer = os.Stderr
 	si.Start()
+
+	var customReason string
+	reasonPrompt := &survey.Input{
+		Message: "Reason for access:",
+		Help:    "Will be stored in audit trails and associated with you",
+	}
+
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+
+	if validation != nil && validation.HasReason {
+		err = survey.AskOne(reasonPrompt, &customReason, withStdio, survey.WithValidator(survey.Required))
+	} else {
+		err = survey.AskOne(reasonPrompt, &customReason, withStdio)
+	}
+
+	if err != nil {
+		return false, err
+	}
+
+	if customReason != "" {
+		req.Justification.Reason = &customReason
+	}
 
 	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
 	if err != nil {
@@ -243,7 +265,7 @@ func requestURL(apiURL *url.URL, grant *accessv1alpha1.Grant) string {
 	return p.String()
 }
 
-func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.AccessServiceClient, req *accessv1alpha1.BatchEnsureRequest, jsonOutput bool) (bool, error) {
+func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.AccessServiceClient, req *accessv1alpha1.BatchEnsureRequest, jsonOutput bool) (bool, *accessv1alpha1.Validation, error) {
 	req.DryRun = true
 
 	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
@@ -254,7 +276,7 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	res, err := client.BatchEnsure(ctx, connect.NewRequest(req))
 	if err != nil {
 		si.Stop()
-		return false, err
+		return false, nil, err
 	}
 
 	si.Stop()
@@ -264,11 +286,11 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	if jsonOutput {
 		resJSON, err := protojson.Marshal(res.Msg)
 		if err != nil {
-			return false, err
+			return false, nil, err
 		}
 		fmt.Println(string(resJSON))
 
-		return false, errors.New("exiting because --output=json was specified: use --output=text to show an interactive prompt, or use --confirm to proceed with the changes")
+		return false, nil, errors.New("exiting because --output=json was specified: use --output=text to show an interactive prompt, or use --confirm to proceed with the changes")
 	}
 
 	names := map[eid.EID]string{}
@@ -328,11 +350,11 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	printdiags.Print(res.Msg.Diagnostics, names)
 
 	if !hasChanges {
-		return false, nil
+		return false, nil, nil
 	}
 
 	if !IsTerminal(os.Stdin.Fd()) {
-		return false, errors.New("detected a noninteractive terminal: to apply the planned changes please re-run with the --confirm-access-request flag")
+		return false, nil, errors.New("detected a noninteractive terminal: to apply the planned changes please re-run with the --confirm-access-request flag")
 	}
 
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
@@ -342,11 +364,11 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	var proceed bool
 	err = survey.AskOne(&confirm, &proceed, withStdio)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 
 	clio.Info("Attempting to grant access...")
-	return proceed, nil
+	return proceed, res.Msg.Validation, nil
 }
 
 func IsTerminal(fd uintptr) bool {
