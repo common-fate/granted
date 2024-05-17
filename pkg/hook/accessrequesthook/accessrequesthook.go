@@ -155,8 +155,15 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 	si.Start()
 
 	var customReason string
+
+	msg := "Reason for access"
+	if validation != nil && validation.HasReason {
+		msg = msg + " (Required)"
+	} else {
+		msg = msg + " (Leave blank to use default reason)"
+	}
 	reasonPrompt := &survey.Input{
-		Message: "Reason for access:",
+		Message: msg,
 		Help:    "Will be stored in audit trails and associated with you",
 	}
 
