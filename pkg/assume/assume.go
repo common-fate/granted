@@ -410,11 +410,14 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Debugw("received a No Access error", "error", err)
 			hook := accessrequesthook.Hook{}
 
-			d, err := time.ParseDuration(duration)
-			if err != nil {
-				return err
+			var apiDuration *durationpb.Duration
+			if duration != "" {
+				d, err := time.ParseDuration(duration)
+				if err != nil {
+					return err
+				}
+				apiDuration = durationpb.New(d)
 			}
-			apiDuration := durationpb.New(d)
 
 			retry, hookErr := hook.NoAccess(c.Context, profile, apiDuration)
 			if hookErr != nil {
@@ -455,7 +458,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey || cfg.DefaultBrowser == browser.FirefoxDevEditionKey {
-			// tranform the URL into the Firefox Tab Container format.
+			// transform the URL into the Firefox Tab Container format.
 			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", containerProfile, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
 		}
 
@@ -535,11 +538,14 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Debugw("received a No Access error", "error", err)
 			hook := accessrequesthook.Hook{}
 
-			d, err := time.ParseDuration(duration)
-			if err != nil {
-				return err
+			var apiDuration *durationpb.Duration
+			if duration != "" {
+				d, err := time.ParseDuration(duration)
+				if err != nil {
+					return err
+				}
+				apiDuration = durationpb.New(d)
 			}
-			apiDuration := durationpb.New(d)
 
 			retry, hookErr := hook.NoAccess(c.Context, profile, apiDuration)
 			if hookErr != nil {
