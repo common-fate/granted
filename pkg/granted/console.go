@@ -20,7 +20,7 @@ import (
 
 var ConsoleCommand = cli.Command{
 	Name:  "console",
-	Usage: "Generate an AWS console URL using credentials in the environment",
+	Usage: "Generate an AWS console URL using credentials in the environment or with a credential process.",
 	Flags: []cli.Flag{
 
 		&cli.StringFlag{Name: "service"},
