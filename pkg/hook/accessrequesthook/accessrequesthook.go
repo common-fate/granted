@@ -96,8 +96,6 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 
 	accessclient := access.NewFromConfig(cfg)
 
-	reason := "Granted CLI access request for " + profile.Name
-
 	req := accessv1alpha1.BatchEnsureRequest{
 		Entitlements: []*accessv1alpha1.EntitlementInput{
 			{
@@ -113,9 +111,7 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 				},
 			},
 		},
-		Justification: &accessv1alpha1.Justification{
-			Reason: &reason,
-		},
+		Justification: &accessv1alpha1.Justification{},
 	}
 
 	hasChanges, validation, err := DryRun(ctx, apiURL, accessclient, &req, false)
@@ -154,33 +150,22 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 	si.Writer = os.Stderr
 	si.Start()
 
-	var customReason string
-
-	msg := "Reason for access"
 	if validation != nil && validation.HasReason {
-		msg = msg + " (Required)"
-	} else {
-		msg = msg + " (Leave blank to use default reason)"
-	}
-	reasonPrompt := &survey.Input{
-		Message: msg,
-		Help:    "Will be stored in audit trails and associated with you",
-	}
-
-	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-
-	if validation != nil && validation.HasReason {
+		var customReason string
+		msg := "Reason for access (Required)"
+		reasonPrompt := &survey.Input{
+			Message: msg,
+			Help:    "Will be stored in audit trails and associated with you",
+		}
+		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		err = survey.AskOne(reasonPrompt, &customReason, withStdio, survey.WithValidator(survey.Required))
-	} else {
-		err = survey.AskOne(reasonPrompt, &customReason, withStdio)
-	}
 
-	if err != nil {
-		return false, err
-	}
+		if err != nil {
+			return false, err
+		}
 
-	if customReason != "" {
 		req.Justification.Reason = &customReason
+	
 	}
 
 	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
