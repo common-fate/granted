@@ -11,6 +11,9 @@ import (
 	ssotypes "github.com/aws/aws-sdk-go-v2/service/sso/types"
 	"github.com/aws/aws-sdk-go-v2/service/sts"
 	"github.com/aws/aws-sdk-go-v2/service/sts/types"
+	"github.com/common-fate/clio"
+	"github.com/common-fate/granted/pkg/config"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/granted/pkg/testable"
 )
 
@@ -26,6 +29,72 @@ type CredProv struct{ aws.Credentials }
 
 func (c *CredProv) Retrieve(ctx context.Context) (aws.Credentials, error) {
 	return c.Credentials, nil
+}
+
+// will attempt to get credentials from the environment first and if not found then try getting credentials from a credential process
+func GetAWSCredentials(ctx context.Context) (*aws.Credentials, error) {
+	//first try loading credentials from the environment
+	creds := GetEnvCredentials(ctx)
+
+	if creds.AccessKeyID != "" {
+		return &creds, nil
+	}
+
+	//if unsuccessful try and get from the credential cache
+	profileName := os.Getenv("AWS_PROFILE")
+
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	secureSessionCredentialStorage := securestorage.NewSecureSessionCredentialStorage()
+
+	// check if profile is set in the environment
+	useCache := !cfg.DisableCredentialProcessCache
+
+	if useCache {
+		// try and look up session credentials from the secure storage cache.
+		cachedCreds, err := secureSessionCredentialStorage.GetCredentials(profileName)
+		if err != nil {
+			return nil, err
+		}
+
+		return cachedCreds, nil
+	}
+
+	if !useCache {
+		clio.Debugw("refreshing credentials", "reason", "credential process cache is disabled via config")
+	}
+
+	profiles, err := LoadProfiles()
+	if err != nil {
+		return nil, err
+	}
+
+	profile, err := profiles.LoadInitialisedProfile(ctx, profileName)
+	if err != nil {
+		return nil, err
+	}
+
+	duration := time.Hour
+	if profile.AWSConfig.RoleDurationSeconds != nil {
+		duration = *profile.AWSConfig.RoleDurationSeconds
+	}
+
+	credentials, err := profile.AssumeTerminal(ctx, ConfigOpts{Duration: duration, UsingCredentialProcess: true, CredentialProcessAutoLogin: true})
+	if err != nil {
+		return nil, err
+	}
+	if !cfg.DisableCredentialProcessCache {
+		clio.Debugw("storing refreshed credentials in credential process cache", "expires", credentials.Expires.String(), "canExpire", credentials.CanExpire, "timeNow", time.Now().String())
+		if err := secureSessionCredentialStorage.StoreCredentials(profileName, credentials); err != nil {
+			return nil, err
+		}
+	}
+
+	return &credentials, nil
+
 }
 
 // loads the environment variables and hydrates an aws.config if they are present

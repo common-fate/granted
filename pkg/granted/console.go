@@ -34,14 +34,17 @@ var ConsoleCommand = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
-		credentials := cfaws.GetEnvCredentials(ctx)
+		credentials, err := cfaws.GetAWSCredentials(ctx)
+		if err != nil {
+			return err
+		}
 		con := console.AWS{
 			Service:     c.String("service"),
 			Region:      c.String("region"),
 			Destination: c.String("destination"),
 		}
 
-		consoleURL, err := con.URL(credentials)
+		consoleURL, err := con.URL(*credentials)
 		if err != nil {
 			return err
 		}
