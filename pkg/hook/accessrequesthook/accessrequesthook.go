@@ -55,7 +55,7 @@ func getCommonFateURL(profile *cfaws.Profile) (*url.URL, error) {
 	return u, nil
 }
 
-func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool, err error) {
+func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile, reason string) (retry bool, err error) {
 	var cfg *sdkconfig.Context
 
 	cfURL, err := getCommonFateURL(profile)
@@ -150,23 +150,27 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile) (retry bool,
 	si.Writer = os.Stderr
 	si.Start()
 
-	if validation != nil && validation.HasReason {
-		var customReason string
-		msg := "Reason for access (Required)"
-		reasonPrompt := &survey.Input{
-			Message: msg,
-			Help:    "Will be stored in audit trails and associated with you",
-		}
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		err = survey.AskOne(reasonPrompt, &customReason, withStdio, survey.WithValidator(survey.Required))
-
-		if err != nil {
-			return false, err
-		}
-
-		req.Justification.Reason = &customReason
+	if reason != "" {
+		req.Justification.Reason = &reason
+	} else {
+		if validation != nil && validation.HasReason {
+			var customReason string
+			msg := "Reason for access (Required)"
+			reasonPrompt := &survey.Input{
+				Message: msg,
+				Help:    "Will be stored in audit trails and associated with your request",
+			}
+			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+			err = survey.AskOne(reasonPrompt, &customReason, withStdio, survey.WithValidator(survey.Required))
 	
+			if err != nil {
+				return false, err
+			}
+	
+			req.Justification.Reason = &customReason
+		}
 	}
+
 
 	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
 	if err != nil {

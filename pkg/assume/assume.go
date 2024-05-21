@@ -382,6 +382,8 @@ func AssumeCommand(c *cli.Context) error {
 		configOpts.Duration = d
 	}
 
+	reason := assumeFlags.String("reason")
+
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -409,7 +411,7 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Debugw("received a No Access error", "error", err)
 			hook := accessrequesthook.Hook{}
 
-			retry, hookErr := hook.NoAccess(c.Context, profile)
+			retry, hookErr := hook.NoAccess(c.Context, profile, reason)
 			if hookErr != nil {
 				return hookErr
 			}
@@ -528,7 +530,7 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Debugw("received a No Access error", "error", err)
 			hook := accessrequesthook.Hook{}
 
-			retry, hookErr := hook.NoAccess(c.Context, profile)
+			retry, hookErr := hook.NoAccess(c.Context, profile, reason)
 			if hookErr != nil {
 				return hookErr
 			}
