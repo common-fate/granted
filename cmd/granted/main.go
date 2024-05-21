@@ -42,6 +42,7 @@ func main() {
 	default:
 		app = granted.GetCliApp()
 	}
+
 	// In development we can use FORCE_ASSUME_CLI to debug the assume command
 	if os.Getenv("FORCE_ASSUME_CLI") == "true" {
 		app = assume.GetCliApp()

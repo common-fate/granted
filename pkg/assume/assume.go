@@ -36,6 +36,7 @@ import (
 	"github.com/hako/durafmt"
 	sethRetry "github.com/sethvargo/go-retry"
 	"github.com/urfave/cli/v2"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 	"gopkg.in/ini.v1"
 )
 
@@ -411,7 +412,20 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Debugw("received a No Access error", "error", err)
 			hook := accessrequesthook.Hook{}
 
-			retry, hookErr := hook.NoAccess(c.Context, profile, reason)
+			var apiDuration *durationpb.Duration
+			if duration != "" {
+				d, err := time.ParseDuration(duration)
+				if err != nil {
+					return err
+				}
+				apiDuration = durationpb.New(d)
+			}
+
+			retry, hookErr := hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
+				Profile:  profile,
+				Reason:   reason,
+				Duration: apiDuration,
+			})
 			if hookErr != nil {
 				return hookErr
 			}
@@ -450,7 +464,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey || cfg.DefaultBrowser == browser.FirefoxDevEditionKey {
-			// tranform the URL into the Firefox Tab Container format.
+			// transform the URL into the Firefox Tab Container format.
 			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", containerProfile, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
 		}
 
@@ -530,7 +544,20 @@ func AssumeCommand(c *cli.Context) error {
 			clio.Debugw("received a No Access error", "error", err)
 			hook := accessrequesthook.Hook{}
 
-			retry, hookErr := hook.NoAccess(c.Context, profile, reason)
+			var apiDuration *durationpb.Duration
+			if duration != "" {
+				d, err := time.ParseDuration(duration)
+				if err != nil {
+					return err
+				}
+				apiDuration = durationpb.New(d)
+			}
+
+			retry, hookErr := hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
+				Profile:  profile,
+				Reason:   reason,
+				Duration: apiDuration,
+			})
 			if hookErr != nil {
 				return hookErr
 			}

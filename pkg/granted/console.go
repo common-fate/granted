@@ -20,7 +20,7 @@ import (
 
 var ConsoleCommand = cli.Command{
 	Name:  "console",
-	Usage: "Generate an AWS console URL using credentials in the environment",
+	Usage: "Generate an AWS console URL using credentials in the environment or with a credential process.",
 	Flags: []cli.Flag{
 
 		&cli.StringFlag{Name: "service"},
@@ -34,14 +34,17 @@ var ConsoleCommand = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
-		credentials := cfaws.GetEnvCredentials(ctx)
+		credentials, err := cfaws.GetAWSCredentials(ctx)
+		if err != nil {
+			return err
+		}
 		con := console.AWS{
 			Service:     c.String("service"),
 			Region:      c.String("region"),
 			Destination: c.String("destination"),
 		}
 
-		consoleURL, err := con.URL(credentials)
+		consoleURL, err := con.URL(*credentials)
 		if err != nil {
 			return err
 		}

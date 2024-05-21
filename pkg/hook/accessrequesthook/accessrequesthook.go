@@ -25,6 +25,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/mattn/go-isatty"
 	"google.golang.org/protobuf/encoding/protojson"
+	durationpb "google.golang.org/protobuf/types/known/durationpb"
 )
 
 type Hook struct{}
@@ -55,10 +56,16 @@ func getCommonFateURL(profile *cfaws.Profile) (*url.URL, error) {
 	return u, nil
 }
 
-func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile, reason string) (retry bool, err error) {
+type NoAccessInput struct {
+	Profile  *cfaws.Profile
+	Reason   string
+	Duration *durationpb.Duration
+}
+
+func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, err error) {
 	var cfg *sdkconfig.Context
 
-	cfURL, err := getCommonFateURL(profile)
+	cfURL, err := getCommonFateURL(input.Profile)
 	if err != nil {
 		return false, err
 	}
@@ -84,10 +91,10 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile, reason strin
 		}
 	}
 
-	target := eid.New("AWS::Account", profile.AWSConfig.SSOAccountID)
-	role := profile.AWSConfig.SSORoleName
+	target := eid.New("AWS::Account", input.Profile.AWSConfig.SSOAccountID)
+	role := input.Profile.AWSConfig.SSORoleName
 
-	clio.Infof("You don't currently have access to %s, checking if we can request access...\t[target=%s, role=%s, url=%s]", profile.Name, target, role, cfg.AccessURL)
+	clio.Infof("You don't currently have access to %s, checking if we can request access...\t[target=%s, role=%s, url=%s]", input.Profile.Name, target, role, cfg.AccessURL)
 
 	apiURL, err := url.Parse(cfg.APIURL)
 	if err != nil {
@@ -109,6 +116,7 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile, reason strin
 						Lookup: role,
 					},
 				},
+				Duration: input.Duration,
 			},
 		},
 		Justification: &accessv1alpha1.Justification{},
@@ -150,8 +158,8 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile, reason strin
 	si.Writer = os.Stderr
 	si.Start()
 
-	if reason != "" {
-		req.Justification.Reason = &reason
+	if input.Reason != "" {
+		req.Justification.Reason = &input.Reason
 	} else {
 		if validation != nil && validation.HasReason {
 			var customReason string
@@ -162,15 +170,14 @@ func (h Hook) NoAccess(ctx context.Context, profile *cfaws.Profile, reason strin
 			}
 			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 			err = survey.AskOne(reasonPrompt, &customReason, withStdio, survey.WithValidator(survey.Required))
-	
+
 			if err != nil {
 				return false, err
 			}
-	
+
 			req.Justification.Reason = &customReason
 		}
 	}
-
 
 	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
 	if err != nil {
