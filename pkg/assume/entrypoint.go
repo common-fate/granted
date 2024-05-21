@@ -51,6 +51,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "export-all-env-vars", Aliases: []string{"x"}, Usage: "Exports all available credentials to the terminal when used with a profile configured for credential-process. Without this flag, only the AWS_PROFILE will be configured"},
 		&cli.StringFlag{Name: "aws-config-file"},
 		&cli.StringFlag{Name: "chain", Usage: "Assume a given role ARN using the profile selected"},
+		&cli.StringFlag{Name: "reason", Usage: "Provide a reason for requesting access to the role"},
 	}
 }
 

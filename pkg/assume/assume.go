@@ -383,6 +383,8 @@ func AssumeCommand(c *cli.Context) error {
 		configOpts.Duration = d
 	}
 
+	reason := assumeFlags.String("reason")
+
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -419,7 +421,11 @@ func AssumeCommand(c *cli.Context) error {
 				apiDuration = durationpb.New(d)
 			}
 
-			retry, hookErr := hook.NoAccess(c.Context, profile, apiDuration)
+			retry, hookErr := hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
+				Profile:  profile,
+				Reason:   reason,
+				Duration: apiDuration,
+			})
 			if hookErr != nil {
 				return hookErr
 			}
@@ -547,7 +553,11 @@ func AssumeCommand(c *cli.Context) error {
 				apiDuration = durationpb.New(d)
 			}
 
-			retry, hookErr := hook.NoAccess(c.Context, profile, apiDuration)
+			retry, hookErr := hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
+				Profile:  profile,
+				Reason:   reason,
+				Duration: apiDuration,
+			})
 			if hookErr != nil {
 				return hookErr
 			}
