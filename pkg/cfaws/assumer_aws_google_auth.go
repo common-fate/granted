@@ -28,11 +28,14 @@ func (aia *AwsGoogleAuthAssumer) AssumeTerminal(ctx context.Context, c *Profile,
 	if err != nil {
 		return aws.Credentials{}, err
 	}
-	creds := GetEnvCredentials(ctx)
+	creds, err := GetAWSCredentials(ctx)
+	if err != nil {
+		return aws.Credentials{}, err
+	}
 	if !creds.HasKeys() {
 		return aws.Credentials{}, fmt.Errorf("no credentials exported to terminal when using %s to assume profile: %s", aia.Type(), c.Name)
 	}
-	return creds, nil
+	return *creds, nil
 }
 
 func (aia *AwsGoogleAuthAssumer) AssumeConsole(ctx context.Context, c *Profile, configOpts ConfigOpts) (aws.Credentials, error) {
