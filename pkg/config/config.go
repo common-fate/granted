@@ -56,6 +56,14 @@ type Config struct {
 		Registries              []Registry        `toml:",omitempty"`
 	} `toml:",omitempty"`
 
+	// CredentialProcessAutoLogin, if 'true', will automatically attempt to
+	// authenticate to IAM Identity Center if your AWS SSO
+	// access token is expired.
+	//
+	// Do not set this to 'true' on headless systems, as it
+	// will cause Granted to hang during the login process.
+	CredentialProcessAutoLogin bool `toml:",omitempty"`
+
 	SSO map[string]AWSSSOConfiguration `toml:",omitempty"`
 }
 

@@ -41,7 +41,7 @@ var CredentialProcess = cli.Command{
 		}
 
 		profileName := c.String("profile")
-		autoLogin := c.Bool("auto-login")
+		autoLogin := c.Bool("auto-login") || cfg.CredentialProcessAutoLogin
 		secureSessionCredentialStorage := securestorage.NewSecureSessionCredentialStorage()
 		clio.Debugw("running credential process with config", "profile", profileName, "url", c.String("url"), "window", c.Duration("window"), "disableCredentialProcessCache", cfg.DisableCredentialProcessCache)
 
