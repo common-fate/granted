@@ -24,7 +24,7 @@ import (
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Printf("Granted version: %s", build.Version)
+		fmt.Printf("Granted version: %s\n", build.Version)
 	}
 
 	flags := []cli.Flag{
