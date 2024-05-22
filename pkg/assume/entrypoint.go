@@ -56,6 +56,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "wait", Usage: "When using Granted with Common Fate the assume will halt while waiting for the access request to be approved."},
 		&cli.BoolFlag{Name: "no-cache", Usage: "Disables caching of session credentials and forces a refresh", EnvVars: []string{"GRANTED_NO_CACHE"}},
 		&cli.StringSliceFlag{Name: "browser-launch-template-arg", Usage: "Additional arguments to provide to the browser launch template command in key=value format, e.g. '--browser-launch-template-arg foo=bar"},
+		&cli.BoolFlag{Name: "use-user-id", Aliases: []string{"uu"}, Usage: "Whether to use the AWS user ID", DefaultText: "false" },
 	}
 }
 
