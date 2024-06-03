@@ -64,8 +64,8 @@ github.com/common-fate/grab v1.3.0 h1:vGNBMfhAVAWtrLuH1stnhL4LsDb73drhegC/060q+O
 github.com/common-fate/grab v1.3.0/go.mod h1:6zH8GckZGFrOKfZzL4Y/2OTvxwFeL6cDtsztM0GGC2Y=
 github.com/common-fate/iso8601 v1.1.0 h1:nrej9shsK1aB4IyOAjZl68xGk8yDuUxVwQjoDzxSK2c=
 github.com/common-fate/iso8601 v1.1.0/go.mod h1:DU4mvUEkkWZUUSJq2aCuNqM1luSb0Pwyb2dLzXS+img=
-github.com/common-fate/sdk v1.33.2 h1:r2IPUyr/yRfQKFc3yIKDUkiHThCxISN9DvCQel6XUg0=
-github.com/common-fate/sdk v1.33.2/go.mod h1:GY+u9RSpn25gHbQX8wVuSXjYpyPY8sjohaFUmEGrqqY=
+github.com/common-fate/sdk v1.37.0 h1:pn4S2MkwbYFglYg5/bMY/55qMclUamui1H1g8/KftkA=
+github.com/common-fate/sdk v1.37.0/go.mod h1:WXoPe1Lh7wPmwZj9nXOGVrOU+c5FLUbj7e7Mz4lxSUg=
 github.com/common-fate/updatecheck v0.3.5 h1:UGIKMnYwuHjbhhCaisLz1pNPg8Z1nXEoWcfqT+4LkAg=
 github.com/common-fate/updatecheck v0.3.5/go.mod h1:fru9yoUXmM3QVAUdDDqKQeDoln20Pkji/7EH64gVHMs=
 github.com/common-fate/useragent v0.1.0 h1:RLmkIiJXcOUJAUyXWc/zCaGbrGmlCbHBGMx99ztQ3ZU=

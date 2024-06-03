@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/common-fate/cli/cmd/cli/command"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/loginflow"
 	"github.com/urfave/cli/v2"
@@ -24,6 +25,9 @@ var loginCommand = cli.Command{
 	Usage: "Authenticate to an OIDC provider",
 	Action: func(c *cli.Context) error {
 		cfg, err := config.LoadDefault(c.Context)
+		if err == config.ErrConfigFileNotFound {
+			clio.Errorf("The Common Fate config file (~/.cf/config by default) was not found. To fix this, run 'granted auth configure https://commonfate.example.com' (replacing the URL in the command with your Common Fate deployment URL")
+		}
 		if err != nil {
 			return err
 		}
@@ -39,6 +43,9 @@ var logoutCommand = cli.Command{
 	Usage: "Log out of an OIDC provider",
 	Action: func(c *cli.Context) error {
 		cfg, err := config.LoadDefault(c.Context)
+		if err == config.ErrConfigFileNotFound {
+			clio.Errorf("The Common Fate config file (~/.cf/config by default) was not found. To fix this, run 'granted auth configure https://commonfate.example.com' (replacing the URL in the command with your Common Fate deployment URL")
+		}
 		if err != nil {
 			return err
 		}
