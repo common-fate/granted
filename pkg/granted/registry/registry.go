@@ -50,14 +50,10 @@ func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 			})
 		} else {
 			//set up a common fate registry
-			reg, err := cfregistry.New(cfregistry.Opts{
+			reg := cfregistry.New(cfregistry.Opts{
 				Name: r.Name,
 				URL:  r.URL,
 			})
-
-			if err != nil {
-				return nil, err
-			}
 			registries = append(registries, loadedRegistry{
 				Config:   r,
 				Registry: reg,

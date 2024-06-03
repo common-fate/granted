@@ -2,6 +2,7 @@ package cfregistry
 
 import (
 	"context"
+	"sync"
 
 	"connectrpc.com/connect"
 	"github.com/common-fate/sdk/config"
@@ -12,8 +13,13 @@ import (
 )
 
 type Registry struct {
-	opts   Opts
-	Client awsv1alpha1connect.ProfileRegistryServiceClient
+	opts Opts
+	mu   sync.Mutex
+	// client is the profile registry service client.
+	//
+	// Do not use client directly. Instead, call
+	// r.getClient() which will automatically populate it.
+	client awsv1alpha1connect.ProfileRegistryServiceClient
 }
 
 type Opts struct {
@@ -21,8 +27,16 @@ type Opts struct {
 	URL  string
 }
 
-func New(opts Opts) (*Registry, error) {
-
+// getClient lazily loads the Profile Registry service client.
+//
+// Becuase the Registry is constructed every time the Granted CLI executes,
+// calling `config.LoadDefault()` when creating the registry makes Granted very slow.
+// Instead, we only obtain an OIDC token if we actually need to load profiles for the registry.
+func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient, error) {
+	// if the cached
+	if r.client != nil {
+		return r.client, nil
+	}
 	cfg, err := config.LoadDefault(context.Background())
 	if err != nil {
 		return nil, err
@@ -30,23 +44,34 @@ func New(opts Opts) (*Registry, error) {
 
 	accountClient := grantedv1alpha1.NewFromConfig(cfg)
 
-	p := Registry{
-		opts:   opts,
-		Client: accountClient,
-	}
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	r.client = accountClient
 
-	return &p, nil
+	return r.client, nil
 }
 
-func (r Registry) AWSProfiles(ctx context.Context) (*ini.File, error) {
-	// call common fate api to pull profiles
+func New(opts Opts) *Registry {
+	r := Registry{
+		opts: opts,
+	}
 
+	return &r
+}
+
+func (r *Registry) AWSProfiles(ctx context.Context) (*ini.File, error) {
+	client, err := r.getClient()
+	if err != nil {
+		return nil, err
+	}
+
+	// call the Profile Registry API to pull the avilable profiles.
 	done := false
 	var pageToken string
 	profiles := []*awsv1alpha1.Profile{}
 
 	for !done {
-		listProfiles, err := r.Client.ListProfiles(ctx, &connect.Request[awsv1alpha1.ListProfilesRequest]{
+		listProfiles, err := client.ListProfiles(ctx, &connect.Request[awsv1alpha1.ListProfilesRequest]{
 			Msg: &awsv1alpha1.ListProfilesRequest{
 				PageToken: pageToken,
 			},
