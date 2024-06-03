@@ -26,7 +26,7 @@ var loginCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		cfg, err := config.LoadDefault(c.Context)
 		if err == config.ErrConfigFileNotFound {
-			clio.Errorf("The Common Fate config file (~/.cf/config by default) was not found. To fix this, run 'granted auth configure https://url.of.your.commonfate.deployment.example.com' (replacing the URL in the command with your Common Fate deployment URL")
+			clio.Errorf("The Common Fate config file (~/.cf/config by default) was not found. To fix this, run 'granted auth configure https://commonfate.example.com' (replacing the URL in the command with your Common Fate deployment URL")
 		}
 		if err != nil {
 			return err
@@ -44,7 +44,7 @@ var logoutCommand = cli.Command{
 	Action: func(c *cli.Context) error {
 		cfg, err := config.LoadDefault(c.Context)
 		if err == config.ErrConfigFileNotFound {
-			clio.Errorf("The Common Fate config file (~/.cf/config by default) was not found. To fix this, run 'granted auth configure https://url.of.your.commonfate.deployment.example.com' (replacing the URL in the command with your Common Fate deployment URL")
+			clio.Errorf("The Common Fate config file (~/.cf/config by default) was not found. To fix this, run 'granted auth configure https://commonfate.example.com' (replacing the URL in the command with your Common Fate deployment URL")
 		}
 		if err != nil {
 			return err
