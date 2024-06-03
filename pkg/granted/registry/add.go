@@ -166,7 +166,7 @@ var AddCommand = cli.Command{
 			return nil
 		} else {
 
-			registry, err := cfregistry.New(cfregistry.Opts{
+			registry := cfregistry.New(cfregistry.Opts{
 				Name: name,
 				URL:  URL,
 			})
