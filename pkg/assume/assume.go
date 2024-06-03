@@ -433,7 +433,7 @@ func AssumeCommand(c *cli.Context) error {
 			if retry {
 
 				b := sethRetry.NewFibonacci(time.Second)
-				b = sethRetry.WithMaxDuration(time.Second*1, b)
+				b = sethRetry.WithMaxDuration(time.Minute*1, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 					creds, err = profile.AssumeConsole(c.Context, configOpts)
 					if err == nil {
