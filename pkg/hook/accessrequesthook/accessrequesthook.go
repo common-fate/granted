@@ -123,7 +123,7 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 	}
 
 	hasChanges, validation, err := DryRun(ctx, apiURL, accessclient, &req, false)
-	if err != nil && strings.Contains(err.Error(), "oauth2: token expired") || strings.Contains(err.Error(), "oauth2: invalid grant") {
+	if shouldRefreshLogin(err) {
 		clio.Debugw("prompting user login because token is expired", "error_details", err.Error())
 		// NOTE(chrnorm): ideally we'll bubble up a more strongly typed error in future here, to avoid the string comparison on the error message.
 
@@ -393,4 +393,18 @@ func ShortDur(d time.Duration) string {
 		s = s[:len(s)-2]
 	}
 	return s
+}
+
+func shouldRefreshLogin(err error) bool {
+	if err == nil {
+		return false
+	}
+	if strings.Contains(err.Error(), "oauth2: token expired") {
+		return true
+	}
+	if strings.Contains(err.Error(), "oauth2: invalid grant") {
+		return true
+	}
+
+	return false
 }
