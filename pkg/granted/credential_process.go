@@ -1,6 +1,7 @@
 package granted
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/securestorage"
+	sethRetry "github.com/sethvargo/go-retry"
 	"github.com/urfave/cli/v2"
 )
 
@@ -84,6 +86,18 @@ var CredentialProcess = cli.Command{
 
 		credentials, err := profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true, CredentialProcessAutoLogin: autoLogin})
 		if err != nil {
+			b := sethRetry.NewFibonacci(time.Second)
+			b = sethRetry.WithMaxDuration(time.Minute*1, b)
+			err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
+				credentials, err = profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true, CredentialProcessAutoLogin: autoLogin})
+				if err == nil {
+					return sethRetry.RetryableError(err)
+				}
+				return nil
+			})
+			if err != nil {
+				return err
+			}
 			return err
 		}
 		if !cfg.DisableCredentialProcessCache {
