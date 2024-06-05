@@ -35,6 +35,7 @@ var latestCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "reason", Usage: "A reason for access"},
 		&cli.DurationFlag{Name: "duration", Usage: "Duration of request, defaults to max duration of the access rule."},
+		&cli.BoolFlag{Name: "confirm", Usage: "Confirm requesting access"},
 	},
 	Action: func(c *cli.Context) error {
 		latest, err := accessrequest.LatestProfile()
@@ -87,8 +88,8 @@ var latestCommand = cli.Command{
 
 		for _, grant := range grants {
 			if grant.Role.Name == profile.AWSConfig.SSORoleName {
-				durationDescription := durafmt.Parse(time.Until(grant.ExpiresAt.AsTime()) * time.Second).LimitFirstN(1).String()
-				clio.Infof("You already have an existing active grant for this profile which expires in %s, you can try assuming it now 'assume %s'", profile.Name, durationDescription)
+				durationDescription := durafmt.Parse(time.Until(grant.ExpiresAt.AsTime())).LimitFirstN(1).String()
+				clio.Infof("You already have an existing active grant for this profile which expires in %s, you can try assuming it now 'assume %s'", durationDescription, profile.Name)
 				return nil
 			}
 		}
@@ -107,6 +108,7 @@ var latestCommand = cli.Command{
 			Profile:  profile,
 			Reason:   reason,
 			Duration: apiDuration,
+			Confirm:  c.Bool("confirm"),
 		})
 		if err != nil {
 			return err
