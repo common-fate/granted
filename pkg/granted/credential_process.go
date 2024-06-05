@@ -12,6 +12,7 @@ import (
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/grab"
+	"github.com/common-fate/granted/pkg/accessrequest"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/cfcfg"
 	"github.com/common-fate/granted/pkg/config"
@@ -95,10 +96,8 @@ var CredentialProcess = cli.Command{
 		if err != nil {
 			// We first check if there was an active grant for this profile, and if there was, allow 30s of retries before bailing out
 			cfg, cfConfigErr := cfcfg.Load(c.Context, profile)
-			if err != nil {
-				if cfConfigErr != nil {
-					clio.Debugw("failed to load cfconfig, skipping check for active grants in a common fate deployment", "error", cfConfigErr)
-				}
+			if cfConfigErr != nil {
+				clio.Debugw("failed to load cfconfig, skipping check for active grants in a common fate deployment", "error", cfConfigErr)
 				return err
 			}
 
@@ -140,7 +139,12 @@ var CredentialProcess = cli.Command{
 			}
 			if !foundActiveGrant {
 				clio.Debug("did not find any matching active grants for the profile, will not retry assuming role")
-				return err
+				clio.Debugw("could not assume role due to the following error, notifying user to try requesting access", "error", err)
+				err := accessrequest.Profile{Name: profileName}.Save()
+				if err != nil {
+					return err
+				}
+				return errors.New("You don't have access but you can request it with 'granted request latest'")
 			}
 
 			// there is an active grant so retry assuming because the error may be transient
