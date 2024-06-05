@@ -74,3 +74,48 @@ func LatestRole() (*Role, error) {
 
 	return &r, nil
 }
+
+type Profile struct {
+	Name string
+}
+
+func (p Profile) Save() error {
+	profileBytes, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+
+	configFolder, err := config.GrantedConfigFolder()
+	if err != nil {
+		return err
+	}
+
+	file := filepath.Join(configFolder, "latest-profile")
+	return os.WriteFile(file, profileBytes, 0644)
+}
+
+func LatestProfile() (*Profile, error) {
+	configFolder, err := config.GrantedConfigFolder()
+	if err != nil {
+		return nil, err
+	}
+
+	file := filepath.Join(configFolder, "latest-profile")
+
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return nil, clierr.New("no latest profile saved", clierr.Info("You can run 'assume' to try and access a profile. If the profile is inaccessible it will be saved as the latest profile."))
+	}
+
+	profileBytes, err := os.ReadFile(file)
+	if err != nil {
+		return nil, err
+	}
+
+	var p Profile
+	err = json.Unmarshal(profileBytes, &p)
+	if err != nil {
+		return nil, err
+	}
+
+	return &p, nil
+}
