@@ -94,8 +94,6 @@ var latestCommand = cli.Command{
 			}
 		}
 
-		clio.Infof("requesting access to profile %s", profile.Name)
-
 		hook := accessrequesthook.Hook{}
 		reason := c.String("reason")
 		duration := c.Duration("duration")
