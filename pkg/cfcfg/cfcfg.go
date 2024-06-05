@@ -7,7 +7,6 @@ import (
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
-	"github.com/common-fate/sdk/cli"
 	sdkconfig "github.com/common-fate/sdk/config"
 )
 
@@ -54,15 +53,7 @@ func Load(ctx context.Context, profile *cfaws.Profile) (*sdkconfig.Context, erro
 	} else {
 		// if we can't load the Common Fate SDK config (e.g. if `~/.cf/config` is not present)
 		// we can't request access through the Common Fate platform.
-		return sdkconfig.New(ctx, sdkconfig.Opts{
-			HttpClientWrapper: func(c sdkconfig.Doer, t sdkconfig.TokenStore) sdkconfig.Doer {
-				return &cli.ErrorHandlingClient{
-					Client:     c,
-					LoginHint:  "granted auth login",
-					TokenStore: t,
-				}
-			},
-		})
+		return sdkconfig.LoadDefault(ctx)
 
 	}
 }
