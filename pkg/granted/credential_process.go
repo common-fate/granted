@@ -156,7 +156,6 @@ var CredentialProcess = cli.Command{
 			if err != nil {
 				return err
 			}
-			return nil
 		}
 		if !cfg.DisableCredentialProcessCache {
 			clio.Debugw("storing refreshed credentials in credential process cache", "expires", credentials.Expires.String(), "canExpire", credentials.CanExpire, "timeNow", time.Now().String())
