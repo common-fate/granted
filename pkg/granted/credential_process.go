@@ -95,10 +95,8 @@ var CredentialProcess = cli.Command{
 		if err != nil {
 			// We first check if there was an active grant for this profile, and if there was, allow 30s of retries before bailing out
 			cfg, cfConfigErr := cfcfg.Load(c.Context, profile)
-			if err != nil {
-				if cfConfigErr != nil {
-					clio.Debugw("failed to load cfconfig, skipping check for active grants in a common fate deployment", "error", cfConfigErr)
-				}
+			if cfConfigErr != nil {
+				clio.Debugw("failed to load cfconfig, skipping check for active grants in a common fate deployment", "error", cfConfigErr)
 				return err
 			}
 
