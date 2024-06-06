@@ -425,6 +425,7 @@ func AssumeCommand(c *cli.Context) error {
 				Profile:  profile,
 				Reason:   reason,
 				Duration: apiDuration,
+				Confirm:  assumeFlags.Bool("confirm"),
 			})
 			if hookErr != nil {
 				return hookErr
@@ -436,7 +437,7 @@ func AssumeCommand(c *cli.Context) error {
 				b = sethRetry.WithMaxDuration(time.Minute*1, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 					creds, err = profile.AssumeConsole(c.Context, configOpts)
-					if err == nil {
+					if err != nil {
 						return sethRetry.RetryableError(err)
 					}
 					return nil
@@ -557,6 +558,7 @@ func AssumeCommand(c *cli.Context) error {
 				Profile:  profile,
 				Reason:   reason,
 				Duration: apiDuration,
+				Confirm:  assumeFlags.Bool("confirm"),
 			})
 			if hookErr != nil {
 				return hookErr
@@ -568,7 +570,7 @@ func AssumeCommand(c *cli.Context) error {
 				b = sethRetry.WithMaxDuration(time.Minute*1, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 					creds, err = profile.AssumeTerminal(c.Context, configOpts)
-					if err == nil {
+					if err != nil {
 						return sethRetry.RetryableError(err)
 					}
 					return nil
