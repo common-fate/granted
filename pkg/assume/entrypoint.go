@@ -52,6 +52,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "aws-config-file"},
 		&cli.StringFlag{Name: "chain", Usage: "Assume a given role ARN using the profile selected"},
 		&cli.StringFlag{Name: "reason", Usage: "Provide a reason for requesting access to the role"},
+		&cli.StringFlag{Name: "confirm", Usage: "Use this to skip confirmation prompts for access requests"},
 	}
 }
 

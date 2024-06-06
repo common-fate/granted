@@ -152,7 +152,7 @@ var CredentialProcess = cli.Command{
 			b = sethRetry.WithMaxDuration(time.Second*30, b)
 			err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 				credentials, err = profile.AssumeTerminal(c.Context, cfaws.ConfigOpts{Duration: duration, UsingCredentialProcess: true, CredentialProcessAutoLogin: autoLogin})
-				if err == nil {
+				if err != nil {
 					return sethRetry.RetryableError(err)
 				}
 				return nil
