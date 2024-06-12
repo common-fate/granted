@@ -66,6 +66,16 @@ github.com/common-fate/iso8601 v1.1.0 h1:nrej9shsK1aB4IyOAjZl68xGk8yDuUxVwQjoDzx
 github.com/common-fate/iso8601 v1.1.0/go.mod h1:DU4mvUEkkWZUUSJq2aCuNqM1luSb0Pwyb2dLzXS+img=
 github.com/common-fate/sdk v1.37.0 h1:pn4S2MkwbYFglYg5/bMY/55qMclUamui1H1g8/KftkA=
 github.com/common-fate/sdk v1.37.0/go.mod h1:WXoPe1Lh7wPmwZj9nXOGVrOU+c5FLUbj7e7Mz4lxSUg=
+github.com/common-fate/sdk v1.37.1-0.20240605062033-0405c9575ef4 h1:hPJ+VFToh1OS5LetsG3MQu5gM5Xd14s2Ee8wpyYl7EM=
+github.com/common-fate/sdk v1.37.1-0.20240605062033-0405c9575ef4/go.mod h1:WXoPe1Lh7wPmwZj9nXOGVrOU+c5FLUbj7e7Mz4lxSUg=
+github.com/common-fate/sdk v1.37.1-0.20240605062614-7dbab5061f2c h1:BZlPXHBQCmvHISgBC+uzZFZshekaWL7GOidgkhN9zvQ=
+github.com/common-fate/sdk v1.37.1-0.20240605062614-7dbab5061f2c/go.mod h1:WXoPe1Lh7wPmwZj9nXOGVrOU+c5FLUbj7e7Mz4lxSUg=
+github.com/common-fate/sdk v1.37.1-0.20240605063815-ce1c73ffc417 h1:QO1+626XT6ENb0mhvSTzxHFzO1yLHkFFua4BgKBlls0=
+github.com/common-fate/sdk v1.37.1-0.20240605063815-ce1c73ffc417/go.mod h1:WXoPe1Lh7wPmwZj9nXOGVrOU+c5FLUbj7e7Mz4lxSUg=
+github.com/common-fate/sdk v1.37.1-0.20240605065134-56ff88bbdf6e h1:v9ECmBUY7lt74dCyF6qCeOPqI6IckrgeuoLD+qdspak=
+github.com/common-fate/sdk v1.37.1-0.20240605065134-56ff88bbdf6e/go.mod h1:WXoPe1Lh7wPmwZj9nXOGVrOU+c5FLUbj7e7Mz4lxSUg=
+github.com/common-fate/sdk v1.37.1-0.20240605070211-f95b1df60097 h1:9llRWv9xWLskd/4qbB7iuRoPawqFkC6ENP27fsrbBxQ=
+github.com/common-fate/sdk v1.37.1-0.20240605070211-f95b1df60097/go.mod h1:WXoPe1Lh7wPmwZj9nXOGVrOU+c5FLUbj7e7Mz4lxSUg=
 github.com/common-fate/updatecheck v0.3.5 h1:UGIKMnYwuHjbhhCaisLz1pNPg8Z1nXEoWcfqT+4LkAg=
 github.com/common-fate/updatecheck v0.3.5/go.mod h1:fru9yoUXmM3QVAUdDDqKQeDoln20Pkji/7EH64gVHMs=
 github.com/common-fate/useragent v0.1.0 h1:RLmkIiJXcOUJAUyXWc/zCaGbrGmlCbHBGMx99ztQ3ZU=

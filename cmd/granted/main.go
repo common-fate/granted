@@ -14,6 +14,7 @@ import (
 	"github.com/common-fate/granted/pkg/assume"
 	"github.com/common-fate/granted/pkg/granted"
 	"github.com/common-fate/updatecheck"
+	"github.com/pkg/errors"
 	"github.com/urfave/cli/v2"
 )
 
@@ -50,11 +51,20 @@ func main() {
 
 	err := app.Run(os.Args)
 	if err != nil {
-		// if the error is an instance of clierr.PrintCLIErrorer then print the error accordingly
+		// if the error is an instance of clierr.PrintCLIErrorer then print the error accordingly and exit
+		// if it is a regular error, print it and then check if it wraps any clierrs and print those
+		// this way we don't lose the embedded messages in the clierrs if we wrap them
 		if cliError, ok := err.(clierr.PrintCLIErrorer); ok {
 			cliError.PrintCLIError()
+			os.Exit(1)
 		} else {
 			clio.Error(err.Error())
+		}
+		for err != nil {
+			if cliError, ok := err.(clierr.PrintCLIErrorer); ok {
+				cliError.PrintCLIError()
+			}
+			err = errors.Unwrap(err)
 		}
 		os.Exit(1)
 	}
