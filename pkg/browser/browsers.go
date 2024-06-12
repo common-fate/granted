@@ -19,6 +19,7 @@ const (
 	FirefoxStdoutKey     string = "FIREFOX_STDOUT"
 	ArcKey               string = "ARC"
 	FirefoxDevEditionKey string = "FIREFOX_DEV"
+	FirefoxNightlyKey    string = "FIREFOX_NIGHTLY"
 	CommonFateKey        string = "COMMON_FATE"
 )
 
@@ -42,6 +43,10 @@ var FirefoxPathWindows = []string{`\Program Files\Mozilla Firefox\firefox.exe`}
 var FirefoxDevPathMac = []string{"/Applications/Firefox Developer Edition.app/Contents/MacOS/firefox"}
 var FirefoxDevPathLinux = []string{`/usr/bin/firefox-developer`, `/../../mnt/c/Program Files/Firefox Developer Edition/firefox.exe`}
 var FirefoxDevPathWindows = []string{`\Program Files\Firefox Developer Edition\firefox.exe`}
+
+var FirefoxNightlyPathMac = []string{"/Applications/Firefox Nightly.app/Contents/MacOS/firefox"}
+var FirefoxNightlyPathLinux = []string{`/usr/bin/firefox-nightly`, `/../../mnt/c/Program Files/Firefox Nightly/firefox.exe`}
+var FirefoxNightlyPathWindows = []string{`\Program Files\Firefox Nightly\firefox.exe`}
 
 var WaterfoxPathMac = []string{"/Applications/Waterfox.app/Contents/MacOS/waterfox"}
 var WaterfoxPathLinux = []string{`/usr/bin/waterfox`, `/../../mnt/c/Program Files/Waterfox/waterfox.exe`}
@@ -146,6 +151,24 @@ func FirefoxDevPathDefaults() ([]string, error) {
 		return FirefoxDevPathMac, nil
 	case "linux":
 		return FirefoxDevPathLinux, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
+func FirefoxNightlyPathDefaults() ([]string, error) {
+	// check linuxpath for binary install
+	path, err := exec.LookPath("firefox-nightly")
+	if err == nil {
+		return []string{path}, nil
+	}
+	switch runtime.GOOS {
+	case "windows":
+		return FirefoxNightlyPathWindows, nil
+	case "darwin":
+		return FirefoxNightlyPathMac, nil
+	case "linux":
+		return FirefoxNightlyPathLinux, nil
 	default:
 		return nil, errors.New("os not supported")
 	}
