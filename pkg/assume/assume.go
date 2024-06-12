@@ -390,6 +390,13 @@ func AssumeCommand(c *cli.Context) error {
 		return err
 	}
 
+	wait := assumeFlags.Bool("wait")
+	retryDuration := time.Minute * 1
+	if wait {
+		//if wait is specified, increase the timeout to 15 minutes.
+		retryDuration = time.Minute * 15
+	}
+
 	// if getConsoleURL is true, we'll use the AWS federated login to retrieve a URL to access the console.
 	// depending on how Granted is configured, this is then printed to the terminal or a browser is launched at the URL automatically.
 	getConsoleURL := !assumeFlags.Bool("env") && ((assumeFlags.Bool("console") || assumeFlags.String("console-destination") != "") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url") || assumeFlags.String("browser-profile") != "")
@@ -426,6 +433,7 @@ func AssumeCommand(c *cli.Context) error {
 				Reason:   reason,
 				Duration: apiDuration,
 				Confirm:  assumeFlags.Bool("confirm"),
+				Wait:     wait,
 			})
 			if hookErr != nil {
 				return hookErr
@@ -433,8 +441,8 @@ func AssumeCommand(c *cli.Context) error {
 
 			if retry {
 
-				b := sethRetry.NewFibonacci(time.Second)
-				b = sethRetry.WithMaxDuration(time.Minute*1, b)
+				b := sethRetry.NewConstant(time.Second)
+				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 					creds, err = profile.AssumeConsole(c.Context, configOpts)
 					if err != nil {
@@ -559,6 +567,7 @@ func AssumeCommand(c *cli.Context) error {
 				Reason:   reason,
 				Duration: apiDuration,
 				Confirm:  assumeFlags.Bool("confirm"),
+				Wait:     wait,
 			})
 			if hookErr != nil {
 				return hookErr
@@ -566,8 +575,8 @@ func AssumeCommand(c *cli.Context) error {
 
 			if retry {
 
-				b := sethRetry.NewFibonacci(time.Second)
-				b = sethRetry.WithMaxDuration(time.Minute*1, b)
+				b := sethRetry.NewConstant(time.Second * 5)
+				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 					creds, err = profile.AssumeTerminal(c.Context, configOpts)
 					if err != nil {

@@ -35,6 +35,7 @@ type NoAccessInput struct {
 	Reason   string
 	Duration *durationpb.Duration
 	Confirm  bool
+	Wait     bool
 }
 
 func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, err error) {
@@ -176,7 +177,13 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
 			color.New(color.BgHiYellow, color.FgBlack).Fprintf(os.Stderr, "[REQUESTED]")
-			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+
+			if input.Wait {
+
+				clio.Infow("Waiting for request to be approved and activated...")
+				return true, nil
+			}
 
 			return false, errors.New("applying access was attempted but the resources requested require approval before activation")
 
