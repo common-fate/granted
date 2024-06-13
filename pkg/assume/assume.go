@@ -429,11 +429,12 @@ func AssumeCommand(c *cli.Context) error {
 			}
 
 			noAccessInput := accessrequesthook.NoAccessInput{
-				Profile:  profile,
-				Reason:   reason,
-				Duration: apiDuration,
-				Confirm:  assumeFlags.Bool("confirm"),
-				Wait:     wait,
+				Profile:   profile,
+				Reason:    reason,
+				Duration:  apiDuration,
+				Confirm:   assumeFlags.Bool("confirm"),
+				Wait:      wait,
+				StartTime: time.Now(),
 			}
 			retry, hookErr := hook.NoAccess(c.Context, noAccessInput)
 			if hookErr != nil {
@@ -441,8 +442,10 @@ func AssumeCommand(c *cli.Context) error {
 			}
 
 			if retry {
+				// reset the start time for the timer (otherwise it shows 2s, 7s, 12s etc)
+				noAccessInput.StartTime = time.Now()
 
-				b := sethRetry.NewConstant(time.Second)
+				b := sethRetry.NewConstant(5 * time.Second)
 				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 
@@ -571,11 +574,12 @@ func AssumeCommand(c *cli.Context) error {
 				apiDuration = durationpb.New(d)
 			}
 			noAccessInput := accessrequesthook.NoAccessInput{
-				Profile:  profile,
-				Reason:   reason,
-				Duration: apiDuration,
-				Confirm:  assumeFlags.Bool("confirm"),
-				Wait:     wait,
+				Profile:   profile,
+				Reason:    reason,
+				Duration:  apiDuration,
+				Confirm:   assumeFlags.Bool("confirm"),
+				Wait:      wait,
+				StartTime: time.Now(),
 			}
 			retry, hookErr := hook.NoAccess(c.Context, noAccessInput)
 			if hookErr != nil {
@@ -583,6 +587,9 @@ func AssumeCommand(c *cli.Context) error {
 			}
 
 			if retry {
+				// reset the start time for the timer (otherwise it shows 2s, 7s, 12s etc)
+				noAccessInput.StartTime = time.Now()
+
 				b := sethRetry.NewConstant(time.Second * 5)
 				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {

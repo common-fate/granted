@@ -31,11 +31,12 @@ import (
 type Hook struct{}
 
 type NoAccessInput struct {
-	Profile  *cfaws.Profile
-	Reason   string
-	Duration *durationpb.Duration
-	Confirm  bool
-	Wait     bool
+	Profile   *cfaws.Profile
+	Reason    string
+	Duration  *durationpb.Duration
+	Confirm   bool
+	Wait      bool
+	StartTime time.Time
 }
 
 func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, err error) {
@@ -256,16 +257,18 @@ func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
 		return err
 	}
 
+	now := time.Now()
+	elapsed := now.Sub(input.StartTime).Round(time.Second * 10)
+
 	for _, g := range res.Msg.Grants {
 
-		//if grant is approved but the change is unspecified then the user is not able to automatically activate
-
+		// if grant is approved but the change is unspecified then the user is not able to automatically activate
 		if g.Grant.Approved && g.Change == accessv1alpha1.GrantChange_GRANT_CHANGE_UNSPECIFIED {
-			clio.Infow("Request was approved but failed to activate, user might not have permission to activate. Waiting for activation.")
-
+			clio.Infof("Request was approved but failed to activate, user might not have permission to activate. Waiting for activation. [%s elapsed]", elapsed)
 		}
+
 		if !g.Grant.Approved {
-			clio.Infow("Waiting for request to be approved...")
+			clio.Infof("Waiting for request to be approved... [%s elapsed]", elapsed)
 		}
 
 	}
