@@ -428,13 +428,14 @@ func AssumeCommand(c *cli.Context) error {
 				apiDuration = durationpb.New(d)
 			}
 
-			retry, hookErr := hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
+			noAccessInput := accessrequesthook.NoAccessInput{
 				Profile:  profile,
 				Reason:   reason,
 				Duration: apiDuration,
 				Confirm:  assumeFlags.Bool("confirm"),
 				Wait:     wait,
-			})
+			}
+			retry, hookErr := hook.NoAccess(c.Context, noAccessInput)
 			if hookErr != nil {
 				return hookErr
 			}
@@ -444,6 +445,14 @@ func AssumeCommand(c *cli.Context) error {
 				b := sethRetry.NewConstant(time.Second)
 				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
+
+					//also proactively check if request has been approved and attempt to activate
+					err = hook.RetryAccess(ctx, noAccessInput)
+					if err != nil {
+
+						return sethRetry.RetryableError(err)
+					}
+
 					creds, err = profile.AssumeConsole(c.Context, configOpts)
 					if err != nil {
 						return sethRetry.RetryableError(err)
@@ -561,27 +570,36 @@ func AssumeCommand(c *cli.Context) error {
 				}
 				apiDuration = durationpb.New(d)
 			}
-
-			retry, hookErr := hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
+			noAccessInput := accessrequesthook.NoAccessInput{
 				Profile:  profile,
 				Reason:   reason,
 				Duration: apiDuration,
 				Confirm:  assumeFlags.Bool("confirm"),
 				Wait:     wait,
-			})
+			}
+			retry, hookErr := hook.NoAccess(c.Context, noAccessInput)
 			if hookErr != nil {
 				return hookErr
 			}
 
 			if retry {
-
 				b := sethRetry.NewConstant(time.Second * 5)
 				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
-					creds, err = profile.AssumeTerminal(c.Context, configOpts)
+
+					//also proactively check if request has been approved and attempt to activate
+					err = hook.RetryAccess(ctx, noAccessInput)
 					if err != nil {
+
 						return sethRetry.RetryableError(err)
 					}
+					//attempt to assume the role
+					creds, err = profile.AssumeTerminal(c.Context, configOpts)
+					if err != nil {
+
+						return sethRetry.RetryableError(err)
+					}
+
 					return nil
 				})
 				if err != nil {

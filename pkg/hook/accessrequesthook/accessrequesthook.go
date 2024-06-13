@@ -177,11 +177,9 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
 			color.New(color.BgHiYellow, color.FgBlack).Fprintf(os.Stderr, "[REQUESTED]")
-			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
 			if input.Wait {
-
-				clio.Infow("Waiting for request to be approved and activated...")
 				return true, nil
 			}
 
@@ -222,6 +220,56 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 	printdiags.Print(res.Msg.Diagnostics, names)
 
 	return retry, nil
+
+}
+
+func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
+	cfg, err := cfcfg.Load(ctx, input.Profile)
+	if err != nil {
+		return err
+	}
+
+	accessclient := access.NewFromConfig(cfg)
+	target := eid.New("AWS::Account", input.Profile.AWSConfig.SSOAccountID)
+	role := input.Profile.AWSConfig.SSORoleName
+	req := accessv1alpha1.BatchEnsureRequest{
+		Entitlements: []*accessv1alpha1.EntitlementInput{
+			{
+				Target: &accessv1alpha1.Specifier{
+					Specify: &accessv1alpha1.Specifier_Eid{
+						Eid: target.ToAPI(),
+					},
+				},
+				Role: &accessv1alpha1.Specifier{
+					Specify: &accessv1alpha1.Specifier_Lookup{
+						Lookup: role,
+					},
+				},
+				Duration: input.Duration,
+			},
+		},
+		Justification: &accessv1alpha1.Justification{},
+	}
+
+	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
+	if err != nil {
+		return err
+	}
+
+	for _, g := range res.Msg.Grants {
+
+		//if grant is approved but the change is unspecified then the user is not able to automatically activate
+
+		if g.Grant.Approved && g.Change == accessv1alpha1.GrantChange_GRANT_CHANGE_UNSPECIFIED {
+			clio.Infow("Request was approved but failed to activate, user might not have permission to activate. Waiting for activation.")
+
+		}
+		if !g.Grant.Approved {
+			clio.Infow("Waiting for request to be approved...")
+		}
+
+	}
+	return nil
 }
 
 func requestURL(apiURL *url.URL, grant *accessv1alpha1.Grant) string {
