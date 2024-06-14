@@ -257,6 +257,8 @@ func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
 		return err
 	}
 
+	clio.Debugw("batch ensure response", "res", res.Msg)
+
 	now := time.Now()
 	elapsed := now.Sub(input.StartTime).Round(time.Second * 10)
 
