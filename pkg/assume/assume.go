@@ -390,6 +390,13 @@ func AssumeCommand(c *cli.Context) error {
 		return err
 	}
 
+	wait := assumeFlags.Bool("wait")
+	retryDuration := time.Minute * 1
+	if wait {
+		//if wait is specified, increase the timeout to 15 minutes.
+		retryDuration = time.Minute * 15
+	}
+
 	// if getConsoleURL is true, we'll use the AWS federated login to retrieve a URL to access the console.
 	// depending on how Granted is configured, this is then printed to the terminal or a browser is launched at the URL automatically.
 	getConsoleURL := !assumeFlags.Bool("env") && ((assumeFlags.Bool("console") || assumeFlags.String("console-destination") != "") || assumeFlags.Bool("active-role") || assumeFlags.String("service") != "" || assumeFlags.Bool("url") || assumeFlags.String("browser-profile") != "")
@@ -421,21 +428,34 @@ func AssumeCommand(c *cli.Context) error {
 				apiDuration = durationpb.New(d)
 			}
 
-			retry, hookErr := hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
-				Profile:  profile,
-				Reason:   reason,
-				Duration: apiDuration,
-				Confirm:  assumeFlags.Bool("confirm"),
-			})
+			noAccessInput := accessrequesthook.NoAccessInput{
+				Profile:   profile,
+				Reason:    reason,
+				Duration:  apiDuration,
+				Confirm:   assumeFlags.Bool("confirm"),
+				Wait:      wait,
+				StartTime: time.Now(),
+			}
+			retry, hookErr := hook.NoAccess(c.Context, noAccessInput)
 			if hookErr != nil {
 				return hookErr
 			}
 
 			if retry {
+				// reset the start time for the timer (otherwise it shows 2s, 7s, 12s etc)
+				noAccessInput.StartTime = time.Now()
 
-				b := sethRetry.NewFibonacci(time.Second)
-				b = sethRetry.WithMaxDuration(time.Minute*1, b)
+				b := sethRetry.NewConstant(5 * time.Second)
+				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
+
+					//also proactively check if request has been approved and attempt to activate
+					err = hook.RetryAccess(ctx, noAccessInput)
+					if err != nil {
+
+						return sethRetry.RetryableError(err)
+					}
+
 					creds, err = profile.AssumeConsole(c.Context, configOpts)
 					if err != nil {
 						return sethRetry.RetryableError(err)
@@ -557,26 +577,40 @@ func AssumeCommand(c *cli.Context) error {
 				}
 				apiDuration = durationpb.New(d)
 			}
-
-			retry, hookErr := hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
-				Profile:  profile,
-				Reason:   reason,
-				Duration: apiDuration,
-				Confirm:  assumeFlags.Bool("confirm"),
-			})
+			noAccessInput := accessrequesthook.NoAccessInput{
+				Profile:   profile,
+				Reason:    reason,
+				Duration:  apiDuration,
+				Confirm:   assumeFlags.Bool("confirm"),
+				Wait:      wait,
+				StartTime: time.Now(),
+			}
+			retry, hookErr := hook.NoAccess(c.Context, noAccessInput)
 			if hookErr != nil {
 				return hookErr
 			}
 
 			if retry {
+				// reset the start time for the timer (otherwise it shows 2s, 7s, 12s etc)
+				noAccessInput.StartTime = time.Now()
 
-				b := sethRetry.NewFibonacci(time.Second)
-				b = sethRetry.WithMaxDuration(time.Minute*1, b)
+				b := sethRetry.NewConstant(time.Second * 5)
+				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
-					creds, err = profile.AssumeTerminal(c.Context, configOpts)
+
+					//also proactively check if request has been approved and attempt to activate
+					err = hook.RetryAccess(ctx, noAccessInput)
 					if err != nil {
+
 						return sethRetry.RetryableError(err)
 					}
+					//attempt to assume the role
+					creds, err = profile.AssumeTerminal(c.Context, configOpts)
+					if err != nil {
+
+						return sethRetry.RetryableError(err)
+					}
+
 					return nil
 				})
 				if err != nil {

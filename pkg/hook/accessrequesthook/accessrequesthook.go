@@ -31,10 +31,12 @@ import (
 type Hook struct{}
 
 type NoAccessInput struct {
-	Profile  *cfaws.Profile
-	Reason   string
-	Duration *durationpb.Duration
-	Confirm  bool
+	Profile   *cfaws.Profile
+	Reason    string
+	Duration  *durationpb.Duration
+	Confirm   bool
+	Wait      bool
+	StartTime time.Time
 }
 
 func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, err error) {
@@ -178,6 +180,10 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 			color.New(color.BgHiYellow, color.FgBlack).Fprintf(os.Stderr, "[REQUESTED]")
 			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
+			if input.Wait {
+				return true, nil
+			}
+
 			return false, errors.New("applying access was attempted but the resources requested require approval before activation")
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:
@@ -215,6 +221,60 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 	printdiags.Print(res.Msg.Diagnostics, names)
 
 	return retry, nil
+
+}
+
+func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
+	cfg, err := cfcfg.Load(ctx, input.Profile)
+	if err != nil {
+		return err
+	}
+
+	accessclient := access.NewFromConfig(cfg)
+	target := eid.New("AWS::Account", input.Profile.AWSConfig.SSOAccountID)
+	role := input.Profile.AWSConfig.SSORoleName
+	req := accessv1alpha1.BatchEnsureRequest{
+		Entitlements: []*accessv1alpha1.EntitlementInput{
+			{
+				Target: &accessv1alpha1.Specifier{
+					Specify: &accessv1alpha1.Specifier_Eid{
+						Eid: target.ToAPI(),
+					},
+				},
+				Role: &accessv1alpha1.Specifier{
+					Specify: &accessv1alpha1.Specifier_Lookup{
+						Lookup: role,
+					},
+				},
+				Duration: input.Duration,
+			},
+		},
+		Justification: &accessv1alpha1.Justification{},
+	}
+
+	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
+	if err != nil {
+		return err
+	}
+
+	clio.Debugw("batch ensure response", "res", res.Msg)
+
+	now := time.Now()
+	elapsed := now.Sub(input.StartTime).Round(time.Second * 10)
+
+	for _, g := range res.Msg.Grants {
+
+		// if grant is approved but the change is unspecified then the user is not able to automatically activate
+		if g.Grant.Approved && g.Change == accessv1alpha1.GrantChange_GRANT_CHANGE_UNSPECIFIED && g.Grant.ProvisioningStatus != accessv1alpha1.ProvisioningStatus_PROVISIONING_STATUS_SUCCESSFUL {
+			clio.Infof("Request was approved but failed to activate, you might not have permission to activate. You can try and activate the access using the Common Fate web console. [%s elapsed]", elapsed)
+		}
+
+		if !g.Grant.Approved {
+			clio.Infof("Waiting for request to be approved... [%s elapsed]", elapsed)
+		}
+
+	}
+	return nil
 }
 
 func requestURL(apiURL *url.URL, grant *accessv1alpha1.Grant) string {
