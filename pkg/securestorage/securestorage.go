@@ -133,13 +133,7 @@ func (s *SecureStorage) openKeyring() (keyring.Keyring, error) {
 
 		// Fallback encrypted file
 		FileDir: secureStoragePath,
-		// FilePasswordFunc: func(s string) (string, error) {
-		// 	in := survey.Password{Message: s}
-		// 	var out string
-		// 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-		// 	err := testable.AskOne(&in, &out, withStdio)
-		// 	return out, err
-		// },
+
 		FilePasswordFunc: keyring.FixedStringPrompt(os.Getenv("CF_KEYRING_FILE_PASSWORD")),
 	}
 
