@@ -24,50 +24,7 @@ var SetConfigCommand = cli.Command{
 			return err
 		}
 
-		// Get the type and value of the Config struct
-		configType := reflect.TypeOf(*cfg)
-		configValue := reflect.ValueOf(cfg).Elem()
-		type field struct {
-			ftype  reflect.StructField
-			fvalue reflect.Value
-		}
-		var fields []string
-		var fieldMap = make(map[string]field)
-
-		//traverseConfigFields goes through all config variables taking note of each of the types and saves them to the fieldmap
-		//In the case where there are sub fields in the toml config, it is recursively called to traverse the sub config
-		var traverseConfigFields func(reflect.Type, reflect.Value, string)
-		traverseConfigFields = func(t reflect.Type, v reflect.Value, parent string) {
-			for i := 0; i < t.NumField(); i++ {
-				fieldType := t.Field(i)
-				fieldValue := v.Field(i)
-				kind := fieldType.Type.Kind()
-				fieldName := fieldType.Name
-				if parent != "" {
-					fieldName = parent + "." + fieldType.Name
-				}
-
-				//subfield structs reflect as a pointer
-				if kind == reflect.Ptr {
-					// Dereference the pointer to get the underlying value
-					if !fieldValue.IsNil() {
-						fieldValue = fieldValue.Elem()
-						kind = fieldValue.Kind()
-					}
-				}
-
-				if kind == reflect.Bool || kind == reflect.String || kind == reflect.Int {
-					fields = append(fields, fieldName)
-					fieldMap[fieldName] = field{
-						ftype:  fieldType,
-						fvalue: fieldValue,
-					}
-				} else if kind == reflect.Struct {
-					traverseConfigFields(fieldValue.Type(), fieldValue, fieldName)
-				}
-			}
-		}
-		traverseConfigFields(configType, configValue, "")
+		fields, fieldMap := FieldOptions(cfg)
 
 		var selectedFieldName = c.String("setting")
 		if selectedFieldName == "" {
@@ -165,4 +122,64 @@ var SetConfigCommand = cli.Command{
 		clio.Success("Config updated successfully")
 		return nil
 	},
+}
+
+type field struct {
+	ftype  reflect.StructField
+	fvalue reflect.Value
+}
+
+func FieldOptions(cfg any) ([]string, map[string]field) {
+	// Get the type and value of the Config struct
+	configType := reflect.TypeOf(cfg)
+	configValue := reflect.ValueOf(cfg)
+
+	// Check if cfg is a pointer to a struct
+	if configType.Kind() == reflect.Ptr && configType.Elem().Kind() == reflect.Struct {
+		configType = configType.Elem()
+		configValue = configValue.Elem()
+	} else if configType.Kind() != reflect.Struct {
+		// cfg is neither a struct nor a pointer to a struct
+		return nil, nil
+	}
+
+	var fields []string
+	var fieldMap = make(map[string]field)
+
+	//traverseConfigFields goes through all config variables taking note of each of the types and saves them to the fieldmap
+	//In the case where there are sub fields in the toml config, it is recursively called to traverse the sub config
+	var traverseConfigFields func(reflect.Type, reflect.Value, string)
+	traverseConfigFields = func(t reflect.Type, v reflect.Value, parent string) {
+		for i := 0; i < t.NumField(); i++ {
+			fieldType := t.Field(i)
+			fieldValue := v.Field(i)
+			kind := fieldType.Type.Kind()
+			fieldName := fieldType.Name
+			if parent != "" {
+				fieldName = parent + "." + fieldType.Name
+			}
+
+			//subfield structs reflect as a pointer
+			if kind == reflect.Ptr {
+				// Dereference the pointer to get the underlying value
+				if !fieldValue.IsNil() {
+					fieldValue = fieldValue.Elem()
+					kind = fieldValue.Kind()
+				}
+			}
+
+			if kind == reflect.Bool || kind == reflect.String || kind == reflect.Int {
+				fields = append(fields, fieldName)
+				fieldMap[fieldName] = field{
+					ftype:  fieldType,
+					fvalue: fieldValue,
+				}
+			} else if kind == reflect.Struct {
+				traverseConfigFields(fieldValue.Type(), fieldValue, fieldName)
+			}
+		}
+	}
+	traverseConfigFields(configType, configValue, "")
+
+	return fields, fieldMap
 }
