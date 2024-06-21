@@ -47,6 +47,7 @@ var SetConfigCommand = cli.Command{
 					fieldName = parent + "." + fieldType.Name
 				}
 
+				//subfield structs reflect as a pointer
 				if kind == reflect.Ptr {
 					// Dereference the pointer to get the underlying value
 					if !fieldValue.IsNil() {
@@ -90,9 +91,10 @@ var SetConfigCommand = cli.Command{
 		var value interface{}
 		var prompt survey.Prompt
 		selectedFieldType := selectedField.ftype.Type
+		//optional fields are pointers
 		isPointer := selectedFieldType.Kind() == reflect.Ptr
 		if isPointer {
-			selectedFieldType = selectedFieldType.Elem() // Dereference the pointer type
+			selectedFieldType = selectedFieldType.Elem()
 		}
 		switch selectedFieldType.Kind() {
 		case reflect.Bool:
