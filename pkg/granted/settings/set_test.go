@@ -11,7 +11,7 @@ func TestFieldOptions(t *testing.T) {
 		A string
 		B struct {
 			C string
-			D *string
+			D string
 		}
 	}
 	tests := []struct {
@@ -33,8 +33,13 @@ func TestFieldOptions(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got, _ := FieldOptions(tt.input)
-			assert.Equal(t, tt.want, got)
+			got := FieldOptions(tt.input)
+			keys := make([]string, 0, len(got))
+			for k := range got {
+				keys = append(keys, k)
+			}
+
+			assert.Equal(t, tt.want, keys)
 		})
 	}
 }
