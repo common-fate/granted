@@ -33,19 +33,40 @@ var SetConfigCommand = cli.Command{
 		}
 		var fields []string
 		var fieldMap = make(map[string]field)
-		// Iterate over the fields of the Config struct
-		for i := 0; i < configType.NumField(); i++ {
-			fieldType := configType.Field(i)
-			kind := fieldType.Type.Kind()
-			if kind == reflect.Bool || kind == reflect.String || kind == reflect.Int {
-				fieldValue := configValue.Field(i)
-				fields = append(fields, fieldType.Name)
-				fieldMap[fieldType.Name] = field{
-					fvalue: fieldValue,
-					ftype:  fieldType,
+
+		//traverseConfigFields goes through all config variables taking note of each of the types and saves them to the fieldmap
+		//In the case where there are sub fields in the toml config, it is recursively called to traverse the sub config
+		var traverseConfigFields func(reflect.Type, reflect.Value, string)
+		traverseConfigFields = func(t reflect.Type, v reflect.Value, parent string) {
+			for i := 0; i < t.NumField(); i++ {
+				fieldType := t.Field(i)
+				fieldValue := v.Field(i)
+				kind := fieldType.Type.Kind()
+				fieldName := fieldType.Name
+				if parent != "" {
+					fieldName = parent + "." + fieldType.Name
+				}
+
+				if kind == reflect.Ptr {
+					// Dereference the pointer to get the underlying value
+					if !fieldValue.IsNil() {
+						fieldValue = fieldValue.Elem()
+						kind = fieldValue.Kind()
+					}
+				}
+
+				if kind == reflect.Bool || kind == reflect.String || kind == reflect.Int {
+					fields = append(fields, fieldName)
+					fieldMap[fieldName] = field{
+						ftype:  fieldType,
+						fvalue: fieldValue,
+					}
+				} else if kind == reflect.Struct {
+					traverseConfigFields(fieldValue.Type(), fieldValue, fieldName)
 				}
 			}
 		}
+		traverseConfigFields(configType, configValue, "")
 
 		var selectedFieldName = c.String("setting")
 		if selectedFieldName == "" {
@@ -68,7 +89,12 @@ var SetConfigCommand = cli.Command{
 		// Prompt the user to update the field
 		var value interface{}
 		var prompt survey.Prompt
-		switch selectedField.ftype.Type.Kind() {
+		selectedFieldType := selectedField.ftype.Type
+		isPointer := selectedFieldType.Kind() == reflect.Ptr
+		if isPointer {
+			selectedFieldType = selectedFieldType.Elem() // Dereference the pointer type
+		}
+		switch selectedFieldType.Kind() {
 		case reflect.Bool:
 			if !c.IsSet("value") {
 				prompt = &survey.Confirm{
@@ -123,8 +149,8 @@ var SetConfigCommand = cli.Command{
 
 		// Set the new value for the field
 		newValue := reflect.ValueOf(value)
-		if newValue.Type().ConvertibleTo(selectedField.ftype.Type) {
-			selectedField.fvalue.Set(newValue.Convert(selectedField.ftype.Type))
+		if newValue.Type().ConvertibleTo(selectedFieldType) {
+			selectedField.fvalue.Set(newValue.Convert(selectedFieldType))
 		} else {
 			return fmt.Errorf("invalid type for %s", selectedField.ftype.Name)
 		}
