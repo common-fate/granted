@@ -57,10 +57,12 @@ var ClearCommand = cli.Command{
 	Name:  "clear",
 	Usage: "Clear cached credential from the secure storage",
 	Flags: []cli.Flag{
+		&cli.BoolFlag{Name: "all", Usage: "clears all of the cached credentials from storage"},
 		&cli.StringFlag{Name: "storage", Usage: "Specify the storage type"},
 		&cli.StringFlag{Name: "profile", Usage: "Specify the profile name of the credential which should be cleared"},
 	},
 	Action: func(c *cli.Context) error {
+
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 
 		selection := c.String("storage")
@@ -76,6 +78,12 @@ var ClearCommand = cli.Command{
 			}
 		}
 
+		clearAll := c.Bool("all")
+
+		if clearAll {
+			clio.Debugw("clear flag provided clearing cache for all credentials in storage", "storage", selection)
+		}
+
 		storageToNameMap := map[string]securestorage.SecureStorage{
 			"aws-iam-credentials": securestorage.NewSecureIAMCredentialStorage().SecureStorage,
 			"sso-token":           securestorage.NewSecureSSOTokenStorage().SecureStorage,
@@ -84,6 +92,7 @@ var ClearCommand = cli.Command{
 
 		// store the credentials in secure storage
 		selectedStorage := storageToNameMap[selection]
+
 		keys, err := selectedStorage.ListKeys()
 		if err != nil {
 			return err
@@ -92,6 +101,18 @@ var ClearCommand = cli.Command{
 		if len(keys) == 0 {
 			clio.Warnf("You do not have any cached credentials for %s storage", selection)
 			return nil
+		}
+
+		if clearAll {
+			for _, key := range keys {
+				err = selectedStorage.Clear(key)
+				if err != nil {
+					return err
+				}
+			}
+			clio.Infow("cleared cache for all credentials in storage", "storage", selection)
+			return nil
+
 		}
 
 		selectedProfile := c.String("profile")
