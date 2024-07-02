@@ -180,7 +180,10 @@ func (d *GrantedDoctor) CheckAllAWSCacheTokens(ctx context.Context) error {
 
 					//if we got here tell the user that we found a valid cached credential
 					clio.Infof("cached token for %s is valid. Testing token using sts now...", cachedToken.StartUrl)
-					d.CheckValidCredentials(ctx, cachedToken)
+					err = d.CheckValidCredentials(ctx, cachedToken)
+					if err != nil {
+						return err
+					}
 
 				}
 			}
