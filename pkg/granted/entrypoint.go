@@ -11,6 +11,7 @@ import (
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/auth"
+	"github.com/common-fate/granted/pkg/granted/doctor"
 	"github.com/common-fate/granted/pkg/granted/exp"
 	"github.com/common-fate/granted/pkg/granted/middleware"
 	"github.com/common-fate/granted/pkg/granted/registry"
@@ -58,6 +59,7 @@ func GetCliApp() *cli.App {
 			&CacheCommand,
 			&auth.Command,
 			&request.Command,
+			&doctor.Command,
 		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {

@@ -25,7 +25,7 @@ require (
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/common-fate v0.15.13
 	github.com/common-fate/glide-cli v0.6.0
-	github.com/common-fate/sdk v1.37.0
+	github.com/common-fate/sdk v1.40.2-0.20240625075744-48540f6115cf
 	github.com/fatih/color v1.16.0
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/schollz/progressbar/v3 v3.13.1

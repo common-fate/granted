@@ -176,7 +176,6 @@ func AssumeCommand(c *cli.Context) error {
 	} else {
 		var wg sync.WaitGroup
 
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
 			return err
@@ -209,99 +208,20 @@ func AssumeCommand(c *cli.Context) error {
 
 		// if profile is still "" here, then prompt to select a profile
 		if profileName == "" {
-			// will print a command output for the user so it's easier for them to re-run later or learn the commands
 			showRerunCommand = true
-			// load config to check frecency enabled
-			cfg, err := config.Load()
+
+			profileName, err = QueryProfiles(profiles)
 			if err != nil {
 				return err
 			}
-
-			fr, profileNames := profiles.GetFrecentProfiles()
-			if cfg.Ordering == "Alphabetical" {
-				profileNames = profiles.ProfileNames
-			}
-			profileNameMap := make(map[string]string)
-			profileKeys := make([]string, len(profileNames))
-			var longestProfileNameLength int
-			for _, pn := range profileNames {
-				if len(pn) > longestProfileNameLength {
-					longestProfileNameLength = len(pn)
-				}
-			}
-			lightBlack := ansi.ColorFunc(ansi.LightBlack)
-			var hasDescriptions bool
-			for i, pn := range profileNames {
-				var description string
-				p, _ := profiles.Profile(pn)
-
-				if p != nil && p.CustomGrantedProperty("description") != "" {
-					hasDescriptions = true
-					description = p.CustomGrantedProperty("description")
-				}
-
-				stringKey := fmt.Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", pn, lightBlack(description))
-
-				profileNameMap[stringKey] = pn
-				profileKeys[i] = stringKey
-			}
-			var promptHeader string
-			// only add the description headers if there are profiles using descriptions
-			if hasDescriptions {
-				promptHeader = fmt.Sprintf(`{{- "  %s\n"}}`, color.New(color.Underline, color.Bold).Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", "Profile", "Description"))
-			}
-			// This overrides the default prompt template to add a header row above the options
-			// this should be reset back to the original template after the call to AskOne
-			originalSelectTemplate := survey.SelectQuestionTemplate
-			survey.SelectQuestionTemplate = fmt.Sprintf(`
-{{- define "option"}}
-	{{- if eq .SelectedIndex .CurrentIndex }}{{color .Config.Icons.SelectFocus.Format }}{{ .Config.Icons.SelectFocus.Text }} {{else}}{{color "default"}}  {{end}}
-	{{- .CurrentOpt.Value}}
-{{- color "reset"}}
-{{end}}
-{{- if .ShowHelp }}{{- color .Config.Icons.Help.Format }}{{ .Config.Icons.Help.Text }} {{ .Help }}{{color "reset"}}{{"\n"}}{{end}}
-{{- color .Config.Icons.Question.Format }}{{ .Config.Icons.Question.Text }} {{color "reset"}}
-{{- color "default+hb"}}{{ .Message }}{{ .FilterMessage }}{{color "reset"}}
-{{- if .ShowAnswer}}{{color "cyan"}} {{.Answer}}{{color "reset"}}{{"\n"}}
-{{- else}}
-  {{- "  "}}{{- color "cyan"}}[Use arrows to move, type to filter{{- if and .Help (not .ShowHelp)}}, {{ .Config.HelpInput }} for more help{{end}}]{{color "reset"}}
-  {{- "\n"}}
-  %s
-  {{- range $ix, $option := .PageEntries}}
-	{{- template "option" $.IterateOption $ix $option}}
-  {{- end}}
-{{- end}}`, promptHeader)
-
-			clio.NewLine()
-			// Replicate the logic from original assume fn.
-			in := survey.Select{
-				Message: "Please select the profile you would like to assume:",
-				Options: profileKeys,
-				Filter:  filterMultiToken,
-			}
-			if len(profileKeys) == 0 {
-				return clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
-					clierr.Info("You can add profiles to your AWS config by following our guide: "),
-					clierr.Info("https://docs.commonfate.io/granted/getting-started#set-up-your-aws-profile-file"),
-				)
-			}
-
-			err = testable.AskOne(&in, &profileName, withStdio)
-			if err != nil {
-				return err
-			}
-			// Reset the template for select questions to the original
-			survey.SelectQuestionTemplate = originalSelectTemplate
-			profileName = profileNameMap[profileName]
 			// background task to update the frecency cache
 			wg.Add(1)
 			go func() {
-				fr.Update(profileName)
+				cfaws.UpdateFrecencyCache(profileName)
 				wg.Done()
 			}()
 		}
-		// ensure that frecency has finished updating before returning from this function
-		defer wg.Wait()
+
 		// finally, load the profile and initialise it, this builds the parent tree structure
 		profile, err = profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
@@ -793,4 +713,95 @@ func printFlagUsage(region, service string) {
 	if region == "" || service == "" {
 		clio.Infof("%s ( https://docs.commonfate.io/granted/usage/console )", strings.Join(m, " or "))
 	}
+}
+
+func QueryProfiles(profiles *cfaws.Profiles) (string, error) {
+	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+	// load config to check frecency enabled
+	cfg, err := config.Load()
+	if err != nil {
+		return "", err
+	}
+
+	_, profileNames := profiles.GetFrecentProfiles()
+	if cfg.Ordering == "Alphabetical" {
+		profileNames = profiles.ProfileNames
+	}
+	profileNameMap := make(map[string]string)
+	profileKeys := make([]string, len(profileNames))
+	var longestProfileNameLength int
+	for _, pn := range profileNames {
+		if len(pn) > longestProfileNameLength {
+			longestProfileNameLength = len(pn)
+		}
+	}
+	lightBlack := ansi.ColorFunc(ansi.LightBlack)
+	var hasDescriptions bool
+	for i, pn := range profileNames {
+		var description string
+		p, _ := profiles.Profile(pn)
+
+		if p != nil && p.CustomGrantedProperty("description") != "" {
+			hasDescriptions = true
+			description = p.CustomGrantedProperty("description")
+		}
+
+		stringKey := fmt.Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", pn, lightBlack(description))
+
+		profileNameMap[stringKey] = pn
+		profileKeys[i] = stringKey
+	}
+	var promptHeader string
+	// only add the description headers if there are profiles using descriptions
+	if hasDescriptions {
+		promptHeader = fmt.Sprintf(`{{- "  %s\n"}}`, color.New(color.Underline, color.Bold).Sprintf("%-"+strconv.Itoa(longestProfileNameLength)+"s%s", "Profile", "Description"))
+	}
+	// This overrides the default prompt template to add a header row above the options
+	// this should be reset back to the original template after the call to AskOne
+	originalSelectTemplate := survey.SelectQuestionTemplate
+	survey.SelectQuestionTemplate = fmt.Sprintf(`
+{{- define "option"}}
+{{- if eq .SelectedIndex .CurrentIndex }}{{color .Config.Icons.SelectFocus.Format }}{{ .Config.Icons.SelectFocus.Text }} {{else}}{{color "default"}}  {{end}}
+{{- .CurrentOpt.Value}}
+{{- color "reset"}}
+{{end}}
+{{- if .ShowHelp }}{{- color .Config.Icons.Help.Format }}{{ .Config.Icons.Help.Text }} {{ .Help }}{{color "reset"}}{{"\n"}}{{end}}
+{{- color .Config.Icons.Question.Format }}{{ .Config.Icons.Question.Text }} {{color "reset"}}
+{{- color "default+hb"}}{{ .Message }}{{ .FilterMessage }}{{color "reset"}}
+{{- if .ShowAnswer}}{{color "cyan"}} {{.Answer}}{{color "reset"}}{{"\n"}}
+{{- else}}
+{{- "  "}}{{- color "cyan"}}[Use arrows to move, type to filter{{- if and .Help (not .ShowHelp)}}, {{ .Config.HelpInput }} for more help{{end}}]{{color "reset"}}
+{{- "\n"}}
+%s
+{{- range $ix, $option := .PageEntries}}
+{{- template "option" $.IterateOption $ix $option}}
+{{- end}}
+{{- end}}`, promptHeader)
+
+	clio.NewLine()
+	// Replicate the logic from original assume fn.
+	in := survey.Select{
+		Message: "Please select the profile you would like to assume:",
+		Options: profileKeys,
+		Filter:  filterMultiToken,
+	}
+	if len(profileKeys) == 0 {
+		return "", clierr.New("Granted couldn't find any AWS profiles in your config file or your credentials file",
+			clierr.Info("You can add profiles to your AWS config by following our guide: "),
+			clierr.Info("https://docs.commonfate.io/granted/getting-started#set-up-your-aws-profile-file"),
+		)
+	}
+
+	var profileName string
+
+	err = testable.AskOne(&in, &profileName, withStdio)
+	if err != nil {
+		return "", err
+	}
+	// Reset the template for select questions to the original
+	survey.SelectQuestionTemplate = originalSelectTemplate
+	profileName = profileNameMap[profileName]
+	// background task to update the frecency cache
+
+	return profileName, nil
 }
