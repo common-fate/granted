@@ -87,7 +87,7 @@ func dumpTokenFile(jsonToken []byte, key string) error {
 		return err
 	}
 
-	path, err := getDefaultCacheLocation()
+	path, err := GetDefaultCacheLocation()
 	if err != nil {
 		return err
 	}
@@ -108,7 +108,7 @@ func dumpTokenFile(jsonToken []byte, key string) error {
 }
 
 // Find the ~/.aws/sso/cache absolute path based on OS.
-func getDefaultCacheLocation() (string, error) {
+func GetDefaultCacheLocation() (string, error) {
 	h, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
@@ -120,7 +120,7 @@ func getDefaultCacheLocation() (string, error) {
 
 // check if a valid ~/.aws/sso/cache file exists
 func SsoCredsAreInConfigCache() bool {
-	path, err := getDefaultCacheLocation()
+	path, err := GetDefaultCacheLocation()
 	if err != nil {
 		return false
 	}
@@ -147,7 +147,7 @@ func ReadPlaintextSsoCreds(startUrl string) (SSOPlainTextOut, error) {
 
 	*/
 
-	path, err := getDefaultCacheLocation()
+	path, err := GetDefaultCacheLocation()
 	if err != nil {
 		return SSOPlainTextOut{}, err
 	}
