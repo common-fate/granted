@@ -35,7 +35,7 @@ var latestCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "reason", Usage: "A reason for access"},
 		&cli.DurationFlag{Name: "duration", Usage: "Duration of request, defaults to max duration of the access rule."},
-		&cli.BoolFlag{Name: "confirm", Usage: "Confirm requesting access"},
+		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "Skip confirmation prompts for access requests"},
 	},
 	Action: func(c *cli.Context) error {
 		latest, err := accessrequest.LatestProfile()
