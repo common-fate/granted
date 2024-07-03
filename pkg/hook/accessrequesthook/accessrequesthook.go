@@ -370,7 +370,7 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 
 	if !confirm {
 		if !IsTerminal(os.Stdin.Fd()) {
-			return false, nil, errors.New("detected a noninteractive terminal: to apply the planned changes please re-run with the --confirm-access-request flag")
+			return false, nil, errors.New("detected a noninteractive terminal: to apply the planned changes please re-run with the --confirm flag")
 		}
 
 		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
