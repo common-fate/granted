@@ -77,7 +77,7 @@ func DoctorCommand(c *cli.Context) error {
 	}
 
 	clio.Infof("profile selected: %s\n", profile.Name)
-	clio.Infof("profile start url: %s\n", profile.SSOStartURL())
+	clio.Infof("profile SSO start URL: %s\n", profile.SSOStartURL())
 	clio.Infof("profile region: %s\n", profile.AWSConfig.Region)
 
 	clio.Info("Granted doctor will now check the default sso token cache (`~/.aws/sso/cache`), Granted secure storage, and the AWS credentials file to valiate cached tokens.")
@@ -102,7 +102,7 @@ func DoctorCommand(c *cli.Context) error {
 
 	clio.NewLine()
 
-	clio.Success("Granted doctor has completed, See above for all outcomes.")
+	clio.Success("Granted Doctor has completed, see diagnostics above")
 
 	return nil
 }
@@ -261,18 +261,15 @@ func (d *GrantedDoctor) CommonIssuesWarningMessages(ctx context.Context) error {
 
 	// warn about any particular settings that are set
 	if !d.Cfg.DefaultExportAllEnvVar {
-		clio.Warn("[INFO] DefaultExportAllEnvVar set to false. Meaning active credentials will not be exported to your environment. Set this to true if you need this functionality")
+		clio.Warn("[INFO] DefaultExportAllEnvVar set to false: AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, and AWS_SESSION_TOKEN variables will not be exported to your environment for profiles using credential process. Set this to true if you need this functionality")
 	} else {
 		clio.Warn("[INFO] DefaultExportAllEnvVar set to true. Automatic credential renewal is disabled.")
 	}
 
 	if d.Cfg.DefaultBrowser != browser.FirefoxKey {
-		clio.Info("[RECOMMENDED] Not using Firefox as default browser, we recommend using Firefox to make use of the containers functionality with Granted!")
+		clio.Info("[RECOMMENDED] Not using Firefox as default browser, we recommend using Firefox to make use of the multi-account containers functionality with Granted.")
 	}
 
-	if d.Cfg.Keyring != nil && *d.Cfg.Keyring.Backend != "File" {
-		clio.Info("[RECOMMENDED] Keyring backend detected as 'File' meaning tokens are saved as plaintext onto the file system. It is recommended to use 'keychain' to securely store tokens in the keychain.")
-	}
 	return nil
 
 }
