@@ -12,6 +12,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/AlecAivazis/survey/v2"
 	"github.com/briandowns/spinner"
+	accesscmd "github.com/common-fate/cli/cmd/cli/command/access"
 	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
@@ -154,12 +155,8 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 
 		exp := "<invalid expiry>"
 
-		if res.Msg.DurationConfiguration != nil {
-			exp = ShortDur(res.Msg.DurationConfiguration.MaxDuration.AsDuration())
-			if res.Msg.DurationConfiguration.DefaultDuration != nil {
-				exp = ShortDur(res.Msg.DurationConfiguration.DefaultDuration.AsDuration())
-
-			}
+		if g.Grant.ExpiresAt != nil {
+			exp = accesscmd.ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
 		}
 
 		switch g.Change {
@@ -322,11 +319,8 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 
 		exp := "<invalid expiry>"
 
-		if res.Msg.DurationConfiguration != nil {
-			exp = ShortDur(res.Msg.DurationConfiguration.MaxDuration.AsDuration())
-			if res.Msg.DurationConfiguration.DefaultDuration != nil {
-				exp = ShortDur(res.Msg.DurationConfiguration.DefaultDuration.AsDuration())
-			}
+		if g.Grant.ExpiresAt != nil {
+			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
 		}
 
 		if g.Change > 0 {
