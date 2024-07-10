@@ -26,6 +26,7 @@ type ConfigOpts struct {
 	Args                       []string
 	ShouldRetryAssuming        *bool
 	MFATokenCode               string
+	DisableCache               bool
 }
 
 type Profile struct {

@@ -154,13 +154,17 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 	ssoTokenKey := rootProfile.SSOStartURL() + c.AWSConfig.SSOSessionName
 	// if the profile has an sso user configured then suffix the sso token storage key to ensure unique logins
 	secureSSOTokenStorage := securestorage.NewSecureSSOTokenStorage()
-	cachedToken := secureSSOTokenStorage.GetValidSSOToken(ctx, ssoTokenKey)
-	// check if profile has a valid plaintext sso access token
-	plainTextToken := GetValidSSOTokenFromPlaintextCache(rootProfile.SSOStartURL())
 
-	// store token to storage to avoid multiple logins
-	if plainTextToken != nil {
-		secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *plainTextToken)
+	var cachedToken *securestorage.SSOToken
+	var plainTextToken *securestorage.SSOToken
+	if !configOpts.DisableCache {
+		cachedToken = secureSSOTokenStorage.GetValidSSOToken(ctx, ssoTokenKey)
+		// check if profile has a valid plaintext sso access token
+		plainTextToken = GetValidSSOTokenFromPlaintextCache(rootProfile.SSOStartURL())
+		// store token to storage to avoid multiple logins
+		if plainTextToken != nil {
+			secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *plainTextToken)
+		}
 	}
 
 	var accessToken *string
@@ -197,7 +201,10 @@ func (c *Profile) SSOLogin(ctx context.Context, configOpts ConfigOpts) (aws.Cred
 			return aws.Credentials{}, err
 		}
 
-		secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *newSSOToken)
+		if !configOpts.DisableCache {
+			secureSSOTokenStorage.StoreSSOToken(ssoTokenKey, *newSSOToken)
+		}
+
 		cachedToken = newSSOToken
 	}
 
