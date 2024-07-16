@@ -57,7 +57,7 @@ var CredentialProcess = cli.Command{
 		clio.Debugw("running credential process with config", "profile", profileName, "url", c.String("url"), "window", c.Duration("window"), "disableCredentialProcessCache", cfg.DisableCredentialProcessCache)
 
 		cliNoCache := c.Bool("no-cache")
-		useCache := !cfg.DisableCredentialProcessCache || !cliNoCache
+		useCache := !(cfg.DisableCredentialProcessCache || cliNoCache)
 
 		if useCache {
 			// try and look up session credentials from the secure storage cache.
