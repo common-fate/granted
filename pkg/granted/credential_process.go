@@ -43,6 +43,7 @@ var CredentialProcess = cli.Command{
 		&cli.StringFlag{Name: "url"},
 		&cli.DurationFlag{Name: "window", Value: 15 * time.Minute},
 		&cli.BoolFlag{Name: "auto-login", Usage: "automatically open the configured browser to log in if needed"},
+		&cli.BoolFlag{Name: "no-cache", Usage: "Disables caching of session credentials and forces a refresh", EnvVars: []string{"GRANTED_NO_CACHE"}},
 	},
 	Action: func(c *cli.Context) error {
 		cfg, err := config.Load()
@@ -55,7 +56,8 @@ var CredentialProcess = cli.Command{
 		secureSessionCredentialStorage := securestorage.NewSecureSessionCredentialStorage()
 		clio.Debugw("running credential process with config", "profile", profileName, "url", c.String("url"), "window", c.Duration("window"), "disableCredentialProcessCache", cfg.DisableCredentialProcessCache)
 
-		useCache := !cfg.DisableCredentialProcessCache
+		cliNoCache := c.Bool("no-cache")
+		useCache := !cfg.DisableCredentialProcessCache || !cliNoCache
 
 		if useCache {
 			// try and look up session credentials from the secure storage cache.

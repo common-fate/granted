@@ -54,7 +54,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringFlag{Name: "reason", Usage: "Provide a reason for requesting access to the role"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "Skip confirmation prompts for access requests"},
 		&cli.BoolFlag{Name: "wait", Usage: "When using Granted with Common Fate the assume will halt while waiting for the access request to be approved."},
-		&cli.BoolFlag{Name: "no-cache", Usage: "Disables caching of session credentials and forces a refresh"},
+		&cli.BoolFlag{Name: "no-cache", Usage: "Disables caching of session credentials and forces a refresh", EnvVars: []string{"GRANTED_NO_CACHE"}},
 	}
 }
 
