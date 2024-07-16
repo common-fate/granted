@@ -25,6 +25,7 @@ require (
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/common-fate v0.15.13
 	github.com/common-fate/glide-cli v0.6.0
+	github.com/common-fate/grab v1.3.0
 	github.com/common-fate/sdk v1.40.2-0.20240625075744-48540f6115cf
 	github.com/fatih/color v1.16.0
 	github.com/lithammer/fuzzysearch v1.1.5
@@ -40,7 +41,6 @@ require (
 	github.com/Masterminds/sprig/v3 v3.2.3 // indirect
 	github.com/aws/aws-sdk-go-v2/service/internal/accept-encoding v1.11.2 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
-	github.com/common-fate/grab v1.3.0 // indirect
 	github.com/common-fate/iso8601 v1.1.0 // indirect
 	github.com/davecgh/go-spew v1.1.1 // indirect
 	github.com/deepmap/oapi-codegen v1.11.0 // indirect
@@ -50,7 +50,7 @@ require (
 	github.com/go-openapi/swag v0.22.3 // indirect
 	github.com/golang/protobuf v1.5.3 // indirect
 	github.com/google/uuid v1.4.0 // indirect
-	github.com/gorilla/schema v1.2.0 // indirect
+	github.com/gorilla/schema v1.4.1 // indirect
 	github.com/gorilla/securecookie v1.1.1 // indirect
 	github.com/huandu/xstrings v1.3.3 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
