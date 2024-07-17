@@ -41,7 +41,8 @@ type NoAccessInput struct {
 func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, err error) {
 	cfg, err := cfcfg.Load(ctx, input.Profile)
 	if err != nil {
-		return false, err
+		clio.Debugw("failed to load cfconfig, skipping check for active grants in a common fate deployment", "error", err)
+		return false, nil
 	}
 
 	target := eid.New("AWS::Account", input.Profile.AWSConfig.SSOAccountID)
