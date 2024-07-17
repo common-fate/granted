@@ -420,6 +420,13 @@ func shouldRefreshLogin(err error) bool {
 	if strings.Contains(err.Error(), "oauth2: invalid grant") {
 		return true
 	}
+	// Sanity check that error message is matching correctly. See: https://linear.app/common-fate/issue/CF-3379/granted-should-auto-login-when-receiving-an-invalid-grant-error
+	if strings.Contains(err.Error(), `oauth2: "token_expired"`) {
+		return true
+	}
+	if strings.Contains(err.Error(), `oauth2: "invalid_grant"`) {
+		return true
+	}
 
 	return false
 }
