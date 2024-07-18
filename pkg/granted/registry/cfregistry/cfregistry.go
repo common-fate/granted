@@ -37,11 +37,21 @@ func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient,
 	if r.client != nil {
 		return r.client, nil
 	}
-	cfg, err := config.LoadDefault(context.Background())
+
+	err := config.SwitchContext(r.opts.Name)
 	if err != nil {
 		return nil, err
 	}
 
+	// ctx, err := config.GetContextByURL(r.opts.URL)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	cfg, err := config.LoadDefault(context.Background())
+	if err != nil {
+		return nil, err
+	}
 	accountClient := grantedv1alpha1.NewFromConfig(cfg)
 
 	r.mu.Lock()
