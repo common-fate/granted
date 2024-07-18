@@ -26,6 +26,7 @@ var Command = cli.Command{
 	Usage: "Request access to a role",
 	Subcommands: []*cli.Command{
 		&latestCommand,
+		&checkCommand,
 	},
 }
 

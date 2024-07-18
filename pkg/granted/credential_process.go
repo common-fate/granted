@@ -63,7 +63,7 @@ var CredentialProcess = cli.Command{
 			// try and look up session credentials from the secure storage cache.
 			cachedCreds, err := secureSessionCredentialStorage.GetCredentials(profileName)
 			if err != nil {
-				clio.Debugw("error loading cached credentials", "error", err)
+				clio.Debugw("error loading cached credentials", "error", err, "profile", profileName)
 			} else if cachedCreds == nil {
 				clio.Debugw("refreshing credentials", "reason", "cachedCreds was nil")
 			} else if cachedCreds.CanExpire && cachedCreds.Expires.Add(-c.Duration("window")).Before(time.Now()) {
@@ -77,6 +77,12 @@ var CredentialProcess = cli.Command{
 
 		if !useCache {
 			clio.Debugw("refreshing credentials", "reason", "credential process cache is disabled via config")
+		}
+
+		// purge the credentials from the cache
+		err = secureSessionCredentialStorage.SecureStorage.Clear(profileName)
+		if err != nil {
+			clio.Debugw("error clearing cached credentials", "error", err, "profile", profileName)
 		}
 
 		profiles, err := cfaws.LoadProfiles()

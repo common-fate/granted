@@ -1,25 +1,24 @@
 package granted
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"text/tabwriter"
 
-	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/securestorage"
-	"github.com/common-fate/granted/pkg/testable"
 	"github.com/urfave/cli/v2"
 )
 
 var CacheCommand = cli.Command{
 	Name:        "cache",
 	Usage:       "Manage your cached credentials that are stored in secure storage",
-	Subcommands: []*cli.Command{&ClearCommand, &ListCommand},
+	Subcommands: []*cli.Command{&clearCommand, &listCommand},
 }
 
-var ListCommand = cli.Command{
+var listCommand = cli.Command{
 	Name:  "list",
 	Usage: "List currently cached credentials and secure storage type",
 	Action: func(c *cli.Context) error {
@@ -53,18 +52,14 @@ var ListCommand = cli.Command{
 	},
 }
 
-var ClearCommand = cli.Command{
+var clearCommand = cli.Command{
 	Name:  "clear",
 	Usage: "Clear cached credential from the secure storage",
 	Flags: []cli.Flag{
 		&cli.BoolFlag{Name: "all", Usage: "clears all of the cached credentials from all secure storage"},
 		&cli.StringFlag{Name: "storage", Usage: "Specify the storage type"},
-		&cli.StringFlag{Name: "profile", Usage: "Specify the profile name of the credential which should be cleared"},
 	},
 	Action: func(c *cli.Context) error {
-
-		withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
-
 		storageToNameMap := map[string]securestorage.SecureStorage{
 			"aws-iam-credentials": securestorage.NewSecureIAMCredentialStorage().SecureStorage,
 			"sso-token":           securestorage.NewSecureSSOTokenStorage().SecureStorage,
@@ -95,49 +90,27 @@ var ClearCommand = cli.Command{
 		}
 
 		selection := c.String("storage")
-		if selection == "" {
-			in := survey.Select{
-				Message: "Select which secure storage would you like to clear cache from",
-				Options: []string{"aws-iam-credentials", "sso-token", "session-credentials"},
-			}
-			clio.NewLine()
-			err := testable.AskOne(&in, &selection, withStdio)
-			if err != nil {
-				return err
-			}
-		}
 
 		// store the credentials in secure storage
-		selectedStorage := storageToNameMap[selection]
+		selectedStorage, ok := storageToNameMap[selection]
+		if !ok {
+			return errors.New("please specify a valid storage to clear using --storage, for example: '--storage=session-credentials'. valid storages are: [aws-iam-credentials, sso-token, session-credentials]")
+		}
 
 		keys, err := selectedStorage.ListKeys()
 		if err != nil {
 			return err
 		}
 
-		if len(keys) == 0 {
-			clio.Warnf("You do not have any cached credentials for %s storage", selection)
-			return nil
-		}
-
-		selectedProfile := c.String("profile")
-		if selectedProfile == "" {
-			prompt := &survey.Select{
-				Message: "Select the profile name you want to clear cache for",
-				Options: keys,
-			}
-			err = survey.AskOne(prompt, &selectedProfile)
+		for _, key := range keys {
+			clio.Infow("clearing cache", "storage", selectedStorage, "key", key)
+			err = selectedStorage.Clear(key)
 			if err != nil {
 				return err
 			}
 		}
 
-		err = selectedStorage.Clear(selectedProfile)
-		if err != nil {
-			return err
-		}
-
-		clio.Successf("successfully cleared the cached credentials for '%s'", selectedProfile)
+		clio.Successf("cleared %v cache entries from %s", len(keys), selection)
 
 		return nil
 	},
