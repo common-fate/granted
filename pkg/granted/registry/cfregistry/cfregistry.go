@@ -38,11 +38,6 @@ func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient,
 		return r.client, nil
 	}
 
-	err := config.SwitchContext(r.opts.Name)
-	if err != nil {
-		return nil, err
-	}
-
 	cfg, err := config.LoadDefault(context.Background())
 	if err != nil {
 		return nil, err
