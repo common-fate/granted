@@ -50,7 +50,7 @@ func (s *SSOTokensSecureStorage) GetValidSSOToken(ctx context.Context, profileKe
 			clio.Warnf("[WARNING] Failed to pull from keyring cache. Specified keychain in config not an allowed backend.  Allowed keychain backends are: %s", keyring.AvailableBackends())
 			return nil
 		}
-		clio.Debugf("error retrieving IAM Identity Center token from secure storage: %s", err.Error())
+		clio.Warnf("error retrieving IAM Identity Center token from secure storage: %s", err.Error())
 		return nil
 	}
 	now := time.Now()
@@ -127,7 +127,7 @@ func (s *SSOTokensSecureStorage) StoreSSOToken(profileKey string, ssoTokenValue 
 			clio.Warnf("[WARNING] SSO token not persisted in cache. Specified keychain in config not an allowed backend.  Allowed keychain backends are: %s", keyring.AvailableBackends())
 			return
 		}
-		clio.Debugf("storing sso token from the credentials cache: %s", err)
+		clio.Warnf("storing sso token from the credentials cache: %s", err)
 	}
 }
 
