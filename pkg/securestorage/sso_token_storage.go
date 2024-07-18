@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/99designs/keyring"
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/ssooidc"
@@ -117,7 +118,7 @@ func (s *SSOTokensSecureStorage) GetValidSSOToken(ctx context.Context, profileKe
 func (s *SSOTokensSecureStorage) StoreSSOToken(profileKey string, ssoTokenValue SSOToken) {
 	err := s.SecureStorage.Store(profileKey, ssoTokenValue)
 	if err != nil {
-		clio.Debugf("writing sso token to credentials cache: %s", err.Error())
+		clio.Warnf("[WARNING] SSO token not persisted in cache. Specified keychain in config not an allowed backend.  Allowed keychain backends are: %s", keyring.AvailableBackends())
 	}
 }
 
