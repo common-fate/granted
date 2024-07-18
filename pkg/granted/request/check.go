@@ -9,6 +9,7 @@ import (
 	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/cfcfg"
+	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access/grants"
@@ -77,6 +78,14 @@ var checkCommand = cli.Command{
 				return nil
 			}
 		}
+
+		// no active Access Request exists, so the session token cache should be cleared for the profile.
+		cache := securestorage.NewSecureSessionCredentialStorage()
+		err = cache.SecureStorage.Clear(profileName)
+		if err != nil {
+			return fmt.Errorf("no active Access Request found for target %s and role %s: error clearing cache for profile %q: %w", target, profile.AWSConfig.SSORoleName, profileName, err)
+		}
+
 		return fmt.Errorf("no active Access Request found for target %s and role %s", target, profile.AWSConfig.SSORoleName)
 	},
 }
