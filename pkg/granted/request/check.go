@@ -64,14 +64,9 @@ var checkCommand = cli.Command{
 			return grants.Msg.Grants, &grants.Msg.NextPageToken, nil
 		})
 
-		cache := securestorage.NewSecureSessionCredentialStorage()
-
 		if queryGrantsErr != nil {
-			clio.Errorf("failed to query for active grants: %s", queryGrantsErr.Error())
-			err := cache.SecureStorage.Clear(profileName)
-			if err != nil {
-				return err
-			}
+			clearCacheProfileIfExists(profileName)
+			return fmt.Errorf("failed to query for active grants: %w", queryGrantsErr)
 		}
 
 		for _, grant := range grants {
@@ -84,11 +79,24 @@ var checkCommand = cli.Command{
 		}
 
 		// no active Access Request exists, so the session token cache should be cleared for the profile.
-		err = cache.SecureStorage.Clear(profileName)
-		if err != nil {
-			return fmt.Errorf("no active Access Request found for target %s and role %s: error clearing cache for profile %q: %w", target, profile.AWSConfig.SSORoleName, profileName, err)
-		}
+		clearCacheProfileIfExists(profileName)
 
 		return fmt.Errorf("no active Access Request found for target %s and role %s", target, profile.AWSConfig.SSORoleName)
 	},
+}
+
+func clearCacheProfileIfExists(profile string) {
+	cache := securestorage.NewSecureSessionCredentialStorage()
+	found, err := cache.SecureStorage.HasKey(profile)
+	if err != nil {
+		clio.Errorf("error checking cache for profile %q: %s", profile, err)
+	}
+	if !found {
+		return
+	}
+
+	err = cache.SecureStorage.Clear(profile)
+	if err != nil {
+		clio.Errorf("error clearing cache for profile %q: %s", profile, err)
+	}
 }
