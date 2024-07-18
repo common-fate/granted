@@ -189,7 +189,7 @@ func (m Merger) WithRegistry(src *ini.File, dst *ini.File, opts RegistryOpts) (*
 			return nil, err
 		}
 
-		//after the section has been copied, update the credential process if it exists to the new profile name
+		// after the section has been copied, update the credential process if it exists to the new profile name
 
 		if f.HasKey("credential_process") {
 			f.Key("credential_process").SetValue(strings.Replace(f.Key("credential_process").Value(), sec.Name(), f.Name(), 1))
