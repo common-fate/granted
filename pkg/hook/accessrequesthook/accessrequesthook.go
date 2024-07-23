@@ -16,6 +16,7 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/cfcfg"
+	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/gen/commonfate/access/v1alpha1/accessv1alpha1connect"
@@ -39,6 +40,7 @@ type NoAccessInput struct {
 }
 
 func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, err error) {
+
 	cfg, err := cfcfg.Load(ctx, input.Profile)
 	if err != nil {
 		clio.Debugw("failed to load cfconfig, skipping check for active grants in a common fate deployment", "error", err)
@@ -50,9 +52,33 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 
 	clio.Infof("You don't currently have access to %s, checking if we can request access...\t[target=%s, role=%s, url=%s]", input.Profile.Name, target, role, cfg.AccessURL)
 
+	retry, _, err = h.NoEntitlementAccess(ctx, cfg, NoEntitlementAccessInput{
+		Target:    target.String(),
+		Role:      role,
+		Reason:    input.Reason,
+		Duration:  input.Duration,
+		Confirm:   input.Confirm,
+		Wait:      input.Wait,
+		StartTime: input.StartTime,
+	})
+	return retry, err
+}
+
+type NoEntitlementAccessInput struct {
+	Target    string
+	Role      string
+	Reason    string
+	Duration  *durationpb.Duration
+	Confirm   bool
+	Wait      bool
+	StartTime time.Time
+}
+
+func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, input NoEntitlementAccessInput) (retry bool, result *accessv1alpha1.BatchEnsureResponse, err error) {
+
 	apiURL, err := url.Parse(cfg.APIURL)
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 
 	accessclient := access.NewFromConfig(cfg)
@@ -61,13 +87,13 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 		Entitlements: []*accessv1alpha1.EntitlementInput{
 			{
 				Target: &accessv1alpha1.Specifier{
-					Specify: &accessv1alpha1.Specifier_Eid{
-						Eid: target.ToAPI(),
+					Specify: &accessv1alpha1.Specifier_Lookup{
+						Lookup: input.Target,
 					},
 				},
 				Role: &accessv1alpha1.Specifier{
 					Specify: &accessv1alpha1.Specifier_Lookup{
-						Lookup: role,
+						Lookup: input.Role,
 					},
 				},
 				Duration: input.Duration,
@@ -76,7 +102,7 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 		Justification: &accessv1alpha1.Justification{},
 	}
 
-	hasChanges, validation, err := DryRun(ctx, apiURL, accessclient, &req, false, input.Confirm)
+	hasChanges, result, err := DryRun(ctx, apiURL, accessclient, &req, false, input.Confirm)
 	if shouldRefreshLogin(err) {
 		clio.Debugw("prompting user login because token is expired", "error_details", err.Error())
 		// NOTE(chrnorm): ideally we'll bubble up a more strongly typed error in future here, to avoid the string comparison on the error message.
@@ -87,21 +113,24 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 		lf := loginflow.NewFromConfig(cfg)
 		err = lf.Login(ctx)
 		if err != nil {
-			return false, err
+			return false, nil, err
 		}
 
 		accessclient = access.NewFromConfig(cfg)
 
 		// retry the Dry Run again
-		hasChanges, validation, err = DryRun(ctx, apiURL, accessclient, &req, false, input.Confirm)
+		hasChanges, result, err = DryRun(ctx, apiURL, accessclient, &req, false, input.Confirm)
 	}
 
 	if err != nil {
-		return false, err
+		return false, nil, err
 	}
 	if !hasChanges {
+		if input.Wait {
+			return true, result, nil
+		}
 		// shouldn't retry assuming if there aren't any proposed access changes
-		return false, errors.New("no access changes")
+		return false, nil, errors.New("no access changes")
 	}
 
 	// if we get here, dry-run has passed the user has confirmed they want to proceed.
@@ -110,9 +139,9 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 	if input.Reason != "" {
 		req.Justification.Reason = &input.Reason
 	} else {
-		if validation != nil && validation.HasReason {
+		if result.Validation != nil && result.Validation.HasReason {
 			if !IsTerminal(os.Stdin.Fd()) {
-				return false, errors.New("detected a noninteractive terminal: a reason is required to make this access request, to apply the planned changes please re-run with the --reason flag")
+				return false, nil, errors.New("detected a noninteractive terminal: a reason is required to make this access request, to apply the planned changes please re-run with the --reason flag")
 			}
 
 			var customReason string
@@ -125,7 +154,7 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 			err = survey.AskOne(reasonPrompt, &customReason, withStdio, survey.WithValidator(survey.Required))
 
 			if err != nil {
-				return false, err
+				return false, nil, err
 			}
 
 			req.Justification.Reason = &customReason
@@ -140,7 +169,7 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
 	if err != nil {
 		si.Stop()
-		return false, err
+		return false, nil, err
 	}
 	si.Stop()
 	//prints response diag messages
@@ -185,16 +214,16 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
 			if input.Wait {
-				return true, nil
+				return true, res.Msg, nil
 			}
 
-			return false, errors.New("applying access was attempted but the resources requested require approval before activation")
+			return false, nil, errors.New("applying access was attempted but the resources requested require approval before activation")
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:
 			// shouldn't happen in the dry-run request but handle anyway
 			color.New(color.FgRed).Fprintf(os.Stderr, "[ERROR] %s failed provisioning: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
-			return false, errors.New("access provisioning failed")
+			return false, nil, errors.New("access provisioning failed")
 		}
 
 		switch g.Grant.Status {
@@ -207,24 +236,26 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
 			color.New(color.FgWhite).Fprintf(os.Stderr, "[PENDING] %s is already pending: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
-
-			return false, errors.New("access is pending approval")
+			if input.Wait {
+				return true, res.Msg, nil
+			}
+			return false, nil, errors.New("access is pending approval")
 
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
 			color.New(color.FgWhite).Fprintf(os.Stderr, "[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
 
-			return false, errors.New("grant was closed")
+			return false, nil, errors.New("grant was closed")
 
 		default:
 			color.New(color.FgWhite).Fprintf(os.Stderr, "[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
-			return false, errors.New("grant was in an unspecified state")
+			return false, nil, errors.New("grant was in an unspecified state")
 		}
 
 	}
 
 	printdiags.Print(res.Msg.Diagnostics, names)
 
-	return retry, nil
+	return retry, res.Msg, nil
 
 }
 
@@ -234,20 +265,33 @@ func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
 		return err
 	}
 
-	accessclient := access.NewFromConfig(cfg)
 	target := eid.New("AWS::Account", input.Profile.AWSConfig.SSOAccountID)
 	role := input.Profile.AWSConfig.SSORoleName
+	_, err = h.RetryNoEntitlementAccess(ctx, cfg, NoEntitlementAccessInput{
+		Target:    target.String(),
+		Role:      role,
+		Reason:    input.Reason,
+		Duration:  input.Duration,
+		Confirm:   input.Confirm,
+		Wait:      input.Wait,
+		StartTime: input.StartTime,
+	})
+	return err
+}
+
+func (h Hook) RetryNoEntitlementAccess(ctx context.Context, cfg *config.Context, input NoEntitlementAccessInput) (result *accessv1alpha1.BatchEnsureResponse, err error) {
+
 	req := accessv1alpha1.BatchEnsureRequest{
 		Entitlements: []*accessv1alpha1.EntitlementInput{
 			{
 				Target: &accessv1alpha1.Specifier{
-					Specify: &accessv1alpha1.Specifier_Eid{
-						Eid: target.ToAPI(),
+					Specify: &accessv1alpha1.Specifier_Lookup{
+						Lookup: input.Target,
 					},
 				},
 				Role: &accessv1alpha1.Specifier{
 					Specify: &accessv1alpha1.Specifier_Lookup{
-						Lookup: role,
+						Lookup: input.Role,
 					},
 				},
 				Duration: input.Duration,
@@ -255,10 +299,10 @@ func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
 		},
 		Justification: &accessv1alpha1.Justification{},
 	}
-
+	accessclient := access.NewFromConfig(cfg)
 	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	clio.Debugw("batch ensure response", "res", res.Msg)
@@ -266,6 +310,8 @@ func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
 	now := time.Now()
 	elapsed := now.Sub(input.StartTime).Round(time.Second * 10)
 
+	allGrantsApproved := true
+	allGrantsActivated := true
 	for _, g := range res.Msg.Grants {
 
 		// if grant is approved but the change is unspecified then the user is not able to automatically activate
@@ -275,10 +321,20 @@ func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
 
 		if !g.Grant.Approved {
 			clio.Infof("Waiting for request to be approved... [%s elapsed]", elapsed)
+			allGrantsApproved = false
 		}
 
+		if g.Grant.ActivatedAt == nil {
+			allGrantsActivated = false
+		}
 	}
-	return nil
+	// Note: the current behaviour of Common Fate BatchEnsure is that it only returns the grant that you asked for event when a request already exists with multiple
+	// grants, if this changes in the future, we would need to fix this logic to correctly identify the grant that the user requested
+	// for now this will work
+	if !(allGrantsApproved && allGrantsActivated) {
+		return res.Msg, errors.New("waiting on all grants to be approved and activated")
+	}
+	return res.Msg, nil
 }
 
 func requestURL(apiURL *url.URL, grant *accessv1alpha1.Grant) string {
@@ -286,7 +342,7 @@ func requestURL(apiURL *url.URL, grant *accessv1alpha1.Grant) string {
 	return p.String()
 }
 
-func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.AccessServiceClient, req *accessv1alpha1.BatchEnsureRequest, jsonOutput bool, confirm bool) (bool, *accessv1alpha1.Validation, error) {
+func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.AccessServiceClient, req *accessv1alpha1.BatchEnsureRequest, jsonOutput bool, confirm bool) (bool, *accessv1alpha1.BatchEnsureResponse, error) {
 	req.DryRun = true
 
 	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
@@ -374,7 +430,7 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	printdiags.Print(res.Msg.Diagnostics, names)
 
 	if !hasChanges {
-		return false, nil, nil
+		return false, res.Msg, nil
 	}
 
 	if !confirm {
@@ -393,7 +449,7 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	}
 
 	clio.Info("Attempting to grant access...")
-	return confirm, res.Msg.Validation, nil
+	return confirm, res.Msg, nil
 }
 
 func IsTerminal(fd uintptr) bool {
