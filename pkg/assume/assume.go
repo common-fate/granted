@@ -578,8 +578,8 @@ func AssumeCommand(c *cli.Context) error {
 				clio.Warn("No credential suffix found. This can cause issues with using exported credentials if conflicting profiles exist. Run `granted settings export-suffix set` to set one.")
 			}
 
-			clio.Successf("Exported credentials to ~/.aws/credentials file as %s successfully", profileName)
-
+			credentialsFilePath := cfaws.GetAWSCredentialsPath()
+			clio.Successf("Exported credentials to %s file as %s successfully", credentialsFilePath, profileName)
 		}
 
 		if assumeFlags.Bool("export-sso-token") || cfg.ExportSSOToken {
