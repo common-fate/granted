@@ -157,4 +157,4 @@ require (
 	gopkg.in/ini.v1 v1.67.0
 )
 
-replace github.com/aws/session-manager-plugin => github.com/common-fate/session-manager-plugin v0.0.0-20240723020406-8ba300ac7b56
+replace github.com/aws/session-manager-plugin => github.com/common-fate/session-manager-plugin v0.0.0-20240723053832-3d311db99016

@@ -126,6 +126,9 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 		return false, nil, err
 	}
 	if !hasChanges {
+		if result != nil && len(result.Grants) == 1 && result.Grants[0].Grant.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE {
+			return false, result, nil
+		}
 		if input.Wait {
 			return true, result, nil
 		}
