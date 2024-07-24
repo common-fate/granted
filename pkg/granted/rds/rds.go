@@ -61,8 +61,7 @@ var proxyCommand = cli.Command{
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "target"},
 		&cli.StringFlag{Name: "role"},
-		&cli.IntFlag{Name: "mysql-port", Aliases: []string{"ms-port"}, Value: 3306, Usage: "The local port to forward the mysql database connection to"},
-		&cli.IntFlag{Name: "postgres-port", Aliases: []string{"pg-port"}, Value: 5432, Usage: "The local port to forward the postgres database connection to"},
+		&cli.IntFlag{Name: "port", Usage: "The local port to forward the mysql database connection to"},
 		&cli.StringFlag{Name: "reason", Usage: "Provide a reason for requesting access to the role"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "Skip confirmation prompts for access requests"},
 		&cli.BoolFlag{Name: "wait", Usage: "Wait for the access request to be approved."},
@@ -277,8 +276,7 @@ var proxyCommand = cli.Command{
 		}
 
 		// the port that the user connects to
-		mysqlPort := strconv.Itoa((c.Int("mysql-port")))
-		postgresPort := strconv.Itoa((c.Int("postgres-port")))
+		overridePort := c.Int("port")
 
 		ssmReadyForConnectionsChan := make(chan struct{})
 
@@ -427,13 +425,13 @@ var proxyCommand = cli.Command{
 			yellow := color.New(color.FgYellow)
 			switch commandData.GrantOutput.Database.Engine {
 			case "postgres":
-				port = postgresPort
-				connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable", commandData.GrantOutput.User.Username, postgresPort, commandData.GrantOutput.Database.Database)
-				cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable"`, commandData.GrantOutput.User.Username, postgresPort, commandData.GrantOutput.Database.Database)
+				port = grab.If(overridePort != 0, strconv.Itoa(overridePort), "5432")
+				connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable", commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
+				cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable"`, commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
 			case "mysql":
-				port = mysqlPort
-				connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%s)/%s", commandData.GrantOutput.User.Username, mysqlPort, commandData.GrantOutput.Database.Database)
-				cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %s %s`, commandData.GrantOutput.User.Username, mysqlPort, commandData.GrantOutput.Database.Database)
+				port = grab.If(overridePort != 0, strconv.Itoa(overridePort), "3306")
+				connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%s)/%s", commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
+				cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %s %s`, commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
 			default:
 				return fmt.Errorf("unsupported database engine: %s, maybe you need to update your `cf` cli", commandData.GrantOutput.Database.Engine)
 			}
