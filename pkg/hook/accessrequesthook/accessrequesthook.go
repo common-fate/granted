@@ -316,7 +316,9 @@ func (h Hook) RetryNoEntitlementAccess(ctx context.Context, cfg *config.Context,
 	allGrantsApproved := true
 	allGrantsActivated := true
 	for _, g := range res.Msg.Grants {
-
+		if g.Grant.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE {
+			continue
+		}
 		// if grant is approved but the change is unspecified then the user is not able to automatically activate
 		if g.Grant.Approved && g.Change == accessv1alpha1.GrantChange_GRANT_CHANGE_UNSPECIFIED && g.Grant.ProvisioningStatus != accessv1alpha1.ProvisioningStatus_PROVISIONING_STATUS_SUCCESSFUL {
 			clio.Infof("Request was approved but failed to activate, you might not have permission to activate. You can try and activate the access using the Common Fate web console. [%s elapsed]", elapsed)
@@ -326,10 +328,10 @@ func (h Hook) RetryNoEntitlementAccess(ctx context.Context, cfg *config.Context,
 			clio.Infof("Waiting for request to be approved... [%s elapsed]", elapsed)
 			allGrantsApproved = false
 		}
-
 		if g.Grant.ActivatedAt == nil {
 			allGrantsActivated = false
 		}
+
 	}
 	// Note: the current behaviour of Common Fate BatchEnsure is that it only returns the grant that you asked for event when a request already exists with multiple
 	// grants, if this changes in the future, we would need to fix this logic to correctly identify the grant that the user requested
