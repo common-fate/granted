@@ -64,7 +64,7 @@ var proxyCommand = cli.Command{
 		&cli.IntFlag{Name: "port", Usage: "The local port to forward the mysql database connection to"},
 		&cli.StringFlag{Name: "reason", Usage: "Provide a reason for requesting access to the role"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "Skip confirmation prompts for access requests"},
-		&cli.BoolFlag{Name: "wait", Usage: "Wait for the access request to be approved."},
+		&cli.BoolFlag{Name: "wait", Value: true, Usage: "Wait for the access request to be approved."},
 		&cli.BoolFlag{Name: "no-cache", Usage: "Disables caching of session credentials and forces a refresh", EnvVars: []string{"GRANTED_NO_CACHE"}},
 		&cli.DurationFlag{Name: "duration", Aliases: []string{"d"}, Usage: "The duration for your access request"},
 	},
