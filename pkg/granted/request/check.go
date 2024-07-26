@@ -36,21 +36,20 @@ var checkCommand = cli.Command{
 			return err
 		}
 
-		cfg, cfConfigErr := cfcfg.Load(c.Context, profile)
-		if cfConfigErr != nil {
-			clio.Debugw("failed to load cfconfig, skipping check for active grants in a common fate deployment", "error", cfConfigErr)
-			return err
+		cfg, err := cfcfg.Load(c.Context, profile)
+		if err != nil {
+			return fmt.Errorf("failed to load cfconfig, cannot check for active grants, %w", err)
 		}
 
 		grantsClient := grants.NewFromConfig(cfg)
 		idClient := identitysvc.NewFromConfig(cfg)
-		callerID, callerIDErr := idClient.GetCallerIdentity(c.Context, connect.NewRequest(&accessv1alpha1.GetCallerIdentityRequest{}))
-		if callerIDErr != nil {
+		callerID, err := idClient.GetCallerIdentity(c.Context, connect.NewRequest(&accessv1alpha1.GetCallerIdentityRequest{}))
+		if err != nil {
 			return err
 		}
 		target := eid.New("AWS::Account", profile.AWSConfig.SSOAccountID)
 
-		grants, queryGrantsErr := grab.AllPages(c.Context, func(ctx context.Context, nextToken *string) ([]*accessv1alpha1.Grant, *string, error) {
+		grants, err := grab.AllPages(c.Context, func(ctx context.Context, nextToken *string) ([]*accessv1alpha1.Grant, *string, error) {
 			grants, err := grantsClient.QueryGrants(c.Context, connect.NewRequest(&accessv1alpha1.QueryGrantsRequest{
 				Principal: callerID.Msg.Principal.Eid,
 				Target:    target.ToAPI(),
@@ -64,9 +63,9 @@ var checkCommand = cli.Command{
 			return grants.Msg.Grants, &grants.Msg.NextPageToken, nil
 		})
 
-		if queryGrantsErr != nil {
+		if err != nil {
 			clearCacheProfileIfExists(profileName)
-			return fmt.Errorf("failed to query for active grants: %w", queryGrantsErr)
+			return fmt.Errorf("failed to query for active grants: %w", err)
 		}
 
 		for _, grant := range grants {
