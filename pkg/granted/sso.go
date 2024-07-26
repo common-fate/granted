@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"path/filepath"
 	"sync"
 
 	"net/http"
@@ -40,6 +41,11 @@ var SSOCommand = cli.Command{
 	Usage:       "Manage your local AWS configuration file from information available in AWS SSO",
 	Subcommands: []*cli.Command{&GenerateCommand, &PopulateCommand, &LoginCommand},
 }
+
+const (
+	// permission for user to read/write.
+	USER_READ_WRITE_PERM = 0644 
+)
 
 // in dev:
 // go run ./cmd/granted/main.go sso generate --sso-region ap-southeast-2 [url]
@@ -179,6 +185,16 @@ var PopulateCommand = cli.Command{
 		noCredentialProcess := c.Bool("no-credential-process") || cfgSSO.NoCredentialProcess
 
 		configFilename := cfaws.GetAWSConfigPath()
+
+		// Create ~/.aws if it does not exists
+		dir := filepath.Dir(configFilename)
+		if _, err := os.Stat(dir); os.IsNotExist(err) {
+			clio.Infof("created AWS config file: %s", dir)
+			err = os.MkdirAll(dir, USER_READ_WRITE_PERM)
+			if err != nil {
+				return err
+			}
+		}
 
 		config, err := ini.LoadSources(ini.LoadOptions{
 			AllowNonUniqueSections:  false,
