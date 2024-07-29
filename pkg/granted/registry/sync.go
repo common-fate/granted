@@ -48,6 +48,13 @@ func SyncProfileRegistries(ctx context.Context, interactive bool) error {
 		return err
 	}
 
+	if configFile == nil {
+		// prevent a panic reported by a user due to configFile being empty.
+		// It is likely this is caused by Granted being run for the first time on
+		// a device that does not have AWS profiles set up.
+		return nil
+	}
+
 	m := awsmerge.Merger{}
 
 	for _, r := range registries {
