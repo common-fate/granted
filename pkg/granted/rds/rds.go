@@ -119,10 +119,10 @@ var proxyCommand = cli.Command{
 
 			for _, entitlement := range entitlements {
 				style := lipgloss.NewStyle().Width(cols[0].Width).MaxWidth(cols[0].Width).Inline(true)
-				target := lipgloss.NewStyle().Bold(true).Padding(0).Render(style.Render(runewidth.Truncate(entitlement.Target.Display(), cols[0].Width, "…")))
+				target := lipgloss.NewStyle().Padding(0).Render(style.Render(runewidth.Truncate(entitlement.Target.Display(), cols[0].Width, "…")))
 
 				style = lipgloss.NewStyle().Width(cols[1].Width).MaxWidth(cols[1].Width).Inline(true)
-				role := lipgloss.NewStyle().Bold(true).Padding(0).Render(style.Render(runewidth.Truncate(entitlement.Role.Display(), cols[1].Width, "…")))
+				role := lipgloss.NewStyle().Padding(0).Render(style.Render(runewidth.Truncate(entitlement.Role.Display(), cols[1].Width, "…")))
 
 				options = append(options, huh.Option[*accessv1alpha1.Entitlement]{
 					Key:   lipgloss.JoinHorizontal(lipgloss.Left, target, role),
@@ -152,8 +152,20 @@ var proxyCommand = cli.Command{
 		}
 
 		input := accessrequesthook.NoEntitlementAccessInput{
-			Target:    target,
-			Role:      role,
+			Entitlements: []*accessv1alpha1.EntitlementInput{
+				{
+					Target: &accessv1alpha1.Specifier{
+						Specify: &accessv1alpha1.Specifier_Lookup{
+							Lookup: target,
+						},
+					},
+					Role: &accessv1alpha1.Specifier{
+						Specify: &accessv1alpha1.Specifier_Lookup{
+							Lookup: role,
+						},
+					},
+				},
+			},
 			Reason:    c.String("reason"),
 			Duration:  duration,
 			Confirm:   c.Bool("confirm"),
