@@ -248,7 +248,6 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 		if err != nil {
 			return err
 		}
-		fmt.Printf("Flatpak app id: %s\n", flatpakAppID)
 		browserPath, err = exec.LookPath("flatpak")
 		if err != nil {
 			return errors.Wrap(err, "flatpak not found")

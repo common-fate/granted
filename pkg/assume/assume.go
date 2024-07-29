@@ -468,7 +468,6 @@ func AssumeCommand(c *cli.Context) error {
 		printFlagUsage(con.Region, con.Service)
 		clio.Infof("Opening a console for %s in your browser...", profile.Name)
 
-		clio.Infof("Opening console for %s in %s", profile.Name, cfg.DefaultBrowser)
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
 		args := l.LaunchCommand(consoleURL, containerProfile)
 
