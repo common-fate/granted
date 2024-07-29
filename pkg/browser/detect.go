@@ -50,7 +50,21 @@ func HandleManualBrowserSelection() (string, error) {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
 		Message: "Select one of the browsers from the list",
-		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Waterfox", "Chromium", "Safari", "Stdout", "FirefoxStdout", "Firefox Developer Edition", "Firefox Nightly", "Arc"},
+		Options: []string{
+			"Chrome",
+			"Brave",
+			"Edge",
+			"Firefox",
+			"Waterfox",
+			"Chromium",
+			"Safari",
+			"Stdout",
+			"FirefoxStdout",
+			"Firefox Developer Edition",
+			"Firefox Nightly",
+			"Arc",
+			"Flatpak - Firefox",
+		},
 	}
 	var selection string
 	clio.NewLine()
@@ -100,41 +114,44 @@ func Find() (string, error) {
 }
 
 func GetBrowserKey(b string) string {
-	if strings.Contains(strings.ToLower(b), "chrome") {
+	if strings.EqualFold(b, ChromeKey) {
 		return ChromeKey
 	}
 
-	if strings.ToLower(b) == "firefox developer edition" {
+	if strings.EqualFold(b, FirefoxDevEditionKey) {
 		return FirefoxDevEditionKey
 	}
 
-	if strings.ToLower(b) == "firefox nightly" {
+	if strings.EqualFold(b, FirefoxNightlyKey) {
 		return FirefoxNightlyKey
 	}
 
-	if strings.Contains(strings.ToLower(b), "brave") {
+	if strings.EqualFold(b, BraveKey) {
 		return BraveKey
 	}
-	if strings.Contains(strings.ToLower(b), "edge") {
+	if strings.EqualFold(b, EdgeKey) {
 		return EdgeKey
 	}
-	if strings.Contains(strings.ToLower(b), "firefoxstdout") {
+	if strings.EqualFold(b, FirefoxStdoutKey) {
 		return FirefoxStdoutKey
 	}
-	if strings.Contains(strings.ToLower(b), "firefox") || strings.Contains(strings.ToLower(b), "mozilla") {
+	if strings.EqualFold(b, FirefoxKey) || strings.ToLower(b) == "mozilla" {
 		return FirefoxKey
 	}
-	if strings.Contains(strings.ToLower(b), "waterfox") {
+	if strings.EqualFold(b, WaterfoxKey) {
 		return WaterfoxKey
 	}
-	if strings.Contains(strings.ToLower(b), "chromium") {
+	if strings.EqualFold(b, ChromiumKey) {
 		return ChromiumKey
 	}
-	if strings.Contains(strings.ToLower(b), "safari") {
+	if strings.EqualFold(b, SafariKey) {
 		return SafariKey
 	}
-	if strings.Contains(strings.ToLower(b), "arc") {
+	if strings.EqualFold(b, ArcKey) {
 		return ArcKey
+	}
+	if strings.EqualFold(b, FlatpakFirefoxKey) {
+		return FlatpakFirefoxKey
 	}
 
 	return StdoutKey
@@ -165,6 +182,8 @@ func DetectInstallation(browserKey string) (string, bool) {
 		bPath, _ = FirefoxDevPathDefaults()
 	case FirefoxNightlyKey:
 		bPath, _ = FirefoxNightlyPathDefaults()
+	case FlatpakFirefoxKey:
+		bPath, _ = FlatpakPathDefaults()
 	default:
 		return "", false
 	}
@@ -215,6 +234,33 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	browserTitle := title.String(strings.ToLower(browserKey))
 	// We allow users to configure a custom install path if we cannot detect the installation
 	browserPath := path
+	// flatpakPath is the path to the flatpak binary
+	flatpakAppID := ""
+
+	if strings.HasPrefix(browserKey, "FLATPAK") {
+		bpIn := survey.Input{Message: fmt.Sprintf("Please enter the Flatpak application identifier for %s (e.g. org.mozilla.firefox):", browserTitle)}
+		clio.NewLine()
+		err := testable.AskOne(&bpIn, &flatpakAppID, withStdio)
+		if err != nil {
+			return err
+		}
+		fmt.Printf("Flatpak app id: %s\n", flatpakAppID)
+		browserPath, err = exec.LookPath("flatpak")
+		if err != nil {
+			return errors.Wrap(err, "flatpak not found")
+		}
+
+		// check if the app is installed
+		cmd := exec.Command(browserPath, "list", "--app")
+		out, err := cmd.CombinedOutput()
+		if err != nil {
+			return errors.Wrap(err, "error listing flatpak apps")
+		}
+		if !strings.Contains(string(out), flatpakAppID) {
+			return errors.New("flatpak app not found")
+		}
+	}
+
 	// detect installation
 	if browserKey != FirefoxStdoutKey && browserKey != StdoutKey {
 
@@ -262,6 +308,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 
 	conf.DefaultBrowser = browserKey
 	conf.CustomBrowserPath = browserPath
+	conf.FlatpakBrowserAppID = flatpakAppID
 	err = conf.Save()
 	if err != nil {
 		return err

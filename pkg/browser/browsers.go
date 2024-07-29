@@ -21,6 +21,7 @@ const (
 	FirefoxDevEditionKey string = "FIREFOX_DEV"
 	FirefoxNightlyKey    string = "FIREFOX_NIGHTLY"
 	CommonFateKey        string = "COMMON_FATE"
+	FlatpakFirefoxKey    string = "FLATPAK_FIREFOX"
 )
 
 // A few default paths to check for the browser
@@ -59,6 +60,8 @@ var ChromiumPathWindows = []string{`\Program Files\Chromium\chromium.exe`}
 var SafariPathMac = []string{"/Applications/Safari.app/Contents/MacOS/Safari"}
 
 var ArcPathMac = []string{"/Applications/Arc.app/Contents/MacOS/Arc"}
+
+var FlatpakPathLinux = []string{`/usr/bin/flatpak`}
 
 func ChromePathDefaults() ([]string, error) {
 	// check linuxpath for binary install
@@ -133,6 +136,21 @@ func FirefoxPathDefaults() ([]string, error) {
 		return FirefoxPathMac, nil
 	case "linux":
 		return FirefoxPathLinux, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
+func FlatpakPathDefaults() ([]string, error) {
+	// check linuxpath for binary install
+	path, err := exec.LookPath("flatpak")
+	if err == nil {
+		return []string{path}, nil
+	}
+
+	switch runtime.GOOS {
+	case "linux":
+		return FlatpakPathLinux, nil
 	default:
 		return nil, errors.New("os not supported")
 	}

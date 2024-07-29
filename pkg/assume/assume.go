@@ -405,7 +405,12 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 
-		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey || cfg.DefaultBrowser == browser.FirefoxDevEditionKey || cfg.DefaultBrowser == browser.FirefoxNightlyKey {
+		if cfg.DefaultBrowser == browser.FirefoxKey ||
+			cfg.DefaultBrowser == browser.WaterfoxKey ||
+			cfg.DefaultBrowser == browser.FirefoxStdoutKey ||
+			cfg.DefaultBrowser == browser.FirefoxDevEditionKey ||
+			cfg.DefaultBrowser == browser.FirefoxNightlyKey ||
+			cfg.DefaultBrowser == browser.FlatpakFirefoxKey {
 			// transform the URL into the Firefox Tab Container format.
 			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", containerProfile, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
 		}
@@ -450,6 +455,12 @@ func AssumeCommand(c *cli.Context) error {
 				// for CommonFate, executable path must be set as custom browser path
 				ExecutablePath: browserPath,
 			}
+		case browser.FlatpakFirefoxKey:
+			l = launcher.Flatpak{
+				ExecutablePath: browserPath,
+				FlatpakID:      cfg.FlatpakBrowserAppID,
+				BrowserType:    browser.FirefoxKey,
+			}
 		default:
 			l = launcher.Open{}
 		}
@@ -457,12 +468,15 @@ func AssumeCommand(c *cli.Context) error {
 		printFlagUsage(con.Region, con.Service)
 		clio.Infof("Opening a console for %s in your browser...", profile.Name)
 
+		clio.Infof("Opening console for %s in %s", profile.Name, cfg.DefaultBrowser)
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
 		args := l.LaunchCommand(consoleURL, containerProfile)
+		clio.Infof("Launch Args: %s", args)
 
 		var startErr error
 		if l.UseForkProcess() {
 			clio.Debugf("running command using forkprocess: %s", args)
+
 			cmd, err := forkprocess.New(args...)
 			if err != nil {
 				return err
