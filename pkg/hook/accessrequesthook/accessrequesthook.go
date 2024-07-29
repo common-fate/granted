@@ -53,8 +53,16 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 	clio.Infof("You don't currently have access to %s, checking if we can request access...\t[target=%s, role=%s, url=%s]", input.Profile.Name, target, role, cfg.AccessURL)
 
 	retry, _, err = h.NoEntitlementAccess(ctx, cfg, NoEntitlementAccessInput{
-		Target:    target.String(),
-		Role:      role,
+		Entitlements: []*accessv1alpha1.EntitlementInput{
+			{
+				Target: target.ToSpecifier(),
+				Role: &accessv1alpha1.Specifier{
+					Specify: &accessv1alpha1.Specifier_Lookup{
+						Lookup: role,
+					},
+				},
+			},
+		},
 		Reason:    input.Reason,
 		Duration:  input.Duration,
 		Confirm:   input.Confirm,
@@ -65,13 +73,12 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 }
 
 type NoEntitlementAccessInput struct {
-	Target    string
-	Role      string
-	Reason    string
-	Duration  *durationpb.Duration
-	Confirm   bool
-	Wait      bool
-	StartTime time.Time
+	Entitlements []*accessv1alpha1.EntitlementInput
+	Reason       string
+	Duration     *durationpb.Duration
+	Confirm      bool
+	Wait         bool
+	StartTime    time.Time
 }
 
 func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, input NoEntitlementAccessInput) (retry bool, result *accessv1alpha1.BatchEnsureResponse, err error) {
@@ -83,22 +90,12 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 
 	accessclient := access.NewFromConfig(cfg)
 
+	for i := range input.Entitlements {
+		input.Entitlements[i].Duration = input.Duration
+	}
+
 	req := accessv1alpha1.BatchEnsureRequest{
-		Entitlements: []*accessv1alpha1.EntitlementInput{
-			{
-				Target: &accessv1alpha1.Specifier{
-					Specify: &accessv1alpha1.Specifier_Lookup{
-						Lookup: input.Target,
-					},
-				},
-				Role: &accessv1alpha1.Specifier{
-					Specify: &accessv1alpha1.Specifier_Lookup{
-						Lookup: input.Role,
-					},
-				},
-				Duration: input.Duration,
-			},
-		},
+		Entitlements:  input.Entitlements,
 		Justification: &accessv1alpha1.Justification{},
 	}
 
@@ -125,9 +122,17 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 	if err != nil {
 		return false, nil, err
 	}
+
 	if !hasChanges {
-		if result != nil && len(result.Grants) == 1 && result.Grants[0].Grant.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE {
-			return false, result, nil
+		if result != nil {
+			allGrantsActive := true
+			for _, grant := range result.Grants {
+				if grant.Grant.Status != accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE {
+					allGrantsActive = false
+					break
+				}
+			}
+			return !allGrantsActive, result, nil
 		}
 		if input.Wait {
 			return true, result, nil
@@ -271,8 +276,16 @@ func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
 	target := eid.New("AWS::Account", input.Profile.AWSConfig.SSOAccountID)
 	role := input.Profile.AWSConfig.SSORoleName
 	_, err = h.RetryNoEntitlementAccess(ctx, cfg, NoEntitlementAccessInput{
-		Target:    target.String(),
-		Role:      role,
+		Entitlements: []*accessv1alpha1.EntitlementInput{
+			{
+				Target: target.ToSpecifier(),
+				Role: &accessv1alpha1.Specifier{
+					Specify: &accessv1alpha1.Specifier_Lookup{
+						Lookup: role,
+					},
+				},
+			},
+		},
 		Reason:    input.Reason,
 		Duration:  input.Duration,
 		Confirm:   input.Confirm,
@@ -283,23 +296,12 @@ func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
 }
 
 func (h Hook) RetryNoEntitlementAccess(ctx context.Context, cfg *config.Context, input NoEntitlementAccessInput) (result *accessv1alpha1.BatchEnsureResponse, err error) {
+	for i := range input.Entitlements {
+		input.Entitlements[i].Duration = input.Duration
+	}
 
 	req := accessv1alpha1.BatchEnsureRequest{
-		Entitlements: []*accessv1alpha1.EntitlementInput{
-			{
-				Target: &accessv1alpha1.Specifier{
-					Specify: &accessv1alpha1.Specifier_Lookup{
-						Lookup: input.Target,
-					},
-				},
-				Role: &accessv1alpha1.Specifier{
-					Specify: &accessv1alpha1.Specifier_Lookup{
-						Lookup: input.Role,
-					},
-				},
-				Duration: input.Duration,
-			},
-		},
+		Entitlements:  input.Entitlements,
 		Justification: &accessv1alpha1.Justification{},
 	}
 	accessclient := access.NewFromConfig(cfg)

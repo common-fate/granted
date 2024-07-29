@@ -168,8 +168,14 @@ func AssumeCommand(c *cli.Context) error {
 
 			clio.Successf("Saved AWS profile as %s. You can use this profile with the AWS CLI using the '--profile' flags when running AWS commands.", saveProfileName)
 		}
+
 	} else if activeRoleFlag && os.Getenv("GRANTED_SSO") == "true" {
 		profile, err = SSOProfileFromEnv()
+		if err != nil {
+			return err
+		}
+	} else if assumeFlags.Bool("aws-resources") {
+		profile, err = ResourceAccess(c)
 		if err != nil {
 			return err
 		}
@@ -618,7 +624,7 @@ func AssumeCommand(c *cli.Context) error {
 			return nil
 		}
 
-		if assumeFlags.Bool("sso") {
+		if assumeFlags.Bool("sso") || assumeFlags.Bool("aws-resources") {
 			output := PrepareStringsForShellScript([]string{creds.AccessKeyID, creds.SecretAccessKey, creds.SessionToken, "", region, sessionExpiration, "true", profile.SSOStartURL(), profile.AWSConfig.SSORoleName, profile.SSORegion(), profile.AWSConfig.SSOAccountID, ""})
 			fmt.Printf("GrantedAssume %s %s %s %s %s %s %s %s %s %s %s %s", output...)
 
