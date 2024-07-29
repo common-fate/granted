@@ -471,12 +471,10 @@ func AssumeCommand(c *cli.Context) error {
 		clio.Infof("Opening console for %s in %s", profile.Name, cfg.DefaultBrowser)
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
 		args := l.LaunchCommand(consoleURL, containerProfile)
-		clio.Infof("Launch Args: %s", args)
 
 		var startErr error
 		if l.UseForkProcess() {
 			clio.Debugf("running command using forkprocess: %s", args)
-
 			cmd, err := forkprocess.New(args...)
 			if err != nil {
 				return err

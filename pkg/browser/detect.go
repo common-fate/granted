@@ -125,7 +125,13 @@ func GetBrowserKey(b string) string {
 	if strings.EqualFold(b, FirefoxNightlyKey) {
 		return FirefoxNightlyKey
 	}
-
+	if strings.HasPrefix(strings.ToLower(b), "flatpak") {
+		clio.Infof("Returning %s", FlatpakFirefoxKey)
+		switch b {
+		case "Flatpak - Firefox":
+			return FlatpakFirefoxKey
+		}
+	}
 	if strings.EqualFold(b, BraveKey) {
 		return BraveKey
 	}
@@ -135,7 +141,7 @@ func GetBrowserKey(b string) string {
 	if strings.EqualFold(b, FirefoxStdoutKey) {
 		return FirefoxStdoutKey
 	}
-	if strings.EqualFold(b, FirefoxKey) || strings.ToLower(b) == "mozilla" {
+	if strings.EqualFold(b, FirefoxKey) || strings.Contains(strings.ToLower(b), "mozilla") {
 		return FirefoxKey
 	}
 	if strings.EqualFold(b, WaterfoxKey) {
@@ -149,9 +155,6 @@ func GetBrowserKey(b string) string {
 	}
 	if strings.EqualFold(b, ArcKey) {
 		return ArcKey
-	}
-	if strings.EqualFold(b, FlatpakFirefoxKey) {
-		return FlatpakFirefoxKey
 	}
 
 	return StdoutKey
@@ -184,6 +187,7 @@ func DetectInstallation(browserKey string) (string, bool) {
 		bPath, _ = FirefoxNightlyPathDefaults()
 	case FlatpakFirefoxKey:
 		bPath, _ = FlatpakPathDefaults()
+		clio.Infof("Flatpak path: %s", bPath)
 	default:
 		return "", false
 	}
