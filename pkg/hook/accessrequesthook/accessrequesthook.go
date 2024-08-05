@@ -39,12 +39,12 @@ type NoAccessInput struct {
 	StartTime time.Time
 }
 
-func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, err error) {
+func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, justActivated bool, err error) {
 
 	cfg, err := cfcfg.Load(ctx, input.Profile)
 	if err != nil {
 		clio.Debugw("failed to load cfconfig, skipping check for active grants in a common fate deployment", "error", err)
-		return false, nil
+		return false, false, nil
 	}
 
 	target := eid.New("AWS::Account", input.Profile.AWSConfig.SSOAccountID)
@@ -52,7 +52,7 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 
 	clio.Infof("You don't currently have access to %s, checking if we can request access...\t[target=%s, role=%s, url=%s]", input.Profile.Name, target, role, cfg.AccessURL)
 
-	retry, _, err = h.NoEntitlementAccess(ctx, cfg, NoEntitlementAccessInput{
+	retry, _, justActivated, err = h.NoEntitlementAccess(ctx, cfg, NoEntitlementAccessInput{
 		Target:    target.String(),
 		Role:      role,
 		Reason:    input.Reason,
@@ -61,7 +61,8 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, er
 		Wait:      input.Wait,
 		StartTime: input.StartTime,
 	})
-	return retry, err
+
+	return retry, justActivated, err
 }
 
 type NoEntitlementAccessInput struct {
@@ -74,11 +75,13 @@ type NoEntitlementAccessInput struct {
 	StartTime time.Time
 }
 
-func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, input NoEntitlementAccessInput) (retry bool, result *accessv1alpha1.BatchEnsureResponse, err error) {
+func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, input NoEntitlementAccessInput) (retry bool, result *accessv1alpha1.BatchEnsureResponse, justActivated bool, err error) {
+
+	justActivated = false
 
 	apiURL, err := url.Parse(cfg.APIURL)
 	if err != nil {
-		return false, nil, err
+		return false, nil, justActivated, err
 	}
 
 	accessclient := access.NewFromConfig(cfg)
@@ -113,7 +116,7 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 		lf := loginflow.NewFromConfig(cfg)
 		err = lf.Login(ctx)
 		if err != nil {
-			return false, nil, err
+			return false, nil, justActivated, err
 		}
 
 		accessclient = access.NewFromConfig(cfg)
@@ -123,17 +126,17 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 	}
 
 	if err != nil {
-		return false, nil, err
+		return false, nil, justActivated, err
 	}
 	if !hasChanges {
 		if result != nil && len(result.Grants) == 1 && result.Grants[0].Grant.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE {
-			return false, result, nil
+			return false, result, justActivated, nil
 		}
 		if input.Wait {
-			return true, result, nil
+			return true, result, justActivated, nil
 		}
 		// shouldn't retry assuming if there aren't any proposed access changes
-		return false, nil, errors.New("no access changes")
+		return false, nil, justActivated, errors.New("no access changes")
 	}
 
 	// if we get here, dry-run has passed the user has confirmed they want to proceed.
@@ -144,7 +147,7 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 	} else {
 		if result.Validation != nil && result.Validation.HasReason {
 			if !IsTerminal(os.Stdin.Fd()) {
-				return false, nil, errors.New("detected a noninteractive terminal: a reason is required to make this access request, to apply the planned changes please re-run with the --reason flag")
+				return false, nil, justActivated, errors.New("detected a noninteractive terminal: a reason is required to make this access request, to apply the planned changes please re-run with the --reason flag")
 			}
 
 			var customReason string
@@ -157,7 +160,7 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 			err = survey.AskOne(reasonPrompt, &customReason, withStdio, survey.WithValidator(survey.Required))
 
 			if err != nil {
-				return false, nil, err
+				return false, nil, justActivated, err
 			}
 
 			req.Justification.Reason = &customReason
@@ -172,7 +175,7 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
 	if err != nil {
 		si.Stop()
-		return false, nil, err
+		return false, nil, justActivated, err
 	}
 	si.Stop()
 	//prints response diag messages
@@ -201,12 +204,18 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 			color.New(color.FgGreen).Fprintf(os.Stderr, " %s was activated for %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
 
 			retry = true
+			justActivated = true
 
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
-			color.New(color.BgBlue).Fprintf(os.Stderr, "[EXTENDED]")
-			color.New(color.FgBlue).Fprintf(os.Stderr, " %s was extended for another %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			extendedTime := ""
+			if g.Grant.Extension != nil {
+				extendedTime = ShortDur(g.Grant.Extension.ExtensionDurationSeconds.AsDuration())
+			}
+			color.New(color.BgBlue).Printf("[EXTENDED]")
+			color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
+			color.New(color.FgGreen).Printf(" %s will now expire in %s\n", g.Grant.Name, exp)
 
 			retry = true
 
@@ -217,16 +226,16 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
 			if input.Wait {
-				return true, res.Msg, nil
+				return true, res.Msg, justActivated, nil
 			}
 
-			return false, nil, errors.New("applying access was attempted but the resources requested require approval before activation")
+			return false, nil, justActivated, errors.New("applying access was attempted but the resources requested require approval before activation")
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:
 			// shouldn't happen in the dry-run request but handle anyway
 			color.New(color.FgRed).Fprintf(os.Stderr, "[ERROR] %s failed provisioning: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
-			return false, nil, errors.New("access provisioning failed")
+			return false, nil, justActivated, errors.New("access provisioning failed")
 		}
 
 		switch g.Grant.Status {
@@ -240,25 +249,25 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
 			color.New(color.FgWhite).Fprintf(os.Stderr, "[PENDING] %s is already pending: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 			if input.Wait {
-				return true, res.Msg, nil
+				return true, res.Msg, justActivated, nil
 			}
-			return false, nil, errors.New("access is pending approval")
+			return false, nil, justActivated, errors.New("access is pending approval")
 
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
 			color.New(color.FgWhite).Fprintf(os.Stderr, "[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
 
-			return false, nil, errors.New("grant was closed")
+			return false, nil, justActivated, errors.New("grant was closed")
 
 		default:
 			color.New(color.FgWhite).Fprintf(os.Stderr, "[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
-			return false, nil, errors.New("grant was in an unspecified state")
+			return false, nil, justActivated, errors.New("grant was in an unspecified state")
 		}
 
 	}
 
 	printdiags.Print(res.Msg.Diagnostics, names)
 
-	return retry, res.Msg, nil
+	return retry, res.Msg, justActivated, nil
 
 }
 
@@ -402,8 +411,12 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
-			color.New(color.BgBlue).Fprintf(os.Stderr, "[WILL EXTEND]")
-			color.New(color.FgBlue).Fprintf(os.Stderr, " %s will be extended for another %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			extendedTime := ""
+			if g.Grant.Extension != nil {
+				extendedTime = ShortDur(g.Grant.Extension.ExtensionDurationSeconds.AsDuration())
+			}
+			color.New(color.BgBlue).Printf("[WILL EXTEND]")
+			color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
