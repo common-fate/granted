@@ -205,8 +205,13 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
-			color.New(color.BgBlue).Fprintf(os.Stderr, "[EXTENDED]")
-			color.New(color.FgBlue).Fprintf(os.Stderr, " %s was extended for another %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			extendedTime := ""
+			if g.Grant.Extension != nil {
+				extendedTime = ShortDur(g.Grant.Extension.ExtensionDurationSeconds.AsDuration())
+			}
+			color.New(color.BgBlue).Printf("[EXTENDED]")
+			color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
+			color.New(color.FgGreen).Printf(" %s will now expire in %s\n", g.Grant.Name, exp)
 
 			retry = true
 
@@ -402,8 +407,12 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
-			color.New(color.BgBlue).Fprintf(os.Stderr, "[WILL EXTEND]")
-			color.New(color.FgBlue).Fprintf(os.Stderr, " %s will be extended for another %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			extendedTime := ""
+			if g.Grant.Extension != nil {
+				extendedTime = ShortDur(g.Grant.Extension.ExtensionDurationSeconds.AsDuration())
+			}
+			color.New(color.BgBlue).Printf("[WILL EXTEND]")
+			color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
