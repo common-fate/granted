@@ -8,6 +8,7 @@ package config
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
 
 	"github.com/BurntSushi/toml"
@@ -169,14 +170,19 @@ func SetupZSHAutoCompleteFolderGranted() (string, error) {
 	return zshPath, nil
 }
 
-// TODO Set to XDG_CONFIG_HOME if defined
 func GrantedConfigFolder() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return "", err
 	}
-	// check if the .granted folder already exists
-	return path.Join(home, build.ConfigFolderName), nil
+
+	configDir := filepath.Join(home, build.ConfigFolderName)
+	if xdgConfigDir := os.Getenv("XDG_CONFIG_HOME"); !pathExists(configDir) && xdgConfigDir != "" {
+		// ? Should this be "build.ConfigFolderName" or "granted". Directory names in XDG_CONFIG_HOME usually omit the dot. 
+		configDir = filepath.Join(xdgConfigDir, build.ConfigFolderName)
+	}
+
+	return configDir, nil
 }
 
 func GrantedConfigFilePath() (string, error) {
@@ -186,6 +192,11 @@ func GrantedConfigFilePath() (string, error) {
 	}
 	configFilePath := path.Join(grantedFolder, "config")
 	return configFilePath, nil
+}
+
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func Load() (*Config, error) {
