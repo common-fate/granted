@@ -161,7 +161,7 @@ var proxyCommand = cli.Command{
 			StartTime: time.Now(),
 		}
 		hook := accessrequesthook.Hook{}
-		retry, result, err := hook.NoEntitlementAccess(ctx, cfg, input)
+		retry, result, _, err := hook.NoEntitlementAccess(ctx, cfg, input)
 		if err != nil {
 			return err
 		}

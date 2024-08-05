@@ -103,7 +103,7 @@ var latestCommand = cli.Command{
 			apiDuration = durationpb.New(duration)
 		}
 
-		_, err = hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
+		_, _, err = hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
 			Profile:  profile,
 			Reason:   reason,
 			Duration: apiDuration,

@@ -357,7 +357,7 @@ func AssumeCommand(c *cli.Context) error {
 				Wait:      wait,
 				StartTime: time.Now(),
 			}
-			retry, hookErr := hook.NoAccess(c.Context, noAccessInput)
+			retry, justActivated, hookErr := hook.NoAccess(c.Context, noAccessInput)
 			if hookErr != nil {
 				return hookErr
 			}
@@ -370,17 +370,22 @@ func AssumeCommand(c *cli.Context) error {
 				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 
-					//also proactively check if request has been approved and attempt to activate
-					err = hook.RetryAccess(ctx, noAccessInput)
-					if err != nil {
-
-						return sethRetry.RetryableError(err)
+					if !justActivated {
+						//also proactively check if request has been approved and attempt to activate
+						err = hook.RetryAccess(ctx, noAccessInput)
+						if err != nil {
+							return sethRetry.RetryableError(err)
+						}
 					}
 
 					creds, err = profile.AssumeConsole(c.Context, configOpts)
 					if err != nil {
 						return sethRetry.RetryableError(err)
 					}
+
+					// If we successfully got credentials, mark as just activated
+					justActivated = true
+
 					return nil
 				})
 				if err != nil {
@@ -506,7 +511,7 @@ func AssumeCommand(c *cli.Context) error {
 				Wait:      wait,
 				StartTime: time.Now(),
 			}
-			retry, hookErr := hook.NoAccess(c.Context, noAccessInput)
+			retry, justActivated, hookErr := hook.NoAccess(c.Context, noAccessInput)
 			if hookErr != nil {
 				return hookErr
 			}
@@ -519,18 +524,22 @@ func AssumeCommand(c *cli.Context) error {
 				b = sethRetry.WithMaxDuration(retryDuration, b)
 				err = sethRetry.Do(c.Context, b, func(ctx context.Context) (err error) {
 
-					//also proactively check if request has been approved and attempt to activate
-					err = hook.RetryAccess(ctx, noAccessInput)
-					if err != nil {
-
-						return sethRetry.RetryableError(err)
+					if !justActivated {
+						//also proactively check if request has been approved and attempt to activate
+						err = hook.RetryAccess(ctx, noAccessInput)
+						if err != nil {
+							return sethRetry.RetryableError(err)
+						}
 					}
-					//attempt to assume the role
+
 					creds, err = profile.AssumeTerminal(c.Context, configOpts)
 					if err != nil {
 
 						return sethRetry.RetryableError(err)
 					}
+
+					// If we successfully got credentials, mark as just activated
+					justActivated = true
 
 					return nil
 				})
