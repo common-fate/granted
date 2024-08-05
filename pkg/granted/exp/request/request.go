@@ -735,6 +735,7 @@ func updateCachedAccessRule(ctx context.Context, opts updateCacheOpts) error {
 }
 
 func getCacheFolder(depID string) (string, error) {
+	// TODO Set to XDG_CACHE_HOME if defined
 	configFolder, err := config.GrantedConfigFolder()
 	if err != nil {
 		return "", err

@@ -169,6 +169,7 @@ func SetupZSHAutoCompleteFolderGranted() (string, error) {
 	return zshPath, nil
 }
 
+// TODO Set to XDG_CONFIG_HOME if defined
 func GrantedConfigFolder() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {

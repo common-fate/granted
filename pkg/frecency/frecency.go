@@ -62,6 +62,7 @@ func (store *FrecencyStore) GetFrecentEntriess(optionalLimit *int) []interface{}
 
 func Load(fecencyStoreKey string) (*FrecencyStore, error) {
 	c := FrecencyStore{MaxFrequency: 1, OldestDate: time.Now()}
+	// TODO Set to XDG_CACHE_HOME if defined
 	configFolder, err := config.GrantedConfigFolder()
 	if err != nil {
 		return nil, err
