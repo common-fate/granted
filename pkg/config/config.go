@@ -169,6 +169,52 @@ func SetupZSHAutoCompleteFolderGranted() (string, error) {
 	return zshPath, nil
 }
 
+// checks and or creates the config folder on startup
+func SetupBashAutoCompleteFolderAssume() (string, error) {
+	grantedFolder, err := GrantedConfigFolder()
+	if err != nil {
+		return "", err
+	}
+	bashPath := path.Join(grantedFolder, "bash_autocomplete")
+	if _, err := os.Stat(bashPath); os.IsNotExist(err) {
+		err := os.Mkdir(bashPath, 0700)
+		if err != nil {
+			return "", err
+		}
+	}
+	bashPath = path.Join(bashPath, build.AssumeScriptName())
+	if _, err := os.Stat(bashPath); os.IsNotExist(err) {
+		err := os.Mkdir(bashPath, 0700)
+		if err != nil {
+			return "", err
+		}
+	}
+	return bashPath, nil
+}
+
+// checks and or creates the config folder on startup
+func SetupBashAutoCompleteFolderGranted() (string, error) {
+	grantedFolder, err := GrantedConfigFolder()
+	if err != nil {
+		return "", err
+	}
+	bashPath := path.Join(grantedFolder, "bash_autocomplete")
+	if _, err := os.Stat(bashPath); os.IsNotExist(err) {
+		err := os.Mkdir(bashPath, 0700)
+		if err != nil {
+			return "", err
+		}
+	}
+	bashPath = path.Join(bashPath, build.GrantedBinaryName())
+	if _, err := os.Stat(bashPath); os.IsNotExist(err) {
+		err := os.Mkdir(bashPath, 0700)
+		if err != nil {
+			return "", err
+		}
+	}
+	return bashPath, nil
+}
+
 func GrantedConfigFolder() (string, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
