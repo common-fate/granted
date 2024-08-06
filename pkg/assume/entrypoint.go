@@ -97,8 +97,8 @@ func GetCliApp() *cli.App {
 				return err
 			}
 
-			// TODO Set to XDG_STATE_HOME if variable defined
-			grantedFolder, err := config.GrantedConfigFolder()
+			// TODO Verify change works
+			grantedFolder, err := config.GrantedStateFolder()
 			if err != nil {
 				return err
 			}
