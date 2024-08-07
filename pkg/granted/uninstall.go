@@ -30,16 +30,19 @@ var UninstallCommand = cli.Command{
 			if err != nil {
 				clio.Error(err.Error())
 			}
-			grantedFolder, err := config.GrantedConfigFolder()
-			if err != nil {
-				return err
-			}
-			err = os.RemoveAll(grantedFolder)
+			grantedFolder, err := config.GrantedFolders()
 			if err != nil {
 				return err
 			}
 
-			clio.Successf("Removed Granted config folder %s\n", grantedFolder)
+			for _, dir := range grantedFolder {
+				err = os.RemoveAll(dir)
+				if err != nil {
+					return err
+				}
+
+				clio.Successf("Removed Granted config folder %s", dir)
+			}
 		}
 		return nil
 	},

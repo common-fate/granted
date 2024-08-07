@@ -8,7 +8,9 @@ package config
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
+	"slices"
 
 	"github.com/BurntSushi/toml"
 
@@ -174,8 +176,14 @@ func GrantedConfigFolder() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// check if the .granted folder already exists
-	return path.Join(home, build.ConfigFolderName), nil
+
+	configDir := filepath.Join(home, build.ConfigFolderName)
+	if xdgConfigDir := os.Getenv("XDG_CONFIG_HOME"); !pathExists(configDir) && xdgConfigDir != "" {
+		// ? Should this be "build.ConfigFolderName" or "granted". Directory names in XDG_CONFIG_HOME usually omit the dot prefix. 
+		configDir = filepath.Join(xdgConfigDir, build.ConfigFolderName)
+	}
+
+	return configDir, nil
 }
 
 func GrantedConfigFilePath() (string, error) {
@@ -185,6 +193,57 @@ func GrantedConfigFilePath() (string, error) {
 	}
 	configFilePath := path.Join(grantedFolder, "config")
 	return configFilePath, nil
+}
+
+func GrantedCacheFolder() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	cacheDir := filepath.Join(home, build.ConfigFolderName)
+	if xdgCacheDir := os.Getenv("XDG_CACHE_HOME"); !pathExists(cacheDir) && xdgCacheDir != "" {
+		// ? Should this be "build.ConfigFolderName" or "granted". Directory names in XDG_CACHE_HOME usually omit the dot prefix. 
+		cacheDir = filepath.Join(xdgCacheDir, build.ConfigFolderName)
+	}
+
+	return cacheDir, nil
+}
+
+func GrantedStateFolder() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	stateDir := filepath.Join(home, build.ConfigFolderName)
+	if xdgStateDir := os.Getenv("XDG_STATE_HOME"); !pathExists(stateDir) && xdgStateDir != "" {
+		// ? Should this be "build.ConfigFolderName" or "granted". Directory names in XDG_STATE_HOME usually omit the dot prefix. 
+		stateDir = filepath.Join(xdgStateDir, build.ConfigFolderName)
+	}
+
+	return stateDir, nil
+}
+
+// GrantedFolders creates a slice of directories created during installation and removes duplicates
+func GrantedFolders() ([]string, error) {
+	var grantedDirs []string
+	configDir, _ := GrantedConfigFolder()
+	cacheDir, _ := GrantedCacheFolder()
+	stateDir, _ := GrantedStateFolder()
+	grantedDirs = append(grantedDirs, configDir)
+	grantedDirs = append(grantedDirs, cacheDir)
+	grantedDirs = append(grantedDirs, stateDir)
+
+	grantedDirs = slices.Compact(grantedDirs)
+
+	return grantedDirs, nil
+}
+
+// pathExists checks if a given file exists and returns true or false
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func Load() (*Config, error) {

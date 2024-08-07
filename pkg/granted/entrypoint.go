@@ -70,7 +70,7 @@ func GetCliApp() *cli.App {
 			}
 			clio.SetLevelFromEnv("GRANTED_LOG")
 
-			grantedFolder, err := config.GrantedConfigFolder()
+			grantedFolder, err := config.GrantedStateFolder()
 			if err != nil {
 				return err
 			}
