@@ -140,6 +140,61 @@ func installZSHCompletions(c *cli.Context) error {
 }
 
 func installBashCompletions(c *cli.Context) error {
-	clio.Info("We don't have completion support for bash yet, check out our docs to find out how to let us know you want this feature https://granted.dev/autocompletion")
+	file, err := shells.GetBashConfigFile()
+	if err != nil {
+		return err
+	}
+
+	tmpl, err := template.ParseFS(templateFiles, "templates/*")
+	if err != nil {
+		return err
+	}
+
+	assumeData := AutoCompleteTemplateData{
+		Program: build.AssumeScriptName(),
+	}
+	assume := new(bytes.Buffer)
+	err = tmpl.ExecuteTemplate(assume, "bash_autocomplete_assume.tmpl", assumeData)
+	if err != nil {
+		return err
+	}
+	grantedData := AutoCompleteTemplateData{
+		Program: build.GrantedBinaryName(),
+	}
+	granted := new(bytes.Buffer)
+	err = tmpl.ExecuteTemplate(granted, "bash_autocomplete_granted.tmpl", grantedData)
+	if err != nil {
+		return err
+	}
+
+	bashPathAssume, err := config.SetupBashAutoCompleteFolderAssume()
+	if err != nil {
+		return err
+	}
+
+	err = os.WriteFile(path.Join(bashPathAssume, "_"+assumeData.Program), assume.Bytes(), 0666)
+	if err != nil {
+		return err
+	}
+	bashPathGranted, err := config.SetupBashAutoCompleteFolderGranted()
+	if err != nil {
+		return err
+	}
+	err = os.WriteFile(path.Join(bashPathGranted, "_"+grantedData.Program), granted.Bytes(), 0666)
+	if err != nil {
+		return err
+	}
+	err = shells.AppendLine(file, fmt.Sprintf("fpath=(%s/ $fpath)", bashPathAssume))
+	var lae *shells.ErrLineAlreadyExists
+	if is := errors.As(err, &lae); err != nil && !is {
+		return err
+	}
+	err = shells.AppendLine(file, fmt.Sprintf("fpath=(%s/ $fpath)", bashPathGranted))
+	lae = nil
+	if is := errors.As(err, &lae); err != nil && !is {
+		return err
+	}
+	clio.Success("Bash autocompletions generated successfully")
+	clio.Warn("A shell restart is required to apply changes, please open a new terminal to test that autocomplete is working")
 	return nil
 }
