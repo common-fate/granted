@@ -40,9 +40,9 @@ var UninstallCommand = cli.Command{
 				if err != nil {
 					return err
 				}
-			}
 
-			clio.Successf("Removed Granted config folder %s\n", grantedFolder)
+				clio.Successf("Removed Granted config folder %s", dir)
+			}
 		}
 		return nil
 	},
