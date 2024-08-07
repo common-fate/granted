@@ -30,14 +30,16 @@ var UninstallCommand = cli.Command{
 			if err != nil {
 				clio.Error(err.Error())
 			}
-			// TODO Remove all XDG folders
-			grantedFolder, err := config.GrantedConfigFolder()
+			grantedFolder, err := config.GrantedFolders()
 			if err != nil {
 				return err
 			}
-			err = os.RemoveAll(grantedFolder)
-			if err != nil {
-				return err
+
+			for _, dir := range grantedFolder {
+				err = os.RemoveAll(dir)
+				if err != nil {
+					return err
+				}
 			}
 
 			clio.Successf("Removed Granted config folder %s\n", grantedFolder)
