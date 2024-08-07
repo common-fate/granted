@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"runtime"
+	"slices"
 
 	"github.com/BurntSushi/toml"
 
@@ -224,6 +225,22 @@ func GrantedStateFolder() (string, error) {
 	return stateDir, nil
 }
 
+// GrantedFolders creates a slice of directories created during installation and removes duplicates
+func GrantedFolders() ([]string, error) {
+	var grantedDirs []string
+	configDir, _ := GrantedConfigFolder()
+	cacheDir, _ := GrantedCacheFolder()
+	stateDir, _ := GrantedStateFolder()
+	grantedDirs = append(grantedDirs, configDir)
+	grantedDirs = append(grantedDirs, cacheDir)
+	grantedDirs = append(grantedDirs, stateDir)
+
+	grantedDirs = slices.Compact(grantedDirs)
+
+	return grantedDirs, nil
+}
+
+// pathExists checks if a given file exists and returns true or false
 func pathExists(path string) bool {
 	_, err := os.Stat(path)
 	return err == nil
