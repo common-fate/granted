@@ -57,3 +57,17 @@ func Load(ctx context.Context, profile *cfaws.Profile) (*sdkconfig.Context, erro
 
 	}
 }
+
+func LoadURL(ctx context.Context, cfURL string) (*sdkconfig.Context, error) {
+	u, err := url.Parse(cfURL)
+	if err != nil {
+		return nil, err
+	}
+	u = u.JoinPath("config.json")
+
+	clio.Debugw("configuring Common Fate SDK from URL", "url", u.String())
+
+	return sdkconfig.New(ctx, sdkconfig.Opts{
+		ConfigSources: []string{u.String()},
+	})
+}

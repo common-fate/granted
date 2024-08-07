@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"connectrpc.com/connect"
-	"github.com/common-fate/sdk/config"
+	"github.com/common-fate/granted/pkg/cfcfg"
 	awsv1alpha1 "github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1"
 	"github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1/awsv1alpha1connect"
 	grantedv1alpha1 "github.com/common-fate/sdk/service/granted/registry"
@@ -38,10 +38,12 @@ func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient,
 		return r.client, nil
 	}
 
-	cfg, err := config.LoadDefault(context.Background())
+	// Load the config from the deployment URL
+	cfg, err := cfcfg.LoadURL(context.Background(), r.opts.URL)
 	if err != nil {
 		return nil, err
 	}
+
 	accountClient := grantedv1alpha1.NewFromConfig(cfg)
 
 	r.mu.Lock()
