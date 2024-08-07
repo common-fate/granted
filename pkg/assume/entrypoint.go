@@ -97,7 +97,6 @@ func GetCliApp() *cli.App {
 				return err
 			}
 
-			// TODO Verify change works
 			grantedFolder, err := config.GrantedStateFolder()
 			if err != nil {
 				return err
