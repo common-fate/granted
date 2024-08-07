@@ -9,11 +9,13 @@ cli: go-binary
 	# replace references to "assumego" (the production symlink) with "dassumego"
 	cat scripts/assume | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume && chmod +x ${PREFIX}/bin/dassume
 	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.fish && chmod +x ${PREFIX}/bin/dassume.fish
+	cat scripts/assume.tcsh | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.tcsh && chmod +x ${PREFIX}/bin/dassume.tcsh
 
 clean:
 	rm ${PREFIX}/bin/dassumego
 	rm ${PREFIX}/bin/dassume
 	rm ${PREFIX}/bin/dassume.fish
+	rm ${PREFIX}/bin/dassume.tcsh
 
 aws-credentials:
 	echo -e "\nAWS_ACCESS_KEY_ID=\"$$AWS_ACCESS_KEY_ID\"\nAWS_SECRET_ACCESS_KEY=\"$$AWS_SECRET_ACCESS_KEY\"\nAWS_SESSION_TOKEN=\"$$AWS_SESSION_TOKEN\"\nAWS_REGION=\"$$AWS_REGION\""
@@ -42,8 +44,10 @@ ci-cli-all-platforms: test-binaries
 	# replace references to "assumego" (the production symlink) with "dassumego"
 	cat scripts/assume | sed 's/assumego/dassumego/g' > bin/linux/dassume && chmod +x bin/linux/dassume
 	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > bin/linux/dassume.fish && chmod +x bin/linux/dassume.fish
+	cat scripts/assume.tcsh | sed 's/assumego/dassumego/g' > bin/linux/dassume.tcsh && chmod +x bin/linux/dassume.tcsh
 	cp bin/linux/dassume bin/macos/dassume
 	cp bin/linux/dassume.fish bin/macos/dassume.fish
+	cp bin/linux/dassume.tcsh bin/macos/dassume.tcsh
 	cat scripts/assume.bat | sed 's/assumego/dassumego/g' > bin/windows/dassume.bat
 	cat scripts/assume.ps1 | sed 's/assumego/dassumego/g' > bin/windows/dassume.ps1
 
@@ -55,5 +59,7 @@ cli-act-prod: go-binary
 	# replace references to "assumego" (the production binary) with "dassumego"
 	cat scripts/assume | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume && chmod +x ${PREFIX}/bin/dassume
 	cat scripts/assume.fish | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.fish && chmod +x ${PREFIX}/bin/dassume.fish
+	cat scripts/assume.tcsh | sed 's/assumego/dassumego/g' > ${PREFIX}/bin/dassume.tcsh && chmod +x ${PREFIX}/bin/dassume.tcsh
 	mv ${PREFIX}/bin/dassume ${PREFIX}/bin/assume
 	mv ${PREFIX}/bin/dassume.fish ${PREFIX}/bin/assume.fish
+	mv ${PREFIX}/bin/dassume.tcsh ${PREFIX}/bin/assume.tcsh
