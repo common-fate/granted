@@ -20,6 +20,8 @@ type Config struct {
 	// used to override the builtin filepaths for custom installation locations
 	CustomBrowserPath      string
 	CustomSSOBrowserPath   string
+	FlatpakBrowserAppID    string
+	FlatpakSSOBrowserAppID string
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string

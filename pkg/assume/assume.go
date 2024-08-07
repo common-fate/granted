@@ -410,7 +410,12 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 
-		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey || cfg.DefaultBrowser == browser.FirefoxDevEditionKey || cfg.DefaultBrowser == browser.FirefoxNightlyKey {
+		if cfg.DefaultBrowser == browser.FirefoxKey ||
+			cfg.DefaultBrowser == browser.WaterfoxKey ||
+			cfg.DefaultBrowser == browser.FirefoxStdoutKey ||
+			cfg.DefaultBrowser == browser.FirefoxDevEditionKey ||
+			cfg.DefaultBrowser == browser.FirefoxNightlyKey ||
+			cfg.DefaultBrowser == browser.FlatpakFirefoxKey {
 			// transform the URL into the Firefox Tab Container format.
 			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", containerProfile, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
 		}
@@ -454,6 +459,12 @@ func AssumeCommand(c *cli.Context) error {
 			l = launcher.CommonFate{
 				// for CommonFate, executable path must be set as custom browser path
 				ExecutablePath: browserPath,
+			}
+		case browser.FlatpakFirefoxKey:
+			l = launcher.Flatpak{
+				ExecutablePath: browserPath,
+				FlatpakID:      cfg.FlatpakBrowserAppID,
+				BrowserType:    browser.FirefoxKey,
 			}
 		default:
 			l = launcher.Open{}
