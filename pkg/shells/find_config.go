@@ -49,6 +49,24 @@ func GetFishConfigFile() (string, error) {
 	return file, nil
 }
 
+func GetTcshConfigFile() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	file := path.Join(home, ".tcshrc")
+
+	// check that the file exists; create it if not
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		f, err := os.Create(file)
+		if err != nil {
+			return "", err
+		}
+		defer f.Close()
+	}
+	return file, nil
+}
+
 func GetBashConfigFile() (string, error) {
 
 	bashLoginFiles := []string{
