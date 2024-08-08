@@ -103,6 +103,11 @@ var proxyCommand = cli.Command{
 				return err
 			}
 
+			// check here to avoid nil pointer errors later
+			if len(entitlements) == 0 {
+				return errors.New("You don't have access to any RDS databases")
+			}
+
 			type Column struct {
 				Title string
 				Width int
@@ -139,7 +144,13 @@ var proxyCommand = cli.Command{
 				return err
 			}
 
-			entitlement := selector.GetValue().(*accessv1alpha1.Entitlement)
+			selectorVal := selector.GetValue()
+
+			if selectorVal == nil {
+				return errors.New("No database selected")
+			}
+
+			entitlement := selectorVal.(*accessv1alpha1.Entitlement)
 
 			target = entitlement.Target.Eid.Display()
 			role = entitlement.Role.Eid.Display()
