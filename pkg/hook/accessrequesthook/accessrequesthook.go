@@ -389,8 +389,8 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 			if res.Msg.DurationConfiguration.DefaultDuration != nil {
 				exp = ShortDur(res.Msg.DurationConfiguration.DefaultDuration.AsDuration())
 			}
-		} else {
-			//attempt to work out duration from expiry to preserve backyards compatability
+		} else if g.Grant.ExpiresAt != nil {
+			//attempt to work out duration from expiry to preserve backyards compatability with older common fate versions
 			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
 		}
 
