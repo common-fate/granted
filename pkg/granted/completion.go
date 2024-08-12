@@ -24,7 +24,7 @@ var flags = []cli.Flag{
 	&cli.StringFlag{
 		Name:     "shell",
 		Aliases:  []string{"s"},
-		Usage:    "Shell to install completions for (fish, zsh, bash)",
+		Usage:    "Shell to install completions for (fish, zsh, tcsh, bash)",
 		Required: true,
 	},
 }
@@ -40,6 +40,8 @@ var CompletionCommand = cli.Command{
 			err = installFishCompletions(c)
 		case "zsh":
 			err = installZSHCompletions(c)
+		case "tcsh":
+			err = installTcshCompletions(c)
 		case "bash":
 			err = installBashCompletions(c)
 		default:
@@ -141,5 +143,10 @@ func installZSHCompletions(c *cli.Context) error {
 
 func installBashCompletions(c *cli.Context) error {
 	clio.Info("We don't have completion support for bash yet, check out our docs to find out how to let us know you want this feature https://granted.dev/autocompletion")
+	return nil
+}
+
+func installTcshCompletions(c *cli.Context) error {
+	clio.Info("We don't have completion support for tcsh yet, check out our docs to find out how to let us know you want this feature https://granted.dev/autocompletion")
 	return nil
 }

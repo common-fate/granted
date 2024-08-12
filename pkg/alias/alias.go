@@ -31,11 +31,14 @@ func init() {
 }
 
 const fishAlias = `alias assume="source /usr/local/bin/assume.fish"`
+const tcshAlias = `alias assume 'source /usr/local/bin/assume.tcsh'`
 
 const defaultAlias = `alias assume=". assume"`
 const fishAliasBrew = `alias assume="source (brew --prefix)/bin/assume.fish"`
+const tcshAliasBrew = `alias assume 'source (brew --prefix)/bin/assume.tcsh'`
 
 const devFishAlias = `alias dassume="source /usr/local/bin/dassume.fish"`
+const devTcshAlias = `alias dassume 'source /usr/local/bin/dassume.tcsh'`
 const devDefaultAlias = `alias dassume=". dassume"`
 
 func GetDefaultAlias() string {
@@ -56,6 +59,19 @@ func GetFishAlias() string {
 	}
 
 	return fishAlias
+}
+func GetTcshAlias() string {
+	if build.IsDev() {
+		return devTcshAlias
+	}
+
+	// if 'brew' exists on the path, use the brew prefix rather than /usr/local/bin when installing the alias.
+	// chrnorm: there's not really a better way to determine if we've been installed with brew or not.
+	if _, err := exec.LookPath("brew"); err == nil {
+		return tcshAliasBrew
+	}
+
+	return tcshAlias
 }
 
 type Config struct {
@@ -88,6 +104,8 @@ func GetShellFromShellEnv(shellEnv string) (string, error) {
 
 	} else if strings.Contains(shellEnv, "zsh") {
 		return "zsh", nil
+	} else if strings.Contains(shellEnv, "tcsh") {
+		return "tcsh", nil
 	} else if strings.Contains(shellEnv, "sh") {
 		// Fallback to POSIX
 		return "posix", nil
@@ -109,6 +127,9 @@ func GetShellAlias(shell string) (Config, error) {
 		file, err = shells.GetBashConfigFile()
 	case "zsh":
 		file, err = shells.GetZshConfigFile()
+	case "tcsh":
+		file, err = shells.GetTcshConfigFile()
+		alias = GetTcshAlias()
 	case "posix":
 		file, err = shells.GetPosixConfigFile()
 	default:
