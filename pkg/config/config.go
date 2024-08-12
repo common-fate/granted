@@ -179,8 +179,7 @@ func GrantedConfigFolder() (string, error) {
 
 	configDir := filepath.Join(home, build.ConfigFolderName)
 	if xdgConfigDir := os.Getenv("XDG_CONFIG_HOME"); !pathExists(configDir) && xdgConfigDir != "" {
-		// ? Should this be "build.ConfigFolderName" or "granted". Directory names in XDG_CONFIG_HOME usually omit the dot prefix. 
-		configDir = filepath.Join(xdgConfigDir, build.ConfigFolderName)
+		configDir = filepath.Join(xdgConfigDir, "granted")
 	}
 
 	return configDir, nil
@@ -203,8 +202,7 @@ func GrantedCacheFolder() (string, error) {
 
 	cacheDir := filepath.Join(home, build.ConfigFolderName)
 	if xdgCacheDir := os.Getenv("XDG_CACHE_HOME"); !pathExists(cacheDir) && xdgCacheDir != "" {
-		// ? Should this be "build.ConfigFolderName" or "granted". Directory names in XDG_CACHE_HOME usually omit the dot prefix. 
-		cacheDir = filepath.Join(xdgCacheDir, build.ConfigFolderName)
+		cacheDir = filepath.Join(xdgCacheDir, "granted")
 	}
 
 	return cacheDir, nil
@@ -218,8 +216,7 @@ func GrantedStateFolder() (string, error) {
 
 	stateDir := filepath.Join(home, build.ConfigFolderName)
 	if xdgStateDir := os.Getenv("XDG_STATE_HOME"); !pathExists(stateDir) && xdgStateDir != "" {
-		// ? Should this be "build.ConfigFolderName" or "granted". Directory names in XDG_STATE_HOME usually omit the dot prefix. 
-		stateDir = filepath.Join(xdgStateDir, build.ConfigFolderName)
+		stateDir = filepath.Join(xdgStateDir, "granted")
 	}
 
 	return stateDir, nil
