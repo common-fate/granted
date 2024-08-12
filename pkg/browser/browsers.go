@@ -20,7 +20,7 @@ const (
 	ArcKey               string = "ARC"
 	FirefoxDevEditionKey string = "FIREFOX_DEV"
 	FirefoxNightlyKey    string = "FIREFOX_NIGHTLY"
-	CommonFateKey        string = "COMMON_FATE"
+	CustomKey            string = "CUSTOM"
 )
 
 // A few default paths to check for the browser

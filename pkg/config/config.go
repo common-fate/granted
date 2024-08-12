@@ -15,11 +15,31 @@ import (
 	"github.com/common-fate/granted/internal/build"
 )
 
+type BrowserLaunchTemplate struct {
+	// UseForkProcess specifies whether to use forkprocess to launch the browser.
+	//
+	// If the launch template command uses 'open', this should be false,
+	// as the forkprocess library causes the following error to appear:
+	// 	fork/exec open: no such file or directory
+	UseForkProcess bool `toml:",omitempty"`
+
+	// Template to use for launching a browser.
+	//
+	// For example: '/usr/bin/firefox --new-tab --profile={{.Profile}} --url={{.URL}}'
+	Command string
+}
+
 type Config struct {
 	DefaultBrowser string
 	// used to override the builtin filepaths for custom installation locations
-	CustomBrowserPath      string
-	CustomSSOBrowserPath   string
+	CustomBrowserPath    string
+	CustomSSOBrowserPath string
+
+	// AWSConsoleBrowserLaunchTemplate is an optional launch template to use
+	// for opening the AWS console. If specified it overrides the DefaultBrowser
+	// and CustomBrowserPath fields.
+	AWSConsoleBrowserLaunchTemplate *BrowserLaunchTemplate `toml:",omitempty"`
+
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
