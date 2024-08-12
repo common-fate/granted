@@ -62,7 +62,6 @@ func (store *FrecencyStore) GetFrecentEntriess(optionalLimit *int) []interface{}
 
 func Load(fecencyStoreKey string) (*FrecencyStore, error) {
 	c := FrecencyStore{MaxFrequency: 1, OldestDate: time.Now()}
-	// TODO Verify change works
 	configFolder, err := config.GrantedCacheFolder()
 	if err != nil {
 		return nil, err
@@ -71,7 +70,7 @@ func Load(fecencyStoreKey string) (*FrecencyStore, error) {
 
 	// check if the providers file exists
 	if _, err = os.Stat(c.path); os.IsNotExist(err) {
-
+		os.MkdirAll(configFolder, 0700)
 		return &c, nil
 	}
 
