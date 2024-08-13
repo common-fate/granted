@@ -1,6 +1,10 @@
 package granted
 
 import (
+	"errors"
+	"fmt"
+
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/cfcfg"
@@ -12,43 +16,74 @@ import (
 var CFCommand = cli.Command{
 	Name:  "cf",
 	Usage: "Open Common Fate in the browser",
+	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Usage: "open the console for a specific profile"}},
 	Action: func(c *cli.Context) error {
 
 		ctx := c.Context
-		clio.Infof("Opening the Common Fate console in your browser...")
 		consoleURL := ""
-		cfFileConfig, err := sdkconfig.LoadDefault(ctx)
+		profiles, err := cfaws.LoadProfiles()
 		if err != nil {
-			// fall back to trying to find a common fate url from profiles
-			profiles, err := cfaws.LoadProfiles()
+			return err
+		}
+
+		profileName := c.String("profile")
+		if profileName != "" {
+			p, err := profiles.Profile(profileName)
 			if err != nil {
 				return err
 			}
-
-			for _, profile := range profiles.ProfileNames {
-				p, err := profiles.Profile(profile)
-				if err != nil {
-					return err
-				}
-				u, err := cfcfg.GetCommonFateURL(p)
-				if err != nil {
-					clio.Debug(err)
-				} else {
-					consoleURL = u.String()
-					break
-				}
+			url, err := cfcfg.GetCommonFateURL(p)
+			if err != nil {
+				return err
 			}
-			return err
-		} else {
+			if url == nil {
+				return errors.New("the profile exists but it is not configured with with a Common Fate console url")
+			}
+			consoleURL = url.String()
+		}
+
+		foundStartURLs := map[string]bool{}
+		for _, profile := range profiles.ProfileNames {
+			p, err := profiles.Profile(profile)
+			if err != nil {
+				return err
+			}
+			url, err := cfcfg.GetCommonFateURL(p)
+			if err != nil {
+				clio.Debug(err)
+			}
+			if url != nil {
+				foundStartURLs[url.String()] = true
+			}
+		}
+		keys := make([]string, 0, len(foundStartURLs))
+		for k := range foundStartURLs {
+			keys = append(keys, k)
+		}
+		if len(keys) == 0 {
+			// fall back to the config file
+			cfFileConfig, err := sdkconfig.LoadDefault(ctx)
+			if err != nil {
+				clio.Debug(fmt.Errorf("could not load profile from config file: %w", err))
+				return errors.New("no Common Fate deployment urls found in your aws config or the default config file, you can setup now with 'granted login'")
+			}
 			consoleURL = cfFileConfig.APIURL
 		}
-
-		err = browser.OpenURL(consoleURL)
-		if err != nil {
-			// fail silently
-			clio.Debug(err.Error())
+		if len(keys) == 1 {
+			consoleURL = keys[0]
 		}
 
-		return nil
+		err = survey.AskOne(&survey.Select{
+			Message: "Please select which Common Fate deployment you would like to open: ",
+			Options: keys,
+		}, &consoleURL)
+		if err != nil {
+			return err
+		}
+
+		clio.Infof("Opening the Common Fate console (%s) in your default browser...", consoleURL)
+
+		// uses the default browser to open the console
+		return browser.OpenURL(consoleURL)
 	},
 }
