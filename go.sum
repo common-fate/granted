@@ -86,6 +86,8 @@ github.com/common-fate/apikit v0.3.0 h1:7dkL0jnmJhNAR7bjMM6+8h9psRBY5D+EMY2BzCBc
 github.com/common-fate/apikit v0.3.0/go.mod h1:5WXBU3NBnQ6ZuqQyazwL5Ou6yT7UpC8c3yK8F9mGh9k=
 github.com/common-fate/awsconfigfile v0.9.0 h1:eP5UGdX/kUqubnp1OM+78n/ssuuu2xMjztUZMwR7xPI=
 github.com/common-fate/awsconfigfile v0.9.0/go.mod h1:4g8kxy1vcf2hn6N5Zmaz+nfc7xQ66uWSb5dsm2ZCa6s=
+github.com/common-fate/awsconfigfile v0.10.0 h1:9W0JTeO0d3jNLw3Ps9U7IJwLYp4D9zcipq/sqNEWJOg=
+github.com/common-fate/awsconfigfile v0.10.0/go.mod h1:znstvN26aO+KUwmdjwZ+WcmitZ7heEJb5iFdCPokAO8=
 github.com/common-fate/cli v1.8.0 h1:T3I+NCMTyvIlZC8QK9qfmsZWj3eSDSZRPHQlM5KJ8Q4=
 github.com/common-fate/cli v1.8.0/go.mod h1:fE4jNXj30AvqFvBMTHIDuoI/IahN1h8iRrjEE2n2Td0=
 github.com/common-fate/clio v1.2.3 h1:hHwUYZjn66qGYDpgANl0EB/92hyi/Jsnd07qB09rvn4=
