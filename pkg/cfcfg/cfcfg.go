@@ -10,7 +10,7 @@ import (
 	sdkconfig "github.com/common-fate/sdk/config"
 )
 
-func getCommonFateURL(profile *cfaws.Profile) (*url.URL, error) {
+func GetCommonFateURL(profile *cfaws.Profile) (*url.URL, error) {
 	if profile == nil {
 		clio.Debugw("skipping loading Common Fate SDK from URL", "reason", "profile was nil")
 		return nil, nil
@@ -37,7 +37,7 @@ func getCommonFateURL(profile *cfaws.Profile) (*url.URL, error) {
 }
 
 func Load(ctx context.Context, profile *cfaws.Profile) (*sdkconfig.Context, error) {
-	cfURL, err := getCommonFateURL(profile)
+	cfURL, err := GetCommonFateURL(profile)
 	if err != nil {
 		return nil, err
 	}
