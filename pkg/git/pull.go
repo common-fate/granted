@@ -2,7 +2,7 @@ package git
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"os/exec"
 	"strings"
 
@@ -25,7 +25,7 @@ func Pull(repoDirPath string, shouldSilentLogs bool) error {
 	scanner := bufio.NewScanner(stderr)
 	for scanner.Scan() {
 		if strings.Contains(scanner.Text(), "error") || strings.Contains(scanner.Text(), "fatal") {
-			return fmt.Errorf(scanner.Text())
+			return errors.New(scanner.Text())
 		}
 
 		if shouldSilentLogs {
