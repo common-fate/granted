@@ -331,6 +331,7 @@ func (h Hook) RetryNoEntitlementAccess(ctx context.Context, cfg *config.Context,
 		// if grant is approved but the change is unspecified then the user is not able to automatically activate
 		if g.Grant.Approved && g.Change == accessv1alpha1.GrantChange_GRANT_CHANGE_UNSPECIFIED && g.Grant.ProvisioningStatus != accessv1alpha1.ProvisioningStatus_PROVISIONING_STATUS_SUCCESSFUL {
 			clio.Infof("Request was approved but failed to activate, you might not have permission to activate. You can try and activate the access using the Common Fate web console. [%s elapsed]", elapsed)
+			printdiags.Print(res.Msg.Diagnostics, nil)
 		}
 
 		if !g.Grant.Approved {
