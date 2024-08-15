@@ -2,7 +2,7 @@ package git
 
 import (
 	"bufio"
-	"fmt"
+	"errors"
 	"os/exec"
 	"strings"
 
@@ -23,7 +23,7 @@ func Clone(repoURL string, repoDirPath string) error {
 	scanner := bufio.NewScanner(stderr)
 	for scanner.Scan() {
 		if strings.Contains(strings.ToLower(scanner.Text()), "error") || strings.Contains(strings.ToLower(scanner.Text()), "fatal") {
-			return fmt.Errorf(scanner.Text())
+			return errors.New(scanner.Text())
 		}
 
 		clio.Info(scanner.Text())
