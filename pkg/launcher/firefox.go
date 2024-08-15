@@ -5,12 +5,12 @@ type Firefox struct {
 	ExecutablePath string
 }
 
-func (l Firefox) LaunchCommand(url string, profile string) []string {
+func (l Firefox) LaunchCommand(url string, profile string) ([]string, error) {
 	return []string{
 		l.ExecutablePath,
 		"--new-tab",
 		url,
-	}
+	}, nil
 }
 
 func (l Firefox) UseForkProcess() bool { return true }

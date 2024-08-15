@@ -7,9 +7,9 @@ import "github.com/common-fate/granted/pkg/browser"
 // in your own terminal.
 type Safari struct{}
 
-func (l Safari) LaunchCommand(url string, profile string) []string {
+func (l Safari) LaunchCommand(url string, profile string) ([]string, error) {
 	cmd := browser.OpenCommand()
-	return []string{cmd, "-a", "Safari", url}
+	return []string{cmd, "-a", "Safari", url}, nil
 }
 
 func (l Safari) UseForkProcess() bool { return false }
