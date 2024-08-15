@@ -14,9 +14,16 @@ import (
 )
 
 var CFCommand = cli.Command{
-	Name:  "cf",
-	Usage: "Open Common Fate in the browser",
-	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Usage: "open the console for a specific profile"}},
+	Name:        "common-fate",
+	Aliases:     []string{"cf"},
+	Usage:       "Interact with your Common Fate deployment",
+	Subcommands: []*cli.Command{&ConsoleCommand},
+}
+
+var CFConsoleCommand = cli.Command{
+	Name:  "console",
+	Usage: "Open the Common Fate web console",
+	Flags: []cli.Flag{&cli.StringFlag{Name: "profile", Usage: "Open the Common Fate web console for a specific profile"}},
 	Action: func(c *cli.Context) error {
 
 		ctx := c.Context
