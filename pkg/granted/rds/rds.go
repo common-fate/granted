@@ -332,7 +332,10 @@ var proxyCommand = cli.Command{
 
 			sessionOutput, err = ssmClient.StartSession(ctx, &startSessionInput)
 			if err != nil {
-				return err
+				return clierr.New("Failed to start AWS SSM port forward session",
+					clierr.Error(err),
+					clierr.Info("You can try re-running this command with the verbose flag to see detailed logs, 'cf --verbose aws rds proxy'"),
+					clierr.Infof("In rare cases, where the database proxy has been re-deployed while your grant was active, you will need to close your request in Common Fate and request access again 'cf access close request --id=%s' This is usually indicated by an error message containing '(TargetNotConnected) when calling the StartSession'", grant.Grant.AccessRequestId))
 			}
 
 			// Connect to the Proxy server using SSM
@@ -382,7 +385,8 @@ var proxyCommand = cli.Command{
 				// Execute starts the ssm connection
 				err = ssmSession.Execute(ssmLogger)
 				if err != nil {
-					return clierr.New(fmt.Errorf("AWS SSM port forward session closed with an error: %w", err).Error(),
+					return clierr.New("AWS SSM port forward session closed with an error",
+						clierr.Error(err),
 						clierr.Info("You can try re-running this command with the verbose flag to see detailed logs, 'cf --verbose aws rds proxy'"),
 						clierr.Infof("In rare cases, where the database proxy has been re-deployed while your grant was active, you will need to close your request in Common Fate and request access again 'cf access close request --id=%s' This is usually indicated by an error message containing '(TargetNotConnected) when calling the StartSession'", grant.Grant.AccessRequestId))
 				}
