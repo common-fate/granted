@@ -62,6 +62,7 @@ func GetCliApp() *cli.App {
 			&request.Command,
 			&doctor.Command,
 			&rds.Command,
+			&CFCommand,
 		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
