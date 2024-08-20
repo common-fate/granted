@@ -98,7 +98,7 @@ func GetCliApp() *cli.App {
 				return err
 			}
 
-			grantedFolder, err := config.GrantedConfigFolder()
+			grantedFolder, err := config.GrantedStateFolder()
 			if err != nil {
 				return err
 			}
