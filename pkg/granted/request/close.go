@@ -22,6 +22,7 @@ var closeCommand = cli.Command{
 	Usage: "Close an active Just-In-Time access to a particular entitlement",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "aws-profile", Required: true, Usage: "Close a JIT access for a particular AWS profile"},
+		&cli.StringFlag{Name: "request-id", Required: false, Usage: "Close a JIT access for a particular access request ID"},
 	},
 	Action: func(c *cli.Context) error {
 		profiles, err := cfaws.LoadProfiles()
@@ -30,9 +31,6 @@ var closeCommand = cli.Command{
 		}
 
 		profileName := c.String("aws-profile")
-
-		id := c.String("id")
-		clio.Debugw("found active grant matching the profile, attempting to force close grant", "grant", id)
 
 		profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
 		if err != nil {
