@@ -27,6 +27,7 @@ var Command = cli.Command{
 	Subcommands: []*cli.Command{
 		&latestCommand,
 		&checkCommand,
+		&closeCommand,
 	},
 }
 
