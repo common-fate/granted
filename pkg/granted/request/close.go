@@ -23,13 +23,13 @@ var closeCommand = cli.Command{
 	Name:  "close",
 	Usage: "Close an active Just-In-Time access to a particular entitlement",
 	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "aws-profile", Required: false, Usage: "Close a JIT access for a particular AWS profile"},
+		&cli.StringFlag{Name: "profile", Required: false, Usage: "Close a JIT access for a particular AWS profile"},
 		&cli.StringFlag{Name: "request-id", Required: false, Usage: "Close a JIT access for a particular access request ID"},
 	},
 	Action: func(c *cli.Context) error {
-		profiles, err := cfaws.LoadProfiles()
-		if err != nil {
-			return err
+
+		if c.String("request-id") != "" && c.String("profile") != "" {
+			clio.Warn("Both profile and request-id were provided, profile will be ignored")
 		}
 
 		accessRequestID := c.String("request-id")
@@ -43,30 +43,6 @@ var closeCommand = cli.Command{
 			}
 
 			client := request.NewFromConfig(cfg)
-
-			getRes, err := client.GetAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.GetAccessRequestRequest{
-				Id: accessRequestID,
-			}))
-			clio.Debugw("result", "getAccessRequest", getRes)
-			if err != nil {
-				return fmt.Errorf("failed to get access request: , %w", err)
-			}
-
-			// check if access request has grants that need to be closed
-			grants := getRes.Msg.AccessRequest.Grants
-
-			needsDeprovisioning := false
-			for _, grant := range grants {
-
-				if grant.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE && grant.ProvisioningStatus != accessv1alpha1.ProvisioningStatus(accessv1alpha1.ProvisioningStatus_PROVISIONING_STATUS_ATTEMPTING) {
-					needsDeprovisioning = true
-					break
-				}
-			}
-
-			if !needsDeprovisioning {
-				return fmt.Errorf("access request %s has no grants that need to be closed", accessRequestID)
-			}
 
 			closeRes, err := client.CloseAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.CloseAccessRequestRequest{
 				Id: accessRequestID,
@@ -84,9 +60,15 @@ var closeCommand = cli.Command{
 			return nil
 		}
 
-		profileName := c.String("aws-profile")
+		profileName := c.String("profile")
 
 		if profileName != "" {
+
+			profiles, err := cfaws.LoadProfiles()
+			if err != nil {
+				return err
+			}
+
 			profile, err := profiles.LoadInitialisedProfile(c.Context, profileName)
 			if err != nil {
 				return err
