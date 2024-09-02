@@ -5,14 +5,17 @@ import (
 	"fmt"
 
 	"connectrpc.com/connect"
+	"github.com/AlecAivazis/survey/v2"
 	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/cfcfg"
+	"github.com/common-fate/granted/pkg/testable"
 	"github.com/common-fate/sdk/config"
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
+	entityv1alpha1 "github.com/common-fate/sdk/gen/commonfate/entity/v1alpha1"
 	"github.com/common-fate/sdk/service/access/grants"
 	"github.com/common-fate/sdk/service/access/request"
 	identitysvc "github.com/common-fate/sdk/service/identity"
@@ -28,11 +31,12 @@ var closeCommand = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 
-		if c.String("request-id") != "" && c.String("profile") != "" {
+		accessRequestID := c.String("request-id")
+		profileName := c.String("profile")
+
+		if accessRequestID != "" && profileName != "" {
 			clio.Warn("Both profile and request-id were provided, profile will be ignored")
 		}
-
-		accessRequestID := c.String("request-id")
 
 		if accessRequestID != "" {
 			ctx := c.Context
@@ -59,8 +63,6 @@ var closeCommand = cli.Command{
 
 			return nil
 		}
-
-		profileName := c.String("profile")
 
 		if profileName != "" {
 
@@ -125,6 +127,81 @@ var closeCommand = cli.Command{
 			}
 
 			return fmt.Errorf("no active Access Request found for target %s and role %s", target, profile.AWSConfig.SSORoleName)
+		}
+
+		// Prompt the user with a list of active access requests if no flags are set
+		ctx := c.Context
+		cfg, err := config.LoadDefault(ctx)
+		if err != nil {
+			return err
+		}
+		accessClient := request.NewFromConfig(cfg)
+
+		idClient := identitysvc.NewFromConfig(cfg)
+		callerID, err := idClient.GetCallerIdentity(c.Context, connect.NewRequest(&accessv1alpha1.GetCallerIdentityRequest{}))
+		if err != nil {
+			return err
+		}
+
+		res, err := accessClient.QueryAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.QueryAccessRequestsRequest{
+			Archived:    false,
+			Order:       entityv1alpha1.Order_ORDER_DESCENDING.Enum(),
+			RequestedBy: callerID.Msg.Principal.Eid,
+		}))
+		clio.Debugw("result", "res", res)
+		if err != nil {
+			return err
+		}
+
+		userAccessRequests := res.Msg.AccessRequests
+		if len(res.Msg.AccessRequests) == 0 {
+			clio.Error("There are no access requests that need to be closed")
+			return nil
+		}
+
+		accessRequestsWithNames := []string{}
+		for _, req := range userAccessRequests {
+			// For now, add temporary code to check if the access request has granted that need to be closed
+			// This part will be replaced by the implementation of the GrantStatus filter within QueryAccessRequests
+			needsDeprovisioning := false
+			for _, grant := range req.Grants {
+
+				if grant.Status == accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE && grant.ProvisioningStatus != accessv1alpha1.ProvisioningStatus(accessv1alpha1.ProvisioningStatus_PROVISIONING_STATUS_ATTEMPTING) {
+					needsDeprovisioning = true
+					break
+				}
+			}
+			if needsDeprovisioning {
+				accessRequestsWithNames = append(accessRequestsWithNames, req.Id)
+			}
+		}
+
+		in := survey.Select{Message: "Please select the access request that you would like to close:", Options: accessRequestsWithNames}
+		var out string
+		err = testable.AskOne(&in, &out)
+		if err != nil {
+			return err
+		}
+
+		var selectedAccessRequest string
+
+		for _, r := range userAccessRequests {
+			if r.Id == out {
+				selectedAccessRequest = r.Id
+			}
+		}
+
+		closeRes, err := accessClient.CloseAccessRequest(ctx, connect.NewRequest(&accessv1alpha1.CloseAccessRequestRequest{
+			Id: selectedAccessRequest,
+		}))
+		clio.Debugw("result", "closeAccessRequest", closeRes)
+		if err != nil {
+			return fmt.Errorf("failed to close access request: , %w", err)
+		}
+
+		haserrors := printdiags.Print(closeRes.Msg.Diagnostics, nil)
+		if !haserrors {
+			clio.Successf("access request %s is now closed", accessRequestID)
 		}
 
 		return nil
