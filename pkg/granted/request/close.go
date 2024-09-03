@@ -201,7 +201,7 @@ var closeCommand = cli.Command{
 
 		haserrors := printdiags.Print(closeRes.Msg.Diagnostics, nil)
 		if !haserrors {
-			clio.Successf("access request %s is now closed", accessRequestID)
+			clio.Successf("access request %s is now closed", selectedAccessRequest)
 		}
 
 		return nil
