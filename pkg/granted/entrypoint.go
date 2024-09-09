@@ -107,6 +107,7 @@ var login = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		clio.Warn("this command is deprecated and will be removed in a future release")
+		clio.Warn("use granted auth login if you are trying to authenticate with a Common Fate deployment")
 
 		k, err := securestorage.NewCF().Storage.Keyring()
 		if err != nil {
