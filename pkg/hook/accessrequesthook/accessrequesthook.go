@@ -203,12 +203,16 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 
 		exp := "<invalid expiry>"
 
-		if res.Msg.DurationConfiguration != nil {
+		if req.Entitlements[0].Duration != nil {
+			exp = ShortDur(req.Entitlements[0].Duration.AsDuration())
+		} else if res.Msg.DurationConfiguration != nil {
 			exp = ShortDur(res.Msg.DurationConfiguration.MaxDuration.AsDuration())
 			if res.Msg.DurationConfiguration.DefaultDuration != nil {
 				exp = ShortDur(res.Msg.DurationConfiguration.DefaultDuration.AsDuration())
-
 			}
+		} else if g.Grant.ExpiresAt != nil {
+			//attempt to work out duration from expiry to preserve backwards compatability with older common fate versions
+			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
 		}
 
 		switch g.Change {
@@ -407,7 +411,9 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 
 		exp := "<invalid expiry>"
 
-		if res.Msg.DurationConfiguration != nil {
+		if req.Entitlements[0].Duration != nil {
+			exp = ShortDur(req.Entitlements[0].Duration.AsDuration())
+		} else if res.Msg.DurationConfiguration != nil {
 			exp = ShortDur(res.Msg.DurationConfiguration.MaxDuration.AsDuration())
 			if res.Msg.DurationConfiguration.DefaultDuration != nil {
 				exp = ShortDur(res.Msg.DurationConfiguration.DefaultDuration.AsDuration())
