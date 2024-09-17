@@ -168,7 +168,11 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 	}
 
 	for i := range req.Entitlements {
-		if result.DurationConfiguration.DefaultDuration != nil {
+
+		if input.Duration != nil {
+			req.Entitlements[i].Duration = input.Duration
+
+		} else if result.DurationConfiguration.DefaultDuration != nil {
 			req.Entitlements[i].Duration = result.DurationConfiguration.DefaultDuration
 		} else {
 			req.Entitlements[i].Duration = result.DurationConfiguration.MaxDuration
