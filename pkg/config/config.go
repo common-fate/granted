@@ -42,6 +42,11 @@ type Config struct {
 	// and CustomBrowserPath fields.
 	AWSConsoleBrowserLaunchTemplate *BrowserLaunchTemplate `toml:",omitempty"`
 
+	// SOBrowserLaunchTemplate is an optional launch template to use
+	// for opening the SSO auth flow. If specified it overrides the DefaultBrowser
+	// and CustomSSOBrowserPath fields.
+	SSOBrowserLaunchTemplate *BrowserLaunchTemplate `toml:",omitempty"`
+
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
