@@ -116,6 +116,7 @@ func GetCliApp() *cli.App {
 			if err != nil {
 				return err
 			}
+
 			if !hasSetup {
 				browserName, err := browser.HandleBrowserWizard(c)
 				if err != nil {

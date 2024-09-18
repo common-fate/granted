@@ -285,7 +285,7 @@ func Load() (*Config, error) {
 	_, err = toml.NewDecoder(file).Decode(&c)
 	if err != nil {
 		// if there is an error just reset the file
-		return &c, nil
+		return nil, err
 	}
 	return &c, nil
 }
