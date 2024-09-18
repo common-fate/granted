@@ -31,6 +31,7 @@ var ConsoleCommand = cli.Command{
 		&cli.StringFlag{Name: "color", Usage: "When the firefox flag is true, this specifies the color of the container tab"},
 		&cli.StringFlag{Name: "icon", Usage: "When firefox flag is true, this specifies the icon of the container tab"},
 		&cli.StringFlag{Name: "container-name", Usage: "When firefox flag is true, this specifies the name of the container of the container tab.", Value: "aws"},
+		&cli.StringSliceFlag{Name: "browser-launch-template-arg", Usage: "Additional arguments to provide to the browser launch template command in key=value format, e.g. '--browser-launch-template-arg foo=bar"},
 	},
 	Action: func(c *cli.Context) error {
 		ctx := c.Context
@@ -94,12 +95,23 @@ var ConsoleCommand = cli.Command{
 				}
 			case browser.SafariKey:
 				l = launcher.Safari{}
+			case browser.CustomKey:
+				l, err = launcher.CustomFromLaunchTemplate(cfg.AWSConsoleBrowserLaunchTemplate, c.StringSlice("browser-launch-template-arg"))
+				if err == launcher.ErrLaunchTemplateNotConfigured {
+					return errors.New("error configuring custom browser, ensure that [AWSConsoleBrowserLaunchTemplate] is specified in your Granted config file")
+				}
+				if err != nil {
+					return err
+				}
 			default:
 				l = launcher.Open{}
 			}
 		}
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
-		args := l.LaunchCommand(consoleURL, con.Profile)
+		args, err := l.LaunchCommand(consoleURL, con.Profile)
+		if err != nil {
+			return fmt.Errorf("error building browser launch command: %w", err)
+		}
 
 		var startErr error
 		if l.UseForkProcess() {

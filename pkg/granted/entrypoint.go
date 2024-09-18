@@ -62,6 +62,7 @@ func GetCliApp() *cli.App {
 			&request.Command,
 			&doctor.Command,
 			&rds.Command,
+			&CFCommand,
 		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
@@ -70,7 +71,7 @@ func GetCliApp() *cli.App {
 			}
 			clio.SetLevelFromEnv("GRANTED_LOG")
 
-			grantedFolder, err := config.GrantedConfigFolder()
+			grantedFolder, err := config.GrantedStateFolder()
 			if err != nil {
 				return err
 			}
@@ -106,6 +107,7 @@ var login = cli.Command{
 	},
 	Action: func(c *cli.Context) error {
 		clio.Warn("this command is deprecated and will be removed in a future release")
+		clio.Warn("use granted auth login if you are trying to authenticate with a Common Fate deployment")
 
 		k, err := securestorage.NewCF().Storage.Keyring()
 		if err != nil {

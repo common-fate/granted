@@ -735,7 +735,7 @@ func updateCachedAccessRule(ctx context.Context, opts updateCacheOpts) error {
 }
 
 func getCacheFolder(depID string) (string, error) {
-	configFolder, err := config.GrantedConfigFolder()
+	configFolder, err := config.GrantedCacheFolder()
 	if err != nil {
 		return "", err
 	}

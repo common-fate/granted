@@ -101,6 +101,9 @@ func SyncProfileRegistries(ctx context.Context, interactive bool) error {
 				return fmt.Errorf("error after trying to merge profiles again for registry %s: %w", r.Config.Name, err)
 			}
 		}
+		if err != nil {
+			return fmt.Errorf("error after trying to merge profiles for registry %s: %w", r.Config.Name, err)
+		}
 
 		configFile = merged
 	}

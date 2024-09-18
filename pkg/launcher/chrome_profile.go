@@ -19,7 +19,7 @@ type ChromeProfile struct {
 	BrowserType string
 }
 
-func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
+func (l ChromeProfile) LaunchCommand(url string, profile string) ([]string, error) {
 	// Chrome profiles can't contain slashes
 	profileName := strings.ReplaceAll(profile, "/", "-")
 	profileDir := findBrowserProfile(profileName, l.BrowserType)
@@ -32,7 +32,7 @@ func (l ChromeProfile) LaunchCommand(url string, profile string) []string {
 		"--no-first-run",
 		"--no-default-browser-check",
 		url,
-	}
+	}, nil
 }
 
 var BravePathMac = "Library/Application Support/BraveSoftware/Brave-Browser/Local State"

@@ -8,18 +8,40 @@ package config
 import (
 	"os"
 	"path"
+	"path/filepath"
 	"runtime"
+	"slices"
 
 	"github.com/BurntSushi/toml"
 
 	"github.com/common-fate/granted/internal/build"
 )
 
+type BrowserLaunchTemplate struct {
+	// UseForkProcess specifies whether to use forkprocess to launch the browser.
+	//
+	// If the launch template command uses 'open', this should be false,
+	// as the forkprocess library causes the following error to appear:
+	// 	fork/exec open: no such file or directory
+	UseForkProcess bool `toml:",omitempty"`
+
+	// Template to use for launching a browser.
+	//
+	// For example: '/usr/bin/firefox --new-tab --profile={{.Profile}} --url={{.URL}}'
+	Command string
+}
+
 type Config struct {
 	DefaultBrowser string
 	// used to override the builtin filepaths for custom installation locations
-	CustomBrowserPath      string
-	CustomSSOBrowserPath   string
+	CustomBrowserPath    string
+	CustomSSOBrowserPath string
+
+	// AWSConsoleBrowserLaunchTemplate is an optional launch template to use
+	// for opening the AWS console. If specified it overrides the DefaultBrowser
+	// and CustomBrowserPath fields.
+	AWSConsoleBrowserLaunchTemplate *BrowserLaunchTemplate `toml:",omitempty"`
+
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
@@ -174,8 +196,13 @@ func GrantedConfigFolder() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	// check if the .granted folder already exists
-	return path.Join(home, build.ConfigFolderName), nil
+
+	configDir := filepath.Join(home, build.ConfigFolderName)
+	if xdgConfigDir := os.Getenv("XDG_CONFIG_HOME"); !pathExists(configDir) && xdgConfigDir != "" {
+		configDir = filepath.Join(xdgConfigDir, "granted")
+	}
+
+	return configDir, nil
 }
 
 func GrantedConfigFilePath() (string, error) {
@@ -185,6 +212,55 @@ func GrantedConfigFilePath() (string, error) {
 	}
 	configFilePath := path.Join(grantedFolder, "config")
 	return configFilePath, nil
+}
+
+func GrantedCacheFolder() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	cacheDir := filepath.Join(home, build.ConfigFolderName)
+	if xdgCacheDir := os.Getenv("XDG_CACHE_HOME"); !pathExists(cacheDir) && xdgCacheDir != "" {
+		cacheDir = filepath.Join(xdgCacheDir, "granted")
+	}
+
+	return cacheDir, nil
+}
+
+func GrantedStateFolder() (string, error) {
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+
+	stateDir := filepath.Join(home, build.ConfigFolderName)
+	if xdgStateDir := os.Getenv("XDG_STATE_HOME"); !pathExists(stateDir) && xdgStateDir != "" {
+		stateDir = filepath.Join(xdgStateDir, "granted")
+	}
+
+	return stateDir, nil
+}
+
+// GrantedFolders creates a slice of directories created during installation and removes duplicates
+func GrantedFolders() ([]string, error) {
+	var grantedDirs []string
+	configDir, _ := GrantedConfigFolder()
+	cacheDir, _ := GrantedCacheFolder()
+	stateDir, _ := GrantedStateFolder()
+	grantedDirs = append(grantedDirs, configDir)
+	grantedDirs = append(grantedDirs, cacheDir)
+	grantedDirs = append(grantedDirs, stateDir)
+
+	grantedDirs = slices.Compact(grantedDirs)
+
+	return grantedDirs, nil
+}
+
+// pathExists checks if a given file exists and returns true or false
+func pathExists(path string) bool {
+	_, err := os.Stat(path)
+	return err == nil
 }
 
 func Load() (*Config, error) {

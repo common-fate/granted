@@ -44,7 +44,7 @@ import (
 // 'open <URL>' or 'firefox --new-tab <URL'. The returned command is a string slice,
 // with each element being an argument. (e.g. []string{"firefox", "--new-tab", "<URL>"})
 type Launcher interface {
-	LaunchCommand(url string, profile string) []string
+	LaunchCommand(url string, profile string) ([]string, error)
 	// UseForkProcess returns true if the launcher implementation should call
 	// the forkprocess library.
 	//
@@ -450,10 +450,13 @@ func AssumeCommand(c *cli.Context) error {
 			l = launcher.FirefoxNightly{
 				ExecutablePath: browserPath,
 			}
-		case browser.CommonFateKey:
-			l = launcher.CommonFate{
-				// for CommonFate, executable path must be set as custom browser path
-				ExecutablePath: browserPath,
+		case browser.CustomKey:
+			l, err = launcher.CustomFromLaunchTemplate(cfg.AWSConsoleBrowserLaunchTemplate, c.StringSlice("browser-launch-template-arg"))
+			if err == launcher.ErrLaunchTemplateNotConfigured {
+				return errors.New("error configuring custom browser, ensure that [AWSConsoleBrowserLaunchTemplate] is specified in your Granted config file")
+			}
+			if err != nil {
+				return err
 			}
 		default:
 			l = launcher.Open{}
@@ -463,7 +466,10 @@ func AssumeCommand(c *cli.Context) error {
 		clio.Infof("Opening a console for %s in your browser...", profile.Name)
 
 		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
-		args := l.LaunchCommand(consoleURL, containerProfile)
+		args, err := l.LaunchCommand(consoleURL, containerProfile)
+		if err != nil {
+			return fmt.Errorf("error building browser launch command: %w", err)
+		}
 
 		var startErr error
 		if l.UseForkProcess() {
