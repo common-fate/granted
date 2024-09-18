@@ -69,10 +69,6 @@ func installFishCompletions(c *cli.Context) error {
 	// Try to create a file
 	err := os.WriteFile(executableDir, []byte(combinedOutput), 0600)
 	if err != nil {
-<<<<<<< sort-sso-profiles-by-profile-name
-=======
-
->>>>>>> main
 		return fmt.Errorf("something went wrong when saving fish autocompletions: %s", err.Error())
 	}
 	clio.Success("Fish autocompletions generated successfully")
