@@ -171,12 +171,17 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 
 		if input.Duration != nil {
 			req.Entitlements[i].Duration = input.Duration
-
-		} else if result.DurationConfiguration.DefaultDuration != nil {
-			req.Entitlements[i].Duration = result.DurationConfiguration.DefaultDuration
-		} else {
-			req.Entitlements[i].Duration = result.DurationConfiguration.MaxDuration
+			continue
 		}
+
+		if result.DurationConfiguration != nil {
+			if result.DurationConfiguration.DefaultDuration != nil {
+				req.Entitlements[i].Duration = result.DurationConfiguration.DefaultDuration
+			} else {
+				req.Entitlements[i].Duration = result.DurationConfiguration.MaxDuration
+			}
+		}
+
 	}
 
 	// the spinner must be started after prompting for reason, otherwise the prompt gets hidden
