@@ -206,19 +206,8 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 	for _, g := range res.Msg.Grants {
 		names[eid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
 
-		exp := "<invalid expiry>"
-
-		if req.Entitlements[0].Duration != nil {
-			exp = ShortDur(req.Entitlements[0].Duration.AsDuration())
-		} else if res.Msg.DurationConfiguration != nil {
-			exp = ShortDur(res.Msg.DurationConfiguration.MaxDuration.AsDuration())
-			if res.Msg.DurationConfiguration.DefaultDuration != nil {
-				exp = ShortDur(res.Msg.DurationConfiguration.DefaultDuration.AsDuration())
-			}
-		} else if g.Grant.ExpiresAt != nil {
-			//attempt to work out duration from expiry to preserve backwards compatability with older common fate versions
-			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
-		}
+		// default is to show the original duration, except for an active request, where it gets recalculated below to the time remaining
+		exp := ShortDur(g.Grant.Duration.AsDuration())
 
 		switch g.Change {
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_ACTIVATED:
@@ -262,6 +251,8 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 
 		switch g.Grant.Status {
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
+			// work out how long is remaining on the active grant
+			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
 			color.New(color.FgGreen).Fprintf(os.Stderr, "[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
 
 			retry = true
@@ -414,19 +405,8 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	for _, g := range res.Msg.Grants {
 		names[eid.New("Access::Grant", g.Grant.Id)] = g.Grant.Name
 
-		exp := "<invalid expiry>"
-
-		if req.Entitlements[0].Duration != nil {
-			exp = ShortDur(req.Entitlements[0].Duration.AsDuration())
-		} else if res.Msg.DurationConfiguration != nil {
-			exp = ShortDur(res.Msg.DurationConfiguration.MaxDuration.AsDuration())
-			if res.Msg.DurationConfiguration.DefaultDuration != nil {
-				exp = ShortDur(res.Msg.DurationConfiguration.DefaultDuration.AsDuration())
-			}
-		} else if g.Grant.ExpiresAt != nil {
-			//attempt to work out duration from expiry to preserve backwards compatability with older common fate versions
-			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
-		}
+		// default is to show the original duration, except for an active request, where it gets recalculated below to the time remaining
+		exp := ShortDur(g.Grant.Duration.AsDuration())
 
 		if g.Change > 0 {
 			hasChanges = true
@@ -460,6 +440,7 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 
 		switch g.Grant.Status {
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
+			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
 			color.New(color.FgGreen).Fprintf(os.Stderr, "[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
 			continue
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
