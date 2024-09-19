@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	// permission for user to read/write/execute.
+	// permission for user to read/write.
 	USER_READ_WRITE_PERM = 0644
 )
 
