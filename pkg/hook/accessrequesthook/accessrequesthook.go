@@ -167,23 +167,6 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 		}
 	}
 
-	for i := range req.Entitlements {
-
-		if input.Duration != nil {
-			req.Entitlements[i].Duration = input.Duration
-			continue
-		}
-
-		if result.DurationConfiguration != nil {
-			if result.DurationConfiguration.DefaultDuration != nil {
-				req.Entitlements[i].Duration = result.DurationConfiguration.DefaultDuration
-			} else {
-				req.Entitlements[i].Duration = result.DurationConfiguration.MaxDuration
-			}
-		}
-
-	}
-
 	// the spinner must be started after prompting for reason, otherwise the prompt gets hidden
 	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	si.Suffix = " ensuring access..."
