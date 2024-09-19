@@ -137,7 +137,7 @@ func SetupConfigFolder() error {
 		return err
 	}
 	if _, err := os.Stat(grantedFolder); os.IsNotExist(err) {
-		err := os.Mkdir(grantedFolder, 0700)
+		err := os.Mkdir(grantedFolder, 0644)
 		if err != nil {
 			return err
 		}
