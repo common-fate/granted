@@ -153,6 +153,9 @@ func (s *SecureStorage) openKeyring() (keyring.Keyring, error) {
 		if cfg.Keyring.LibSecretCollectionName != nil {
 			c.LibSecretCollectionName = *cfg.Keyring.LibSecretCollectionName
 		}
+		if cfg.Keyring.PassDir != nil {
+			c.PassDir = *cfg.Keyring.PassDir
+		}
 	}
 
 	k, err := keyring.Open(c)

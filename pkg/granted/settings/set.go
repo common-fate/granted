@@ -36,6 +36,7 @@ var SetConfigCommand = cli.Command{
 		fieldMap["Keyring.KeychainName"] = keyringFields{&cfg.Keyring.KeychainName}
 		fieldMap["Keyring.FileDir"] = keyringFields{&cfg.Keyring.FileDir}
 		fieldMap["Keyring.LibSecretCollectionName"] = keyringFields{&cfg.Keyring.LibSecretCollectionName}
+		fieldMap["Keyring.PassDir"] = keyringFields{&cfg.Keyring.PassDir}
 
 		fields := make([]string, 0, len(fieldMap))
 		for k := range fieldMap {
