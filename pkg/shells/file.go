@@ -6,6 +6,11 @@ import (
 	"strings"
 )
 
+const (
+	// permission for user to read/write.
+	USER_READ_WRITE_PERM = 0644
+)
+
 // AppendLine writes a line to a file if it does not already exist
 func AppendLine(file string, line string) error {
 	b, err := os.ReadFile(file)
@@ -19,7 +24,7 @@ func AppendLine(file string, line string) error {
 	}
 
 	// open the file for writing
-	out, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY, 0644)
+	out, err := os.OpenFile(file, os.O_APPEND|os.O_WRONLY, USER_READ_WRITE_PERM)
 	if err != nil {
 		return err
 	}
@@ -73,7 +78,7 @@ func RemoveLine(file string, lineToRemove string) error {
 	}
 
 	output := strings.Join(ignored, "\n")
-	err = os.WriteFile(file, []byte(output), 0644)
+	err = os.WriteFile(file, []byte(output), USER_READ_WRITE_PERM)
 	if err != nil {
 		return err
 	}
