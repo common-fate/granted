@@ -3,6 +3,7 @@ package launcher
 import (
 	"errors"
 	"fmt"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -52,8 +53,29 @@ func (l Custom) LaunchCommand(url string, profile string) ([]string, error) {
 		return nil, fmt.Errorf("executing command template (check that your browser launch template is valid in your Granted config): %w", err)
 	}
 
-	commandParts := strings.Fields(renderedCommand.String())
+	commandParts := splitCommand(renderedCommand.String())
 	return commandParts, nil
+}
+
+// splits each component of the command. Anything within quotes will be handled as one component of the command
+// eg open -a "Google Chrome" <URL> returns ["open", "-a", "Google Chrome", "<URL>"]
+func splitCommand(command string) []string {
+
+	re := regexp.MustCompile(`"([^"]+)"|(\S+)`)
+	matches := re.FindAllStringSubmatch(command, -1)
+
+	var result []string
+	for _, match := range matches {
+
+		if match[1] != "" {
+			result = append(result, match[1])
+		} else {
+
+			result = append(result, match[2])
+		}
+	}
+
+	return result
 }
 
 func (l Custom) UseForkProcess() bool { return l.ForkProcess }

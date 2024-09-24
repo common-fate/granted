@@ -52,6 +52,11 @@ type Config struct {
 	// and CustomBrowserPath fields.
 	AWSConsoleBrowserLaunchTemplate *BrowserLaunchTemplate `toml:",omitempty"`
 
+	// SSOBrowserLaunchTemplate is an optional launch template to use
+	// for opening the SSO auth flow. If specified it overrides the DefaultBrowser
+	// and CustomSSOBrowserPath fields.
+	SSOBrowserLaunchTemplate *BrowserLaunchTemplate `toml:",omitempty"`
+
 	Keyring                *KeyringConfig `toml:",omitempty"`
 	Ordering               string
 	ExportCredentialSuffix string
@@ -290,7 +295,7 @@ func Load() (*Config, error) {
 	_, err = toml.NewDecoder(file).Decode(&c)
 	if err != nil {
 		// if there is an error just reset the file
-		return &c, nil
+		return nil, err
 	}
 	return &c, nil
 }
