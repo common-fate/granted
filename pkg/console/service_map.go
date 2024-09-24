@@ -45,6 +45,7 @@ var ServiceMap = map[string]string{
 	"mwaa":           "mwaa",
 	"param":          "systems-manager/parameters",
 	"r53":            "route53/v2",
+	"ram":		  "ram",
 	"rds":            "rds",
 	"redshift":       "redshiftv2",
 	"route53":        "route53/v2",
