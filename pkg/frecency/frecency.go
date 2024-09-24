@@ -11,11 +11,6 @@ import (
 	"github.com/common-fate/granted/pkg/config"
 )
 
-const (
-	// permission for user to read/write.
-	USER_READ_WRITE_PERM = 0644
-)
-
 // change these to play with the weights
 // values between 0 and 1
 // 0 will exclude the metric all together from the ordering
@@ -75,14 +70,14 @@ func Load(fecencyStoreKey string) (*FrecencyStore, error) {
 
 	// check if the providers file exists
 	if _, err = os.Stat(c.path); os.IsNotExist(err) {
-		err := os.MkdirAll(configFolder, USER_READ_WRITE_PERM)
+		err := os.MkdirAll(configFolder, 0700)
 		if err != nil {
 			return nil, err
 		}
 		return &c, nil
 	}
 
-	file, err := os.OpenFile(c.path, os.O_RDWR|os.O_CREATE, USER_READ_WRITE_PERM)
+	file, err := os.OpenFile(c.path, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -191,7 +186,7 @@ func (store *FrecencyStore) save() error {
 	// 	store.Entries = store.Entries[0 : len(store.Entries)-1]
 	// }
 
-	file, err := os.OpenFile(store.path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, USER_READ_WRITE_PERM)
+	file, err := os.OpenFile(store.path, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}

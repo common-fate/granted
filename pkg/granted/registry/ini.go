@@ -10,11 +10,6 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const (
-	// permission for user to read/write.
-	USER_READ_WRITE_PERM = 0644
-)
-
 // Find the ~/.aws/config absolute path based on OS.
 func getDefaultAWSConfigLocation() (string, error) {
 	h, err := os.UserHomeDir()

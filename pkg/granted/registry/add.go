@@ -15,6 +15,11 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+const (
+	// permission for user to read/write/execute.
+	USER_READ_WRITE_PERM = 0700
+)
+
 var AddCommand = cli.Command{
 	Name:        "add",
 	Description: "Add a Profile Registry that you want to sync with aws config file",

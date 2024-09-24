@@ -14,11 +14,6 @@ import (
 	"github.com/common-fate/granted/pkg/config"
 )
 
-const (
-	// permission for user to read/write.
-	USER_READ_WRITE_PERM = 0644
-)
-
 type Role struct {
 	Account string `json:"account"`
 	Role    string `json:"role"`
@@ -51,7 +46,7 @@ func (r Role) Save() error {
 	}
 
 	file := filepath.Join(configFolder, "latest-role")
-	return os.WriteFile(file, roleBytes, USER_READ_WRITE_PERM)
+	return os.WriteFile(file, roleBytes, 0644)
 }
 
 func LatestRole() (*Role, error) {
@@ -96,7 +91,7 @@ func (p Profile) Save() error {
 	}
 
 	file := filepath.Join(configFolder, "latest-profile")
-	return os.WriteFile(file, profileBytes, USER_READ_WRITE_PERM)
+	return os.WriteFile(file, profileBytes, 0644)
 }
 
 func LatestProfile() (*Profile, error) {
