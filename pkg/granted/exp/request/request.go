@@ -38,11 +38,6 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const (
-	// permission for user to read/write.
-	USER_READ_WRITE_PERM = 0644
-)
-
 var Command = cli.Command{
 	Name:  "request",
 	Usage: "Request access to a role",
@@ -731,7 +726,7 @@ func updateCachedAccessRule(ctx context.Context, opts updateCacheOpts) error {
 		return err
 	}
 
-	err = os.WriteFile(filename, ruleBytes, USER_READ_WRITE_PERM)
+	err = os.WriteFile(filename, ruleBytes, 0644)
 	if err != nil {
 		return err
 	}

@@ -17,16 +17,6 @@ import (
 	"github.com/common-fate/granted/internal/build"
 )
 
-const (
-	// permission for user to read/write.
-	USER_READ_WRITE_PERM = 0644
-)
-
-const (
-	// permission for user to read/write.
-	USER_READ_WRITE_EXECUTE_PERM = 0700
-)
-
 type BrowserLaunchTemplate struct {
 	// UseForkProcess specifies whether to use forkprocess to launch the browser.
 	//
@@ -152,7 +142,7 @@ func SetupConfigFolder() error {
 		return err
 	}
 	if _, err := os.Stat(grantedFolder); os.IsNotExist(err) {
-		err := os.Mkdir(grantedFolder, USER_READ_WRITE_PERM)
+		err := os.Mkdir(grantedFolder, 0700)
 		if err != nil {
 			return err
 		}
@@ -168,14 +158,14 @@ func SetupZSHAutoCompleteFolderAssume() (string, error) {
 	}
 	zshPath := path.Join(grantedFolder, "zsh_autocomplete")
 	if _, err := os.Stat(zshPath); os.IsNotExist(err) {
-		err := os.Mkdir(zshPath, USER_READ_WRITE_EXECUTE_PERM)
+		err := os.Mkdir(zshPath, 0700)
 		if err != nil {
 			return "", err
 		}
 	}
 	zshPath = path.Join(zshPath, build.AssumeScriptName())
 	if _, err := os.Stat(zshPath); os.IsNotExist(err) {
-		err := os.Mkdir(zshPath, USER_READ_WRITE_EXECUTE_PERM)
+		err := os.Mkdir(zshPath, 0700)
 		if err != nil {
 			return "", err
 		}
@@ -191,14 +181,14 @@ func SetupZSHAutoCompleteFolderGranted() (string, error) {
 	}
 	zshPath := path.Join(grantedFolder, "zsh_autocomplete")
 	if _, err := os.Stat(zshPath); os.IsNotExist(err) {
-		err := os.Mkdir(zshPath, USER_READ_WRITE_EXECUTE_PERM)
+		err := os.Mkdir(zshPath, 0700)
 		if err != nil {
 			return "", err
 		}
 	}
 	zshPath = path.Join(zshPath, build.GrantedBinaryName())
 	if _, err := os.Stat(zshPath); os.IsNotExist(err) {
-		err := os.Mkdir(zshPath, USER_READ_WRITE_EXECUTE_PERM)
+		err := os.Mkdir(zshPath, 0700)
 		if err != nil {
 			return "", err
 		}
@@ -284,7 +274,7 @@ func Load() (*Config, error) {
 		return nil, err
 	}
 
-	file, err := os.OpenFile(configFilePath, os.O_RDWR|os.O_CREATE, USER_READ_WRITE_PERM)
+	file, err := os.OpenFile(configFilePath, os.O_RDWR|os.O_CREATE, 0600)
 	if err != nil {
 		return nil, err
 	}
@@ -306,7 +296,7 @@ func (c *Config) Save() error {
 		return err
 	}
 
-	file, err := os.OpenFile(configFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, USER_READ_WRITE_PERM)
+	file, err := os.OpenFile(configFilePath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return err
 	}
