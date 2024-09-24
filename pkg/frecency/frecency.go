@@ -16,6 +16,11 @@ const (
 	USER_READ_WRITE_PERM = 0644
 )
 
+const (
+	// permission for user to read/write/execute.
+	USER_READ_WRITE_EXECUTE_PERM = 0700
+)
+
 // change these to play with the weights
 // values between 0 and 1
 // 0 will exclude the metric all together from the ordering
@@ -75,7 +80,7 @@ func Load(fecencyStoreKey string) (*FrecencyStore, error) {
 
 	// check if the providers file exists
 	if _, err = os.Stat(c.path); os.IsNotExist(err) {
-		err := os.MkdirAll(configFolder, USER_READ_WRITE_PERM)
+		err := os.MkdirAll(configFolder, USER_READ_WRITE_EXECUTE_PERM)
 		if err != nil {
 			return nil, err
 		}

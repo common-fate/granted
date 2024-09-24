@@ -23,7 +23,7 @@ const (
 )
 
 const (
-	// permission for user to read/write.
+	// permission for user to read/write/execute.
 	USER_READ_WRITE_EXECUTE_PERM = 0700
 )
 
@@ -152,7 +152,7 @@ func SetupConfigFolder() error {
 		return err
 	}
 	if _, err := os.Stat(grantedFolder); os.IsNotExist(err) {
-		err := os.Mkdir(grantedFolder, USER_READ_WRITE_PERM)
+		err := os.Mkdir(grantedFolder, USER_READ_WRITE_EXECUTE_PERM)
 		if err != nil {
 			return err
 		}
