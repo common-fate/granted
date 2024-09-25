@@ -439,11 +439,11 @@ var proxyCommand = cli.Command{
 			var connectionString, cliString, port string
 			yellow := color.New(color.FgYellow)
 			switch commandData.GrantOutput.Database.Engine {
-			case "postgres":
+			case "postgres", "aurora-postgresql":
 				port = grab.If(overridePort != 0, strconv.Itoa(overridePort), "5432")
 				connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable", commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
 				cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable"`, commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
-			case "mysql":
+			case "mysql", "aurora-mysql":
 				port = grab.If(overridePort != 0, strconv.Itoa(overridePort), "3306")
 				connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%s)/%s", commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
 				cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %s %s`, commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
