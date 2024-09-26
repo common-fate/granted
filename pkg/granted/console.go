@@ -70,6 +70,9 @@ var ConsoleCommand = cli.Command{
 		if cfg.CustomBrowserPath == "" && cfg.DefaultBrowser != "" {
 			l = launcher.Open{}
 		} else if cfg.CustomBrowserPath == "" {
+			if cfg.AWSConsoleBrowserLaunchTemplate != nil {
+				return errors.New("custom launch template set but default browser not set to `CUSTOM`. run granted browser set --browser=custom to fix this")
+			}
 			return errors.New("default browser not configured. run `granted browser set` to configure")
 		} else {
 			switch cfg.DefaultBrowser {

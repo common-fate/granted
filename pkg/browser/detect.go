@@ -41,7 +41,7 @@ func UserHasDefaultBrowser(ctx *cli.Context) (bool, error) {
 			return false, err
 		}
 	}
-	return conf.DefaultBrowser != "" && conf.CustomBrowserPath != "", nil
+	return conf.DefaultBrowser != "" && conf.CustomBrowserPath != "" || conf.AWSConsoleBrowserLaunchTemplate != nil, nil
 }
 
 func HandleManualBrowserSelection() (string, error) {
@@ -50,7 +50,7 @@ func HandleManualBrowserSelection() (string, error) {
 	withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
 	in := survey.Select{
 		Message: "Select one of the browsers from the list",
-		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Waterfox", "Chromium", "Safari", "Stdout", "FirefoxStdout", "Firefox Developer Edition", "Firefox Nightly", "Arc"},
+		Options: []string{"Chrome", "Brave", "Edge", "Firefox", "Waterfox", "Chromium", "Safari", "Stdout", "FirefoxStdout", "Firefox Developer Edition", "Firefox Nightly", "Arc", "Custom"},
 	}
 	var selection string
 	clio.NewLine()
@@ -136,6 +136,9 @@ func GetBrowserKey(b string) string {
 	if strings.Contains(strings.ToLower(b), "arc") {
 		return ArcKey
 	}
+	if strings.Contains(strings.ToLower(b), "custom") {
+		return CustomKey
+	}
 
 	return StdoutKey
 }
@@ -216,7 +219,7 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	// We allow users to configure a custom install path if we cannot detect the installation
 	browserPath := path
 	// detect installation
-	if browserKey != FirefoxStdoutKey && browserKey != StdoutKey {
+	if browserKey != FirefoxStdoutKey && browserKey != StdoutKey && browserKey != CustomKey {
 
 		if browserPath != "" {
 			_, err := os.Stat(browserPath)
@@ -385,7 +388,7 @@ func AskAndGetBrowserPath() (string, error) {
 	// We allow users to configure a custom install path is we cannot detect the installation
 	browserPath := ""
 	// detect installation
-	if browserKey != FirefoxStdoutKey && browserKey != StdoutKey {
+	if browserKey != FirefoxStdoutKey && browserKey != StdoutKey && browserKey != CustomKey {
 
 		customBrowserPath, detected := DetectInstallation(browserKey)
 		if !detected {

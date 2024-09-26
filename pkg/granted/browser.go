@@ -12,11 +12,13 @@ var DefaultBrowserCommand = cli.Command{
 	Usage:       "View the web browser that Granted uses to open cloud consoles",
 	Subcommands: []*cli.Command{&SetBrowserCommand, &SetSSOBrowserCommand},
 	Action: func(c *cli.Context) error {
+
 		// return the default browser that is set
 		conf, err := config.Load()
 		if err != nil {
 			return err
 		}
+
 		clio.Infof("Granted is using %s. To change this run `granted browser set`", conf.DefaultBrowser)
 
 		return nil

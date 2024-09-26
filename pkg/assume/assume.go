@@ -423,7 +423,7 @@ func AssumeCommand(c *cli.Context) error {
 		}
 
 		browserPath := cfg.CustomBrowserPath
-		if browserPath == "" {
+		if browserPath == "" && cfg.AWSConsoleBrowserLaunchTemplate == nil {
 			return errors.New("default browser not configured. run `granted browser set` to configure")
 		}
 
