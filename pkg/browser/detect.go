@@ -218,6 +218,12 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 	browserTitle := title.String(strings.ToLower(browserKey))
 	// We allow users to configure a custom install path if we cannot detect the installation
 	browserPath := path
+
+	//load config
+	conf, err := config.Load()
+	if err != nil {
+		return err
+	}
 	// detect installation
 	if browserKey != FirefoxStdoutKey && browserKey != StdoutKey && browserKey != CustomKey {
 
@@ -257,12 +263,15 @@ func ConfigureBrowserSelection(browserName string, path string) error {
 			}
 		}
 	}
-	// save the detected browser as the default
-	conf, err := config.Load()
-	if err != nil {
-		return err
+
+	//if browser set to default but config does not include browser launch tempalate. add it.
+	if browserKey == CustomKey && conf.AWSConsoleBrowserLaunchTemplate == nil {
+		conf.AWSConsoleBrowserLaunchTemplate = &config.BrowserLaunchTemplate{
+			Command: "",
+		}
 	}
 
+	// save the detected browser as the default
 	conf.DefaultBrowser = browserKey
 	conf.CustomBrowserPath = browserPath
 	err = conf.Save()
