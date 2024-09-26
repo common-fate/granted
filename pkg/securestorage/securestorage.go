@@ -118,6 +118,9 @@ func (s *SecureStorage) openKeyring() (keyring.Keyring, error) {
 		KeychainName:             "login",
 		KeychainTrustApplication: true,
 
+		//Pass Dir
+		PassDir: grantedFolder,
+
 		// KDE Wallet
 		KWalletAppID:  name,
 		KWalletFolder: name,
