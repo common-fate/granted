@@ -9,6 +9,7 @@ import (
 	"github.com/common-fate/clio/cliolog"
 	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/alias"
+	"github.com/common-fate/granted/pkg/assumeprint"
 	"github.com/common-fate/granted/pkg/autosync"
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/config"
@@ -61,7 +62,8 @@ func GlobalFlags() []cli.Flag {
 
 func GetCliApp() *cli.App {
 	cli.VersionPrinter = func(c *cli.Context) {
-		fmt.Printf("Granted version: %s\n", build.Version)
+		ver := fmt.Sprintf("Granted version: %s\n", build.Version)
+		fmt.Print(assumeprint.SafeOutput(ver))
 	}
 
 	app := &cli.App{
