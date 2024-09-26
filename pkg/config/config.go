@@ -99,6 +99,7 @@ type KeyringConfig struct {
 	KeychainName            *string `toml:",omitempty"`
 	FileDir                 *string `toml:",omitempty"`
 	LibSecretCollectionName *string `toml:",omitempty"`
+	PassDir                 *string `toml:",omitempty"` // PassDir is the pass password-store directory, ~/ is resolved to the users' home dir
 }
 
 type Registry struct {
