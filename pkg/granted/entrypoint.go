@@ -12,6 +12,7 @@ import (
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/auth"
 	"github.com/common-fate/granted/pkg/granted/doctor"
+	"github.com/common-fate/granted/pkg/granted/eks"
 	"github.com/common-fate/granted/pkg/granted/exp"
 	"github.com/common-fate/granted/pkg/granted/middleware"
 	"github.com/common-fate/granted/pkg/granted/rds"
@@ -62,6 +63,7 @@ func GetCliApp() *cli.App {
 			&request.Command,
 			&doctor.Command,
 			&rds.Command,
+			&eks.Command,
 			&CFCommand,
 		},
 		EnableBashCompletion: true,

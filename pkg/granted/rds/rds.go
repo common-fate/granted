@@ -57,7 +57,7 @@ var Command = cli.Command{
 
 var proxyCommand = cli.Command{
 	Name:  "proxy",
-	Usage: "The Proxy plugin is used in conjunction with a Commnon Fate deployment to request temporary access to an AWS RDS Database",
+	Usage: "The Proxy plugin is used in conjunction with a Common Fate deployment to request temporary access to an AWS RDS Database",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "target"},
 		&cli.StringFlag{Name: "role"},
