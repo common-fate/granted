@@ -11,6 +11,7 @@ import (
 	"github.com/common-fate/granted/pkg/alias"
 	"github.com/common-fate/granted/pkg/autosync"
 	"github.com/common-fate/granted/pkg/browser"
+	"github.com/common-fate/granted/pkg/chromemsg"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/useragent"
 	"github.com/urfave/cli/v2"
@@ -115,6 +116,11 @@ func GetCliApp() *cli.App {
 			hasSetup, err := browser.UserHasDefaultBrowser(c)
 			if err != nil {
 				return err
+			}
+
+			err = chromemsg.ConfigureHost()
+			if err != nil {
+				clio.Debugf("error configuring Granted browser extension native messaging manifest: %s", err.Error())
 			}
 
 			if !hasSetup {
