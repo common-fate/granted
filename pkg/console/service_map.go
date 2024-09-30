@@ -6,6 +6,7 @@ var ServiceMap = map[string]string{
 	"":               "console",
 	"acm":            "acm",
 	"apigateway":     "apigateway",
+	"apigw":          "apigateway",
 	"aos":            "aos",
 	"athena":         "athena",
 	"appsync":        "appsync",
