@@ -71,14 +71,14 @@ func GetCliApp() *cli.App {
 		// the CLI with the ID of the browser extension as the first argument.
 		Action: func(c *cli.Context) error {
 			arg := c.Args().First()
-			if !strings.HasPrefix(arg, "chrome-extension://") {
-				// Not invoked via the browser extension, so fall back to the default
-				// behaviour of showing the application help.
-				return cli.ShowAppHelp(c)
+			if strings.HasPrefix(arg, "chrome-extension://") {
+				// the CLI has been invoked from our browser extension
+				return HandleChromeExtensionCall(c)
 			}
 
-			// if we get here, the CLI has been invoked from our browser extension
-			return HandleChromeExtensionCall(c)
+			// Not invoked via the browser extension, so fall back to the default
+			// behaviour of showing the application help.
+			return cli.ShowAppHelp(c)
 		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
