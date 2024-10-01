@@ -29,7 +29,12 @@ func HandleChromeExtensionCall(c *cli.Context) error {
 		return fmt.Errorf("Chrome Extension ID %q did not match allowed ID %q", u.Host, build.ChromeExtensionID)
 	}
 
-	// if we get here, the Granted CLI has been invoked from our browser extension.
+	// If we get here, the Granted CLI has been invoked from our browser extension.
+	//
+	// The browser extension native messaging protocol uses stdin and stdout to
+	// communicate with the Granted CLI.
+	//
+	// See: https://developer.chrome.com/docs/extensions/develop/concepts/native-messaging
 	s := chromemsg.Server{
 		Input:  os.Stdin,
 		Output: os.Stdout,
@@ -37,11 +42,14 @@ func HandleChromeExtensionCall(c *cli.Context) error {
 
 	var msg chromeMessage
 
+	// Unmarshal the message received from the browser.
 	err = json.NewDecoder(&s).Decode(&msg)
 	if err != nil {
 		return err
 	}
 
+	// Currently, the only valid message type is 'get_valid_user_codes'.
+	// In future, we may introduce additional message types.
 	if msg.Type != "get_valid_user_codes" {
 		return fmt.Errorf("invalid type field: %s", msg.Type)
 	}
@@ -57,6 +65,8 @@ func HandleChromeExtensionCall(c *cli.Context) error {
 		return err
 	}
 
+	// ensure stdout is flushed. If this isn't called, the
+	// browser extension seems to have issues receiving data.
 	return os.Stdout.Sync()
 }
 
