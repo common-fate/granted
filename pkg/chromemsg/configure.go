@@ -12,14 +12,6 @@ import (
 	"github.com/common-fate/clio"
 )
 
-type HostManifest struct {
-	Name           string   `json:"name"`
-	Description    string   `json:"description"`
-	Path           string   `json:"path"`
-	Type           string   `json:"type"`
-	AllowedOrigins []string `json:"allowed_origins"`
-}
-
 // Configure writes native messaging host configuration to various well-known folders,
 // including Google Chrome, Arc, Microsoft Edge, and Vivaldi.
 //

@@ -9,6 +9,14 @@ import (
 	"github.com/common-fate/granted/internal/build"
 )
 
+type HostManifest struct {
+	Name           string   `json:"name"`
+	Description    string   `json:"description"`
+	Path           string   `json:"path"`
+	Type           string   `json:"type"`
+	AllowedOrigins []string `json:"allowed_origins"`
+}
+
 func writeManifest(manifestPath string) error {
 	executablePath, err := os.Executable()
 	if err != nil {
