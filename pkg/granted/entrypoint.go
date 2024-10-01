@@ -4,11 +4,13 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strings"
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/cliolog"
 	"github.com/common-fate/glide-cli/cmd/command"
 	"github.com/common-fate/granted/internal/build"
+	"github.com/common-fate/granted/pkg/chromemsg"
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/auth"
 	"github.com/common-fate/granted/pkg/granted/doctor"
@@ -64,6 +66,20 @@ func GetCliApp() *cli.App {
 			&rds.Command,
 			&CFCommand,
 		},
+		// Granted may be invoked via our browser extension, which uses the Native Messaging
+		// protocol to communicate with the Granted CLI. If invoked this way, the browser calls
+		// the CLI with the ID of the browser extension as the first argument.
+		Action: func(c *cli.Context) error {
+			arg := c.Args().First()
+			if strings.HasPrefix(arg, "chrome-extension://") {
+				// the CLI has been invoked from our browser extension
+				return HandleChromeExtensionCall(c)
+			}
+
+			// Not invoked via the browser extension, so fall back to the default
+			// behaviour of showing the application help.
+			return cli.ShowAppHelp(c)
+		},
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			if c.String("aws-config-file") != "" {
@@ -91,6 +107,11 @@ func GetCliApp() *cli.App {
 			}
 			// set the user agent
 			c.Context = useragent.NewContext(c.Context, "granted", build.Version)
+
+			err = chromemsg.ConfigureHost()
+			if err != nil {
+				clio.Debugf("error configuring Granted browser extension native messaging manifest: %s", err.Error())
+			}
 
 			return nil
 		},

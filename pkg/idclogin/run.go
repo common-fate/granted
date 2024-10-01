@@ -49,6 +49,16 @@ func Login(ctx context.Context, cfg aws.Config, startUrl string, scopes []string
 		return nil, err
 	}
 
+	// store the device code in the keychain, so that the Granted browser extension can read it.
+	s := securestorage.NewDeviceCodeSecureStorage()
+	err = s.StoreUserCode(securestorage.UserCode{
+		Code:   *deviceAuth.UserCode,
+		Expiry: time.Now().Add(time.Duration(deviceAuth.ExpiresIn) * time.Second),
+	})
+	if err != nil {
+		clio.Errorf("Error storing user code in keychain: %s", err.Error())
+	}
+
 	// trigger OIDC login. open browser to login. close tab once login is done. press enter to continue
 	url := aws.ToString(deviceAuth.VerificationUriComplete)
 	clio.Info("If the browser does not open automatically, please open this link: " + url)
