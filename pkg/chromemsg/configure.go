@@ -43,6 +43,7 @@ func configureMacOS() error {
 	appSupportFolder := filepath.Join(os.Getenv("HOME"), "Library", "Application Support")
 	browsers := []string{
 		"Arc/User Data",
+		"Google/Chrome",
 		"Google/Chrome Beta",
 		"Google/Chrome Canary",
 		"Google/Chrome Dev",
