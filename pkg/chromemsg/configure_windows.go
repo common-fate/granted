@@ -39,7 +39,13 @@ func configureWindows() error {
 		}
 		defer key.Close()
 
-		if err = key.SetStringValue("io.commonfate.granted", manifestPath); err != nil {
+		gkey, _, err := registry.CreateKey(key, "io.commonfate.granted", registry.QUERY_VALUE|registry.SET_VALUE)
+		if err != nil {
+			continue
+		}
+		defer gkey.Close()
+
+		if err = gkey.SetStringValue("", manifestPath); err != nil {
 			return err
 		}
 	}
