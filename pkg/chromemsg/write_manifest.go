@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"runtime"
 
 	"github.com/common-fate/granted/internal/build"
 )
@@ -26,6 +27,12 @@ func writeManifest(manifestPath string) error {
 	executablePath, err = filepath.EvalSymlinks(executablePath)
 	if err != nil {
 		return err
+	}
+
+	if runtime.GOOS == "windows" {
+		// on windows, the file needs to be 'granted.exe' rather than 'assumego.exe'.
+		parent := filepath.Dir(executablePath)
+		executablePath = filepath.Join(parent, build.GrantedBinaryName()+".exe")
 	}
 
 	manifest := HostManifest{
