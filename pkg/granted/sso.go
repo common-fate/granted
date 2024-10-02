@@ -44,7 +44,7 @@ var SSOCommand = cli.Command{
 
 const (
 	// permission for user to read/write.
-	USER_READ_WRITE_PERM = 0644 
+	USER_READ_WRITE_PERM = 0644
 )
 
 // in dev:
