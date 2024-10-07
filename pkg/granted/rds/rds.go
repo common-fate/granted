@@ -205,7 +205,6 @@ func listenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, c
 						clio.Debugw("error writing data from server to client usually this is just because the database proxy session ended.", "streamId", sessionConn.StreamID(), zap.Error(err))
 					}
 				}()
-				return
 			}(result.conn)
 		}
 	}
