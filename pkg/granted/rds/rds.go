@@ -173,7 +173,7 @@ func listenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, c
 			if yamuxStreamConnection.IsClosed() {
 				return clierr.New("failed to accept connection for database client because the proxy server connection has ended", clierr.Infof("Your grant may have expired, you can check the status here: %s and retry connecting", requestURL))
 			}
-			go func(databaseClientConn net.Conn) error {
+			go func(databaseClientConn net.Conn) {
 				// A stream is opened for this connection, streams are used just like a net.Conn and can read and write data
 				// A stream can only be opened while the grant is still valid, and each new connection will validate the database parameters username and database
 				sessionConn, err := yamuxStreamConnection.OpenStream()
@@ -181,7 +181,7 @@ func listenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, c
 					clio.Error("Failed to establish a new connection to the remote database via the proxy server.")
 					clio.Error(err)
 					clio.Infof("Your grant may have expired, you can check the status here: %s", requestURL)
-					return nil
+					return
 				}
 
 				clio.Infof("Connection accepted for session [%v]", sessionConn.StreamID())
@@ -205,7 +205,7 @@ func listenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, c
 						clio.Debugw("error writing data from server to client usually this is just because the database proxy session ended.", "streamId", sessionConn.StreamID(), zap.Error(err))
 					}
 				}()
-				return nil
+				return
 			}(result.conn)
 		}
 	}
