@@ -37,7 +37,6 @@ func GlobalFlags() []cli.Flag {
 		&cli.StringSliceFlag{Name: "pass-through", Aliases: []string{"pt"}, Usage: "Pass args to proxy assumer"},
 		&cli.BoolFlag{Name: "active-role", Aliases: []string{"ar"}, Usage: "Open console using active role"},
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
-		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 		&cli.StringFlag{Name: "active-aws-profile", EnvVars: []string{"AWS_PROFILE"}, Hidden: true},
 		&cli.BoolFlag{Name: "auto-configure-shell", Usage: "Configure shell alias without prompts"},
 		&cli.StringFlag{Name: "exec", Usage: "Assume a profile then execute this command"},
