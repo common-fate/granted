@@ -31,11 +31,9 @@ import (
 	"github.com/common-fate/granted/pkg/hook/accessrequesthook"
 	"github.com/common-fate/sdk/config"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
-	entityv1alpha1 "github.com/common-fate/sdk/gen/commonfate/entity/v1alpha1"
 	"github.com/common-fate/sdk/handshake"
 	"github.com/common-fate/sdk/service/access"
 	"github.com/common-fate/sdk/service/access/grants"
-	"github.com/common-fate/sdk/service/entity"
 	"github.com/common-fate/xid"
 	"github.com/fatih/color"
 	"github.com/hashicorp/yamux"
@@ -206,8 +204,6 @@ var proxyCommand = cli.Command{
 
 		}
 
-		clio.Info("Grant is activated")
-
 		if result == nil || len(result.Grants) == 0 {
 			return errors.New("could not load grant from Common Fate")
 		}
@@ -216,19 +212,14 @@ var proxyCommand = cli.Command{
 
 		grantsClient := grants.NewFromConfig(cfg)
 
-		children, err := grab.AllPages(ctx, func(ctx context.Context, nextToken *string) ([]*entityv1alpha1.Entity, *string, error) {
-			res, err := grantsClient.QueryGrantChildren(ctx, connect.NewRequest(&accessv1alpha1.QueryGrantChildrenRequest{
-				Id:        grant.Grant.Id,
-				PageToken: grab.Value(nextToken),
-			}))
-			if err != nil {
-				return nil, nil, err
-			}
-			return res.Msg.Entities, &res.Msg.NextPageToken, nil
-		})
+		grantOutput, err := grantsClient.GetGrantOutput(ctx, connect.NewRequest(&accessv1alpha1.GetGrantOutputRequest{
+			Id: grant.Grant.Id,
+		}))
 		if err != nil {
 			return err
 		}
+
+		clio.Debugw("found grant output", "output", grantOutput)
 
 		// find an unused local port to use for the ssm server
 		// the user doesn't directly connect to this, they connect through our local proxy
@@ -240,28 +231,21 @@ var proxyCommand = cli.Command{
 
 		clio.Debugf("starting SSM portforward on local port: %s", ssmPortforwardLocalPort)
 
+		rdsOutput, ok := grantOutput.Msg.Output.(*accessv1alpha1.GetGrantOutputResponse_OutputAwsRds)
+		if !ok {
+			return errors.New("unexpected grant output, this indicates an error in the Common Fate Provisioning process, you should contect your Common Fate administrator")
+		}
+
 		commandData := CommandData{
-			// the proxy server always runs on port 7070
+			// the proxy server always runs on port 8080
 			SSMPortForwardServerPort: "8080",
 			SSMPortForwardLocalPort:  ssmPortforwardLocalPort,
+			GrantOutput:              rdsOutput.OutputAwsRds,
 		}
 
 		// in local dev we run on a different port because the control plane already runs on 8080
 		if os.Getenv("CF_DEV_PROXY") == "true" {
 			commandData.SSMPortForwardServerPort = "7070"
-		}
-
-		for _, child := range children {
-			if child.Eid.Type == GrantOutputType {
-				err = entity.Unmarshal(child, &commandData.GrantOutput)
-				if err != nil {
-					return err
-				}
-			}
-		}
-
-		if commandData.GrantOutput.Grant.ID == "" {
-			return errors.New("did not find a grant output entity in query grant children response")
 		}
 
 		clio.Debugw("command data", "commandData", commandData)
@@ -270,10 +254,10 @@ var proxyCommand = cli.Command{
 			Name:        grant.Grant.Id,
 			ProfileType: "AWS_SSO",
 			AWSConfig: awsConfig.SharedConfig{
-				SSOAccountID: commandData.GrantOutput.Database.Account.ID,
+				SSOAccountID: commandData.GrantOutput.RdsDatabase.AccountId,
 				SSORoleName:  grant.Grant.Id,
-				SSORegion:    commandData.GrantOutput.SSORegion,
-				SSOStartURL:  commandData.GrantOutput.SSOStartURL,
+				SSORegion:    commandData.GrantOutput.SsoRegion,
+				SSOStartURL:  commandData.GrantOutput.SsoStartUrl,
 			},
 			Initialised: true,
 		}
@@ -295,7 +279,7 @@ var proxyCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		awscfg.Region = commandData.GrantOutput.Database.Region
+		awscfg.Region = commandData.GrantOutput.RdsDatabase.Region
 		ssmClient := ssm.NewFromConfig(awscfg)
 
 		// listen for interrupt signals and forward them on
@@ -322,7 +306,7 @@ var proxyCommand = cli.Command{
 		} else {
 			documentName := "AWS-StartPortForwardingSession"
 			startSessionInput := ssm.StartSessionInput{
-				Target:       &commandData.GrantOutput.SSMSessionTarget,
+				Target:       &commandData.GrantOutput.SsmSessionTarget,
 				DocumentName: &documentName,
 				Parameters: map[string][]string{
 					"portNumber":      {commandData.SSMPortForwardServerPort},
@@ -438,17 +422,17 @@ var proxyCommand = cli.Command{
 			// the passwords are always 'password' while the username and database will match that of the target being connected to
 			var connectionString, cliString, port string
 			yellow := color.New(color.FgYellow)
-			switch commandData.GrantOutput.Database.Engine {
+			switch commandData.GrantOutput.RdsDatabase.Engine {
 			case "postgres", "aurora-postgresql":
 				port = grab.If(overridePort != 0, strconv.Itoa(overridePort), "5432")
-				connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable", commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
-				cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable"`, commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
+				connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable", commandData.GrantOutput.User.Username, port, commandData.GrantOutput.RdsDatabase.Database)
+				cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable"`, commandData.GrantOutput.User.Username, port, commandData.GrantOutput.RdsDatabase.Database)
 			case "mysql", "aurora-mysql":
 				port = grab.If(overridePort != 0, strconv.Itoa(overridePort), "3306")
-				connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%s)/%s", commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
-				cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %s %s`, commandData.GrantOutput.User.Username, port, commandData.GrantOutput.Database.Database)
+				connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%s)/%s", commandData.GrantOutput.User.Username, port, commandData.GrantOutput.RdsDatabase.Database)
+				cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %s %s`, commandData.GrantOutput.User.Username, port, commandData.GrantOutput.RdsDatabase.Database)
 			default:
-				return fmt.Errorf("unsupported database engine: %s, maybe you need to update your `cf` cli", commandData.GrantOutput.Database.Engine)
+				return fmt.Errorf("unsupported database engine: %s, maybe you need to update your `cf` cli", commandData.GrantOutput.RdsDatabase.Engine)
 			}
 
 			clio.NewLine()
@@ -458,7 +442,7 @@ var proxyCommand = cli.Command{
 			clio.Infof("You can connect now using this connection string: %s", connectionString)
 			clio.NewLine()
 
-			clio.Infof("Or using the %s cli: %s", commandData.GrantOutput.Database.Engine, cliString)
+			clio.Infof("Or using the %s cli: %s", commandData.GrantOutput.RdsDatabase.Engine, cliString)
 			clio.NewLine()
 
 			defer cancel()
@@ -570,7 +554,7 @@ func GrabUnusedPort() (string, error) {
 }
 
 type CommandData struct {
-	GrantOutput              AWSRDS
+	GrantOutput              *accessv1alpha1.AWSRDSOutput
 	SSMPortForwardLocalPort  string
 	SSMPortForwardServerPort string
 }
