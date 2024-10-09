@@ -68,6 +68,7 @@ var ServiceMap = map[string]string{
 	"tra":            "trustedadvisor",
 	"vpc":            "vpc",
 	"waf":            "wafv2",
+	"wafv2":          "wafv2/homev2"
 }
 
 var globalServiceMap = map[string]bool{
