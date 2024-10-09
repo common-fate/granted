@@ -46,7 +46,7 @@ var ServiceMap = map[string]string{
 	"mwaa":           "mwaa",
 	"param":          "systems-manager/parameters",
 	"r53":            "route53/v2",
-	"ram":		  "ram",
+	"ram":            "ram",
 	"rds":            "rds",
 	"redshift":       "redshiftv2",
 	"route53":        "route53/v2",
@@ -68,7 +68,7 @@ var ServiceMap = map[string]string{
 	"tra":            "trustedadvisor",
 	"vpc":            "vpc",
 	"waf":            "wafv2",
-	"wafv2":          "wafv2/homev2"
+	"wafv2":          "wafv2/homev2",
 }
 
 var globalServiceMap = map[string]bool{
