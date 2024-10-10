@@ -23,8 +23,8 @@ require (
 	github.com/aws/aws-sdk-go-v2/service/ssm v1.44.7
 	github.com/aws/session-manager-plugin v0.0.0-20240702185740-6384c679ead7
 	github.com/briandowns/spinner v1.23.0
-	github.com/charmbracelet/huh v0.5.1
-	github.com/charmbracelet/lipgloss v0.12.1
+	github.com/charmbracelet/huh v0.6.0
+	github.com/charmbracelet/lipgloss v0.13.0
 	github.com/common-fate/cli v1.8.0
 	github.com/common-fate/clio v1.2.3
 	github.com/common-fate/common-fate v0.15.13
@@ -35,7 +35,7 @@ require (
 	github.com/fatih/color v1.16.0
 	github.com/hashicorp/yamux v0.1.1
 	github.com/lithammer/fuzzysearch v1.1.5
-	github.com/mattn/go-runewidth v0.0.15
+	github.com/mattn/go-runewidth v0.0.16
 	github.com/schollz/progressbar/v3 v3.13.1
 	go.uber.org/zap v1.26.0
 	google.golang.org/protobuf v1.33.0
@@ -52,12 +52,12 @@ require (
 	github.com/aymanbagabas/go-osc52/v2 v2.0.1 // indirect
 	github.com/benbjohnson/clock v1.3.5 // indirect
 	github.com/catppuccin/go v0.2.0 // indirect
-	github.com/charmbracelet/bubbles v0.18.0 // indirect
-	github.com/charmbracelet/bubbletea v0.26.4 // indirect
-	github.com/charmbracelet/x/ansi v0.1.4 // indirect
-	github.com/charmbracelet/x/exp/strings v0.0.0-20240617190524-788ec55faed1 // indirect
+	github.com/charmbracelet/bubbles v0.20.0 // indirect
+	github.com/charmbracelet/bubbletea v1.1.0 // indirect
+	github.com/charmbracelet/x/ansi v0.2.3 // indirect
+	github.com/charmbracelet/x/exp/strings v0.0.0-20240722160745-212f7b056ed0 // indirect
 	github.com/charmbracelet/x/input v0.1.2 // indirect
-	github.com/charmbracelet/x/term v0.1.1 // indirect
+	github.com/charmbracelet/x/term v0.2.0 // indirect
 	github.com/charmbracelet/x/windows v0.1.2 // indirect
 	github.com/cihub/seelog v0.0.0-20170130134532-f561c5e57575 // indirect
 	github.com/common-fate/apikit v0.4.0 // indirect
@@ -93,7 +93,7 @@ require (
 	github.com/mohae/deepcopy v0.0.0-20170929034955-c48cc78d4826 // indirect
 	github.com/muesli/ansi v0.0.0-20230316100256-276c6243b2f6 // indirect
 	github.com/muesli/cancelreader v0.2.2 // indirect
-	github.com/muesli/termenv v0.15.2 // indirect
+	github.com/muesli/termenv v0.15.3-0.20240618155329-98d742f6907a // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
 	github.com/patrickmn/go-cache v2.1.0+incompatible // indirect
 	github.com/pmezard/go-difflib v1.0.0 // indirect
@@ -150,10 +150,10 @@ require (
 	github.com/sethvargo/go-retry v0.2.4
 	github.com/stretchr/testify v1.9.0
 	go.uber.org/ratelimit v0.3.0
-	golang.org/x/sync v0.7.0
-	golang.org/x/sys v0.22.0
+	golang.org/x/sync v0.8.0
+	golang.org/x/sys v0.25.0
 	golang.org/x/term v0.22.0 // indirect
-	golang.org/x/text v0.16.0
+	golang.org/x/text v0.18.0
 	gopkg.in/ini.v1 v1.67.0
 )
 
