@@ -58,7 +58,12 @@ func (r Registry) AWSProfiles(ctx context.Context) (*ini.File, error) {
 
 	// load all cloned configs of a single repo into one ini object.
 	// this will overwrite if there are duplicate profiles with same name.
-	result := ini.Empty()
+	result := ini.Empty(
+		ini.LoadOptions{
+			SpaceBeforeInlineComment:    true,
+			UnescapeValueCommentSymbols: true,
+		},
+	)
 
 	for _, cfile := range cfg.AwsConfigPaths {
 		var filepath string
