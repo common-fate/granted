@@ -34,7 +34,6 @@ func GetCliApp() *cli.App {
 
 	flags := []cli.Flag{
 		&cli.BoolFlag{Name: "verbose", Usage: "Log debug messages"},
-		&cli.StringFlag{Name: "update-checker-api-url", Value: build.UpdateCheckerApiUrl, EnvVars: []string{"UPDATE_CHECKER_API_URL"}, Hidden: true},
 		&cli.StringFlag{Name: "aws-config-file"},
 	}
 
