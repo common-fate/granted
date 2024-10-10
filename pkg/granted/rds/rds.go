@@ -259,9 +259,12 @@ func promptForDatabaseAndUser(ctx context.Context, accessClient accessv1alpha1co
 	}
 
 	selector := huh.NewSelect[*accessv1alpha1.Entitlement]().
+		// show the filter dialog when there are 2 or more options
+		Filtering(len(options) > 1).
 		Options(options...).
 		Title("Select a database to connect to").
 		Description(header).WithTheme(huh.ThemeBase())
+
 	err = selector.Run()
 	if err != nil {
 		return nil, err
