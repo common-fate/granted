@@ -118,6 +118,8 @@ github.com/common-fate/sdk v1.55.0 h1:G5VcjFBp4VZ/Er+ekgfHhgFqMhpGSOd+KDid0JDxb6
 github.com/common-fate/sdk v1.55.0/go.mod h1:OrXhzB2Y1JSrKGHrb4qRmY+6MF2M3MFb+3edBnessXo=
 github.com/common-fate/sdk v1.65.1-0.20241011051722-f7b232cd8807 h1:hSbCn+9G5kwImbHbH1HrluUeMA17L0XeNc9Y/5dN40k=
 github.com/common-fate/sdk v1.65.1-0.20241011051722-f7b232cd8807/go.mod h1:OrXhzB2Y1JSrKGHrb4qRmY+6MF2M3MFb+3edBnessXo=
+github.com/common-fate/sdk v1.66.1-0.20241016231907-6bf32a394770 h1:YecCiQPcdDDAfByfxDsNSTv79CTkc+iD2M774As3Joo=
+github.com/common-fate/sdk v1.66.1-0.20241016231907-6bf32a394770/go.mod h1:OrXhzB2Y1JSrKGHrb4qRmY+6MF2M3MFb+3edBnessXo=
 github.com/common-fate/session-manager-plugin v0.0.0-20240723053832-3d311db99016 h1:WObxQKT/BuR8HWKSGsJ6aQb/cdhvkenkb1KWXNyPWeE=
 github.com/common-fate/session-manager-plugin v0.0.0-20240723053832-3d311db99016/go.mod h1:glAZTUB+4Eg0JVLC3B/YEomJv6QHcNS3klJjw9HC5Y8=
 github.com/common-fate/updatecheck v0.3.5 h1:UGIKMnYwuHjbhhCaisLz1pNPg8Z1nXEoWcfqT+4LkAg=

@@ -30,7 +30,7 @@ require (
 	github.com/common-fate/common-fate v0.15.13
 	github.com/common-fate/glide-cli v0.6.0
 	github.com/common-fate/grab v1.3.0
-	github.com/common-fate/sdk v1.65.1-0.20241011051722-f7b232cd8807
+	github.com/common-fate/sdk v1.66.1-0.20241016231907-6bf32a394770
 	github.com/common-fate/xid v1.0.0
 	github.com/fatih/color v1.16.0
 	github.com/hashicorp/yamux v0.1.1
