@@ -106,6 +106,10 @@ var proxyCommand = cli.Command{
 			return err
 		}
 
+		err = AddContextToConfig(ensuredAccess)
+		if err != nil {
+			return err
+		}
 		underlyingProxyServerConn, yamuxStreamConnection, err := initiateSessionConnection(cfg, initiateSessionConnectionInput{
 			EnsuredAccess: ensuredAccess,
 			RequestURL:    requestURL,
