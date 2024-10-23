@@ -111,7 +111,7 @@ func AddContextToConfig(ensureAccessOutput *ensureAccessOutput) error {
 	// }
 
 	//set the context
-	clio.Warnf("`~/.kube/config` Updated. Set current context with: `kubectl config set-context %s`", clusterContextName)
+	clio.Warnf("`~/.kube/config` Updated. Set current context with: `kubectl config use-context %s`", clusterContextName)
 
 	err = kc.SaveConfig()
 	if err != nil {
