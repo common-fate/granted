@@ -36,6 +36,15 @@ func GetCommonFateURL(profile *cfaws.Profile) (*url.URL, error) {
 	return u, nil
 }
 
+func GenerateRequestURL(apiURL string, requestID string) (string, error) {
+	u, err := url.Parse(apiURL)
+	if err != nil {
+		return "", err
+	}
+	p := u.JoinPath("access", "requests", requestID)
+	return p.String(), nil
+}
+
 func Load(ctx context.Context, profile *cfaws.Profile) (*sdkconfig.Context, error) {
 	cfURL, err := GetCommonFateURL(profile)
 	if err != nil {
