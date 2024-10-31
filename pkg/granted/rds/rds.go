@@ -570,17 +570,23 @@ func clientConnectionParameters(c *cli.Context, ensuredAccess *ensureAccessOutpu
 	// Print the connection information to the user based on the database they are connecting to
 	// the passwords are always 'password' while the username and database will match that of the target being connected to
 	yellow := color.New(color.FgYellow)
-	// the port that the user connects to
-	overridePort := c.Int("port")
 	switch ensuredAccess.GrantOutput.RdsDatabase.Engine {
 	case "postgres", "aurora-postgresql":
-		port = grab.If(overridePort != 0, strconv.Itoa(overridePort), "5432")
-		connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable", ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
-		cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%s/%s?sslmode=disable"`, ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
+		port := getLocalPort(getLocalPortInput{
+			OverrideFlag:      c.Int("port"),
+			DefaultFromServer: int(ensuredAccess.GrantOutput.DefaultLocalPort),
+			Fallback:          5432,
+		})
+		connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%d/%s?sslmode=disable", ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
+		cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%d/%s?sslmode=disable"`, ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
 	case "mysql", "aurora-mysql":
-		port = grab.If(overridePort != 0, strconv.Itoa(overridePort), "3306")
-		connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%s)/%s", ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
-		cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %s %s`, ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
+		port := getLocalPort(getLocalPortInput{
+			OverrideFlag:      c.Int("port"),
+			DefaultFromServer: int(ensuredAccess.GrantOutput.DefaultLocalPort),
+			Fallback:          3306,
+		})
+		connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%d)/%s", ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
+		cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %d %s`, ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
 	default:
 		return "", "", "", fmt.Errorf("unsupported database engine: %s, maybe you need to update your `cf` cli", ensuredAccess.GrantOutput.RdsDatabase.Engine)
 	}
