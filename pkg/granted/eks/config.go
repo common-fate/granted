@@ -6,34 +6,41 @@ import (
 	"path/filepath"
 
 	"github.com/common-fate/clio"
-	"github.com/common-fate/granted/pkg/granted/kubeconfig"
 	"github.com/common-fate/granted/pkg/granted/proxy"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/fatih/color"
+	"k8s.io/client-go/tools/clientcmd"
+	"k8s.io/client-go/tools/clientcmd/api"
 )
 
-func OpenKubeConfig() (*kubeconfig.Config, error) {
+func OpenKubeConfig() (*api.Config, string, error) {
 	homeDir, err := os.UserHomeDir()
 	if err != nil {
-		return nil, err
+		return nil, "", err
 	}
+
 	kubeConfigPath := filepath.Join(homeDir, ".kube", "config")
 
-	kc, err := kubeconfig.Load(kubeConfigPath)
+	loader := clientcmd.ClientConfigLoadingRules{
+		Precedence:       []string{kubeConfigPath},
+		WarnIfAllMissing: true,
+		Warner: func(err error) {
+			// debug log the warning if teh file does not exist
+			// it will default to creating a new file
+			clio.Debug(err)
+		},
+	}
+	config, err := loader.Load()
 	if err != nil {
-		clio.Errorf("error loading kubeconfig, proceeding trying to generate config anyway (%s)", err.Error())
+		return nil, "", err
 	}
 
-	if kc == nil {
-		kc = kubeconfig.New()
-	}
-
-	return kc, nil
+	return config, kubeConfigPath, nil
 }
 
 func AddContextToConfig(ensureAccessOutput *proxy.EnsureAccessOutput[*accessv1alpha1.AWSEKSProxyOutput], port string) error {
 
-	kc, err := OpenKubeConfig()
+	kc, kubeConfigPath, err := OpenKubeConfig()
 	if err != nil {
 		return err
 	}
@@ -44,64 +51,31 @@ func AddContextToConfig(ensureAccessOutput *proxy.EnsureAccessOutput[*accessv1al
 
 	username := ensureAccessOutput.GrantOutput.ServiceAccountName
 
-	var contexts []*kubeconfig.ContextConfig
-	for i, context := range kc.Contexts {
-		if context.Name != clusterContextName {
-			contexts = append(contexts, kc.Contexts[i])
-		}
-	}
-	kc.Contexts = contexts
-
+	// remove an existing value for the context being added/updated
+	delete(kc.Contexts, clusterContextName)
 	// remove existing cluster definitions so they can be reset
-	var clusters []*kubeconfig.ClusterConfig
-	for i, cluster := range kc.Clusters {
-		if cluster.Name != clusterName {
-			clusters = append(clusters, kc.Clusters[i])
-		}
-	}
-	kc.Clusters = clusters
+	delete(kc.Clusters, clusterName)
+	// remove existing user definitions so they can be reset
+	delete(kc.AuthInfos, username)
 
-	var users []*kubeconfig.UserConfig
-	for i, user := range kc.Users {
-		if user.Name != username {
-			users = append(users, kc.Users[i])
-		}
-	}
-	kc.Users = users
-
+	newCluster := api.NewCluster()
+	newCluster.Server = fmt.Sprintf("http://localhost:%s", port)
+	newCluster.InsecureSkipTLSVerify = true
 	//add the new cluster and context back in
-	err = kc.AddCluster(&kubeconfig.ClusterConfig{
-		Name: clusterName,
-		Cluster: kubeconfig.Cluster{
-			Server:                fmt.Sprintf("http://localhost:%s", port),
-			InsecureSkipTLSVerify: true,
-		},
-	})
-	if err != nil {
-		return err
-	}
+	kc.Clusters[clusterName] = newCluster
 
-	//add the context back in
-	err = kc.AddContext(&kubeconfig.ContextConfig{
-		Name: clusterContextName,
-		Context: kubeconfig.Context{
-			// @TODO, teams may wish to specify a default namespace for each user or cluster?
-			Namespace: "default",
-			Cluster:   clusterName,
-			User:      username,
-		},
-	})
-	if err != nil {
-		return err
-	}
+	newContext := api.NewContext()
+	newContext.Cluster = clusterName
+	newContext.AuthInfo = username
+	// @TODO, teams may wish to specify a default namespace for each user or cluster?
+	newContext.Namespace = "default"
+	kc.Contexts[clusterContextName] = newContext
 
-	//add users
-	err = kc.AddUser(&kubeconfig.UserConfig{
-		Name: username,
-		User: kubeconfig.AuthInfo{
-			As: username,
-		},
-	})
+	newUser := api.NewAuthInfo()
+	newUser.Impersonate = username
+	kc.AuthInfos[username] = newUser
+
+	err = clientcmd.WriteToFile(*kc, kubeConfigPath)
 	if err != nil {
 		return err
 	}
@@ -113,10 +87,7 @@ func AddContextToConfig(ensureAccessOutput *proxy.EnsureAccessOutput[*accessv1al
 	clio.NewLine()
 	clio.Infof("Or using the --context flag with kubectl: %s", color.YellowString("kubectl --context=%s", clusterContextName))
 	clio.NewLine()
-	err = kc.SaveConfig()
-	if err != nil {
-		return err
-	}
+
 	return nil
 
 }
