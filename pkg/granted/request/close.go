@@ -137,16 +137,8 @@ var closeCommand = cli.Command{
 		}
 		accessClient := request.NewFromConfig(cfg)
 
-		idClient := identitysvc.NewFromConfig(cfg)
-		callerID, err := idClient.GetCallerIdentity(c.Context, connect.NewRequest(&accessv1alpha1.GetCallerIdentityRequest{}))
-		if err != nil {
-			return err
-		}
-
-		res, err := accessClient.QueryAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.QueryAccessRequestsRequest{
-			Archived:    false,
-			Order:       entityv1alpha1.Order_ORDER_DESCENDING.Enum(),
-			RequestedBy: callerID.Msg.Principal.Eid,
+		res, err := accessClient.QueryMyAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.QueryMyAccessRequestsRequest{
+			Order: entityv1alpha1.Order_ORDER_DESCENDING.Enum(),
 		}))
 		clio.Debugw("result", "res", res)
 		if err != nil {
