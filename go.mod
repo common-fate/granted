@@ -30,7 +30,7 @@ require (
 	github.com/common-fate/common-fate v0.15.13
 	github.com/common-fate/glide-cli v0.6.0
 	github.com/common-fate/grab v1.3.0
-	github.com/common-fate/sdk v1.66.1-0.20241018041827-08b52ccdd859
+	github.com/common-fate/sdk v1.69.0
 	github.com/common-fate/xid v1.0.0
 	github.com/fatih/color v1.16.0
 	github.com/google/go-cmp v0.6.0
@@ -98,14 +98,13 @@ require (
 	github.com/muesli/cancelreader v0.2.2 // indirect
 	github.com/muesli/termenv v0.15.3-0.20240618155329-98d742f6907a // indirect
 	github.com/muhlemmer/gu v0.3.1 // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
+	github.com/pmezard/go-difflib v1.0.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
 	github.com/shopspring/decimal v1.2.0 // indirect
 	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/spf13/cast v1.3.1 // indirect
 	github.com/stretchr/objx v0.5.2 // indirect
 	github.com/twinj/uuid v0.0.0-20151029044442-89173bcdda19 // indirect
-	github.com/x448/float16 v0.8.4 // indirect
 	github.com/xrash/smetrics v0.0.0-20201216005158-039620a65673 // indirect
 	github.com/xtaci/smux v1.5.24 // indirect
 	github.com/zitadel/logging v0.6.0 // indirect

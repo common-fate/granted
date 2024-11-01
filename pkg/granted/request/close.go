@@ -16,7 +16,6 @@ import (
 	"github.com/common-fate/sdk/eid"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	entityv1alpha1 "github.com/common-fate/sdk/gen/commonfate/entity/v1alpha1"
-	filtersv1alpha1 "github.com/common-fate/sdk/gen/commonfate/filters/v1alpha1"
 	"github.com/common-fate/sdk/service/access/grants"
 	"github.com/common-fate/sdk/service/access/request"
 	identitysvc "github.com/common-fate/sdk/service/identity"
@@ -138,24 +137,8 @@ var closeCommand = cli.Command{
 		}
 		accessClient := request.NewFromConfig(cfg)
 
-		idClient := identitysvc.NewFromConfig(cfg)
-		callerID, err := idClient.GetCallerIdentity(c.Context, connect.NewRequest(&accessv1alpha1.GetCallerIdentityRequest{}))
-		if err != nil {
-			return err
-		}
-
-		res, err := accessClient.QueryAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.QueryAccessRequestsRequest{
-			Archived: false,
-			Order:    entityv1alpha1.Order_ORDER_DESCENDING.Enum(),
-			Filters: []*accessv1alpha1.Filter{
-				{
-					Filter: &accessv1alpha1.Filter_RequestedBy{
-						RequestedBy: &filtersv1alpha1.EntityFilter{
-							Ids: []*entityv1alpha1.EID{callerID.Msg.Principal.Eid},
-						},
-					},
-				},
-			},
+		res, err := accessClient.QueryMyAccessRequests(ctx, connect.NewRequest(&accessv1alpha1.QueryMyAccessRequestsRequest{
+			Order: entityv1alpha1.Order_ORDER_DESCENDING.Enum(),
 		}))
 		clio.Debugw("result", "res", res)
 		if err != nil {
