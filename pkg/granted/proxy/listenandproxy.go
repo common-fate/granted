@@ -14,10 +14,10 @@ import (
 
 // ListenAndProxy will listen for new client connections and start a stream over the established proxy server session.
 // if the proxy server terminates the session, like when a grant expires, this listener will detect it and terminate the CLI commmand with an error explaining what happened
-func ListenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, clientConnectionPort string, requestURL string) error {
-	ln, err := net.Listen("tcp", "localhost:"+clientConnectionPort)
+func ListenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, clientConnectionPort int, requestURL string) error {
+	ln, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", clientConnectionPort))
 	if err != nil {
-		return fmt.Errorf("failed to start listening for connections on port: %s. %w", clientConnectionPort, err)
+		return fmt.Errorf("failed to start listening for connections on port: %d. %w", clientConnectionPort, err)
 	}
 	defer ln.Close()
 

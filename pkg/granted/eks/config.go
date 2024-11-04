@@ -38,7 +38,7 @@ func OpenKubeConfig() (*api.Config, string, error) {
 	return config, kubeConfigPath, nil
 }
 
-func AddContextToConfig(ensureAccessOutput *proxy.EnsureAccessOutput[*accessv1alpha1.AWSEKSProxyOutput], port string) error {
+func AddContextToConfig(ensureAccessOutput *proxy.EnsureAccessOutput[*accessv1alpha1.AWSEKSProxyOutput], port int) error {
 
 	kc, kubeConfigPath, err := OpenKubeConfig()
 	if err != nil {
@@ -59,7 +59,7 @@ func AddContextToConfig(ensureAccessOutput *proxy.EnsureAccessOutput[*accessv1al
 	delete(kc.AuthInfos, username)
 
 	newCluster := api.NewCluster()
-	newCluster.Server = fmt.Sprintf("http://localhost:%s", port)
+	newCluster.Server = fmt.Sprintf("http://localhost:%d", port)
 	newCluster.InsecureSkipTLSVerify = true
 	//add the new cluster and context back in
 	kc.Clusters[clusterName] = newCluster
