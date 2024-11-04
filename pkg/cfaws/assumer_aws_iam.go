@@ -98,7 +98,9 @@ func (aia *AwsIamAssumer) AssumeTerminal(ctx context.Context, c *Profile, config
 				aro.TokenProvider = MfaTokenProvider
 			}
 			aro.Duration = configOpts.Duration
-
+			if c.AWSConfig.ExternalID != "" {
+				aro.ExternalID = &c.AWSConfig.ExternalID
+			}
 			/**If the mfa_serial is defined on the root profile, we need to set it in this config so that the aws SDK knows to prompt for MFA token:
 			*[profile base]
 			*region             = us-west-2
