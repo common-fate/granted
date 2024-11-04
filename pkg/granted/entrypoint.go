@@ -14,6 +14,7 @@ import (
 	"github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/granted/auth"
 	"github.com/common-fate/granted/pkg/granted/doctor"
+	"github.com/common-fate/granted/pkg/granted/eks"
 	"github.com/common-fate/granted/pkg/granted/exp"
 	"github.com/common-fate/granted/pkg/granted/middleware"
 	"github.com/common-fate/granted/pkg/granted/rds"
@@ -64,6 +65,7 @@ func GetCliApp() *cli.App {
 			&doctor.Command,
 			&rds.Command,
 			&CFCommand,
+			&eks.Command,
 		},
 		// Granted may be invoked via our browser extension, which uses the Native Messaging
 		// protocol to communicate with the Granted CLI. If invoked this way, the browser calls

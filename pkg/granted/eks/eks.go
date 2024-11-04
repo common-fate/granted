@@ -1,9 +1,8 @@
-package rds
+package eks
 
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"connectrpc.com/connect"
 
@@ -16,16 +15,15 @@ import (
 	"github.com/common-fate/sdk/config"
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
-	"github.com/fatih/color"
 	"github.com/mattn/go-runewidth"
 
 	"github.com/urfave/cli/v2"
 )
 
 var Command = cli.Command{
-	Name:        "rds",
-	Usage:       "Granted RDS plugin",
-	Description: "Granted RDS plugin",
+	Name:        "eks",
+	Usage:       "Granted EKS plugin",
+	Description: "Granted EKS plugin",
 	Subcommands: []*cli.Command{&proxyCommand},
 }
 
@@ -36,11 +34,10 @@ func isLocalMode(c *cli.Context) bool {
 
 var proxyCommand = cli.Command{
 	Name:  "proxy",
-	Usage: "The Proxy plugin is used in conjunction with a Commnon Fate deployment to request temporary access to an AWS RDS Database",
+	Usage: "The Proxy plugin is used in conjunction with a Commnon Fate deployment to request temporary access to an AWS EKS Cluster",
 	Flags: []cli.Flag{
-		&cli.StringFlag{Name: "target", Aliases: []string{"database"}},
-		&cli.StringFlag{Name: "role", Aliases: []string{"user"}},
-		&cli.IntFlag{Name: "port", Usage: "The local port to forward the database connection to"},
+		&cli.StringFlag{Name: "target", Aliases: []string{"cluster"}},
+		&cli.StringFlag{Name: "role", Aliases: []string{"service-account"}},
 		&cli.StringFlag{Name: "reason", Usage: "Provide a reason for requesting access to the role"},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "Skip confirmation prompts for access requests"},
 		&cli.BoolFlag{Name: "wait", Value: true, Usage: "Wait for the access request to be approved."},
@@ -60,16 +57,16 @@ var proxyCommand = cli.Command{
 			return err
 		}
 
-		ensuredAccess, err := proxy.EnsureAccess(ctx, cfg, proxy.EnsureAccessInput[*accessv1alpha1.AWSRDSOutput]{
+		ensuredAccess, err := proxy.EnsureAccess(ctx, cfg, proxy.EnsureAccessInput[*accessv1alpha1.AWSEKSProxyOutput]{
 			Target:               c.String("target"),
 			Role:                 c.String("role"),
 			Duration:             c.Duration("duration"),
 			Reason:               c.String("reason"),
 			Confirm:              c.Bool("confirm"),
 			Wait:                 c.Bool("wait"),
-			PromptForEntitlement: promptForDatabaseAndUser,
-			GetGrantOutput: func(msg *accessv1alpha1.GetGrantOutputResponse) (*accessv1alpha1.AWSRDSOutput, error) {
-				output := msg.GetOutputAwsRds()
+			PromptForEntitlement: promptForClusterAndRole,
+			GetGrantOutput: func(msg *accessv1alpha1.GetGrantOutputResponse) (*accessv1alpha1.AWSEKSProxyOutput, error) {
+				output := msg.GetOutputAwsEksProxy()
 				if output == nil {
 					return nil, errors.New("unexpected grant output, this indicates an error in the Common Fate Provisioning process, you should contect your Common Fate administrator")
 				}
@@ -91,20 +88,22 @@ var proxyCommand = cli.Command{
 		}
 
 		clio.Debugw("prepared ports for access", "serverPort", serverPort, "localPort", localPort)
+		// In local mode ssm is not used, instead, the command connects directly to the proxy service running in local dev
+		// Return early because there is nothing to startup
 		if !isLocalMode(c) {
 			err = proxy.WaitForSSMConnectionToProxyServer(ctx, proxy.WaitForSSMConnectionToProxyServerOpts{
 				AWSConfig: proxy.AWSConfig{
-					SSOAccountID:     ensuredAccess.GrantOutput.RdsDatabase.AccountId,
+					SSOAccountID:     ensuredAccess.GrantOutput.EksCluster.AccountId,
 					SSORoleName:      ensuredAccess.Grant.Id,
 					SSORegion:        ensuredAccess.GrantOutput.SsoRegion,
 					SSOStartURL:      ensuredAccess.GrantOutput.SsoStartUrl,
-					Region:           ensuredAccess.GrantOutput.RdsDatabase.Region,
+					Region:           ensuredAccess.GrantOutput.EksCluster.Region,
 					SSMSessionTarget: ensuredAccess.GrantOutput.SsmSessionTarget,
 					NoCache:          c.Bool("no-cache"),
 				},
 				DisplayOpts: proxy.DisplayOpts{
-					Command:     "aws rds proxy",
-					SessionType: "RDS Proxy",
+					Command:     "aws eks proxy",
+					SessionType: "EKS Proxy",
 				},
 				ConnectionOpts: proxy.ConnectionOpts{
 					ServerPort: serverPort,
@@ -118,6 +117,13 @@ var proxyCommand = cli.Command{
 			}
 		}
 
+		// Rather than the user having to specify a port via a flag, the proxy command just grabs an unused port to use.
+		// it means that each time you run the
+		tempPort, err := proxy.GrabUnusedPort()
+		if err != nil {
+			return err
+		}
+
 		underlyingProxyServerConn, yamuxStreamConnection, err := proxy.InitiateSessionConnection(cfg, proxy.InitiateSessionConnectionInput{
 			GrantID:    ensuredAccess.Grant.Id,
 			RequestURL: requestURL,
@@ -129,24 +135,22 @@ var proxyCommand = cli.Command{
 		defer underlyingProxyServerConn.Close()
 		defer yamuxStreamConnection.Close()
 
-		connectionString, cliString, clientConnectionPort, err := clientConnectionParameters(c, ensuredAccess)
+		err = AddContextToConfig(ensuredAccess, tempPort)
 		if err != nil {
 			return err
 		}
 
-		printConnectionParameters(connectionString, cliString, clientConnectionPort, ensuredAccess.GrantOutput.RdsDatabase.Engine)
-
-		return proxy.ListenAndProxy(ctx, yamuxStreamConnection, clientConnectionPort, requestURL)
+		return proxy.ListenAndProxy(ctx, yamuxStreamConnection, tempPort, requestURL)
 	},
 }
 
-// promptForDatabaseAndUser lists all available database entitlements for the user and displays a table selector UI
-func promptForDatabaseAndUser(ctx context.Context, cfg *config.Context) (*accessv1alpha1.Entitlement, error) {
+// promptForClusterAndRole lists all available eks cluster entitlements for the user and displays a table selector UI
+func promptForClusterAndRole(ctx context.Context, cfg *config.Context) (*accessv1alpha1.Entitlement, error) {
 	accessClient := access.NewFromConfig(cfg)
 	entitlements, err := grab.AllPages(ctx, func(ctx context.Context, nextToken *string) ([]*accessv1alpha1.Entitlement, *string, error) {
 		res, err := accessClient.QueryEntitlements(ctx, connect.NewRequest(&accessv1alpha1.QueryEntitlementsRequest{
 			PageToken:  grab.Value(nextToken),
-			TargetType: grab.Ptr("AWS::RDS::Database"),
+			TargetType: grab.Ptr("AWS::EKS::Cluster"),
 		}))
 		if err != nil {
 			return nil, nil, err
@@ -159,14 +163,14 @@ func promptForDatabaseAndUser(ctx context.Context, cfg *config.Context) (*access
 
 	// check here to avoid nil pointer errors later
 	if len(entitlements) == 0 {
-		return nil, errors.New("you don't have access to any RDS databases")
+		return nil, errors.New("you don't have access to any EKS Clusters")
 	}
 
 	type Column struct {
 		Title string
 		Width int
 	}
-	cols := []Column{{Title: "Database", Width: 40}, {Title: "Role", Width: 40}}
+	cols := []Column{{Title: "Cluster", Width: 40}, {Title: "Role", Width: 40}}
 	var s = make([]string, 0, len(cols))
 	for _, col := range cols {
 		style := lipgloss.NewStyle().Width(col.Width).MaxWidth(col.Width).Inline(true)
@@ -193,7 +197,7 @@ func promptForDatabaseAndUser(ctx context.Context, cfg *config.Context) (*access
 		// show the filter dialog when there are 2 or more options
 		Filtering(len(options) > 1).
 		Options(options...).
-		Title("Select a database to connect to").
+		Title("Select a cluster to connect to").
 		Description(header).WithTheme(huh.ThemeBase())
 
 	err = selector.Run()
@@ -204,47 +208,8 @@ func promptForDatabaseAndUser(ctx context.Context, cfg *config.Context) (*access
 	selectorVal := selector.GetValue()
 
 	if selectorVal == nil {
-		return nil, errors.New("no database selected")
+		return nil, errors.New("no cluster selected")
 	}
 
 	return selectorVal.(*accessv1alpha1.Entitlement), nil
-}
-
-func clientConnectionParameters(c *cli.Context, ensuredAccess *proxy.EnsureAccessOutput[*accessv1alpha1.AWSRDSOutput]) (connectionString, cliString, port string, err error) {
-	// Print the connection information to the user based on the database they are connecting to
-	// the passwords are always 'password' while the username and database will match that of the target being connected to
-	yellow := color.New(color.FgYellow)
-	switch ensuredAccess.GrantOutput.RdsDatabase.Engine {
-	case "postgres", "aurora-postgresql":
-		port := getLocalPort(getLocalPortInput{
-			OverrideFlag:      c.Int("port"),
-			DefaultFromServer: int(ensuredAccess.GrantOutput.DefaultLocalPort),
-			Fallback:          5432,
-		})
-		connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%d/%s?sslmode=disable", ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
-		cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%d/%s?sslmode=disable"`, ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
-	case "mysql", "aurora-mysql":
-		port := getLocalPort(getLocalPortInput{
-			OverrideFlag:      c.Int("port"),
-			DefaultFromServer: int(ensuredAccess.GrantOutput.DefaultLocalPort),
-			Fallback:          3306,
-		})
-		connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%d)/%s", ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
-		cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %d %s`, ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
-	default:
-		return "", "", "", fmt.Errorf("unsupported database engine: %s, maybe you need to update your `cf` cli", ensuredAccess.GrantOutput.RdsDatabase.Engine)
-	}
-	return
-}
-
-func printConnectionParameters(connectionString, cliString, port, engine string) {
-	clio.NewLine()
-	clio.Infof("Database proxy ready for connections on 127.0.0.1:%s", port)
-	clio.NewLine()
-
-	clio.Infof("You can connect now using this connection string: %s", connectionString)
-	clio.NewLine()
-
-	clio.Infof("Or using the %s cli: %s", engine, cliString)
-	clio.NewLine()
 }

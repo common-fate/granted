@@ -1,4 +1,4 @@
-package rds
+package proxy
 
 import (
 	"strings"

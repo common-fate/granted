@@ -458,6 +458,10 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 		}
 	}
 
+	if !confirm {
+		return false, nil, errors.New("cancelled operation")
+	}
+
 	clio.Info("Attempting to grant access...")
 	return confirm, res.Msg, nil
 }
