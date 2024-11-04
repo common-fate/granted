@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"strconv"
 	"time"
 
 	awsConfig "github.com/aws/aws-sdk-go-v2/config"
@@ -39,8 +40,8 @@ type AWSConfig struct {
 	NoCache          bool
 }
 type ConnectionOpts struct {
-	ServerPort string
-	LocalPort  string
+	ServerPort int
+	LocalPort  int
 }
 type WaitForSSMConnectionToProxyServerOpts struct {
 	AWSConfig      AWSConfig
@@ -89,8 +90,8 @@ func WaitForSSMConnectionToProxyServer(ctx context.Context, opts WaitForSSMConne
 		Target:       &opts.AWSConfig.SSMSessionTarget,
 		DocumentName: &documentName,
 		Parameters: map[string][]string{
-			"portNumber":      {opts.ConnectionOpts.ServerPort},
-			"localPortNumber": {opts.ConnectionOpts.LocalPort},
+			"portNumber":      {strconv.Itoa(opts.ConnectionOpts.ServerPort)},
+			"localPortNumber": {strconv.Itoa(opts.ConnectionOpts.LocalPort)},
 		},
 		Reason: grab.Ptr(fmt.Sprintf("Session started for Granted %s connection with Common Fate. GrantID: %s, AccessRequestID: %s", opts.DisplayOpts.SessionType, opts.GrantID, opts.RequestID)),
 	}
@@ -109,7 +110,7 @@ func WaitForSSMConnectionToProxyServer(ctx context.Context, opts WaitForSSMConne
 		SessionId:             *sessionOutput.SessionId,
 		TokenValue:            *sessionOutput.TokenValue,
 		IsAwsCliUpgradeNeeded: false,
-		Endpoint:              "localhost:" + opts.ConnectionOpts.LocalPort,
+		Endpoint:              fmt.Sprintf("localhost:%d", opts.ConnectionOpts.LocalPort),
 		DataChannel:           &datachannel.DataChannel{},
 		ClientId:              clientId,
 	}

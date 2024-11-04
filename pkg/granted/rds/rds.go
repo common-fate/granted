@@ -134,7 +134,7 @@ var proxyCommand = cli.Command{
 			return err
 		}
 
-		printConnectionParameters(connectionString, cliString, clientConnectionPort, ensuredAccess.GrantOutput.RdsDatabase.Engine)
+		printConnectionParameters(connectionString, cliString, ensuredAccess.GrantOutput.RdsDatabase.Engine, clientConnectionPort)
 
 		return proxy.ListenAndProxy(ctx, yamuxStreamConnection, clientConnectionPort, requestURL)
 	},
@@ -210,36 +210,38 @@ func promptForDatabaseAndUser(ctx context.Context, cfg *config.Context) (*access
 	return selectorVal.(*accessv1alpha1.Entitlement), nil
 }
 
-func clientConnectionParameters(c *cli.Context, ensuredAccess *proxy.EnsureAccessOutput[*accessv1alpha1.AWSRDSOutput]) (connectionString, cliString, port string, err error) {
+func clientConnectionParameters(c *cli.Context, ensuredAccess *proxy.EnsureAccessOutput[*accessv1alpha1.AWSRDSOutput]) (connectionString, cliString string, port int, err error) {
 	// Print the connection information to the user based on the database they are connecting to
 	// the passwords are always 'password' while the username and database will match that of the target being connected to
 	yellow := color.New(color.FgYellow)
 	switch ensuredAccess.GrantOutput.RdsDatabase.Engine {
 	case "postgres", "aurora-postgresql":
-		port := getLocalPort(getLocalPortInput{
+		port = getLocalPort(getLocalPortInput{
 			OverrideFlag:      c.Int("port"),
 			DefaultFromServer: int(ensuredAccess.GrantOutput.DefaultLocalPort),
 			Fallback:          5432,
 		})
+
 		connectionString = yellow.Sprintf("postgresql://%s:password@127.0.0.1:%d/%s?sslmode=disable", ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
 		cliString = yellow.Sprintf(`psql "postgresql://%s:password@127.0.0.1:%d/%s?sslmode=disable"`, ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
 	case "mysql", "aurora-mysql":
-		port := getLocalPort(getLocalPortInput{
+		port = getLocalPort(getLocalPortInput{
 			OverrideFlag:      c.Int("port"),
 			DefaultFromServer: int(ensuredAccess.GrantOutput.DefaultLocalPort),
 			Fallback:          3306,
 		})
+
 		connectionString = yellow.Sprintf("%s:password@tcp(127.0.0.1:%d)/%s", ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
 		cliString = yellow.Sprintf(`mysql -u %s -p'password' -h 127.0.0.1 -P %d %s`, ensuredAccess.GrantOutput.User.Username, port, ensuredAccess.GrantOutput.RdsDatabase.Database)
 	default:
-		return "", "", "", fmt.Errorf("unsupported database engine: %s, maybe you need to update your `cf` cli", ensuredAccess.GrantOutput.RdsDatabase.Engine)
+		return "", "", 0, fmt.Errorf("unsupported database engine: %s, maybe you need to update your `cf` cli", ensuredAccess.GrantOutput.RdsDatabase.Engine)
 	}
 	return
 }
 
-func printConnectionParameters(connectionString, cliString, port, engine string) {
+func printConnectionParameters(connectionString, cliString, engine string, port int) {
 	clio.NewLine()
-	clio.Infof("Database proxy ready for connections on 127.0.0.1:%s", port)
+	clio.Infof("Database proxy ready for connections on 127.0.0.1:%d", port)
 	clio.NewLine()
 
 	clio.Infof("You can connect now using this connection string: %s", connectionString)

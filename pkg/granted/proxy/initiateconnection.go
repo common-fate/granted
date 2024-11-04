@@ -14,7 +14,7 @@ import (
 type InitiateSessionConnectionInput struct {
 	GrantID    string
 	RequestURL string
-	LocalPort  string
+	LocalPort  int
 }
 
 // InitiateSessionConnection starts a new tcp connection to through the SSM port forward and completes a handshake with the proxy server
@@ -24,8 +24,8 @@ func InitiateSessionConnection(cfg *config.Context, input InitiateSessionConnect
 	// First dial the local SSM portforward, which will be running on a randomly chosen port
 	// or the local proxy server instance if it's local dev mode
 	// this establishes the initial connection to the Proxy server
-	clio.Debugw("dialing proxy server", "host", "localhost:"+input.LocalPort)
-	rawServerConn, err := net.Dial("tcp", "localhost:"+input.LocalPort)
+	clio.Debugw("dialing proxy server", "host", fmt.Sprintf("localhost:%d", input.LocalPort))
+	rawServerConn, err := net.Dial("tcp", fmt.Sprintf("localhost:%d", input.LocalPort))
 	if err != nil {
 		return nil, nil, clierr.New("failed to establish a connection to the remote proxy server", clierr.Error(err), clierr.Infof("Your grant may have expired, you can check the status here: %s and retry connecting", input.RequestURL))
 	}
