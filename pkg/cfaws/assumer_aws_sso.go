@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"os"
 	"strings"
 	"time"
 
@@ -101,6 +102,7 @@ func (c *Profile) SSOLoginWithToken(ctx context.Context, cfg *aws.Config, access
 
 	if requiresAssuming {
 		// return creds, nil
+		useUserId := os.Getenv("GRANTED_USE_USER_ID") == "true"
 		toAssume := append([]*Profile{}, c.Parents[1:]...)
 		toAssume = append(toAssume, c)
 		for i, p := range toAssume {
@@ -114,6 +116,13 @@ func (c *Profile) SSOLoginWithToken(ctx context.Context, cfg *aws.Config, access
 				// all configuration goes in here for this profile
 				if p.AWSConfig.RoleSessionName != "" {
 					aro.RoleSessionName = p.AWSConfig.RoleSessionName
+				} else if configOpts.UseUserId || useUserId {
+					caller, err := stsClient.GetCallerIdentity(ctx, &sts.GetCallerIdentityInput{})
+					if err != nil {
+						return
+					}
+					userId := strings.Split(*caller.UserId, ":")[1]
+					aro.RoleSessionName = userId
 				} else {
 					aro.RoleSessionName = sessionName()
 				}
