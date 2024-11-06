@@ -7,8 +7,6 @@ import (
 
 	"connectrpc.com/connect"
 
-	"github.com/charmbracelet/huh"
-	"github.com/charmbracelet/lipgloss"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/cfcfg"
@@ -17,7 +15,6 @@ import (
 	accessv1alpha1 "github.com/common-fate/sdk/gen/commonfate/access/v1alpha1"
 	"github.com/common-fate/sdk/service/access"
 	"github.com/fatih/color"
-	"github.com/mattn/go-runewidth"
 
 	"github.com/urfave/cli/v2"
 )
@@ -162,52 +159,8 @@ func promptForDatabaseAndUser(ctx context.Context, cfg *config.Context) (*access
 		return nil, errors.New("you don't have access to any RDS databases")
 	}
 
-	type Column struct {
-		Title string
-		Width int
-	}
-	cols := []Column{{Title: "Database", Width: 40}, {Title: "Role", Width: 40}}
-	var s = make([]string, 0, len(cols))
-	for _, col := range cols {
-		style := lipgloss.NewStyle().Width(col.Width).MaxWidth(col.Width).Inline(true)
-		renderedCell := style.Render(runewidth.Truncate(col.Title, col.Width, "…"))
-		s = append(s, lipgloss.NewStyle().Bold(true).Padding(0).Render(renderedCell))
-	}
-	header := lipgloss.NewStyle().PaddingLeft(2).Render(lipgloss.JoinHorizontal(lipgloss.Left, s...))
-	var options []huh.Option[*accessv1alpha1.Entitlement]
+	return proxy.PromptEntitlements(entitlements, "Database", "Role", "Select a database to connect to: ")
 
-	for _, entitlement := range entitlements {
-		style := lipgloss.NewStyle().Width(cols[0].Width).MaxWidth(cols[0].Width).Inline(true)
-		target := lipgloss.NewStyle().Bold(true).Padding(0).Render(style.Render(runewidth.Truncate(entitlement.Target.Display(), cols[0].Width, "…")))
-
-		style = lipgloss.NewStyle().Width(cols[1].Width).MaxWidth(cols[1].Width).Inline(true)
-		role := lipgloss.NewStyle().Bold(true).Padding(0).Render(style.Render(runewidth.Truncate(entitlement.Role.Display(), cols[1].Width, "…")))
-
-		options = append(options, huh.Option[*accessv1alpha1.Entitlement]{
-			Key:   lipgloss.JoinHorizontal(lipgloss.Left, target, role),
-			Value: entitlement,
-		})
-	}
-
-	selector := huh.NewSelect[*accessv1alpha1.Entitlement]().
-		// show the filter dialog when there are 2 or more options
-		Filtering(len(options) > 1).
-		Options(options...).
-		Title("Select a database to connect to").
-		Description(header).WithTheme(huh.ThemeBase())
-
-	err = selector.Run()
-	if err != nil {
-		return nil, err
-	}
-
-	selectorVal := selector.GetValue()
-
-	if selectorVal == nil {
-		return nil, errors.New("no database selected")
-	}
-
-	return selectorVal.(*accessv1alpha1.Entitlement), nil
 }
 
 func clientConnectionParameters(c *cli.Context, ensuredAccess *proxy.EnsureAccessOutput[*accessv1alpha1.AWSRDSOutput]) (connectionString, cliString string, port int, err error) {
