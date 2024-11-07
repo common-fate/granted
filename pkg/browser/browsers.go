@@ -58,6 +58,8 @@ var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program File
 var ChromiumPathWindows = []string{`\Program Files\Chromium\chromium.exe`}
 
 var VivaldiPathMac = []string{"/Applications/Vivaldi.app/Contents/MacOS/Vivaldi"}
+var VivaldiPathLinux = []string{`/usr/bin/vivaldi`, `/../../mnt/c/Program Files/Vivaldi/vivaldi.exe`}
+var VivaldiPathWindows = []string{`\Program Files\Vivaldi\vivaldi.exe`}
 
 var SafariPathMac = []string{"/Applications/Safari.app/Contents/MacOS/Safari"}
 
@@ -215,8 +217,12 @@ func ChromiumPathDefaults() ([]string, error) {
 
 func VivaldiPathDefaults() ([]string, error) {
 	switch runtime.GOOS {
+	case "windows":
+		return VivaldiPathWindows, nil
 	case "darwin":
 		return VivaldiPathMac, nil
+	case "linux":
+		return VivaldiPathLinux, nil
 	default:
 		return nil, errors.New("os not supported")
 	}
