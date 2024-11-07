@@ -89,6 +89,10 @@ var ConsoleCommand = cli.Command{
 				l = launcher.ChromeProfile{
 					ExecutablePath: cfg.CustomBrowserPath,
 				}
+			case browser.VivaldiKey:
+				l = launcher.ChromeProfile{
+					ExecutablePath: cfg.CustomBrowserPath,
+				}
 			case browser.FirefoxKey:
 				l = launcher.Firefox{
 					ExecutablePath: cfg.CustomBrowserPath,
