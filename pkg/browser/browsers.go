@@ -216,6 +216,11 @@ func ChromiumPathDefaults() ([]string, error) {
 }
 
 func VivaldiPathDefaults() ([]string, error) {
+	// check linuxpath for binary install
+	path, err := exec.LookPath("vivaldi")
+	if err == nil {
+		return []string{path}, nil
+	}
 	switch runtime.GOOS {
 	case "windows":
 		return VivaldiPathWindows, nil
