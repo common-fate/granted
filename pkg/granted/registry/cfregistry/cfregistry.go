@@ -2,12 +2,15 @@ package cfregistry
 
 import (
 	"context"
+	"strings"
 	"sync"
 
 	"connectrpc.com/connect"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfcfg"
 	awsv1alpha1 "github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1"
 	"github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1/awsv1alpha1connect"
+	"github.com/common-fate/sdk/loginflow"
 	grantedv1alpha1 "github.com/common-fate/sdk/service/granted/registry"
 	"gopkg.in/ini.v1"
 )
@@ -41,7 +44,19 @@ func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient,
 	// Load the config from the deployment URL
 	cfg, err := cfcfg.LoadURL(context.Background(), r.opts.URL)
 	if err != nil {
-		return nil, err
+		if needsToRefreshLogin(err) {
+			// NOTE(josh): ideally we'll bubble up a more strongly typed error in future here, to avoid the string comparison on the error message.
+			// the OAuth2.0 token is expired so we should prompt the user to log in
+			clio.Infof("You need to log in to Common Fate to sync your profile registry")
+
+			lf := loginflow.NewFromConfig(cfg)
+			err = lf.Login(context.Background())
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, err
+		}
 	}
 
 	accountClient := grantedv1alpha1.NewFromConfig(cfg)
@@ -51,6 +66,26 @@ func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient,
 	r.client = accountClient
 
 	return r.client, nil
+}
+func needsToRefreshLogin(err error) bool {
+	if err == nil {
+		return false
+	}
+	if strings.Contains(err.Error(), "oauth2: token expired") {
+		return true
+	}
+	if strings.Contains(err.Error(), "oauth2: invalid grant") {
+		return true
+	}
+	// Sanity check that error message is matching correctly
+	if strings.Contains(err.Error(), `oauth2: "token_expired"`) {
+		return true
+	}
+	if strings.Contains(err.Error(), `oauth2: "invalid_grant"`) {
+		return true
+	}
+
+	return false
 }
 
 func New(opts Opts) *Registry {
