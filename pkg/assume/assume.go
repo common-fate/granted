@@ -429,7 +429,7 @@ func AssumeCommand(c *cli.Context) error {
 
 		var l Launcher
 		switch cfg.DefaultBrowser {
-		case browser.ChromeKey, browser.BraveKey, browser.EdgeKey, browser.ChromiumKey:
+		case browser.ChromeKey, browser.BraveKey, browser.EdgeKey, browser.ChromiumKey, browser.VivaldiKey:
 			l = launcher.ChromeProfile{
 				BrowserType:    cfg.DefaultBrowser,
 				ExecutablePath: browserPath,

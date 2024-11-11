@@ -51,6 +51,10 @@ var ChromiumPathMac = "Library/Application Support/Chromium/Local State"
 var ChromiumPathLinux = ".config/chromium/Local State"
 var ChromiumPathWindows = `AppData\Local\Chromium\User Data/Local State`
 
+var VivaldiPathMac = "Library/Application Support/Vivaldi/Local State"
+var VivaldiPathLinux = ".config/vivaldi/Local State"
+var VivaldiPathWindows = `AppData\Local\Vivaldi\User Data/Local State`
+
 // setProfileName attempts to rename an existing Chrome profile from 'Person 2', 'Person 3', etc
 // into the name of the AWS profile that we're launching.
 //
@@ -197,6 +201,9 @@ func getLocalStatePath(browserType string) (stateFile string, err error) {
 
 		case browser.ChromiumKey:
 			stateFile = path.Join(stateFile, ChromiumPathWindows)
+
+		case browser.VivaldiKey:
+			stateFile = path.Join(stateFile, VivaldiPathWindows)
 		}
 
 	case "darwin":
@@ -212,6 +219,9 @@ func getLocalStatePath(browserType string) (stateFile string, err error) {
 
 		case browser.ChromiumKey:
 			stateFile = path.Join(stateFile, ChromiumPathMac)
+
+		case browser.VivaldiKey:
+			stateFile = path.Join(stateFile, VivaldiPathMac)
 		}
 
 	case "linux":
@@ -227,6 +237,9 @@ func getLocalStatePath(browserType string) (stateFile string, err error) {
 
 		case browser.ChromiumKey:
 			stateFile = path.Join(stateFile, ChromiumPathLinux)
+
+		case browser.VivaldiKey:
+			stateFile = path.Join(stateFile, VivaldiPathLinux)
 		}
 
 	default:
