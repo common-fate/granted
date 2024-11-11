@@ -40,7 +40,7 @@ func New(opts Opts) (*Registry, error) {
 	return &p, nil
 }
 
-func (r Registry) AWSProfiles(ctx context.Context) (*ini.File, error) {
+func (r Registry) AWSProfiles(ctx context.Context, interactive bool) (*ini.File, error) {
 	err := r.pull()
 	if err != nil {
 		return nil, err

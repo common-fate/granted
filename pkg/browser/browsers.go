@@ -21,6 +21,7 @@ const (
 	FirefoxDevEditionKey string = "FIREFOX_DEV"
 	FirefoxNightlyKey    string = "FIREFOX_NIGHTLY"
 	CustomKey            string = "CUSTOM"
+	VivaldiKey           string = "VIVALDI"
 )
 
 // A few default paths to check for the browser
@@ -55,6 +56,10 @@ var WaterfoxPathWindows = []string{`\Program Files\Waterfox\waterfox.exe`}
 var ChromiumPathMac = []string{"/Applications/Chromium.app/Contents/MacOS/Chromium"}
 var ChromiumPathLinux = []string{`/usr/bin/chromium`, `/../../mnt/c/Program Files/Chromium/chromium.exe`}
 var ChromiumPathWindows = []string{`\Program Files\Chromium\chromium.exe`}
+
+var VivaldiPathMac = []string{"/Applications/Vivaldi.app/Contents/MacOS/Vivaldi"}
+var VivaldiPathLinux = []string{`/usr/bin/vivaldi`, `/../../mnt/c/Program Files/Vivaldi/Application/vivaldi.exe`}
+var VivaldiPathWindows = []string{`\Program Files\Vivaldi\Application\vivaldi.exe`}
 
 var SafariPathMac = []string{"/Applications/Safari.app/Contents/MacOS/Safari"}
 
@@ -205,6 +210,24 @@ func ChromiumPathDefaults() ([]string, error) {
 		return ChromiumPathMac, nil
 	case "linux":
 		return ChromiumPathLinux, nil
+	default:
+		return nil, errors.New("os not supported")
+	}
+}
+
+func VivaldiPathDefaults() ([]string, error) {
+	// check linuxpath for binary install
+	path, err := exec.LookPath("vivaldi")
+	if err == nil {
+		return []string{path}, nil
+	}
+	switch runtime.GOOS {
+	case "windows":
+		return VivaldiPathWindows, nil
+	case "darwin":
+		return VivaldiPathMac, nil
+	case "linux":
+		return VivaldiPathLinux, nil
 	default:
 		return nil, errors.New("os not supported")
 	}

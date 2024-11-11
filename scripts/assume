@@ -11,7 +11,7 @@ _this_type=$(type -- "${0##*/}" 2>&1)
 # In the case of zsh, the output will contain the word 'alias'.
 # shellcheck disable=SC3028
 if [ "${_this_type#*not found}" != "$_this_type" ] ||
-    [ "${_this_type#*alias}" != "$_this_type" ] || 
+    [ "${_this_type#*alias}" != "$_this_type" ] ||
     [ "${BASH_SOURCE:-$0}" != "${0}" ]; then
   GRANTED_RETURN_STATUS="true"
   export GRANTED_ALIAS_CONFIGURED="true"
@@ -148,7 +148,7 @@ fi
 if [ "$GRANTED_FLAG" = "GrantedExec" ]; then
   # Set GRANTED_12 with a command to execute, for example, "bash -c 'some_command'"
   # Make sure to properly escape quotes if needed and pass arguments.
-  
+
   # Set and export the AWS variables only for the duration of the 'sh -c' command
   AWS_ACCESS_KEY_ID="${GRANTED_1:-}" \
   AWS_SECRET_ACCESS_KEY="${GRANTED_2:-}" \
@@ -156,7 +156,7 @@ if [ "$GRANTED_FLAG" = "GrantedExec" ]; then
   AWS_REGION="${GRANTED_5:-}" \
   AWS_DEFAULT_REGION="${GRANTED_5:-}" \
   sh -c "$GRANTED_12"
-  
+
   # The variables will not affect the parent shell environment after the 'sh -c' command completes
 fi
 # The GrantedOutput flag should be followed by a newline, then the output.

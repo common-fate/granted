@@ -11,7 +11,7 @@ import (
 )
 
 type Registry interface {
-	AWSProfiles(ctx context.Context) (*ini.File, error)
+	AWSProfiles(ctx context.Context, interactive bool) (*ini.File, error)
 }
 
 type loadedRegistry struct {
