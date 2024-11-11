@@ -58,7 +58,7 @@ func SyncProfileRegistries(ctx context.Context, interactive bool) error {
 	m := awsmerge.Merger{}
 
 	for _, r := range registries {
-		src, err := r.Registry.AWSProfiles(ctx)
+		src, err := r.Registry.AWSProfiles(ctx, interactive)
 		if err != nil {
 			return fmt.Errorf("error retrieving AWS profiles for registry %s: %w", r.Config.Name, err)
 		}

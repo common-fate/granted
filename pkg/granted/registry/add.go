@@ -98,7 +98,7 @@ var AddCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			src, err := registry.AWSProfiles(ctx)
+			src, err := registry.AWSProfiles(ctx, true)
 			if err != nil {
 				return err
 			}
@@ -174,7 +174,7 @@ var AddCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			src, err := registry.AWSProfiles(ctx)
+			src, err := registry.AWSProfiles(ctx, true)
 			if err != nil {
 				return err
 			}

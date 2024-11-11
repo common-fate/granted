@@ -2,6 +2,7 @@ package cfregistry
 
 import (
 	"context"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -35,7 +36,7 @@ type Opts struct {
 // Becuase the Registry is constructed every time the Granted CLI executes,
 // calling `config.LoadDefault()` when creating the registry makes Granted very slow.
 // Instead, we only obtain an OIDC token if we actually need to load profiles for the registry.
-func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient, error) {
+func (r *Registry) getClient(interactive bool) (awsv1alpha1connect.ProfileRegistryServiceClient, error) {
 	// if the cached
 	if r.client != nil {
 		return r.client, nil
@@ -44,16 +45,21 @@ func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient,
 	// Load the config from the deployment URL
 	cfg, err := cfcfg.LoadURL(context.Background(), r.opts.URL)
 	if err != nil {
+		// NOTE(josh): ideally we'll bubble up a more strongly typed error in future here, to avoid the string comparison on the error message.
+		// the OAuth2.0 token is expired so we should prompt the user to log in
 		if needsToRefreshLogin(err) {
-			// NOTE(josh): ideally we'll bubble up a more strongly typed error in future here, to avoid the string comparison on the error message.
-			// the OAuth2.0 token is expired so we should prompt the user to log in
-			clio.Infof("You need to log in to Common Fate to sync your profile registry")
-
-			lf := loginflow.NewFromConfig(cfg)
-			err = lf.Login(context.Background())
-			if err != nil {
-				return nil, err
+			if interactive {
+				clio.Infof("You need to log in to Common Fate to sync your profile registry")
+				lf := loginflow.NewFromConfig(cfg)
+				err = lf.Login(context.Background())
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				// in non interactive mode, just return a wrapped error
+				return nil, fmt.Errorf("you need to log in to Common Fate to sync your profile registry using `granted auth login`: %w", err)
 			}
+
 		} else {
 			return nil, err
 		}
@@ -96,8 +102,8 @@ func New(opts Opts) *Registry {
 	return &r
 }
 
-func (r *Registry) AWSProfiles(ctx context.Context) (*ini.File, error) {
-	client, err := r.getClient()
+func (r *Registry) AWSProfiles(ctx context.Context, interactive bool) (*ini.File, error) {
+	client, err := r.getClient(interactive)
 	if err != nil {
 		return nil, err
 	}
