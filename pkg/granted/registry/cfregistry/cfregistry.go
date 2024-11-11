@@ -49,7 +49,7 @@ func (r *Registry) getClient(interactive bool) (awsv1alpha1connect.ProfileRegist
 		// the OAuth2.0 token is expired so we should prompt the user to log in
 		if needsToRefreshLogin(err) {
 			if interactive {
-				clio.Infof("You need to log in to Common Fate to sync your profile registry")
+				clio.Infof("You need to log into Common Fate to sync your profile registry")
 				lf := loginflow.NewFromConfig(cfg)
 				err = lf.Login(context.Background())
 				if err != nil {
@@ -57,7 +57,7 @@ func (r *Registry) getClient(interactive bool) (awsv1alpha1connect.ProfileRegist
 				}
 			} else {
 				// in non interactive mode, just return a wrapped error
-				return nil, fmt.Errorf("you need to log in to Common Fate to sync your profile registry using `granted auth login`: %w", err)
+				return nil, fmt.Errorf("you need to log into Common Fate to sync your profile registry using `granted auth login`: %w", err)
 			}
 
 		} else {
