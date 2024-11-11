@@ -2,12 +2,16 @@ package cfregistry
 
 import (
 	"context"
+	"fmt"
+	"strings"
 	"sync"
 
 	"connectrpc.com/connect"
+	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/cfcfg"
 	awsv1alpha1 "github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1"
 	"github.com/common-fate/sdk/gen/granted/registry/aws/v1alpha1/awsv1alpha1connect"
+	"github.com/common-fate/sdk/loginflow"
 	grantedv1alpha1 "github.com/common-fate/sdk/service/granted/registry"
 	"gopkg.in/ini.v1"
 )
@@ -32,7 +36,7 @@ type Opts struct {
 // Becuase the Registry is constructed every time the Granted CLI executes,
 // calling `config.LoadDefault()` when creating the registry makes Granted very slow.
 // Instead, we only obtain an OIDC token if we actually need to load profiles for the registry.
-func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient, error) {
+func (r *Registry) getClient(interactive bool) (awsv1alpha1connect.ProfileRegistryServiceClient, error) {
 	// if the cached
 	if r.client != nil {
 		return r.client, nil
@@ -41,7 +45,24 @@ func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient,
 	// Load the config from the deployment URL
 	cfg, err := cfcfg.LoadURL(context.Background(), r.opts.URL)
 	if err != nil {
-		return nil, err
+		// NOTE(josh): ideally we'll bubble up a more strongly typed error in future here, to avoid the string comparison on the error message.
+		// the OAuth2.0 token is expired so we should prompt the user to log in
+		if needsToRefreshLogin(err) {
+			if interactive {
+				clio.Infof("You need to log into Common Fate to sync your profile registry")
+				lf := loginflow.NewFromConfig(cfg)
+				err = lf.Login(context.Background())
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				// in non interactive mode, just return a wrapped error
+				return nil, fmt.Errorf("you need to log into Common Fate to sync your profile registry using `granted auth login`: %w", err)
+			}
+
+		} else {
+			return nil, err
+		}
 	}
 
 	accountClient := grantedv1alpha1.NewFromConfig(cfg)
@@ -52,6 +73,26 @@ func (r *Registry) getClient() (awsv1alpha1connect.ProfileRegistryServiceClient,
 
 	return r.client, nil
 }
+func needsToRefreshLogin(err error) bool {
+	if err == nil {
+		return false
+	}
+	if strings.Contains(err.Error(), "oauth2: token expired") {
+		return true
+	}
+	if strings.Contains(err.Error(), "oauth2: invalid grant") {
+		return true
+	}
+	// Sanity check that error message is matching correctly
+	if strings.Contains(err.Error(), `oauth2: "token_expired"`) {
+		return true
+	}
+	if strings.Contains(err.Error(), `oauth2: "invalid_grant"`) {
+		return true
+	}
+
+	return false
+}
 
 func New(opts Opts) *Registry {
 	r := Registry{
@@ -61,8 +102,8 @@ func New(opts Opts) *Registry {
 	return &r
 }
 
-func (r *Registry) AWSProfiles(ctx context.Context) (*ini.File, error) {
-	client, err := r.getClient()
+func (r *Registry) AWSProfiles(ctx context.Context, interactive bool) (*ini.File, error) {
+	client, err := r.getClient(interactive)
 	if err != nil {
 		return nil, err
 	}
