@@ -45,8 +45,6 @@ var ServiceMap = map[string]string{
 	"l":              "lambda",
 	"lambda":         "lambda",
 	"mwaa":           "mwaa",
-	"orgs":           "organizations/v2",
-	"organizations":  "organizations/v2",
 	"param":          "systems-manager/parameters",
 	"r53":            "route53/v2",
 	"ram":            "ram",
