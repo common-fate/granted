@@ -3,6 +3,7 @@ package cfaws
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"os"
 	"os/exec"
@@ -17,13 +18,14 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-// https://github.com/common-fate/granted
+const GRANTED_OKTA_INI_OPEN_BROWSER = "granted_okta_open_browser"
 
 type AwsGimmeAwsCredsAssumer struct {
 }
 
-const GRANTED_OKTA_INI_ENABLE = "granted_okta"
-const GRANTED_OKTA_INI_OPEN_BROWSER = "granted_okta_open_browser"
+type CredentialCapture struct {
+	result *AwsGimmeResult
+}
 
 type AwsGimmeResult struct {
 	Credentials AwsGimmeCredentials `json:"credentials"`
@@ -34,10 +36,6 @@ type AwsGimmeCredentials struct {
 	SecretAccessKey string `json:"aws_secret_access_key"`
 	SessionToken    string `json:"aws_session_token"`
 	Expiration      string `json:"expiration"`
-}
-
-type CredentialCapture struct {
-	result *AwsGimmeResult
 }
 
 func (cc *CredentialCapture) Write(p []byte) (n int, err error) {
@@ -169,10 +167,31 @@ func (gimme *AwsGimmeAwsCredsAssumer) Type() string {
 
 // inspect for any items on the profile prefixed with "granted_okta"
 func (gimme *AwsGimmeAwsCredsAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProfile config.SharedConfig) bool {
-	for _, k := range rawProfile.KeyStrings() {
-		if strings.HasPrefix(k, GRANTED_OKTA_INI_ENABLE) {
+	okta_config := os.Getenv("OKTA_CONFIG")
+	if okta_config == "" {
+		home, err := os.UserHomeDir()
+		if err != nil {
+			clio.Error(err)
+		}
+		okta_config = fmt.Sprintf("%s/.okta_aws_login_config", home)
+	}
+
+	if _, err := os.Stat(okta_config); errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+
+	cfg, err := ini.Load(okta_config)
+	if err != nil {
+		clio.Error("Failed to load gimme config file: ", err)
+	}
+
+	for _, section := range cfg.SectionStrings() {
+		if section == parsedProfile.Profile {
+			clio.Debug("matched gimme profile ", section)
 			return true
 		}
 	}
+
+	//clio.Debug("No gimme profile matched")
 	return false
 }
