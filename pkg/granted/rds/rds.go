@@ -92,7 +92,7 @@ var proxyCommand = cli.Command{
 			err = proxy.WaitForSSMConnectionToProxyServer(ctx, proxy.WaitForSSMConnectionToProxyServerOpts{
 				AWSConfig: proxy.AWSConfig{
 					SSOAccountID:     ensuredAccess.GrantOutput.RdsDatabase.AccountId,
-					SSORoleName:      ensuredAccess.Grant.Id,
+					SSORoleName:      ensuredAccess.GrantOutput.SsoRoleName,
 					SSORegion:        ensuredAccess.GrantOutput.SsoRegion,
 					SSOStartURL:      ensuredAccess.GrantOutput.SsoStartUrl,
 					Region:           ensuredAccess.GrantOutput.RdsDatabase.Region,
