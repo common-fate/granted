@@ -21,6 +21,8 @@ import (
 const GRANTED_OKTA_INI_OPEN_BROWSER = "granted_okta_open_browser"
 
 type AwsGimmeAwsCredsAssumer struct {
+	config           *ini.File
+	forceOpenBrowser bool
 }
 
 type CredentialCapture struct {
@@ -81,9 +83,16 @@ func (gimme *AwsGimmeAwsCredsAssumer) AssumeTerminal(ctx context.Context, c *Pro
 		return *creds, nil
 	}
 
-	// if cred process fail
+	// if cred process, check we can do a non-interactive refresh
 	if configOpts.UsingCredentialProcess {
-		return aws.Credentials{}, fmt.Errorf("Cannot refresh Gimme AWS creds in credential_process")
+		err := gimme.LoadGimmeConfig()
+		if err != nil {
+			return aws.Credentials{}, fmt.Errorf("Failed to load gimme config file: %w", err)
+		}
+		if !gimme.CanRefreshHeadless(c.Name) {
+			return aws.Credentials{}, fmt.Errorf("Cannot refresh Gimme AWS creds in credential_process when force_classic is set.")
+		}
+		gimme.forceOpenBrowser = true
 	}
 
 	clio.Debugw("refreshing credentials", "reason", "none cached")
@@ -101,8 +110,12 @@ func (gimme *AwsGimmeAwsCredsAssumer) AssumeTerminal(ctx context.Context, c *Pro
 		}
 
 		if ob.MustBool(false) == true || ob.String() == "true" {
-			args = append(args, "--open-browser")
+			gimme.forceOpenBrowser = true
 		}
+	}
+
+	if gimme.forceOpenBrowser {
+		args = append(args, "--open-browser")
 	}
 
 	// add passthrough args
@@ -165,8 +178,29 @@ func (gimme *AwsGimmeAwsCredsAssumer) Type() string {
 	return "AWS_GIMME_AWS_CREDS"
 }
 
-// inspect for any items on the profile prefixed with "granted_okta"
+// parse the gimme config file to check if we have a matching profile
 func (gimme *AwsGimmeAwsCredsAssumer) ProfileMatchesType(rawProfile *ini.Section, parsedProfile config.SharedConfig) bool {
+	err := gimme.LoadGimmeConfig()
+	if errors.Is(err, os.ErrNotExist) {
+		return false
+	}
+	if err != nil {
+		clio.Error("Failed to load gimme config file: ", err)
+		return false
+	}
+
+	for _, section := range gimme.config.SectionStrings() {
+		if section == parsedProfile.Profile {
+			clio.Debug("matched gimme profile ", section)
+			return true
+		}
+	}
+
+	//clio.Debug("No gimme profile matched")
+	return false
+}
+
+func (gimme *AwsGimmeAwsCredsAssumer) LoadGimmeConfig() error {
 	okta_config := os.Getenv("OKTA_CONFIG")
 	if okta_config == "" {
 		home, err := os.UserHomeDir()
@@ -176,22 +210,48 @@ func (gimme *AwsGimmeAwsCredsAssumer) ProfileMatchesType(rawProfile *ini.Section
 		okta_config = fmt.Sprintf("%s/.okta_aws_login_config", home)
 	}
 
-	if _, err := os.Stat(okta_config); errors.Is(err, os.ErrNotExist) {
+	_, err := os.Stat(okta_config)
+	if err != nil {
+		return err
+	}
+
+	gimme.config, err = ini.Load(okta_config)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (gimme *AwsGimmeAwsCredsAssumer) CanRefreshHeadless(profile string) bool {
+	section, err := gimme.config.GetSection(profile)
+	if err != nil {
+		clio.Warn(err)
 		return false
 	}
 
-	cfg, err := ini.Load(okta_config)
-	if err != nil {
-		clio.Error("Failed to load gimme config file: ", err)
-	}
-
-	for _, section := range cfg.SectionStrings() {
-		if section == parsedProfile.Profile {
-			clio.Debug("matched gimme profile ", section)
-			return true
+	if section.HasKey("force_classic") {
+		key, err := section.GetKey("force_classic")
+		if err != nil {
+			clio.Warn(err)
+			return false
+		}
+		if key.MustBool(false) == true {
+			return false
 		}
 	}
 
-	//clio.Debug("No gimme profile matched")
-	return false
+	if section.HasKey("inherits") {
+		key, err := section.GetKey("inherits")
+		if err != nil {
+			clio.Warn(err)
+			return false
+		}
+		parent := key.MustString("")
+		if parent != "" {
+			return gimme.CanRefreshHeadless(parent)
+		}
+	}
+
+	return true
 }
