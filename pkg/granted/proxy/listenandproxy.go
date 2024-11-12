@@ -2,11 +2,9 @@ package proxy
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"net"
-	"time"
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
@@ -92,26 +90,6 @@ func ListenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, c
 					_, err := io.Copy(clientConn, sessionConn)
 					if err != nil {
 						clio.Debugw("error writing data from server to client usually this is just because the proxy session ended.", "streamId", sessionConn.StreamID(), zap.Error(err))
-					}
-
-				}()
-
-				// This function polls the stream connection to see if it has been closed remotely
-				// https://github.com/hashicorp/yamux/pull/115
-				// when the proxy server has errors which are fatal to this session, it will close the stream
-				go func() {
-					defer clientConn.Close()
-					defer sessionConn.Close()
-					for {
-						b := make([]byte, 0)
-						_, err := sessionConn.Read(b)
-						if err != nil {
-							if errors.Is(err, io.EOF) {
-								clio.Infof("The proxy server ended the connection for the session unexpectedly [%v]", sessionConn.StreamID())
-								return
-							}
-						}
-						time.Sleep(time.Second)
 					}
 
 				}()
