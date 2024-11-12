@@ -76,6 +76,9 @@ func (cpa *CredentialProcessAssumer) AssumeTerminal(ctx context.Context, c *Prof
 				aro.TokenProvider = MfaTokenProvider
 			}
 			aro.Duration = configOpts.Duration
+			if c.AWSConfig.ExternalID != "" {
+				aro.ExternalID = &c.AWSConfig.ExternalID
+			}
 		})
 		return stsp.Retrieve(ctx)
 	}
