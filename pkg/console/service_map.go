@@ -10,6 +10,7 @@ var ServiceMap = map[string]string{
 	"apigw":          "apigateway",
 	"appsync":        "appsync",
 	"athena":         "athena",
+	"backup":         "backup",
 	"bedrock":        "bedrock",
 	"c9":             "cloud9",
 	"ce":             "cost-management",
