@@ -15,6 +15,7 @@ import (
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/securestorage"
 	"github.com/fatih/color"
+	"github.com/hashicorp/go-version"
 	"gopkg.in/ini.v1"
 )
 
@@ -90,7 +91,7 @@ func (gimme *AwsGimmeAwsCredsAssumer) AssumeTerminal(ctx context.Context, c *Pro
 			return aws.Credentials{}, fmt.Errorf("Failed to load gimme config file: %w", err)
 		}
 		if !gimme.CanRefreshHeadless(c.Name) {
-			return aws.Credentials{}, fmt.Errorf("Cannot refresh Gimme AWS creds in credential_process when force_classic is set.")
+			return aws.Credentials{}, fmt.Errorf("Cannot use gimme-aws-creds in credential_process with force_classic or <2.6.0")
 		}
 		gimme.forceOpenBrowser = true
 	}
@@ -200,6 +201,20 @@ func (gimme *AwsGimmeAwsCredsAssumer) ProfileMatchesType(rawProfile *ini.Section
 	return false
 }
 
+func (gimme *AwsGimmeAwsCredsAssumer) Version() (*version.Version, error) {
+	cmd, err := exec.Command("gimme-aws-creds", "--version").Output()
+	if err != nil {
+		return nil, fmt.Errorf("Failed to get gimme-aws-creds version %w", err)
+	}
+
+	ver, err := version.NewVersion(strings.TrimSpace(strings.TrimPrefix(string(cmd), "gimme-aws-creds")))
+	if err != nil {
+		return nil, err
+	}
+
+	return ver, nil
+}
+
 func (gimme *AwsGimmeAwsCredsAssumer) LoadGimmeConfig() error {
 	okta_config := os.Getenv("OKTA_CONFIG")
 	if okta_config == "" {
@@ -224,6 +239,18 @@ func (gimme *AwsGimmeAwsCredsAssumer) LoadGimmeConfig() error {
 }
 
 func (gimme *AwsGimmeAwsCredsAssumer) CanRefreshHeadless(profile string) bool {
+	ver, err := gimme.Version()
+	if err != nil {
+		clio.Warn(err)
+		return false
+	}
+
+	// Device flow only supported in 2.6.0+
+	gimme_260, _ := version.NewVersion("v2.6.0")
+	if ver.LessThan(gimme_260) {
+		return false
+	}
+
 	section, err := gimme.config.GetSection(profile)
 	if err != nil {
 		clio.Warn(err)
@@ -231,12 +258,19 @@ func (gimme *AwsGimmeAwsCredsAssumer) CanRefreshHeadless(profile string) bool {
 	}
 
 	if section.HasKey("force_classic") {
+		// force_classic is default True after v2.8.1
+		force_classic_default := true
+		gimme_281, _ := version.NewVersion("v2.8.1")
+		if ver.LessThan(gimme_281) {
+			force_classic_default = false
+		}
+
 		key, err := section.GetKey("force_classic")
 		if err != nil {
 			clio.Warn(err)
 			return false
 		}
-		if key.MustBool(false) == true {
+		if key.MustBool(force_classic_default) == true {
 			return false
 		}
 	}
