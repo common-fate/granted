@@ -14,6 +14,7 @@ import (
 	"github.com/briandowns/spinner"
 	"github.com/common-fate/cli/printdiags"
 	"github.com/common-fate/clio"
+	"github.com/common-fate/grab"
 	"github.com/common-fate/granted/pkg/cfaws"
 	"github.com/common-fate/granted/pkg/cfcfg"
 	"github.com/common-fate/sdk/config"
@@ -31,12 +32,13 @@ import (
 type Hook struct{}
 
 type NoAccessInput struct {
-	Profile   *cfaws.Profile
-	Reason    string
-	Duration  *durationpb.Duration
-	Confirm   bool
-	Wait      bool
-	StartTime time.Time
+	Profile     *cfaws.Profile
+	Reason      string
+	Attachments []string
+	Duration    *durationpb.Duration
+	Confirm     bool
+	Wait        bool
+	StartTime   time.Time
 }
 
 func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, justActivated bool, err error) {
@@ -53,26 +55,28 @@ func (h Hook) NoAccess(ctx context.Context, input NoAccessInput) (retry bool, ju
 	clio.Infof("You don't currently have access to %s, checking if we can request access...\t[target=%s, role=%s, url=%s]", input.Profile.Name, target, role, cfg.AccessURL)
 
 	retry, _, justActivated, err = h.NoEntitlementAccess(ctx, cfg, NoEntitlementAccessInput{
-		Target:    target.String(),
-		Role:      role,
-		Reason:    input.Reason,
-		Duration:  input.Duration,
-		Confirm:   input.Confirm,
-		Wait:      input.Wait,
-		StartTime: input.StartTime,
+		Target:      target.String(),
+		Role:        role,
+		Reason:      input.Reason,
+		Duration:    input.Duration,
+		Confirm:     input.Confirm,
+		Wait:        input.Wait,
+		StartTime:   input.StartTime,
+		Attachments: input.Attachments,
 	})
 
 	return retry, justActivated, err
 }
 
 type NoEntitlementAccessInput struct {
-	Target    string
-	Role      string
-	Reason    string
-	Duration  *durationpb.Duration
-	Confirm   bool
-	Wait      bool
-	StartTime time.Time
+	Target      string
+	Role        string
+	Reason      string
+	Attachments []string
+	Duration    *durationpb.Duration
+	Confirm     bool
+	Wait        bool
+	StartTime   time.Time
 }
 
 func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, input NoEntitlementAccessInput) (retry bool, result *accessv1alpha1.BatchEnsureResponse, justActivated bool, err error) {
@@ -164,6 +168,41 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 			}
 
 			req.Justification.Reason = &customReason
+		}
+	}
+
+	if len(input.Attachments) > 0 {
+		req.Justification.Attachments = grab.Map(input.Attachments, func(t string) *accessv1alpha1.AttachmentSpecifier {
+			return &accessv1alpha1.AttachmentSpecifier{
+				Specify: &accessv1alpha1.AttachmentSpecifier_Lookup{
+					Lookup: t,
+				},
+			}
+		})
+	} else {
+		if result.Validation != nil && result.Validation.HasJiraTicket {
+			if !IsTerminal(os.Stdin.Fd()) {
+				return false, nil, justActivated, errors.New("detected a noninteractive terminal: a jira ticket attachment is required to make this access request, to apply the planned changes please re-run with the --attach flag")
+			}
+
+			var attachment string
+			msg := "Jira ticket attachment for access (Required)"
+			reasonPrompt := &survey.Input{
+				Message: msg,
+				Help:    "Will be stored in audit trails and associated with your request",
+			}
+			withStdio := survey.WithStdio(os.Stdin, os.Stderr, os.Stderr)
+			err = survey.AskOne(reasonPrompt, &attachment, withStdio, survey.WithValidator(survey.Required))
+
+			if err != nil {
+				return false, nil, justActivated, err
+			}
+
+			req.Justification.Attachments = append(req.Justification.Attachments, &accessv1alpha1.AttachmentSpecifier{
+				Specify: &accessv1alpha1.AttachmentSpecifier_Lookup{
+					Lookup: attachment,
+				},
+			})
 		}
 	}
 
@@ -276,13 +315,14 @@ func (h Hook) RetryAccess(ctx context.Context, input NoAccessInput) error {
 	target := eid.New("AWS::Account", input.Profile.AWSConfig.SSOAccountID)
 	role := input.Profile.AWSConfig.SSORoleName
 	_, err = h.RetryNoEntitlementAccess(ctx, cfg, NoEntitlementAccessInput{
-		Target:    target.String(),
-		Role:      role,
-		Reason:    input.Reason,
-		Duration:  input.Duration,
-		Confirm:   input.Confirm,
-		Wait:      input.Wait,
-		StartTime: input.StartTime,
+		Target:      target.String(),
+		Role:        role,
+		Reason:      input.Reason,
+		Duration:    input.Duration,
+		Confirm:     input.Confirm,
+		Wait:        input.Wait,
+		StartTime:   input.StartTime,
+		Attachments: input.Attachments,
 	})
 	return err
 }
