@@ -36,6 +36,7 @@ var latestCommand = cli.Command{
 	Usage: "Request access to the latest AWS role you attempted to use",
 	Flags: []cli.Flag{
 		&cli.StringFlag{Name: "reason", Usage: "A reason for access"},
+		&cli.StringSliceFlag{Name: "attach", Usage: "Attach justifications to your request, such as a Jira ticket id or url `--attach=TP-123`"},
 		&cli.DurationFlag{Name: "duration", Usage: "Duration of request, defaults to max duration of the access rule."},
 		&cli.BoolFlag{Name: "confirm", Aliases: []string{"y"}, Usage: "Skip confirmation prompts for access requests"},
 	},
@@ -105,10 +106,11 @@ var latestCommand = cli.Command{
 		}
 
 		_, _, err = hook.NoAccess(c.Context, accessrequesthook.NoAccessInput{
-			Profile:  profile,
-			Reason:   reason,
-			Duration: apiDuration,
-			Confirm:  c.Bool("confirm"),
+			Profile:     profile,
+			Reason:      reason,
+			Attachments: c.StringSlice("attach"),
+			Duration:    apiDuration,
+			Confirm:     c.Bool("confirm"),
 		})
 		if err != nil {
 			return err

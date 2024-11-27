@@ -28,6 +28,7 @@ type EnsureAccessInput[T any] struct {
 	Role                 string
 	Duration             time.Duration
 	Reason               string
+	Attachments          []string
 	Confirm              bool
 	Wait                 bool
 	PromptForEntitlement func(ctx context.Context, cfg *config.Context) (*accessv1alpha1.Entitlement, error)
@@ -42,13 +43,14 @@ type EnsureAccessOutput[T any] struct {
 func EnsureAccess[T any](ctx context.Context, cfg *config.Context, input EnsureAccessInput[T]) (*EnsureAccessOutput[T], error) {
 
 	accessRequestInput := accessrequesthook.NoEntitlementAccessInput{
-		Target:    input.Target,
-		Role:      input.Role,
-		Reason:    input.Reason,
-		Duration:  durationOrDefault(input.Duration),
-		Confirm:   input.Confirm,
-		Wait:      input.Wait,
-		StartTime: time.Now(),
+		Target:      input.Target,
+		Role:        input.Role,
+		Reason:      input.Reason,
+		Attachments: input.Attachments,
+		Duration:    durationOrDefault(input.Duration),
+		Confirm:     input.Confirm,
+		Wait:        input.Wait,
+		StartTime:   time.Now(),
 	}
 
 	if accessRequestInput.Target == "" && accessRequestInput.Role == "" {

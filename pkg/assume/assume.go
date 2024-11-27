@@ -305,7 +305,7 @@ func AssumeCommand(c *cli.Context) error {
 	}
 
 	reason := assumeFlags.String("reason")
-
+	attachments := assumeFlags.StringSlice("attach")
 	cfg, err := config.Load()
 	if err != nil {
 		return err
@@ -350,12 +350,13 @@ func AssumeCommand(c *cli.Context) error {
 			}
 
 			noAccessInput := accessrequesthook.NoAccessInput{
-				Profile:   profile,
-				Reason:    reason,
-				Duration:  apiDuration,
-				Confirm:   assumeFlags.Bool("confirm"),
-				Wait:      wait,
-				StartTime: time.Now(),
+				Profile:     profile,
+				Reason:      reason,
+				Attachments: attachments,
+				Duration:    apiDuration,
+				Confirm:     assumeFlags.Bool("confirm"),
+				Wait:        wait,
+				StartTime:   time.Now(),
 			}
 			retry, justActivated, hookErr := hook.NoAccess(c.Context, noAccessInput)
 			if hookErr != nil {
