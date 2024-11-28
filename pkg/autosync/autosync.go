@@ -12,17 +12,16 @@ import (
 // in case where user specific values that are defined in granted.yml's `templateValues` are not available.
 // this is done so that users are aware of required keys when granted's credential-process is used through the AWS CLI.
 func Run(ctx context.Context, interactive bool) {
-	if registry.IsOutdatedConfig() {
-		clio.Warn("Outdated Profile Registry Configuration. Use `granted registry migrate` to update your configuration.")
-
-		clio.Warn("Skipping Profile Registry sync.")
-
-		return
-	}
 
 	registries, err := registry.GetProfileRegistries(interactive)
 	if err != nil {
 		clio.Debugf("unable to load granted config file with err %s", err.Error())
+		return
+	}
+
+	if len(registries) > 0 {
+		clio.Warn("Outdated Profile Registry Configuration. Use `granted registry migrate` to update your configuration.")
+		clio.Warn("Skipping Profile Registry sync.")
 		return
 	}
 
