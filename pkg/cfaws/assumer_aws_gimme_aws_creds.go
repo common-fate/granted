@@ -15,7 +15,6 @@ import (
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/granted/pkg/securestorage"
-	"github.com/fatih/color"
 	"github.com/hashicorp/go-version"
 	"gopkg.in/ini.v1"
 )
@@ -46,7 +45,7 @@ func (cc *CredentialCapture) Write(p []byte) (n int, err error) {
 	var dest AwsGimmeResult
 	err = json.Unmarshal(p, &dest)
 	if err != nil {
-		return fmt.Fprint(color.Error, string(p))
+		return 0, fmt.Errorf("Error unmarshalling gimme-aws-creds output")
 	}
 	cc.result = &dest
 	return len(p), nil
