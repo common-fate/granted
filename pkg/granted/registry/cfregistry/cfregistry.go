@@ -132,7 +132,12 @@ func (r *Registry) AWSProfiles(ctx context.Context, interactive bool) (*ini.File
 		}
 	}
 
-	result := ini.Empty()
+	result := ini.Empty(
+		ini.LoadOptions{
+			SpaceBeforeInlineComment:    true,
+			UnescapeValueCommentSymbols: true,
+		},
+	)
 
 	for _, profile := range profiles {
 
