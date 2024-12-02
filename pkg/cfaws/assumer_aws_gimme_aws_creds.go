@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 	"time"
 
@@ -197,7 +198,6 @@ func (gimme *AwsGimmeAwsCredsAssumer) ProfileMatchesType(rawProfile *ini.Section
 		}
 	}
 
-	//clio.Debug("No gimme profile matched")
 	return false
 }
 
@@ -222,7 +222,7 @@ func (gimme *AwsGimmeAwsCredsAssumer) LoadGimmeConfig() error {
 		if err != nil {
 			clio.Error(err)
 		}
-		okta_config = fmt.Sprintf("%s/.okta_aws_login_config", home)
+		okta_config = path.Join(home, ".okta_aws_login_config")
 	}
 
 	_, err := os.Stat(okta_config)
