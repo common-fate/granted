@@ -303,7 +303,7 @@ func interpolateVariables(value string, profileName string) (string, error) {
 }
 
 func containsTemplate(text string) bool {
-	re := regexp.MustCompile(`{{\s+(.\w+){1,2}\s+}}`)
+	re := regexp.MustCompile(`{{\s*(.\w+){1,2}\s*}}`)
 
 	return re.MatchString(text)
 }
