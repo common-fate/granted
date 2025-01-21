@@ -85,7 +85,7 @@ func (gimme *AwsGimmeAwsCredsAssumer) AssumeTerminal(ctx context.Context, c *Pro
 	// if cred process, check we can do a non-interactive refresh
 	if configOpts.UsingCredentialProcess {
 		if !configOpts.CredentialProcessAutoLogin {
-			return aws.Credentials{}, fmt.Errorf("Failed to auto-refresh aws-gimme-creds, since auto-login is disabled")
+			return aws.Credentials{}, fmt.Errorf("Failed to auto-refresh gimme-aws-creds, since auto-login is disabled")
 		}
 		err := gimme.LoadGimmeConfig()
 		if err != nil {
@@ -119,6 +119,9 @@ func (gimme *AwsGimmeAwsCredsAssumer) AssumeTerminal(ctx context.Context, c *Pro
 	cmd.Stdin = os.Stdin
 	cmd.Stderr = os.Stderr
 
+	// We always want to request fresh credentials from gimme-aws-creds,
+	// since caching will take place in granted. Also prevents gimme-aws-creds
+	// from trying to read/parse existing AWS profiles.
 	cleanEnv := []string{}
 	var disallowedVar bool
 	for _, env := range os.Environ() {
