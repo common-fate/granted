@@ -19,8 +19,6 @@ import (
 	"gopkg.in/ini.v1"
 )
 
-const GRANTED_OKTA_INI_OPEN_BROWSER = "granted_okta_open_browser"
-
 type AwsGimmeAwsCredsAssumer struct {
 	config           *ini.File
 	forceOpenBrowser bool
@@ -105,17 +103,6 @@ func (gimme *AwsGimmeAwsCredsAssumer) AssumeTerminal(ctx context.Context, c *Pro
 	args := []string{
 		fmt.Sprintf("--profile=%s", c.Name),
 		"--output-format=json",
-	}
-
-	if c.RawConfig.HasKey(GRANTED_OKTA_INI_OPEN_BROWSER) {
-		ob, err := c.RawConfig.GetKey(GRANTED_OKTA_INI_OPEN_BROWSER)
-		if err != nil {
-			clio.Debugf("Error reading ini key %s: %w", GRANTED_OKTA_INI_OPEN_BROWSER, err)
-		}
-
-		if ob.MustBool(false) == true || ob.String() == "true" {
-			gimme.forceOpenBrowser = true
-		}
 	}
 
 	if gimme.forceOpenBrowser {
