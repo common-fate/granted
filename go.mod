@@ -32,6 +32,7 @@ require (
 	github.com/common-fate/sdk v1.71.0
 	github.com/common-fate/xid v1.0.0
 	github.com/fatih/color v1.16.0
+	github.com/hashicorp/go-version v1.7.0
 	github.com/hashicorp/yamux v0.1.2
 	github.com/lithammer/fuzzysearch v1.1.5
 	github.com/mattn/go-runewidth v0.0.16
