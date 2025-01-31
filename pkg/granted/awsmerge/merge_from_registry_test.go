@@ -307,8 +307,7 @@ key1    = value2
 				t.Fatal(err)
 			}
 
-			m := Merger{}
-			out, err := m.WithRegistry(src, dst, tt.args.opts)
+			out, err := WithRegistry(src, dst, tt.args.opts)
 			if (err != nil) != tt.wantErr {
 				t.Fatalf("Merger.WithRegistry() error = %v, wantErr %v", err, tt.wantErr)
 			}
