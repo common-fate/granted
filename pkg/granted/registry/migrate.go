@@ -65,3 +65,13 @@ var MigrateCommand = cli.Command{
 		return nil
 	},
 }
+
+func IsOutdatedConfig() bool {
+	gConf, err := grantedConfig.Load()
+	if err != nil {
+		clio.Debug(err.Error())
+		return true
+	}
+
+	return len(gConf.ProfileRegistryURLS) > 0
+}
