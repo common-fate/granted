@@ -9,14 +9,6 @@ import (
 	"github.com/common-fate/granted/pkg/granted/registry"
 )
 
-type RegistrySyncError struct {
-	err error
-}
-
-func (e *RegistrySyncError) Error() string {
-	return fmt.Sprintf("error syncing profile registry with err: %s", e.err.Error())
-}
-
 func runSync(ctx context.Context, rc RegistrySyncConfig, interactive bool) error {
 	clio.Info("Syncing Profile Registries")
 	err := registry.SyncProfileRegistries(ctx, interactive)
