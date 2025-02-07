@@ -32,6 +32,7 @@ func (a AWS) URLs(creds aws.Credentials) ([]string, error) {
 
 	urls := []string{}
 
+	//if region and service were not specified create a single default url and return
 	if a.Region == "" && a.Service == nil {
 		url, err := a.URL(creds, "", "")
 		if err != nil {
@@ -41,13 +42,10 @@ func (a AWS) URLs(creds aws.Credentials) ([]string, error) {
 		return urls, nil
 	}
 
+	//if one or more services were specified in the assume command then create multiple urls to be opened up in the browser
 	if len(a.Service) > 0 {
-		var region string
-		if len(a.Region) > 0 {
-			region = a.Region
-		}
 		for _, service := range a.Service {
-			url, err := a.URL(creds, region, service)
+			url, err := a.URL(creds, a.Region, service)
 			if err != nil {
 				return nil, err
 			}
