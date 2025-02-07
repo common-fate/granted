@@ -330,10 +330,14 @@ func AssumeCommand(c *cli.Context) error {
 	if getConsoleURL {
 		con := console.AWS{
 			Profile:     profile.Name,
-			Service:     assumeFlags.String("service"),
-			Region:      region,
 			Destination: assumeFlags.String("console-destination"),
 		}
+
+		services := assumeFlags.StringSlice("service")
+		con.Service = append(con.Service, services...)
+
+		region := assumeFlags.String("region")
+		con.Region = region
 
 		creds, err := profile.AssumeConsole(c.Context, configOpts)
 		if err != nil && strings.HasPrefix(err.Error(), "no access") {
@@ -406,92 +410,98 @@ func AssumeCommand(c *cli.Context) error {
 			containerProfile = assumeFlags.String("browser-profile")
 		}
 
-		consoleURL, err := con.URL(creds)
+		consoleURLs, err := con.URLs(creds)
 		if err != nil {
 			return err
 		}
 
-		if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey || cfg.DefaultBrowser == browser.FirefoxDevEditionKey || cfg.DefaultBrowser == browser.FirefoxNightlyKey {
-			// transform the URL into the Firefox Tab Container format.
-			consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", containerProfile, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
-		}
+		clio.Debugf(`number of console urls created`, "amount", len(consoleURLs))
+		for _, consoleURL := range consoleURLs {
 
-		justPrintURL := assumeFlags.Bool("url") || cfg.DefaultBrowser == browser.StdoutKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey
-		if justPrintURL {
-			// return the url via stdout through the CLI wrapper script and return early.
-			fmt.Print(assumeprint.SafeOutput(consoleURL))
-			return nil
-		}
+			if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey || cfg.DefaultBrowser == browser.FirefoxDevEditionKey || cfg.DefaultBrowser == browser.FirefoxNightlyKey {
+				// transform the URL into the Firefox Tab Container format.
+				consoleURL = fmt.Sprintf("ext+granted-containers:name=%s&url=%s&color=%s&icon=%s", containerProfile, url.QueryEscape(consoleURL), profile.CustomGrantedProperty("color"), profile.CustomGrantedProperty("icon"))
+			}
 
-		browserPath := cfg.CustomBrowserPath
-		if browserPath == "" && cfg.AWSConsoleBrowserLaunchTemplate == nil {
-			return errors.New("default browser not configured. run `granted browser set` to configure")
-		}
+			justPrintURL := assumeFlags.Bool("url") || cfg.DefaultBrowser == browser.StdoutKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey
+			if justPrintURL {
+				// return the url via stdout through the CLI wrapper script and return early.
+				fmt.Print(assumeprint.SafeOutput(consoleURL))
+				return nil
+			}
 
-		var l Launcher
-		switch cfg.DefaultBrowser {
-		case browser.ChromeKey, browser.BraveKey, browser.EdgeKey, browser.ChromiumKey, browser.VivaldiKey:
-			l = launcher.ChromeProfile{
-				BrowserType:    cfg.DefaultBrowser,
-				ExecutablePath: browserPath,
+			browserPath := cfg.CustomBrowserPath
+			if browserPath == "" && cfg.AWSConsoleBrowserLaunchTemplate == nil {
+				return errors.New("default browser not configured. run `granted browser set` to configure")
 			}
-		case browser.FirefoxKey, browser.WaterfoxKey:
-			l = launcher.Firefox{
-				ExecutablePath: browserPath,
+
+			var l Launcher
+			switch cfg.DefaultBrowser {
+			case browser.ChromeKey, browser.BraveKey, browser.EdgeKey, browser.ChromiumKey, browser.VivaldiKey:
+				l = launcher.ChromeProfile{
+					BrowserType:    cfg.DefaultBrowser,
+					ExecutablePath: browserPath,
+				}
+			case browser.FirefoxKey, browser.WaterfoxKey:
+				l = launcher.Firefox{
+					ExecutablePath: browserPath,
+				}
+			case browser.SafariKey:
+				l = launcher.Safari{}
+			case browser.ArcKey:
+				l = launcher.Arc{}
+			case browser.FirefoxDevEditionKey:
+				l = launcher.FirefoxDevEdition{
+					ExecutablePath: browserPath,
+				}
+			case browser.FirefoxNightlyKey:
+				l = launcher.FirefoxNightly{
+					ExecutablePath: browserPath,
+				}
+			case browser.CustomKey:
+				l, err = launcher.CustomFromLaunchTemplate(cfg.AWSConsoleBrowserLaunchTemplate, c.StringSlice("browser-launch-template-arg"))
+				if err == launcher.ErrLaunchTemplateNotConfigured {
+					return errors.New("error configuring custom browser, ensure that [AWSConsoleBrowserLaunchTemplate] is specified in your Granted config file")
+				}
+				if err != nil {
+					return err
+				}
+			default:
+				l = launcher.Open{}
 			}
-		case browser.SafariKey:
-			l = launcher.Safari{}
-		case browser.ArcKey:
-			l = launcher.Arc{}
-		case browser.FirefoxDevEditionKey:
-			l = launcher.FirefoxDevEdition{
-				ExecutablePath: browserPath,
-			}
-		case browser.FirefoxNightlyKey:
-			l = launcher.FirefoxNightly{
-				ExecutablePath: browserPath,
-			}
-		case browser.CustomKey:
-			l, err = launcher.CustomFromLaunchTemplate(cfg.AWSConsoleBrowserLaunchTemplate, c.StringSlice("browser-launch-template-arg"))
-			if err == launcher.ErrLaunchTemplateNotConfigured {
-				return errors.New("error configuring custom browser, ensure that [AWSConsoleBrowserLaunchTemplate] is specified in your Granted config file")
-			}
+
+			servicesString := strings.Join(services, " ")
+			printFlagUsage(con.Region, servicesString)
+			clio.Debugf("Opening a console for %s in your browser...", profile.Name)
+
+			// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
+
+			args, err := l.LaunchCommand(consoleURL, containerProfile)
 			if err != nil {
-				return err
+				return fmt.Errorf("error building browser launch command: %w", err)
 			}
-		default:
-			l = launcher.Open{}
-		}
 
-		printFlagUsage(con.Region, con.Service)
-		clio.Infof("Opening a console for %s in your browser...", profile.Name)
-
-		// now build the actual command to run - e.g. 'firefox --new-tab <URL>'
-		args, err := l.LaunchCommand(consoleURL, containerProfile)
-		if err != nil {
-			return fmt.Errorf("error building browser launch command: %w", err)
-		}
-
-		var startErr error
-		if l.UseForkProcess() {
-			clio.Debugf("running command using forkprocess: %s", args)
-			cmd, err := forkprocess.New(args...)
-			if err != nil {
-				return err
+			var startErr error
+			if l.UseForkProcess() {
+				clio.Debugf("running command using forkprocess: %s", args)
+				cmd, err := forkprocess.New(args...)
+				if err != nil {
+					return err
+				}
+				startErr = cmd.Start()
+			} else {
+				clio.Debugf("running command without forkprocess: %s", args)
+				cmd := exec.Command(args[0], args[1:]...)
+				startErr = cmd.Start()
 			}
-			startErr = cmd.Start()
-		} else {
-			clio.Debugf("running command without forkprocess: %s", args)
-			cmd := exec.Command(args[0], args[1:]...)
-			startErr = cmd.Start()
-		}
 
-		if startErr != nil {
-			return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", startErr.Error()),
-				// allow them to try open the url manually
-				clierr.Info("You can open the browser session manually using the following url:"),
-				clierr.Info(consoleURL),
-			)
+			if startErr != nil {
+				return clierr.New(fmt.Sprintf("Granted was unable to open a browser session automatically due to the following error: %s", startErr.Error()),
+					// allow them to try open the url manually
+					clierr.Info("You can open the browser session manually using the following url:"),
+					clierr.Info(consoleURL),
+				)
+			}
 		}
 	}
 
