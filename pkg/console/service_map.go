@@ -12,6 +12,7 @@ var ServiceMap = map[string]string{
 	"athena":         "athena",
 	"backup":         "backup",
 	"bedrock":        "bedrock",
+	"billing":        "billing",
 	"c9":             "cloud9",
 	"ce":             "cost-management",
 	"cf":             "cloudfront",
