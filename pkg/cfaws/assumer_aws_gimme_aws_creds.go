@@ -262,7 +262,7 @@ func (gimme *AwsGimmeAwsCredsAssumer) CanRefreshHeadless(profile string) bool {
 			clio.Warn(err)
 			return false
 		}
-		if key.MustBool(force_classic_default) == true {
+		if key.MustBool(force_classic_default) {
 			return false
 		}
 	}
