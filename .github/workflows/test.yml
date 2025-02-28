@@ -34,15 +34,15 @@ jobs:
       - name: Build All Platforms
         run: make ci-cli-all-platforms
       # Upload the built binaries to use in later tests on each platform
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: go-binaries-linux
           path: ./bin/linux/
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: go-binaries-macos
           path: ./bin/macos/
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: go-binaries-windows
           path: ./bin/windows/
