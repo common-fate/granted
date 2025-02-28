@@ -108,9 +108,7 @@ var AddCommand = cli.Command{
 				return err
 			}
 
-			m := awsmerge.Merger{}
-
-			merged, err := m.WithRegistry(src, dst, awsmerge.RegistryOpts{
+			merged, err := awsmerge.WithRegistry(src, dst, awsmerge.RegistryOpts{
 				Name:                    name,
 				PrefixAllProfiles:       prefixAllProfiles,
 				PrefixDuplicateProfiles: prefixDuplicateProfiles,
@@ -140,7 +138,7 @@ var AddCommand = cli.Command{
 				registryConfig.PrefixDuplicateProfiles = true
 
 				// try and merge again
-				merged, err = m.WithRegistry(src, dst, awsmerge.RegistryOpts{
+				merged, err = awsmerge.WithRegistry(src, dst, awsmerge.RegistryOpts{
 					Name:                    name,
 					PrefixAllProfiles:       prefixAllProfiles,
 					PrefixDuplicateProfiles: true,
@@ -184,9 +182,7 @@ var AddCommand = cli.Command{
 				return err
 			}
 
-			m := awsmerge.Merger{}
-
-			merged, err := m.WithRegistry(src, dst, awsmerge.RegistryOpts{
+			merged, err := awsmerge.WithRegistry(src, dst, awsmerge.RegistryOpts{
 				Name:                    name,
 				PrefixAllProfiles:       prefixAllProfiles,
 				PrefixDuplicateProfiles: prefixDuplicateProfiles,
@@ -216,7 +212,7 @@ var AddCommand = cli.Command{
 				registryConfig.PrefixDuplicateProfiles = true
 
 				// try and merge again
-				merged, err = m.WithRegistry(src, dst, awsmerge.RegistryOpts{
+				merged, err = awsmerge.WithRegistry(src, dst, awsmerge.RegistryOpts{
 					Name:                    name,
 					PrefixAllProfiles:       prefixAllProfiles,
 					PrefixDuplicateProfiles: true,

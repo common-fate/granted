@@ -73,9 +73,5 @@ func IsOutdatedConfig() bool {
 		return true
 	}
 
-	if len(gConf.ProfileRegistryURLS) > 0 {
-		return true
-	}
-
-	return false
+	return len(gConf.ProfileRegistryURLS) > 0
 }

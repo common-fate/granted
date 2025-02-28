@@ -57,14 +57,12 @@ var RemoveCommand = cli.Command{
 			return err
 		}
 
-		m := awsmerge.Merger{}
-
 		configFile, awsConfigPath, err := loadAWSConfigFile()
 		if err != nil {
 			return err
 		}
 
-		m.RemoveRegistry(configFile, selectedRegistry.Name)
+		awsmerge.RemoveRegistry(configFile, selectedRegistry.Name)
 
 		err = configFile.SaveTo(awsConfigPath)
 		if err != nil {
