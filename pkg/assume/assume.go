@@ -415,7 +415,7 @@ func AssumeCommand(c *cli.Context) error {
 			return err
 		}
 
-		clio.Debugf(`number of console urls created`, "amount", len(consoleURLs))
+		clio.Debugf("number of console urls created", "amount", len(consoleURLs))
 		for _, consoleURL := range consoleURLs {
 
 			if cfg.DefaultBrowser == browser.FirefoxKey || cfg.DefaultBrowser == browser.WaterfoxKey || cfg.DefaultBrowser == browser.FirefoxStdoutKey || cfg.DefaultBrowser == browser.FirefoxDevEditionKey || cfg.DefaultBrowser == browser.FirefoxNightlyKey {

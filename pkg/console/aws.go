@@ -33,7 +33,7 @@ func (a AWS) URLs(creds aws.Credentials) ([]string, error) {
 	urls := []string{}
 
 	//if region and service were not specified create a single default url and return
-	if a.Region == "" && a.Service == nil {
+	if a.Region == "" && len(a.Service) == 0 {
 		url, err := a.URL(creds, "", "")
 		if err != nil {
 			return nil, err
