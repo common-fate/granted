@@ -20,10 +20,6 @@ import (
 	"github.com/common-fate/awsconfigfile"
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
-	"github.com/common-fate/glide-cli/cmd/command"
-	"github.com/common-fate/glide-cli/pkg/client"
-	cfconfig "github.com/common-fate/glide-cli/pkg/config"
-	"github.com/common-fate/glide-cli/pkg/profilesource"
 	"github.com/common-fate/granted/pkg/cfaws"
 	grantedconfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/idclogin"
@@ -44,7 +40,7 @@ var SSOCommand = cli.Command{
 
 const (
 	// permission for user to read/write.
-	USER_READ_WRITE_PERM = 0644 
+	USER_READ_WRITE_PERM = 0700
 )
 
 // in dev:
@@ -57,7 +53,7 @@ var GenerateCommand = cli.Command{
 		&cli.StringFlag{Name: "config", Usage: "Specify the SSO config section in the Granted config file ([SSO.name])", Value: "default"},
 		&cli.StringFlag{Name: "prefix", Usage: "Specify a prefix for all generated profile names"},
 		&cli.StringFlag{Name: "sso-region", Usage: "Specify the SSO region"},
-		&cli.StringSliceFlag{Name: "source", Usage: "The sources to load AWS profiles from (valid values are: 'aws-sso', 'commonfate')", Value: cli.NewStringSlice("aws-sso")},
+		&cli.StringSliceFlag{Name: "source", Usage: "The sources to load AWS profiles from (valid values are: 'aws-sso')", Value: cli.NewStringSlice("aws-sso")},
 		&cli.BoolFlag{Name: "no-credential-process", Usage: "Generate profiles without the Granted credential-process integration"},
 		&cli.StringFlag{Name: "profile-template", Usage: "Specify profile name template", Value: awsconfigfile.DefaultProfileNameTemplate}},
 	Action: func(c *cli.Context) error {
@@ -109,13 +105,9 @@ var GenerateCommand = cli.Command{
 			case "aws-sso":
 				g.AddSource(AWSSSOSource{SSORegion: ssoRegion, StartURL: startURL})
 			case "commonfate", "common-fate", "cf":
-				ps, err := getCFProfileSource(c, ssoRegion, startURL)
-				if err != nil {
-					return err
-				}
-				g.AddSource(ps)
+				return fmt.Errorf("the common fate profile source is no longer supported: https://www.commonfate.io/blog/winding-down")
 			default:
-				return fmt.Errorf("unknown profile source %s: allowed sources are aws-sso, commonfate", s)
+				return fmt.Errorf("unknown profile source %s: allowed sources are aws-sso", s)
 			}
 		}
 
@@ -227,13 +219,9 @@ var PopulateCommand = cli.Command{
 			case "aws-sso":
 				g.AddSource(AWSSSOSource{SSORegion: ssoRegion, StartURL: startURL, SSOScopes: c.StringSlice("sso-scope")})
 			case "commonfate", "common-fate", "cf":
-				ps, err := getCFProfileSource(c, ssoRegion, startURL)
-				if err != nil {
-					return err
-				}
-				g.AddSource(ps)
+				return fmt.Errorf("the common fate profile source is no longer supported: https://www.commonfate.io/blog/winding-down")
 			default:
-				return fmt.Errorf("unknown profile source %s: allowed sources are aws-sso, commonfate", s)
+				return fmt.Errorf("unknown profile source %s: allowed sources are aws-sso", s)
 			}
 		}
 		err = g.Generate(ctx)
@@ -278,7 +266,7 @@ var LoginCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// extract the region using a regex on the meta tag "region"
 			re := regexp.MustCompile(`<meta\s+name="region"\s+content="(.*?)"/>`)
@@ -320,41 +308,6 @@ var LoginCommand = cli.Command{
 
 		return nil
 	},
-}
-
-func getCFProfileSource(c *cli.Context, region, startURL string) (profilesource.Source, error) {
-	kr, err := securestorage.NewCF().Storage.Keyring()
-	if err != nil {
-		return profilesource.Source{}, err
-	}
-
-	// login if the CF API isn't configured
-	if !cfconfig.IsConfigured() {
-		lf := command.LoginFlow{Keyring: kr, ForceInteractive: true}
-		err = lf.LoginAction(c)
-		if err != nil {
-			return profilesource.Source{}, err
-		}
-	}
-
-	cfg, err := cfconfig.Load()
-	if err != nil {
-		return profilesource.Source{}, err
-	}
-
-	cf, err := client.FromConfig(c.Context, cfg,
-		client.WithKeyring(kr),
-		client.WithLoginHint("granted login"),
-	)
-	if err != nil {
-		return profilesource.Source{}, err
-	}
-
-	ps := profilesource.Source{SSORegion: region, StartURL: startURL, Client: cf, DashboardURL: cfg.CurrentOrEmpty().DashboardURL}
-
-	clio.Infof("listing available profiles from Common Fate (%s)", ps.DashboardURL)
-
-	return ps, nil
 }
 
 type AWSSSOSource struct {

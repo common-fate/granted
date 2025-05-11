@@ -30,7 +30,7 @@ var listCommand = cli.Command{
 
 		tw := tabwriter.NewWriter(os.Stderr, 10, 1, 5, ' ', 0)
 		headers := strings.Join([]string{"STORAGE TYPE", "KEY"}, "\t")
-		fmt.Fprintln(tw, headers)
+		_, _ = fmt.Fprintln(tw, headers)
 
 		for storageName, v := range storageToNameMap {
 
@@ -41,12 +41,12 @@ var listCommand = cli.Command{
 
 			for _, key := range keys {
 				tabbed := strings.Join([]string{storageName, key}, "\t")
-				fmt.Fprintln(tw, tabbed)
+				_, _ = fmt.Fprintln(tw, tabbed)
 			}
 
 		}
 
-		tw.Flush()
+		_ = tw.Flush()
 
 		return nil
 	},

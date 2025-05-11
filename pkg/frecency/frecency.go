@@ -81,7 +81,7 @@ func Load(fecencyStoreKey string) (*FrecencyStore, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	err = json.NewDecoder(file).Decode(&c)
 	if err != nil {
@@ -190,6 +190,6 @@ func (store *FrecencyStore) save() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return json.NewEncoder(file).Encode(store)
 }

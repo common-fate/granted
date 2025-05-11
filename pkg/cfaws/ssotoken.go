@@ -126,7 +126,7 @@ func SsoCredsAreInConfigCache() bool {
 	}
 
 	// close the folder
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return true
 }
 
@@ -157,7 +157,7 @@ func ReadPlaintextSsoCreds(startUrl string) (SSOPlainTextOut, error) {
 		return SSOPlainTextOut{}, err
 	}
 	// close the folder
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	for _, file := range files {
 		// check if the file is a json file
 		if filepath.Ext(file.Name()) == ".json" {
@@ -175,7 +175,7 @@ func ReadPlaintextSsoCreds(startUrl string) (SSOPlainTextOut, error) {
 			// if file doesn't start with botocore
 			if !strings.HasPrefix(file.Name(), "botocore") {
 				// close the file
-				defer f.Close()
+				defer func() { _ = f.Close() }()
 				// unmarshal the json
 				var sso SSOPlainTextOut
 				err = json.Unmarshal(data, &sso)

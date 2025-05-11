@@ -212,7 +212,7 @@ var ImportCredentialsCommand = cli.Command{
 		// if the same option is configured in the config file profile it takes precedence
 		for _, key := range items.Keys() {
 			// omit sensitive values from the merge
-			if !(key.Name() == "aws_access_key_id" || key.Name() == "aws_secret_access_key" || key.Name() == "aws_session_token") {
+			if key.Name() != "aws_access_key_id" && key.Name() != "aws_secret_access_key" && key.Name() != "aws_session_token" {
 				section, err := configFile.GetSection(sectionName)
 				if err != nil {
 					return err

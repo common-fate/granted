@@ -128,7 +128,7 @@ func (d *GrantedDoctor) CheckAllAWSCacheTokens(ctx context.Context) error {
 			return err
 		}
 		// close the folder
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 
 		if len(files) == 0 {
 			clio.Info("No valid cached credentials found in `/.aws/sso/cache`")
@@ -151,7 +151,7 @@ func (d *GrantedDoctor) CheckAllAWSCacheTokens(ctx context.Context) error {
 				// if file doesn't start with botocore
 				if !strings.HasPrefix(file.Name(), "botocore") {
 					// close the file
-					defer f.Close()
+					defer func() { _ = f.Close() }()
 					// unmarshal the json
 					var cachedToken cfaws.SSOPlainTextOut
 					err = json.Unmarshal(data, &cachedToken)

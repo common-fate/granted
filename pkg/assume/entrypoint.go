@@ -14,7 +14,6 @@ import (
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/chromemsg"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/useragent"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -58,6 +57,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "no-cache", Usage: "Disables caching of session credentials and forces a refresh", EnvVars: []string{"GRANTED_NO_CACHE"}},
 		&cli.StringSliceFlag{Name: "browser-launch-template-arg", Usage: "Additional arguments to provide to the browser launch template command in key=value format, e.g. '--browser-launch-template-arg foo=bar"},
 		&cli.BoolFlag{Name: "skip-profile-registry-sync", Usage: "You can use this to skip the automated profile registry sync process."},
+		&cli.StringSliceFlag{Name: "attach", Usage: "Attach justifications to your request, such as a Jira ticket id or url `--attach=TP-123`"},
 	}
 }
 
@@ -80,7 +80,7 @@ func GetCliApp() *cli.App {
 		BashComplete:         Completion,
 		Before: func(c *cli.Context) error {
 			if c.String("aws-config-file") != "" {
-				os.Setenv("AWS_CONFIG_FILE", c.String("aws-config-file"))
+				_ = os.Setenv("AWS_CONFIG_FILE", c.String("aws-config-file"))
 			}
 			// unsets the exported env vars
 			if c.Bool("unset") {
@@ -153,9 +153,6 @@ func GetCliApp() *cli.App {
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
 				return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
 			}
-
-			// set the user agent
-			c.Context = useragent.NewContext(c.Context, "granted", build.Version)
 
 			return nil
 		},

@@ -473,7 +473,7 @@ func (p *Profile) init(ctx context.Context, profiles *Profiles, depth int) error
 					p.ProfileType = sourceProfile.ProfileType
 					p.Parents = append(sourceProfile.Parents, sourceProfile)
 				} else {
-					p.LoadingError = fmt.Errorf("failed to load a source-profile for profile: %s . You should fix the issue with the source profile before you can assume this profile.", p.Name)
+					p.LoadingError = fmt.Errorf("failed to load a source-profile for profile: %s . You should fix the issue with the source profile before you can assume this profile", p.Name)
 					return p.LoadingError
 				}
 			}

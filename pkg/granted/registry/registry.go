@@ -5,7 +5,6 @@ import (
 	"sort"
 
 	grantedConfig "github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/granted/pkg/granted/registry/cfregistry"
 	"github.com/common-fate/granted/pkg/granted/registry/gitregistry"
 	"gopkg.in/ini.v1"
 )
@@ -38,6 +37,7 @@ func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 				URL:         r.URL,
 				Path:        r.Path,
 				Filename:    r.Filename,
+				Ref:         r.Ref,
 				Interactive: interactive,
 			})
 
@@ -48,18 +48,7 @@ func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 				Config:   r,
 				Registry: reg,
 			})
-		} else {
-			//set up a common fate registry
-			reg := cfregistry.New(cfregistry.Opts{
-				Name: r.Name,
-				URL:  r.URL,
-			})
-			registries = append(registries, loadedRegistry{
-				Config:   r,
-				Registry: reg,
-			})
 		}
-
 	}
 
 	// this will sort the registry based on priority.

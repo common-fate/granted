@@ -10,17 +10,12 @@ import (
 
 	"github.com/common-fate/clio"
 	"github.com/common-fate/clio/clierr"
-	"github.com/common-fate/granted/internal/build"
 	"github.com/common-fate/granted/pkg/assume"
 	"github.com/common-fate/granted/pkg/granted"
-	"github.com/common-fate/updatecheck"
 	"github.com/urfave/cli/v2"
 )
 
 func main() {
-	updatecheck.Check(updatecheck.GrantedCLI, build.Version, !build.IsDev())
-	defer updatecheck.Print()
-
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
@@ -29,7 +24,7 @@ func main() {
 		// https://github.com/apppackio/apppack/commit/a711e55238af2402b4b027a73fccc663ec7ba0f4
 		// https://github.com/briandowns/spinner/issues/122
 		if runtime.GOOS != "windows" {
-			fmt.Fprint(os.Stdin, "\033[?25h")
+			_, _ = fmt.Fprint(os.Stdin, "\033[?25h")
 		}
 		os.Exit(130)
 	}()

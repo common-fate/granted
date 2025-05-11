@@ -1,0 +1,126 @@
+labels: ["needs-confirmation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        > [!IMPORTANT]
+        > Please read through [the code of conduct](https://github.com/common-fate/granted/blob/main/CODE_OF_CONDUCT.md), and check for both existing [Discussions](https://github.com/common-fate/granted/discussions?discussions_q=) and [Issues](https://github.com/common-fate/granted/issues?q=sort%3Areactions-desc) prior to opening a new Discussion.
+  - type: markdown
+    attributes:
+      value: "# Issue Details"
+  - type: textarea
+    attributes:
+      label: Issue Description
+      description: |
+        Provide a detailed description of the issue.  Include relevant information, such as:
+        - The feature or configuration option you encounter the issue with.
+        - Terminal logs, screenshots, screen recordings, or other supporting media (as needed).
+        - If this is a regression of an existing issue that was closed or resolved, please include the previous item reference (Discussion, Issue, PR, commit) in your description.
+      placeholder: |
+        When using `assume` to get AWS credentials for a profile, I try to use the --profile flag but receive an error: "Token has expired and refresh failed". The same command works fine when I assume the role directly without the --profile flag.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Expected Behavior
+      description: |
+        Describe how you expect Granted to behave in this situation.  Include any relevant documentation links.
+      placeholder: |
+        AWS credentials are successfully loaded for the specified profile and AWS commands work correctly.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Actual Behavior
+      description: |
+        Describe how Granted actually behaves in this situation.  If it is not immediately obvious how the actual behavior differs from the expected behavior described above, please be sure to mention the deviation specifically.
+      placeholder: |
+        An error is received: "Token has expired and refresh failed" when using the --profile flag.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Reproduction Steps
+      description: |
+        Provide a detailed set of step-by-step instructions for reproducing this issue.
+      placeholder: |
+        1. Create a script that uses `aws s3 ls --profile codev`.
+        2. Run `assume codev` to get credentials.
+        3. Execute the script.
+        4. Observe the token expiration error.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Granted Logs
+      description: |
+        Provide any captured Granted logs or stacktraces during your issue reproduction in this field. You can enable debug logging by setting the `GRANTED_LOG=debug` environment variable before running Granted commands.
+      render: text
+  - type: textarea
+    attributes:
+      label: Granted Version
+      description: Paste the output of `granted --version` here.
+      placeholder: |
+        Granted version: 0.37.0
+      render: text
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: OS Version Information
+      description: |
+        Please tell us what operating system (name and version) you are using.
+      placeholder: Ubuntu 24.04.1 (Noble Numbat)
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Minimal Granted & AWS Config Configuration
+      description: |
+        Please provide the **minimum** configuration needed to reproduce this issue. Relevant configuration files are `~/.aws/config` and `~/.granted/config`. If you can still reproduce the issue with one of the lines removed, do not include that line. If and **only** if you are not able to determine this, paste the contents of your configuration file here. Please redact any account IDs or ARNs in your answer.
+      placeholder: |
+        [profile codev]
+        sso_start_url = https://myorg.awsapps.com/start
+        sso_region = us-east-1
+        sso_account_id = 123456789012
+        sso_role_name = DeveloperAccess
+        region = eu-north-1
+      render: ini
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Additional Relevant Configuration
+      description: |
+        If your issue involves other programs, tools, or applications in addition to Granted (e.g. AWS CLI, SSO configurations, shell scripts, etc.), please provide the minimum configuration and versions needed for all relevant programs to reproduce the issue here.
+      placeholder: |
+        #### `~/.aws/credentials`
+        ```
+        [default]
+        aws_access_key_id = AKIAEXAMPLE
+        aws_secret_access_key = secret
+        ```
+
+        #### `assume` shell script
+        ```bash
+        #!/bin/bash
+        aws s3 ls --profile codev
+        ```
+    validations:
+      required: false
+  - type: markdown
+    attributes:
+      value: |
+        # User Acknowledgements
+        > [!TIP]
+        > Use these links to review the existing Granted [Discussions](https://github.com/common-fate/granted/discussions?discussions_q=) and [Issues](https://github.com/common-fate/granted/issues?q=sort%3Areactions-desc).
+  - type: checkboxes
+    attributes:
+      label: "I acknowledge that:"
+      options:
+        - label: I have reviewed the FAQ and confirm that my issue is NOT among them.
+          required: true
+        - label: I have searched the Granted repository (both open and closed Discussions and Issues) and confirm this is not a duplicate of an existing issue or discussion.
+          required: true
+        - label: I have checked the "Preview" tab on all text fields to ensure that everything looks right, and have wrapped all configuration and code in code blocks with a group of three backticks (` ``` `) on separate lines.
+          required: true

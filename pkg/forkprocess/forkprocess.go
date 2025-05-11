@@ -67,8 +67,8 @@ func (p *Process) Start() error {
 	if err != nil {
 		return errors.Wrap(err, "getting read and write files")
 	}
-	defer rpipe.Close()
-	defer wpipe.Close()
+	defer func() { _ = rpipe.Close() }()
+	defer func() { _ = wpipe.Close() }()
 
 	attr := os.ProcAttr{
 		Dir: p.Workdir,
