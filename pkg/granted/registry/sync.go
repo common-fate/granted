@@ -55,15 +55,13 @@ func SyncProfileRegistries(ctx context.Context, interactive bool) error {
 		return nil
 	}
 
-	m := awsmerge.Merger{}
-
 	for _, r := range registries {
 		src, err := r.Registry.AWSProfiles(ctx, interactive)
 		if err != nil {
 			return fmt.Errorf("error retrieving AWS profiles for registry %s: %w", r.Config.Name, err)
 		}
 
-		merged, err := m.WithRegistry(src, configFile, awsmerge.RegistryOpts{
+		merged, err := awsmerge.WithRegistry(src, configFile, awsmerge.RegistryOpts{
 			Name:                    r.Config.Name,
 			PrefixAllProfiles:       r.Config.PrefixAllProfiles,
 			PrefixDuplicateProfiles: r.Config.PrefixDuplicateProfiles,
@@ -92,7 +90,7 @@ func SyncProfileRegistries(ctx context.Context, interactive bool) error {
 			}
 
 			// try and merge again
-			merged, err = m.WithRegistry(src, configFile, awsmerge.RegistryOpts{
+			merged, err = awsmerge.WithRegistry(src, configFile, awsmerge.RegistryOpts{
 				Name:                    r.Config.Name,
 				PrefixAllProfiles:       r.Config.PrefixAllProfiles,
 				PrefixDuplicateProfiles: true,

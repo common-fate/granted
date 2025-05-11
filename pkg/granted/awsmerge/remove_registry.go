@@ -13,7 +13,7 @@ import (
 //	[granted_registry_start test]
 //	// ... <generated profiles>
 //	[granted_registry_end test]
-func (m Merger) RemoveRegistry(src *ini.File, name string) {
+func RemoveRegistry(src *ini.File, name string) {
 	// replace any existing generated profiles which match the name of the registry
 	existing := getGrantedGeneratedSections(src, name)
 	for _, p := range existing {
