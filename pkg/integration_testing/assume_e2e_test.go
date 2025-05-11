@@ -64,10 +64,15 @@ func TestAssumeCommandE2E(t *testing.T) {
 	xdgConfigHome := filepath.Join(tempDir, "config")
 	grantedDir := filepath.Join(xdgConfigHome, "granted")
 
-	for _, dir := range []string{awsDir, grantedDir} {
+	// Create all necessary directories with proper permissions
+	for _, dir := range []string{awsDir, grantedDir, xdgConfigHome} {
 		err := os.MkdirAll(dir, 0755)
 		require.NoError(t, err)
 	}
+
+	// Ensure the granted directory is writable for config saves
+	err := os.Chmod(grantedDir, 0755)
+	require.NoError(t, err)
 
 	// Create AWS config with a simple IAM profile for testing
 	awsConfig := `[profile test-iam]
@@ -144,6 +149,30 @@ FileBackend = ""
 	})
 
 	t.Run("AssumeProfileWithSSO", func(t *testing.T) {
+		// Debug: Check if granted config exists and is readable
+		configContent, err := os.ReadFile(grantedConfigPath)
+		if err != nil {
+			t.Logf("Error reading granted config: %v", err)
+		} else {
+			t.Logf("Granted config content:\n%s", string(configContent))
+		}
+
+		// Debug environment variables
+		t.Logf("HOME: %s", homeDir)
+		t.Logf("XDG_CONFIG_HOME: %s", xdgConfigHome)
+		t.Logf("Config path: %s", grantedConfigPath)
+
+		// List contents of granted directory
+		files, err := os.ReadDir(grantedDir)
+		if err != nil {
+			t.Logf("Error reading granted dir: %v", err)
+		} else {
+			t.Logf("Granted dir contents:")
+			for _, f := range files {
+				t.Logf("  %s", f.Name())
+			}
+		}
+
 		// Create AWS config with SSO profile
 		ssoConfig := fmt.Sprintf(`[profile test-sso]
 sso_account_id = 123456789012
@@ -366,7 +395,7 @@ func NewAssumeE2EMockServer() *AssumeE2EMockServer {
 	server.URL = serverURL
 
 	go func() {
-		if err := server.Server.Serve(listener); err != nil && err != http.ErrServerClosed {
+		if err := server.Serve(listener); err != nil && err != http.ErrServerClosed {
 			fmt.Printf("Server error: %v\n", err)
 		}
 	}()
@@ -377,7 +406,7 @@ func NewAssumeE2EMockServer() *AssumeE2EMockServer {
 func (s *AssumeE2EMockServer) Close() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	if err := s.Server.Shutdown(ctx); err != nil {
+	if err := s.Shutdown(ctx); err != nil {
 		fmt.Printf("Error shutting down server: %v\n", err)
 	}
 }
