@@ -275,21 +275,21 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
 			// work out how long is remaining on the active grant
 			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
-			color.New(color.FgGreen).Fprintf(os.Stderr, "[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgGreen).Fprintf(os.Stderr, "[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
 
 			retry = true
 
 			continue
 
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
-			color.New(color.FgWhite).Fprintf(os.Stderr, "[PENDING] %s is already pending: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgWhite).Fprintf(os.Stderr, "[PENDING] %s is already pending: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 			if input.Wait {
 				return true, res.Msg, justActivated, nil
 			}
 			return false, nil, justActivated, errors.New("access is pending approval")
 
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
-			color.New(color.FgWhite).Fprintf(os.Stderr, "[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgWhite).Fprintf(os.Stderr, "[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
 
 			return false, nil, justActivated, errors.New("grant was closed")
 
@@ -446,8 +446,8 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 			if g.Grant.Extension != nil {
 				extendedTime = ShortDur(g.Grant.Extension.ExtensionDurationSeconds.AsDuration())
 			}
-			color.New(color.BgBlue).Printf("[WILL EXTEND]")
-			color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.BgBlue).Printf("[WILL EXTEND]")
+			_, _ = color.New(color.FgBlue).Printf(" %s will be extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
@@ -464,13 +464,13 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 		switch g.Grant.Status {
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_ACTIVE:
 			exp = ShortDur(time.Until(g.Grant.ExpiresAt.AsTime()))
-			color.New(color.FgGreen).Fprintf(os.Stderr, "[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgGreen).Fprintf(os.Stderr, "[ACTIVE] %s is already active for the next %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
 			continue
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_PENDING:
-			color.New(color.FgWhite).Fprintf(os.Stderr, "[PENDING] %s is already pending: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgWhite).Fprintf(os.Stderr, "[PENDING] %s is already pending: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 			continue
 		case accessv1alpha1.GrantStatus_GRANT_STATUS_CLOSED:
-			color.New(color.FgWhite).Fprintf(os.Stderr, "[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgWhite).Fprintf(os.Stderr, "[CLOSED] %s is closed but was still returned: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
 			continue
 		}
 

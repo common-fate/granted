@@ -66,7 +66,7 @@ var SetupCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 		// now initialize the git repo
 		err = git.Init(dir)
 		if err != nil {
