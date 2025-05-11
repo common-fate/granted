@@ -294,7 +294,7 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 			return false, nil, justActivated, errors.New("grant was closed")
 
 		default:
-			color.New(color.FgWhite).Fprintf(os.Stderr, "[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgWhite).Fprintf(os.Stderr, "[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
 			return false, nil, justActivated, errors.New("grant was in an unspecified state")
 		}
 
@@ -437,8 +437,8 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 
 		switch g.Change {
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_ACTIVATED:
-			color.New(color.BgHiGreen).Fprintf(os.Stderr, "[WILL ACTIVATE]")
-			color.New(color.FgGreen).Fprintf(os.Stderr, " %s will be activated for %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.BgHiGreen).Fprintf(os.Stderr, "[WILL ACTIVATE]")
+			_, _ = color.New(color.FgGreen).Fprintf(os.Stderr, " %s will be activated for %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_EXTENDED:
