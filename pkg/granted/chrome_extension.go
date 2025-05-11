@@ -26,7 +26,7 @@ func HandleChromeExtensionCall(c *cli.Context) error {
 	}
 
 	if u.Host != build.ChromeExtensionID {
-		return fmt.Errorf("Chrome Extension ID %q did not match allowed ID %q", u.Host, build.ChromeExtensionID)
+		return fmt.Errorf("chrome Extension ID %q did not match allowed ID %q", u.Host, build.ChromeExtensionID)
 	}
 
 	// If we get here, the Granted CLI has been invoked from our browser extension.

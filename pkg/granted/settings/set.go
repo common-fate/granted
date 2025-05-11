@@ -220,12 +220,13 @@ func FieldOptions(cfg any) map[string]Field {
 				}
 			}
 
-			if kind == reflect.Bool || kind == reflect.String || kind == reflect.Int {
+			switch kind {
+			case reflect.Bool, reflect.String, reflect.Int:
 				fieldMap[fieldName] = field{
 					ftype:  fieldType,
 					fvalue: fieldValue,
 				}
-			} else if kind == reflect.Struct {
+			case reflect.Struct:
 				traverseConfigFields(fieldValue.Type(), fieldValue, fieldName)
 			}
 		}

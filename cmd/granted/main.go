@@ -29,7 +29,7 @@ func main() {
 		// https://github.com/apppackio/apppack/commit/a711e55238af2402b4b027a73fccc663ec7ba0f4
 		// https://github.com/briandowns/spinner/issues/122
 		if runtime.GOOS != "windows" {
-			fmt.Fprint(os.Stdin, "\033[?25h")
+			_, _ = fmt.Fprint(os.Stdin, "\033[?25h")
 		}
 		os.Exit(130)
 	}()

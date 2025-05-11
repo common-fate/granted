@@ -84,7 +84,7 @@ func GetCliApp() *cli.App {
 		EnableBashCompletion: true,
 		Before: func(c *cli.Context) error {
 			if c.String("aws-config-file") != "" {
-				os.Setenv("AWS_CONFIG_FILE", c.String("aws-config-file"))
+				_ = os.Setenv("AWS_CONFIG_FILE", c.String("aws-config-file"))
 			}
 			clio.SetLevelFromEnv("GRANTED_LOG")
 

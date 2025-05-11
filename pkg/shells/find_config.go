@@ -26,7 +26,7 @@ func GetPosixConfigFile() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 	}
 	return file, nil
 }
@@ -44,7 +44,7 @@ func GetFishConfigFile() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 	}
 	return file, nil
 }
@@ -62,7 +62,7 @@ func GetTcshConfigFile() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 	}
 	return file, nil
 }
@@ -97,7 +97,7 @@ func GetBashConfigFile() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 	}
 
 	return file, nil
@@ -124,7 +124,7 @@ func GetZshConfigFile() (string, error) {
 		if err != nil {
 			return "", err
 		}
-		defer f.Close()
+		defer func() { _ = f.Close() }()
 	}
 	return file, nil
 }

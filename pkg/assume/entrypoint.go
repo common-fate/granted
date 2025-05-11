@@ -81,7 +81,7 @@ func GetCliApp() *cli.App {
 		BashComplete:         Completion,
 		Before: func(c *cli.Context) error {
 			if c.String("aws-config-file") != "" {
-				os.Setenv("AWS_CONFIG_FILE", c.String("aws-config-file"))
+				_ = os.Setenv("AWS_CONFIG_FILE", c.String("aws-config-file"))
 			}
 			// unsets the exported env vars
 			if c.Bool("unset") {

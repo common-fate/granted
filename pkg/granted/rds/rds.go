@@ -125,8 +125,8 @@ var proxyCommand = cli.Command{
 		if err != nil {
 			return err
 		}
-		defer underlyingProxyServerConn.Close()
-		defer yamuxStreamConnection.Close()
+		defer func() { _ = underlyingProxyServerConn.Close() }()
+		defer func() { _ = yamuxStreamConnection.Close() }()
 
 		connectionString, cliString, clientConnectionPort, err := clientConnectionParameters(c, ensuredAccess)
 		if err != nil {

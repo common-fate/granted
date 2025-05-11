@@ -119,7 +119,7 @@ func setProfileName(profile string, browserType string) {
 		return
 	}
 
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	encoder := json.NewEncoder(file)
 	err = encoder.Encode(f)
 	if err != nil {
