@@ -233,8 +233,8 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 
 		switch g.Change {
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_ACTIVATED:
-			color.New(color.BgHiGreen).Fprintf(os.Stderr, "[ACTIVATED]")
-			color.New(color.FgGreen).Fprintf(os.Stderr, " %s was activated for %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.BgHiGreen).Fprintf(os.Stderr, "[ACTIVATED]")
+			_, _ = color.New(color.FgGreen).Fprintf(os.Stderr, " %s was activated for %s: %s\n", g.Grant.Name, exp, requestURL(apiURL, g.Grant))
 
 			retry = true
 			justActivated = true
@@ -246,16 +246,16 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 			if g.Grant.Extension != nil {
 				extendedTime = ShortDur(g.Grant.Extension.ExtensionDurationSeconds.AsDuration())
 			}
-			color.New(color.BgBlue).Printf("[EXTENDED]")
-			color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
-			color.New(color.FgGreen).Printf(" %s will now expire in %s\n", g.Grant.Name, exp)
+			_, _ = color.New(color.BgBlue).Printf("[EXTENDED]")
+			_, _ = color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgGreen).Printf(" %s will now expire in %s\n", g.Grant.Name, exp)
 
 			retry = true
 
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
-			color.New(color.BgHiYellow, color.FgBlack).Fprintf(os.Stderr, "[REQUESTED]")
+			_, _ = color.New(color.BgHiYellow, color.FgBlack).Fprintf(os.Stderr, "[REQUESTED]")
 			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
 			if input.Wait {
@@ -382,7 +382,7 @@ func (h Hook) RetryNoEntitlementAccess(ctx context.Context, cfg *config.Context,
 	// Note: the current behaviour of Common Fate BatchEnsure is that it only returns the grant that you asked for event when a request already exists with multiple
 	// grants, if this changes in the future, we would need to fix this logic to correctly identify the grant that the user requested
 	// for now this will work
-	if !(allGrantsApproved && allGrantsActivated) {
+	if !allGrantsApproved || !allGrantsActivated {
 		return res.Msg, errors.New("waiting on all grants to be approved and activated")
 	}
 	return res.Msg, nil

@@ -95,7 +95,7 @@ var RemoveCommand = cli.Command{
 func remove(gConf *grantedConfig.Config, rName string) error {
 	registries := gConf.ProfileRegistry.Registries
 
-	var index int = -1
+	var index = -1
 	for i := 0; i < len(registries); i++ {
 		if registries[i].Name == rName {
 			index = i

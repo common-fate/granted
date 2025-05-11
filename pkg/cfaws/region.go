@@ -33,10 +33,11 @@ func ExpandRegion(region string) (string, error) {
 	switch region[0] {
 	case 'u':
 		major = "us"
-		if region[1] == 'g' {
+		switch region[1] {
+		case 'g':
 			major = "us-gov"
 			idx += 1
-		} else if region[1] == 's' {
+		case 's':
 			// This will break if us-southeast-1 is ever created
 			idx += 1
 		}
@@ -47,18 +48,20 @@ func ExpandRegion(region string) (string, error) {
 		}
 	case 'a':
 		major = "ap"
-		if region[1] == 'f' {
+		switch region[1] {
+		case 'f':
 			major = "af"
 			idx += 1
-		} else if region[1] == 'p' {
+		case 'p':
 			idx += 1
 		}
 	case 'c':
 		major = "ca"
-		if region[1] == 'n' {
+		switch region[1] {
+		case 'n':
 			major = "cn"
 			idx += 1
-		} else if region[1] == 'a' {
+		case 'a':
 			idx += 1
 		}
 	case 'm':

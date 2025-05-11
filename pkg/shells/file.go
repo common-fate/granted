@@ -23,7 +23,7 @@ func AppendLine(file string, line string) error {
 	if err != nil {
 		return err
 	}
-	defer out.Close()
+	defer func() { _ = out.Close() }()
 	// include newlines around the line
 	a := fmt.Sprintf("\n%s\n", line)
 	_, err = out.WriteString(a)

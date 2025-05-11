@@ -19,7 +19,7 @@ func ListenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, c
 	if err != nil {
 		return fmt.Errorf("failed to start listening for connections on port: %d. %w", clientConnectionPort, err)
 	}
-	defer ln.Close()
+	defer func() { _ = ln.Close() }()
 
 	type result struct {
 		conn net.Conn
@@ -76,8 +76,8 @@ func ListenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, c
 				// with queries being intercepted and logged to the audit trail in Common Fate
 				// if the grant becomes incative at any time the connection is terminated immediately
 				go func() {
-					defer clientConn.Close()
-					defer sessionConn.Close()
+					defer func() { _ = clientConn.Close() }()
+					defer func() { _ = sessionConn.Close() }()
 					_, err := io.Copy(sessionConn, clientConn)
 					if err != nil {
 						clio.Debugw("error writing data from client to server usually this is just because the proxy session ended.", "streamId", sessionConn.StreamID(), zap.Error(err))
@@ -85,8 +85,8 @@ func ListenAndProxy(ctx context.Context, yamuxStreamConnection *yamux.Session, c
 					clio.Infof("Connection ended for session [%v]", sessionConn.StreamID())
 				}()
 				go func() {
-					defer clientConn.Close()
-					defer sessionConn.Close()
+					defer func() { _ = clientConn.Close() }()
+					defer func() { _ = sessionConn.Close() }()
 					_, err := io.Copy(clientConn, sessionConn)
 					if err != nil {
 						clio.Debugw("error writing data from server to client usually this is just because the proxy session ended.", "streamId", sessionConn.StreamID(), zap.Error(err))

@@ -278,7 +278,7 @@ var LoginCommand = cli.Command{
 			if err != nil {
 				return err
 			}
-			defer resp.Body.Close()
+			defer func() { _ = resp.Body.Close() }()
 
 			// extract the region using a regex on the meta tag "region"
 			re := regexp.MustCompile(`<meta\s+name="region"\s+content="(.*?)"/>`)
