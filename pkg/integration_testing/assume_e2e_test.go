@@ -80,9 +80,10 @@ region = us-east-1
 	require.NoError(t, err)
 
 	// Create granted config with all necessary fields to avoid interactive prompts
-	// Set CustomBrowserPath to "stdout" to satisfy the UserHasDefaultBrowser check
+	// Set both DefaultBrowser and CustomSSOBrowserPath to avoid all interactive prompts
 	grantedConfig := `DefaultBrowser = "STDOUT"
 CustomBrowserPath = "stdout"
+CustomSSOBrowserPath = "stdout"
 Ordering = "Alphabetical"
 [Keyring]
 Backend = "file"
@@ -347,9 +348,11 @@ func NewAssumeE2EMockServer() *AssumeE2EMockServer {
 		default:
 			// For unexpected requests, return a generic response
 			w.WriteHeader(http.StatusOK)
-			json.NewEncoder(w).Encode(map[string]interface{}{
+			if err := json.NewEncoder(w).Encode(map[string]interface{}{
 				"message": "Mock response",
-			})
+			}); err != nil {
+				fmt.Printf("Error encoding response: %v\n", err)
+			}
 		}
 	})
 
@@ -362,7 +365,11 @@ func NewAssumeE2EMockServer() *AssumeE2EMockServer {
 	serverURL := fmt.Sprintf("http://%s", listener.Addr().String())
 	server.URL = serverURL
 
-	go server.Server.Serve(listener)
+	go func() {
+		if err := server.Server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			fmt.Printf("Server error: %v\n", err)
+		}
+	}()
 
 	return server
 }
@@ -370,7 +377,9 @@ func NewAssumeE2EMockServer() *AssumeE2EMockServer {
 func (s *AssumeE2EMockServer) Close() {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
-	s.Server.Shutdown(ctx)
+	if err := s.Server.Shutdown(ctx); err != nil {
+		fmt.Printf("Error shutting down server: %v\n", err)
+	}
 }
 
 func (s *AssumeE2EMockServer) SetAccessToken(token string) {
@@ -392,7 +401,9 @@ func (s *AssumeE2EMockServer) handleGetRoleCredentials(w http.ResponseWriter, r 
 	}
 
 	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		fmt.Printf("Error encoding response: %v\n", err)
+	}
 }
 
 func (s *AssumeE2EMockServer) handleListAccounts(w http.ResponseWriter, r *http.Request) {
@@ -407,7 +418,9 @@ func (s *AssumeE2EMockServer) handleListAccounts(w http.ResponseWriter, r *http.
 	}
 
 	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		fmt.Printf("Error encoding response: %v\n", err)
+	}
 }
 
 func (s *AssumeE2EMockServer) handleCreateToken(w http.ResponseWriter, r *http.Request) {
@@ -419,7 +432,9 @@ func (s *AssumeE2EMockServer) handleCreateToken(w http.ResponseWriter, r *http.R
 	}
 
 	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		fmt.Printf("Error encoding response: %v\n", err)
+	}
 }
 
 func (s *AssumeE2EMockServer) handleListAccountRoles(w http.ResponseWriter, r *http.Request) {
@@ -433,5 +448,7 @@ func (s *AssumeE2EMockServer) handleListAccountRoles(w http.ResponseWriter, r *h
 	}
 
 	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
-	json.NewEncoder(w).Encode(response)
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		fmt.Printf("Error encoding response: %v\n", err)
+	}
 }
