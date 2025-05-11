@@ -24,6 +24,7 @@ import (
 	"github.com/common-fate/granted/pkg/accessrequest"
 	"github.com/common-fate/granted/pkg/cache"
 	"github.com/common-fate/granted/pkg/cfaws"
+	"github.com/common-fate/granted/pkg/config"
 	grantedConfig "github.com/common-fate/granted/pkg/config"
 	"github.com/common-fate/granted/pkg/frecency"
 	"github.com/common-fate/granted/pkg/securestorage"
@@ -734,7 +735,7 @@ func updateCachedAccessRule(ctx context.Context, opts updateCacheOpts) error {
 }
 
 func getCacheFolder(depID string) (string, error) {
-	configFolder, err := grantedConfig.GrantedCacheFolder()
+	configFolder, err := config.GrantedCacheFolder()
 	if err != nil {
 		return "", err
 	}
