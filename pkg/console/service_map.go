@@ -26,6 +26,7 @@ var ServiceMap = map[string]string{
 	"codepipeline":   "codepipeline",
 	"codesuite":      "codesuite",
 	"config":         "config",
+	"controltower":   "controltower",
 	"ct":             "cloudtrail",
 	"cw":             "cloudwatch",
 	"ddb":            "dynamodbv2",
