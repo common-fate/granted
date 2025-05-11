@@ -14,7 +14,6 @@ import (
 	"github.com/common-fate/granted/pkg/browser"
 	"github.com/common-fate/granted/pkg/chromemsg"
 	"github.com/common-fate/granted/pkg/config"
-	"github.com/common-fate/useragent"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -154,9 +153,6 @@ func GetCliApp() *cli.App {
 			if os.Getenv("FORCE_NO_ALIAS") != "true" {
 				return alias.MustBeConfigured(c.Bool("auto-configure-shell"))
 			}
-
-			// set the user agent
-			c.Context = useragent.NewContext(c.Context, "granted", build.Version)
 
 			return nil
 		},
