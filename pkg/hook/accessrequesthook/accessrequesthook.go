@@ -474,7 +474,7 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 			continue
 		}
 
-		color.New(color.FgWhite).Fprintf(os.Stderr, "[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
+		_, _ = color.New(color.FgWhite).Fprintf(os.Stderr, "[UNSPECIFIED] %s is in an unspecified status: %s\n. This is most likely due to an error in Common Fate and should be reported to our team: support@commonfate.io.", g.Grant.Name, requestURL(apiURL, g.Grant))
 	}
 
 	printdiags.Print(res.Msg.Diagnostics, names)
