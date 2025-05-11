@@ -3,6 +3,7 @@ package integration_testing
 import (
 	"bytes"
 	"context"
+	"crypto/sha1"
 	"encoding/json"
 	"fmt"
 	"net"
@@ -140,6 +141,174 @@ FileBackend = ""
 			t.Errorf("Unexpected output format: %s", output)
 		}
 	})
+
+	t.Run("AssumeProfileWithSSO", func(t *testing.T) {
+		// Create AWS config with SSO profile
+		ssoConfig := fmt.Sprintf(`[profile test-sso]
+sso_account_id = 123456789012
+sso_role_name = TestRole
+sso_region = us-east-1
+sso_start_url = %s
+region = us-east-1
+`, mockServer.URL)
+
+		// Update AWS config file with SSO profile
+		err := os.WriteFile(awsConfigPath, []byte(awsConfig+"\n"+ssoConfig), 0644)
+		require.NoError(t, err)
+
+		// Create SSO cache directory and token
+		ssoCacheDir := filepath.Join(awsDir, "sso", "cache")
+		err = os.MkdirAll(ssoCacheDir, 0755)
+		require.NoError(t, err)
+
+		// Create a cached SSO token
+		tokenData := map[string]interface{}{
+			"accessToken":  "cached-test-token",
+			"expiresAt":    time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+			"region":       "us-east-1",
+			"startUrl":     mockServer.URL,
+		}
+		tokenBytes, err := json.Marshal(tokenData)
+		require.NoError(t, err)
+
+		// The cache filename is a SHA1 hash of the session name
+		// For AWS SSO, the session name is derived from the start URL
+		h := sha1.New()
+		h.Write([]byte(mockServer.URL))
+		cacheFile := filepath.Join(ssoCacheDir, fmt.Sprintf("%x.json", h.Sum(nil)))
+		err = os.WriteFile(cacheFile, tokenBytes, 0600)
+		require.NoError(t, err)
+
+		// Set up environment
+		env := []string{
+			fmt.Sprintf("HOME=%s", homeDir),
+			fmt.Sprintf("AWS_CONFIG_FILE=%s", awsConfigPath),
+			fmt.Sprintf("XDG_CONFIG_HOME=%s", xdgConfigHome),
+			"GRANTED_QUIET=true",        // Suppress output messages
+			"FORCE_NO_ALIAS=true",       // Skip alias configuration
+			"FORCE_ASSUME_CLI=true",     // Force assume mode
+			"PATH=" + os.Getenv("PATH"), // Preserve PATH
+		}
+
+		// Run assume command with SSO profile
+		cmd := exec.Command(grantedBinary, "test-sso")
+		cmd.Env = env
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		err = cmd.Run()
+		if err != nil {
+			t.Fatalf("Assume command failed: %v\nStdout: %s\nStderr: %s", err, stdout.String(), stderr.String())
+		}
+
+		// Parse output
+		output := stdout.String()
+		t.Logf("Assume output: %s", output)
+
+		// The assume command outputs credentials in a specific format
+		assert.Contains(t, output, "GrantedAssume")
+
+		// Extract credentials from output
+		parts := strings.Fields(output)
+		if len(parts) >= 4 {
+			accessKey := parts[1]
+			secretKey := parts[2]
+			sessionToken := parts[3]
+
+			// For SSO profiles, we expect temporary credentials from the mock server
+			assert.Equal(t, "ASIAMOCKEXAMPLE", accessKey)
+			assert.Equal(t, "mock-secret-key", secretKey)
+			assert.Equal(t, "mock-session-token", sessionToken)
+		} else {
+			t.Errorf("Unexpected output format: %s", output)
+		}
+	})
+
+	t.Run("AssumeProfileWithGrantedSSO", func(t *testing.T) {
+		// Create AWS config with granted_sso_ profile configuration
+		grantedSSOConfig := fmt.Sprintf(`[profile test-granted-sso]
+granted_sso_account_id = 123456789012
+granted_sso_role_name = TestRole
+granted_sso_region = us-east-1
+granted_sso_start_url = %s
+credential_process = %s credential-process --profile test-granted-sso
+region = us-east-1
+`, mockServer.URL, grantedBinary)
+
+		// Update AWS config file with granted SSO profile
+		err := os.WriteFile(awsConfigPath, []byte(awsConfig+"\n"+grantedSSOConfig), 0644)
+		require.NoError(t, err)
+
+		// Create SSO cache directory and token for the granted credential process
+		ssoCacheDir := filepath.Join(awsDir, "sso", "cache")
+		err = os.MkdirAll(ssoCacheDir, 0755)
+		require.NoError(t, err)
+
+		// Create a cached SSO token
+		tokenData := map[string]interface{}{
+			"accessToken":  "cached-test-token",
+			"expiresAt":    time.Now().Add(1 * time.Hour).Format(time.RFC3339),
+			"region":       "us-east-1",
+			"startUrl":     mockServer.URL,
+		}
+		tokenBytes, err := json.Marshal(tokenData)
+		require.NoError(t, err)
+
+		// The cache filename is a SHA1 hash of the start URL
+		h := sha1.New()
+		h.Write([]byte(mockServer.URL))
+		cacheFile := filepath.Join(ssoCacheDir, fmt.Sprintf("%x.json", h.Sum(nil)))
+		err = os.WriteFile(cacheFile, tokenBytes, 0600)
+		require.NoError(t, err)
+
+		// Set up environment
+		env := []string{
+			fmt.Sprintf("HOME=%s", homeDir),
+			fmt.Sprintf("AWS_CONFIG_FILE=%s", awsConfigPath),
+			fmt.Sprintf("XDG_CONFIG_HOME=%s", xdgConfigHome),
+			"GRANTED_QUIET=true",        // Suppress output messages
+			"FORCE_NO_ALIAS=true",       // Skip alias configuration
+			"FORCE_ASSUME_CLI=true",     // Force assume mode
+			"PATH=" + os.Getenv("PATH"), // Preserve PATH
+		}
+
+		// Run assume command with granted SSO profile
+		cmd := exec.Command(grantedBinary, "test-granted-sso")
+		cmd.Env = env
+
+		var stdout, stderr bytes.Buffer
+		cmd.Stdout = &stdout
+		cmd.Stderr = &stderr
+
+		err = cmd.Run()
+		if err != nil {
+			t.Fatalf("Assume command failed: %v\nStdout: %s\nStderr: %s", err, stdout.String(), stderr.String())
+		}
+
+		// Parse output
+		output := stdout.String()
+		t.Logf("Assume output: %s", output)
+
+		// The assume command outputs credentials in a specific format
+		assert.Contains(t, output, "GrantedAssume")
+
+		// Extract credentials from output
+		parts := strings.Fields(output)
+		if len(parts) >= 4 {
+			accessKey := parts[1]
+			secretKey := parts[2]
+			sessionToken := parts[3]
+
+			// For granted SSO profiles with credential process, we expect temporary credentials
+			assert.Equal(t, "ASIAMOCKEXAMPLE", accessKey)
+			assert.Equal(t, "mock-secret-key", secretKey)
+			assert.Equal(t, "mock-session-token", sessionToken)
+		} else {
+			t.Errorf("Unexpected output format: %s", output)
+		}
+	})
 }
 
 // AssumeE2EMockServer is a specialized mock server for assume command testing
@@ -171,6 +340,8 @@ func NewAssumeE2EMockServer() *AssumeE2EMockServer {
 			server.handleGetRoleCredentials(w, r)
 		case "AWSSSSOPortalService.ListAccounts":
 			server.handleListAccounts(w, r)
+		case "AWSSSSOPortalService.ListAccountRoles":
+			server.handleListAccountRoles(w, r)
 		case "SSOOIDCService.CreateToken":
 			server.handleCreateToken(w, r)
 		default:
@@ -245,6 +416,20 @@ func (s *AssumeE2EMockServer) handleCreateToken(w http.ResponseWriter, r *http.R
 		"tokenType":    "Bearer",
 		"expiresIn":    3600,
 		"refreshToken": "mock-refresh-token",
+	}
+
+	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
+	json.NewEncoder(w).Encode(response)
+}
+
+func (s *AssumeE2EMockServer) handleListAccountRoles(w http.ResponseWriter, r *http.Request) {
+	response := map[string]interface{}{
+		"roleList": []map[string]interface{}{
+			{
+				"roleName":    "TestRole",
+				"accountId":   "123456789012",
+			},
+		},
 	}
 
 	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
