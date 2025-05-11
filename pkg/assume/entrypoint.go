@@ -30,7 +30,7 @@ func GlobalFlags() []cli.Flag {
 		&cli.BoolFlag{Name: "export-sso-token", Aliases: []string{"es"}, Usage: "Export sso token to ~/.aws/sso/cache"},
 		&cli.BoolFlag{Name: "unset", Aliases: []string{"un"}, Usage: "Unset all environment variables configured by Assume"},
 		&cli.BoolFlag{Name: "url", Aliases: []string{"u"}, Usage: "Get an active console session url"},
-		&cli.StringSliceFlag{Name: "service", Aliases: []string{"s"}, Usage: "Like --c, but opens to a specified service"},
+		&cli.StringFlag{Name: "service", Aliases: []string{"s"}, Usage: "Like --c, but opens to a specified service"},
 		&cli.StringFlag{Name: "region", Aliases: []string{"r"}, Usage: "region to launch the console or export to the terminal"},
 		&cli.StringFlag{Name: "console-destination", Aliases: []string{"cd"}, Usage: "Open a web console at this destination"},
 		&cli.StringSliceFlag{Name: "pass-through", Aliases: []string{"pt"}, Usage: "Pass args to proxy assumer"},
