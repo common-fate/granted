@@ -59,7 +59,9 @@ func TestAssumeCommandE2E(t *testing.T) {
 	tempDir := t.TempDir()
 	homeDir := filepath.Join(tempDir, "home")
 	awsDir := filepath.Join(homeDir, ".aws")
-	grantedDir := filepath.Join(homeDir, ".granted")
+	// Use XDG_CONFIG_HOME to set custom config directory
+	xdgConfigHome := filepath.Join(tempDir, "config")
+	grantedDir := filepath.Join(xdgConfigHome, "granted")
 
 	for _, dir := range []string{awsDir, grantedDir} {
 		err := os.MkdirAll(dir, 0755)
@@ -94,7 +96,7 @@ FileBackend = ""
 		env := []string{
 			fmt.Sprintf("HOME=%s", homeDir),
 			fmt.Sprintf("AWS_CONFIG_FILE=%s", awsConfigPath),
-			fmt.Sprintf("GRANTED_STATE_DIR=%s", grantedDir),
+			fmt.Sprintf("XDG_CONFIG_HOME=%s", xdgConfigHome),
 			"GRANTED_QUIET=true",        // Suppress output messages
 			"FORCE_NO_ALIAS=true",       // Skip alias configuration
 			"FORCE_ASSUME_CLI=true",     // Force assume mode
