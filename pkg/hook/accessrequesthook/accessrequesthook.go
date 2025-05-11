@@ -210,14 +210,14 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	si.Suffix = " ensuring access..."
 	si.Writer = os.Stderr
-	si.Start()
+	_ = si.Start()
 
 	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
 	if err != nil {
-		si.Stop()
+		_ = si.Stop()
 		return false, nil, justActivated, err
 	}
-	si.Stop()
+	_ = si.Stop()
 	//prints response diag messages
 	printdiags.Print(res.Msg.Diagnostics, nil)
 
@@ -246,8 +246,8 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 			if g.Grant.Extension != nil {
 				extendedTime = ShortDur(g.Grant.Extension.ExtensionDurationSeconds.AsDuration())
 			}
-			_, _ = color.New(color.BgBlue).Printf("[EXTENDED]")
-			_, _ = color.New(color.FgBlue).Printf(" %s was extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.BgBlue).Fprintf(os.Stderr, "[EXTENDED]")
+			_, _ = color.New(color.FgBlue).Fprintf(os.Stderr, " %s was extended for another %s: %s\n", g.Grant.Name, extendedTime, requestURL(apiURL, g.Grant))
 			_, _ = color.New(color.FgGreen).Printf(" %s will now expire in %s\n", g.Grant.Name, exp)
 
 			retry = true
@@ -256,7 +256,7 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
 			_, _ = color.New(color.BgHiYellow, color.FgBlack).Fprintf(os.Stderr, "[REQUESTED]")
-			color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgYellow).Fprintf(os.Stderr, " %s requires approval: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
 			if input.Wait {
 				return true, res.Msg, justActivated, nil
@@ -266,7 +266,7 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:
 			// shouldn't happen in the dry-run request but handle anyway
-			color.New(color.FgRed).Fprintf(os.Stderr, "[ERROR] %s failed provisioning: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
+			_, _ = color.New(color.FgRed).Fprintf(os.Stderr, "[ERROR] %s failed provisioning: %s\n", g.Grant.Name, requestURL(apiURL, g.Grant))
 
 			return false, nil, justActivated, errors.New("access provisioning failed")
 		}
@@ -399,15 +399,15 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	si.Suffix = " planning access changes..."
 	si.Writer = os.Stderr
-	si.Start()
+	_ = si.Start()
 
 	res, err := client.BatchEnsure(ctx, connect.NewRequest(req))
 	if err != nil {
-		si.Stop()
+		_ = si.Stop()
 		return false, nil, err
 	}
 
-	si.Stop()
+	_ = si.Stop()
 
 	clio.Debugw("BatchEnsure response", "response", res)
 

@@ -89,11 +89,11 @@ func ExpandRegion(region string) (string, error) {
 			minor = "south"
 		}
 		if len(region) > 1 {
-			if region[1] == 'w' {
+			switch region[1] {
+			case 'w':
 				minor += "west"
 				idx += 1
-
-			} else if region[1] == 'e' {
+			case 'e':
 				minor += "east"
 				idx += 1
 			}

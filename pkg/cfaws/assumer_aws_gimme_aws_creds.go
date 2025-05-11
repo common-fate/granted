@@ -92,7 +92,7 @@ func (gimme *AwsGimmeAwsCredsAssumer) AssumeTerminal(ctx context.Context, c *Pro
 			return aws.Credentials{}, fmt.Errorf("failed to load gimme config file: %w", err)
 		}
 		if !gimme.CanRefreshHeadless(c.Name) {
-			return aws.Credentials{}, fmt.Errorf("Cannot use gimme-aws-creds in credential_process with force_classic or <2.6.0")
+			return aws.Credentials{}, fmt.Errorf("cannot use gimme-aws-creds in credential_process with force_classic or <2.6.0")
 		}
 		gimme.forceOpenBrowser = true
 	}
@@ -196,7 +196,7 @@ func (gimme *AwsGimmeAwsCredsAssumer) ProfileMatchesType(rawProfile *ini.Section
 func (gimme *AwsGimmeAwsCredsAssumer) Version() (*version.Version, error) {
 	cmd, err := exec.Command("gimme-aws-creds", "--version").Output()
 	if err != nil {
-		return nil, fmt.Errorf("Failed to get gimme-aws-creds version %w", err)
+		return nil, fmt.Errorf("failed to get gimme-aws-creds version %w", err)
 	}
 
 	ver, err := version.NewVersion(strings.TrimSpace(strings.TrimPrefix(string(cmd), "gimme-aws-creds")))

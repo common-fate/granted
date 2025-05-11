@@ -49,7 +49,7 @@ func writeManifest(manifestPath string) error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	encoder := json.NewEncoder(file)
 	return encoder.Encode(manifest)
