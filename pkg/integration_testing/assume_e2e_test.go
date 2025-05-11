@@ -31,12 +31,12 @@ func TestAssumeCommandE2E(t *testing.T) {
 
 	// Check if there's a pre-built binary to use (for CI)
 	grantedBinary := os.Getenv("GRANTED_BINARY_PATH")
-	
+
 	if grantedBinary == "" {
 		// Build the granted binary which includes assume functionality
 		projectRoot := filepath.Join("..", "..", "..")
 		grantedBinary = filepath.Join(t.TempDir(), "dgranted")
-		
+
 		// Build with the dgranted name to trigger assume CLI
 		cmd := exec.Command("go", "build", "-o", grantedBinary, "./cmd/granted")
 		cmd.Dir = projectRoot
@@ -76,9 +76,14 @@ region = us-east-1
 	err := os.WriteFile(awsConfigPath, []byte(awsConfig), 0644)
 	require.NoError(t, err)
 
-	// Create granted config
-	grantedConfig := `DefaultBrowser = "stdout"
+	// Create granted config with all necessary fields to avoid interactive prompts
+	// Set CustomBrowserPath to "stdout" to satisfy the UserHasDefaultBrowser check
+	grantedConfig := `DefaultBrowser = "STDOUT"
+CustomBrowserPath = "stdout"
 Ordering = "Alphabetical"
+[Keyring]
+Backend = "file"
+FileBackend = ""
 `
 	grantedConfigPath := filepath.Join(grantedDir, "config")
 	err = os.WriteFile(grantedConfigPath, []byte(grantedConfig), 0644)
@@ -90,16 +95,16 @@ Ordering = "Alphabetical"
 			fmt.Sprintf("HOME=%s", homeDir),
 			fmt.Sprintf("AWS_CONFIG_FILE=%s", awsConfigPath),
 			fmt.Sprintf("GRANTED_STATE_DIR=%s", grantedDir),
-			"GRANTED_QUIET=true",  // Suppress output messages
-			"FORCE_NO_ALIAS=true", // Skip alias configuration
-			"FORCE_ASSUME_CLI=true", // Force assume mode
+			"GRANTED_QUIET=true",        // Suppress output messages
+			"FORCE_NO_ALIAS=true",       // Skip alias configuration
+			"FORCE_ASSUME_CLI=true",     // Force assume mode
 			"PATH=" + os.Getenv("PATH"), // Preserve PATH
 		}
 
 		// Run assume command with IAM profile
 		cmd := exec.Command(grantedBinary, "test-iam")
 		cmd.Env = env
-		
+
 		var stdout, stderr bytes.Buffer
 		cmd.Stdout = &stdout
 		cmd.Stderr = &stderr
@@ -115,17 +120,17 @@ Ordering = "Alphabetical"
 
 		// The assume command outputs credentials in a specific format
 		assert.Contains(t, output, "GrantedAssume")
-		
+
 		// Extract credentials from output
 		parts := strings.Fields(output)
 		if len(parts) >= 4 {
 			accessKey := parts[1]
 			secretKey := parts[2]
-			
+
 			// For IAM profiles, we expect the actual keys to be output
 			assert.Equal(t, "AKIAIOSFODNN7EXAMPLE", accessKey)
 			assert.NotEqual(t, "None", secretKey)
-			
+
 			// Session token should be "None" for IAM profiles
 			sessionToken := parts[3]
 			assert.Equal(t, "None", sessionToken)
@@ -147,16 +152,16 @@ func NewAssumeE2EMockServer() *AssumeE2EMockServer {
 	server := &AssumeE2EMockServer{
 		accessToken: "default-test-token",
 	}
-	
+
 	mux := http.NewServeMux()
 	server.Server = &http.Server{Handler: mux}
-	
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		server.accessCount++
-		
+
 		// Log the request for debugging
 		fmt.Printf("Mock server received: %s %s %s\n", r.Method, r.URL.Path, r.Header.Get("X-Amz-Target"))
-		
+
 		// Handle SSO operations
 		target := r.Header.Get("X-Amz-Target")
 		switch target {
@@ -183,7 +188,7 @@ func NewAssumeE2EMockServer() *AssumeE2EMockServer {
 
 	serverURL := fmt.Sprintf("http://%s", listener.Addr().String())
 	server.URL = serverURL
-	
+
 	go server.Server.Serve(listener)
 
 	return server
@@ -209,10 +214,10 @@ func (s *AssumeE2EMockServer) handleGetRoleCredentials(w http.ResponseWriter, r 
 			"accessKeyId":     "ASIAMOCKEXAMPLE",
 			"secretAccessKey": "mock-secret-key",
 			"sessionToken":    "mock-session-token",
-			"expiration":      time.Now().Add(1 * time.Hour).Unix() * 1000,
+			"expiration":      time.Now().Add(1*time.Hour).Unix() * 1000,
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
 	json.NewEncoder(w).Encode(response)
 }
@@ -227,7 +232,7 @@ func (s *AssumeE2EMockServer) handleListAccounts(w http.ResponseWriter, r *http.
 			},
 		},
 	}
-	
+
 	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
 	json.NewEncoder(w).Encode(response)
 }
@@ -239,7 +244,7 @@ func (s *AssumeE2EMockServer) handleCreateToken(w http.ResponseWriter, r *http.R
 		"expiresIn":    3600,
 		"refreshToken": "mock-refresh-token",
 	}
-	
+
 	w.Header().Set("Content-Type", "application/x-amz-json-1.1")
 	json.NewEncoder(w).Encode(response)
 }
