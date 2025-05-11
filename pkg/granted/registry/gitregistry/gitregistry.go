@@ -20,6 +20,7 @@ type Opts struct {
 	URL          string
 	Path         string
 	Filename     string
+	Ref          string
 	RequiredKeys []string
 	Interactive  bool
 }

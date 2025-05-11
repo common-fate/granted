@@ -37,6 +37,7 @@ func GetProfileRegistries(interactive bool) ([]loadedRegistry, error) {
 				URL:         r.URL,
 				Path:        r.Path,
 				Filename:    r.Filename,
+				Ref:         r.Ref,
 				Interactive: interactive,
 			})
 
