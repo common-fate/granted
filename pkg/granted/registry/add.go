@@ -29,7 +29,7 @@ var AddCommand = cli.Command{
 		&cli.StringFlag{Name: "path", Usage: "For git registries: provide path if only the subfolder needs to be synced", Aliases: []string{"p"}},
 		&cli.StringFlag{Name: "filename", Aliases: []string{"f"}, Usage: "For git registries:  provide filename if yml file is not granted.yml", DefaultText: "granted.yml"},
 		&cli.IntFlag{Name: "priority", Usage: "The priority for the profile registry", Value: 0},
-		&cli.StringFlag{Name: "ref", Hidden: true},
+		&cli.StringFlag{Name: "ref", Usage: "Git ref (branch, tag, or commit) to checkout"},
 		&cli.BoolFlag{Name: "prefix-all-profiles", Aliases: []string{"pap"}, Usage: "Provide this flag if you want to append registry name to all profiles"},
 		&cli.BoolFlag{Name: "prefix-duplicate-profiles", Aliases: []string{"pdp"}, Usage: "Provide this flag if you want to append registry name to duplicate profiles"},
 		&cli.BoolFlag{Name: "write-on-sync-failure", Aliases: []string{"wosf"}, Usage: "Always overwrite AWS config, even if sync fails (DEPRECATED)"},
@@ -93,6 +93,7 @@ var AddCommand = cli.Command{
 			URL:          URL,
 			Path:         pathFlag,
 			Filename:     configFileName,
+			Ref:          ref,
 			RequiredKeys: requiredKey,
 			Interactive:  true,
 		})
