@@ -462,7 +462,7 @@ func requestAccess(ctx context.Context, opts requestAccessOpts) error {
 		return err
 	}
 
-	err = grantedConfig.SaveTo(configFilename)
+	err = config.SaveTo(configFilename)
 	if err != nil {
 		return err
 	}
