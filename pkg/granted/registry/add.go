@@ -61,7 +61,7 @@ var AddCommand = cli.Command{
 		registryType := c.String("type")
 
 		if registryType == "http" {
-			return fmt.Errorf("HTTP registries are not longer supported in this version of Granted: if you are impacted by this please raise an issue on the Granted GitHub repository.")
+			return fmt.Errorf("HTTP registries are not longer supported in this version of Granted: if you are impacted by this please raise an issue: https://github.com/common-fate/granted/issues/new")
 		}
 
 		if registryType != "git" {
