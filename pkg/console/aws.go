@@ -13,7 +13,7 @@ import (
 type AWS struct {
 	Profile     string
 	Region      string
-	Service     string
+	Service     []string
 	Destination string
 }
 
@@ -28,11 +28,39 @@ type awsSession struct {
 	SessionToken string `json:"sessionToken"`
 }
 
+func (a AWS) URLs(creds aws.Credentials) ([]string, error) {
+
+	urls := []string{}
+
+	//if region and service were not specified create a single default url and return
+	if a.Region == "" && len(a.Service) == 0 {
+		url, err := a.URL(creds, "", "")
+		if err != nil {
+			return nil, err
+		}
+		urls = append(urls, url)
+		return urls, nil
+	}
+
+	//if one or more services were specified in the assume command then create multiple urls to be opened up in the browser
+	if len(a.Service) > 0 {
+		for _, service := range a.Service {
+			url, err := a.URL(creds, a.Region, service)
+			if err != nil {
+				return nil, err
+			}
+			urls = append(urls, url)
+		}
+	}
+
+	return urls, nil
+}
+
 // URL retrieves an authorised access URL for the AWS console. The URL includes a security token which is retrieved
 // by exchanging AWS session credentials using the AWS federation endpoint.
 //
 // see: https://docs.aws.amazon.com/IAM/latest/UserGuide/example_sts_Scenario_ConstructFederatedUrl_section.html
-func (a AWS) URL(creds aws.Credentials) (string, error) {
+func (a AWS) URL(creds aws.Credentials, region string, service string) (string, error) {
 	sess := awsSession{
 		SessionID:    creds.AccessKeyID,
 		SessionKey:   creds.SecretAccessKey,
@@ -43,12 +71,12 @@ func (a AWS) URL(creds aws.Credentials) (string, error) {
 		return "", err
 	}
 
-	partition := GetPartitionFromRegion(a.Region)
+	partition := GetPartitionFromRegion(region)
 	clio.Debugf("Partition is detected as %s for region %s...\n", partition, a.Region)
 
 	u := url.URL{
 		Scheme: "https",
-		Host:   partition.RegionalHostString(a.Region),
+		Host:   partition.RegionalHostString(region),
 		Path:   "/federation",
 	}
 	q := u.Query()
@@ -75,11 +103,11 @@ func (a AWS) URL(creds aws.Credentials) (string, error) {
 
 	u = url.URL{
 		Scheme: "https",
-		Host:   partition.RegionalHostString(a.Region),
+		Host:   partition.RegionalHostString(region),
 		Path:   "/federation",
 	}
 
-	dest, err := makeDestinationURL(a.Service, a.Region, a.Destination)
+	dest, err := makeDestinationURL(service, region, a.Destination)
 
 	if err != nil {
 		return "", err
