@@ -210,14 +210,14 @@ func (h Hook) NoEntitlementAccess(ctx context.Context, cfg *config.Context, inpu
 	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	si.Suffix = " ensuring access..."
 	si.Writer = os.Stderr
-	_ = si.Start()
+	si.Start()
 
 	res, err := accessclient.BatchEnsure(ctx, connect.NewRequest(&req))
 	if err != nil {
-		_ = si.Stop()
+		si.Stop()
 		return false, nil, justActivated, err
 	}
-	_ = si.Stop()
+	si.Stop()
 	//prints response diag messages
 	printdiags.Print(res.Msg.Diagnostics, nil)
 
@@ -399,15 +399,15 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 	si := spinner.New(spinner.CharSets[14], 100*time.Millisecond)
 	si.Suffix = " planning access changes..."
 	si.Writer = os.Stderr
-	_ = si.Start()
+	si.Start()
 
 	res, err := client.BatchEnsure(ctx, connect.NewRequest(req))
 	if err != nil {
-		_ = si.Stop()
+		si.Stop()
 		return false, nil, err
 	}
 
-	_ = si.Stop()
+	si.Stop()
 
 	clio.Debugw("BatchEnsure response", "response", res)
 
