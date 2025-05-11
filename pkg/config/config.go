@@ -279,7 +279,7 @@ func Load() (*Config, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 
 	c := NewDefaultConfig()
 
@@ -301,6 +301,6 @@ func (c *Config) Save() error {
 	if err != nil {
 		return err
 	}
-	defer file.Close()
+	defer func() { _ = file.Close() }()
 	return toml.NewEncoder(file).Encode(c)
 }
