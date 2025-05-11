@@ -451,13 +451,13 @@ func DryRun(ctx context.Context, apiURL *url.URL, client accessv1alpha1connect.A
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_REQUESTED:
-			color.New(color.BgHiYellow, color.FgBlack).Fprintf(os.Stderr, "[WILL REQUEST]")
-			color.New(color.FgYellow).Fprintf(os.Stderr, " %s will require approval\n", g.Grant.Name)
+			_, _ = color.New(color.BgHiYellow, color.FgBlack).Fprintf(os.Stderr, "[WILL REQUEST]")
+			_, _ = color.New(color.FgYellow).Fprintf(os.Stderr, " %s will require approval\n", g.Grant.Name)
 			continue
 
 		case accessv1alpha1.GrantChange_GRANT_CHANGE_PROVISIONING_FAILED:
 			// shouldn't happen in the dry-run request but handle anyway
-			color.New(color.FgRed).Fprintf(os.Stderr, "[ERROR] %s will fail provisioning\n", g.Grant.Name)
+			_, _ = color.New(color.FgRed).Fprintf(os.Stderr, "[ERROR] %s will fail provisioning\n", g.Grant.Name)
 			continue
 		}
 
